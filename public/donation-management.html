@@ -926,6 +926,125 @@
         }
     </style>
     <link rel="stylesheet" href="/styles/theme-2026.css">
+    <style>
+    /* =========================================================
+       ГЛУБОКИЙ РЕДИЗАЙН СТРАНИЦЫ (перекрывает всё выше)
+       ========================================================= */
+    body.theme-neon.theme-2026 {
+        background: #0e0e12 !important;
+    }
+    /* живой фон */
+    body.theme-neon.theme-2026::before {
+        content: '';
+        position: fixed; inset: 0; z-index: 0; pointer-events: none;
+        background:
+            radial-gradient(45% 35% at 88% 6%, rgba(255,90,120,.14), transparent 60%),
+            radial-gradient(40% 35% at 6% 96%, rgba(110,90,255,.12), transparent 60%);
+        animation: ddmDrift 24s ease-in-out infinite alternate;
+    }
+    @keyframes ddmDrift { 0%{transform:translate3d(0,0,0)} 100%{transform:translate3d(2%,2%,0) scale(1.06)} }
+    body.theme-neon.theme-2026 > *:not(script) { position: relative; z-index: 1; }
+
+    /* HERO-шапка */
+    .theme-2026 .page-header {
+        max-width: 1440px; margin: 0 auto; padding: 160px 28px 14px !important;
+        background: none !important; border: none !important; text-align: left !important;
+    }
+    .theme-2026 .page-title {
+        font-size: clamp(2rem, 4vw, 3rem) !important; font-weight: 800 !important;
+        letter-spacing: -1.2px !important; line-height: 1.05 !important;
+        background: linear-gradient(135deg,#ff8a3d,#ff2d6f) !important;
+        -webkit-background-clip: text !important; background-clip: text !important;
+        color: transparent !important; text-shadow: none !important;
+    }
+    .theme-2026 .page-subtitle {
+        color: #8b8b97 !important; font-size: 1.05rem !important; margin-top: 12px !important; max-width: 560px;
+    }
+
+    /* контейнер-сетка */
+    .theme-2026 .container {
+        max-width: 1440px !important; margin: 0 auto !important; padding: 16px 28px 60px !important;
+    }
+
+    /* Вкладки — сегмент-контрол */
+    .theme-2026 .tabs-header {
+        gap: 8px !important; padding: 8px !important;
+        background: rgba(255,255,255,.04) !important;
+        border: 1px solid rgba(255,255,255,.07) !important;
+        border-radius: 16px !important; backdrop-filter: blur(16px);
+    }
+    .theme-2026 .tab-button {
+        border: 1px solid transparent !important; background: transparent !important;
+        color: #8b8b97 !important; border-radius: 11px !important; font-weight: 600 !important;
+        padding: 10px 16px !important; transition: all .26s cubic-bezier(.2,.7,.3,1) !important;
+        box-shadow: none !important;
+    }
+    .theme-2026 .tab-button:hover { color: #f3f3f6 !important; background: rgba(255,255,255,.05) !important; }
+    .theme-2026 .tab-button.active {
+        background: linear-gradient(135deg,#ff8a3d,#ff2d6f) !important; color: #fff !important;
+        box-shadow: 0 10px 24px -12px rgba(255,80,110,.8) !important;
+    }
+
+    /* Секции — стеклянные панели */
+    .theme-2026 .section,
+    .theme-2026 .fixed-preview-wrapper {
+        background: rgba(255,255,255,.035) !important;
+        border: 1px solid rgba(255,255,255,.07) !important;
+        border-radius: 22px !important; padding: 26px !important;
+        box-shadow: 0 18px 40px -24px rgba(0,0,0,.7) !important;
+        backdrop-filter: blur(16px); margin-bottom: 18px !important;
+    }
+    .theme-2026 .section-title, .theme-2026 .fixed-preview-title {
+        color: #f3f3f6 !important; font-weight: 700 !important; letter-spacing: -.3px !important;
+        text-shadow: none !important; -webkit-text-fill-color: #f3f3f6 !important;
+    }
+
+    /* Карточки статистики */
+    .theme-2026 .stats-grid { gap: 14px !important; }
+    .theme-2026 .stat-card {
+        position: relative; overflow: hidden;
+        background: radial-gradient(120% 80% at 100% 0%, rgba(255,94,126,.08), transparent 55%), rgba(255,255,255,.035) !important;
+        border: 1px solid rgba(255,255,255,.08) !important; border-radius: 18px !important;
+        padding: 22px !important; transition: transform .26s cubic-bezier(.2,.7,.3,1), box-shadow .26s, border-color .26s !important;
+    }
+    .theme-2026 .stat-card:hover {
+        transform: translateY(-4px); border-color: rgba(255,255,255,.18) !important;
+        box-shadow: 0 22px 44px -22px rgba(0,0,0,.85), 0 0 50px -22px rgba(255,94,126,.5) !important;
+    }
+    .theme-2026 .stat-card .stat-value {
+        font-weight: 800 !important; font-size: 1.7rem !important; letter-spacing: -.5px !important;
+        background: linear-gradient(135deg,#ff8a3d,#ff2d6f) !important;
+        -webkit-background-clip: text !important; background-clip: text !important;
+        color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important;
+    }
+    .theme-2026 .stat-card:nth-child(2) .stat-value { background: linear-gradient(135deg,#3b9dff,#4be0ff) !important; -webkit-background-clip: text !important; background-clip: text !important; }
+    .theme-2026 .stat-card:nth-child(3) .stat-value { background: linear-gradient(135deg,#19c37d,#11d6a4) !important; -webkit-background-clip: text !important; background-clip: text !important; }
+    .theme-2026 .stat-card:nth-child(4) .stat-value { background: linear-gradient(135deg,#7b5cff,#b14bff) !important; -webkit-background-clip: text !important; background-clip: text !important; }
+    .theme-2026 .stat-card .stat-label { color: #8b8b97 !important; }
+
+    /* Поля ввода */
+    .theme-2026 .container input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=range]),
+    .theme-2026 .container select,
+    .theme-2026 .container textarea {
+        background: #14141a !important; border: 1px solid rgba(255,255,255,.08) !important;
+        border-radius: 12px !important; color: #f3f3f6 !important; padding: 11px 14px !important;
+    }
+    .theme-2026 .container input:focus, .theme-2026 .container select:focus, .theme-2026 .container textarea:focus {
+        border-color: #4be0ff !important; outline: none !important;
+    }
+
+    /* Кнопки действий */
+    .theme-2026 .section button:not(.tab-button),
+    .theme-2026 .save-btn, .theme-2026 .btn, .theme-2026 .copy-btn {
+        border-radius: 12px !important; font-weight: 600 !important; border: 1px solid rgba(255,255,255,.14) !important;
+        transition: all .26s cubic-bezier(.2,.7,.3,1) !important; box-shadow: none !important;
+    }
+    .theme-2026 .save-btn, .theme-2026 .btn-primary, .theme-2026 .btn-save,
+    .theme-2026 button[class*="save"], .theme-2026 button[class*="primary"], .theme-2026 button[class*="copy"] {
+        background: linear-gradient(135deg,#ff8a3d,#ff2d6f) !important; color: #fff !important; border-color: transparent !important;
+    }
+    .theme-2026 .section button:not(.tab-button):hover { transform: translateY(-1px); filter: brightness(1.08); }
+    </style>
 </head>
 <body class="theme-neon theme-2026">
     <!-- Включение меню -->
