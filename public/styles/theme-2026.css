@@ -350,6 +350,67 @@ body.theme-2026 .top-menu {
     border-radius: 12px !important; font-weight: 600 !important;
 }
 
+/* ---- Живой фон для всех панелей ---- */
+body.theme-2026::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(45% 35% at 90% 4%, rgba(255,90,120,.12), transparent 60%),
+        radial-gradient(40% 35% at 4% 98%, rgba(110,90,255,.10), transparent 60%);
+}
+body.theme-2026 > .top-menu { z-index: 1000 !important; }
+body.theme-2026 > .container,
+body.theme-2026 > .page-header,
+body.theme-2026 > #menu-container { position: relative; z-index: 1; }
+
+/* Контейнер с отступом под фиксированное меню */
+.theme-2026 .container {
+    max-width: 1440px !important; margin: 0 auto !important;
+    padding-left: 28px !important; padding-right: 28px !important; padding-top: 150px !important;
+}
+.theme-2026 .page-header + .container,
+.theme-2026 .page-header ~ .container { padding-top: 16px !important; }
+
+/* Hero-заголовок внутри .header */
+.theme-2026 .header { background: none !important; border: none !important; box-shadow: none !important; }
+.theme-2026 .header .title, .theme-2026 .container > .title {
+    font-size: clamp(1.9rem, 4vw, 2.8rem) !important; font-weight: 800 !important; letter-spacing: -1px !important;
+    background: var(--t-grad-orange) !important; -webkit-background-clip: text !important; background-clip: text !important;
+    color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important;
+}
+
+/* Навигационные пиллы */
+.theme-2026 .nav-link {
+    background: var(--t-surface) !important; border: 1px solid var(--t-border) !important; border-radius: 11px !important;
+    color: var(--t-text-dim) !important; padding: 9px 15px !important; font-weight: 600 !important;
+    text-shadow: none !important; box-shadow: none !important; transition: all var(--t-ease) !important;
+}
+.theme-2026 .nav-link:hover { background: var(--t-surface-2) !important; color: var(--t-text) !important; border-color: var(--t-border-2) !important; transform: translateY(-1px); }
+
+/* Заголовки внутри панелей — белые */
+.theme-2026 .panel h2, .theme-2026 .panel h3, .theme-2026 .section h2, .theme-2026 .section h3 {
+    color: var(--t-text) !important; text-shadow: none !important; -webkit-text-fill-color: var(--t-text) !important;
+}
+.theme-2026 .panel-success { box-shadow: inset 3px 0 0 0 #19c37d, var(--t-shadow) !important; }
+.theme-2026 .panel-warning { box-shadow: inset 3px 0 0 0 #ffc24b, var(--t-shadow) !important; }
+.theme-2026 .panel-danger  { box-shadow: inset 3px 0 0 0 #ff5e7e, var(--t-shadow) !important; }
+
+/* Кнопки */
+.theme-2026 .btn {
+    border-radius: 12px !important; font-weight: 600 !important; border: 1px solid var(--t-border-2) !important;
+    background: var(--t-surface-2) !important; color: var(--t-text) !important; text-shadow: none !important;
+    box-shadow: none !important; transition: all var(--t-ease) !important;
+}
+.theme-2026 .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+.theme-2026 .btn-success, .theme-2026 .frag-btn { background: var(--t-grad-green) !important; border-color: transparent !important; color:#fff !important; }
+.theme-2026 .btn-warning { background: var(--t-grad-gold) !important; border-color: transparent !important; color:#1a1205 !important; }
+.theme-2026 .btn-danger  { background: var(--t-grad-orange) !important; border-color: transparent !important; color:#fff !important; }
+
+/* Поля */
+.theme-2026 .input-field {
+    background: var(--t-bg-soft) !important; border: 1px solid var(--t-border) !important; border-radius: 12px !important; color: var(--t-text) !important;
+}
+.theme-2026 .input-field:focus { border-color: var(--t-accent-2) !important; outline: none !important; }
+
 /* Утилиты градиентных акцентов */
 .t-accent-orange { background: var(--t-grad-orange); }
 .t-accent-blue   { background: var(--t-grad-blue); }
