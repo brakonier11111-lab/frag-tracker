@@ -10,6 +10,7 @@
     "dev": "nodemon server.js",
     "init-db": "node init-db.js",
     "smoke-test": "node scripts/smoke-test.js",
+    "backup-db": "node scripts/backup-db.js",
     "stagewise": "stagewise",
     "electron": "electron .",
     "electron:dev": "electron .",
