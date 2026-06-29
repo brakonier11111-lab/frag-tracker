@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тест API</title>
+</head>
+<body>
+    <h1>Тест API DonationAlerts</h1>
+    <button onclick="testStatus()">Проверить статус</button>
+    <button onclick="testDonations()">Проверить донаты</button>
+    <div id="result"></div>
+
+    <script>
+        function showResult(data) {
+            document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+
+        async function testStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                showResult(data);
+            } catch (error) {
+                showResult({error: error.message});
+            }
+        }
+
+        async function testDonations() {
+            try {
+                const response = await fetch('/api/da-api-test');
+                const data = await response.json();
+                showResult(data);
+            } catch (error) {
+                showResult({error: error.message});
+            }
+        }
+    </script>
+</body>
+</html>

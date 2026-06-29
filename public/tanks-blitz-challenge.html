@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tanks Blitz Challenge | Битва Донатов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/styles/design-system.css">
+<link rel="stylesheet" href="/styles/layout.css">
+<style>
+:root{
+    --gold:#ffce46;--gold-deep:#ff9d00;--crimson:#ff2a45;--electric:#37d6ff;--steel:#8ea2c6;
+    --panel:rgba(16,20,34,0.66);--panel-2:rgba(10,13,24,0.82);--hud-line:rgba(120,180,255,0.16);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
+    background:
+        radial-gradient(1100px 640px at 82% -12%, rgba(255,157,0,0.10), transparent 60%),
+        radial-gradient(820px 560px at 8% 112%, rgba(55,214,255,0.08), transparent 60%),
+        linear-gradient(160deg,#05070f 0%,#080b18 45%,#0b0f20 100%);}
+#fxCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.5;}
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(var(--hud-line) 1px,transparent 1px),linear-gradient(90deg,var(--hud-line) 1px,transparent 1px);
+    background-size:64px 64px;mask-image:radial-gradient(circle at 50% 26%,#000 0%,transparent 76%);opacity:.45;}
+.app-main{position:relative;z-index:2;}
+.tbc-wrap{max-width:1180px;margin:0 auto;padding:24px clamp(14px,3vw,40px) 80px;}
+
+/* HEADER */
+.tbc-header{position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:24px 30px;margin-bottom:22px;border-radius:22px;overflow:hidden;
+    background:linear-gradient(135deg,rgba(26,20,8,0.85),rgba(12,15,28,0.85));
+    border:1px solid rgba(255,206,70,0.26);
+    box-shadow:0 24px 60px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.06),0 0 60px rgba(255,157,0,0.08);}
+.tbc-header::after{content:'';position:absolute;top:0;left:-60%;width:38%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,0.08),transparent);transform:skewX(-18deg);animation:sheen 8s ease-in-out infinite;}
+@keyframes sheen{0%,72%{left:-60%}100%{left:150%}}
+.tbc-kicker{display:inline-flex;align-items:center;gap:8px;font-size:.7rem;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:700;margin-bottom:6px;}
+.tbc-kicker .dot{width:8px;height:8px;border-radius:50%;background:var(--crimson);box-shadow:0 0 10px var(--crimson);animation:livedot 1.4s infinite;}
+@keyframes livedot{0%,100%{opacity:1}50%{opacity:.3}}
+.tbc-title{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(1.7rem,3.6vw,2.7rem);line-height:1;text-transform:uppercase;
+    background:linear-gradient(92deg,#fff4cf,var(--gold) 42%,var(--gold-deep) 72%,#ff5d3a);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.tbc-sub{margin-top:8px;color:var(--steel);font-size:.92rem;}
+.tbc-balance{position:relative;z-index:1;text-align:right;min-width:230px;}
+.tbc-balance .lbl{font-size:.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--steel);}
+.tbc-balance .val{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(1.9rem,4vw,3rem);line-height:1;
+    background:linear-gradient(180deg,#fff,#ffd86b 60%,#ff9d00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 16px rgba(255,170,0,0.3));}
+.tbc-balance .btn{margin-top:14px;}
+
+.btn{cursor:pointer;border:none;border-radius:12px;padding:10px 17px;font-weight:700;font-size:.84rem;letter-spacing:.4px;
+    display:inline-flex;align-items:center;gap:8px;transition:transform .15s,box-shadow .2s,filter .2s;color:#0a0a12;}
+.btn:hover{transform:translateY(-2px);}
+.btn-gold{background:linear-gradient(135deg,#ffe08a,var(--gold-deep));box-shadow:0 8px 24px rgba(255,157,0,0.32);}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#dfe8ff;border:1px solid rgba(255,255,255,0.14);}
+.btn-ghost:hover{background:rgba(255,255,255,0.12);}
+.btn-danger{background:linear-gradient(135deg,#ff6079,var(--crimson));color:#fff;box-shadow:0 8px 24px rgba(255,42,69,0.28);}
+.btn-green{background:linear-gradient(135deg,#5dffb0,#11c977);color:#04130b;box-shadow:0 8px 24px rgba(0,255,120,0.25);}
+
+/* TYPE SELECTOR */
+.type-seg{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+.type-btn{position:relative;cursor:pointer;border-radius:16px;padding:18px 16px;text-align:left;overflow:hidden;
+    background:linear-gradient(160deg,var(--panel),var(--panel-2));border:1px solid var(--glass-border);transition:.2s;}
+.type-btn:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.24);}
+.type-btn .ti{font-size:1.5rem;}
+.type-btn .tn{font-family:'Orbitron',monospace;font-weight:800;letter-spacing:.5px;margin-top:8px;text-transform:uppercase;font-size:.95rem;}
+.type-btn .td{font-size:.74rem;color:var(--steel);margin-top:4px;}
+.type-btn.active{border-color:var(--accent);box-shadow:0 0 34px var(--accent-glow);background:linear-gradient(160deg,rgba(255,255,255,.05),var(--panel-2));}
+.type-btn.active::after{content:'АКТИВЕН';position:absolute;top:12px;right:12px;font-size:.58rem;font-weight:800;letter-spacing:1px;color:var(--accent);}
+.type-btn[data-type=winrate]{--accent:var(--electric);--accent-glow:rgba(55,214,255,.28);}
+.type-btn[data-type=damage]{--accent:var(--crimson);--accent-glow:rgba(255,42,69,.28);}
+.type-btn[data-type=medals]{--accent:var(--gold);--accent-glow:rgba(255,170,0,.28);}
+
+/* SESSION BAR */
+.sess-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px;padding:14px 18px;border-radius:16px;
+    background:var(--panel);border:1px solid var(--glass-border);}
+.sess-status{display:inline-flex;align-items:center;gap:9px;font-size:.84rem;color:var(--steel);}
+.sess-status .ind{width:10px;height:10px;border-radius:50%;background:#5a6680;}
+.sess-status.on .ind{background:#0aff8a;box-shadow:0 0 12px #0aff8a;animation:livedot 1.6s infinite;}
+.sess-status b{color:#fff;}
+.sess-spacer{margin-left:auto;}
+.battle-chip{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border-radius:11px;background:rgba(55,214,255,0.08);border:1px solid rgba(55,214,255,0.2);font-size:.8rem;color:var(--steel);}
+.battle-chip b{color:#fff;}
+
+/* ACTIVE CARD */
+.stage{position:relative;border-radius:22px;padding:28px;overflow:hidden;margin-bottom:26px;
+    background:linear-gradient(160deg,var(--panel),var(--panel-2));border:1px solid var(--glass-border);
+    box-shadow:0 22px 54px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.05);}
+.stage.wr{--accent:var(--electric);--accent-glow:rgba(55,214,255,.3);}
+.stage.dmg{--accent:var(--crimson);--accent-glow:rgba(255,42,69,.3);}
+.stage.med{--accent:var(--gold);--accent-glow:rgba(255,170,0,.3);}
+.stage.near{box-shadow:0 22px 54px rgba(0,0,0,.5),0 0 56px var(--accent-glow);}
+.stage.done{animation:cardDone 1.6s ease;}
+@keyframes cardDone{0%{box-shadow:0 0 0 rgba(0,255,120,0)}40%{box-shadow:0 0 80px rgba(0,255,120,.6)}100%{box-shadow:0 22px 54px rgba(0,0,0,.5)}}
+.stage-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.stage-tag{display:flex;align-items:center;gap:12px;font-family:'Orbitron',monospace;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-size:1.15rem;}
+.stage-ico{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:1.4rem;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);}
+.stage-state{font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;border-radius:9px;background:rgba(255,255,255,0.06);color:var(--steel);}
+.stage-state.ok{background:rgba(0,255,120,0.14);color:#5dffb0;box-shadow:0 0 18px rgba(0,255,120,.25);}
+
+.gaugeflex{display:flex;align-items:center;gap:34px;flex-wrap:wrap;justify-content:center;}
+.gauge{position:relative;width:230px;height:230px;flex:none;}
+.gauge svg{transform:rotate(-90deg);}
+.gauge .ring-bg{fill:none;stroke:rgba(255,255,255,0.07);stroke-width:15;}
+.gauge .ring-fg{fill:none;stroke-width:15;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.16,1,.3,1);filter:drop-shadow(0 0 8px var(--accent));}
+.gauge .ring-live{fill:none;stroke-width:7;stroke-linecap:round;stroke:#fff;opacity:.92;transition:stroke-dashoffset 1s cubic-bezier(.16,1,.3,1);}
+.gauge .center{position:absolute;inset:0;display:grid;place-items:center;text-align:center;}
+.gauge .gval{font-family:'Orbitron',monospace;font-weight:900;font-size:2.4rem;line-height:1;background:linear-gradient(180deg,#fff,var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.gauge .gunit{font-size:1rem;}
+.gauge .gcap{font-size:.82rem;color:var(--steel);margin-top:6px;}
+.gauge-side{flex:1;min-width:240px;}
+.metric-line{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;color:var(--steel);margin:10px 2px;}
+.metric-line .big{font-family:'Orbitron',monospace;font-weight:900;font-size:1.5rem;color:#fff;}
+.progbar{height:13px;border-radius:9px;background:rgba(255,255,255,0.07);overflow:hidden;margin-top:10px;}
+.progbar > i{display:block;height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,var(--accent),#fff);transition:width 1s cubic-bezier(.16,1,.3,1);box-shadow:0 0 14px var(--accent);}
+.prog-cap{font-size:.74rem;color:var(--steel);margin-top:8px;}
+
+/* MEDALS LIST */
+.medlist{display:flex;flex-direction:column;gap:12px;}
+.medrow{display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:14px;
+    background:rgba(255,255,255,0.03);border:1px solid rgba(255,206,70,0.25);transition:.2s;}
+.medrow.done{border-color:rgba(0,255,120,.55);background:rgba(0,255,120,.06);box-shadow:0 0 24px rgba(0,255,120,.18);}
+.medrow .mimg{width:62px;height:62px;border-radius:13px;flex:none;display:grid;place-items:center;font-size:2rem;overflow:hidden;
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,206,70,0.3);}
+.medrow .mimg img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 6px rgba(255,170,0,.35));}
+.medrow .mbody{flex:1;min-width:0;}
+.medrow .mlabel{font-weight:800;font-size:1.02rem;color:#fff;display:flex;align-items:center;gap:8px;}
+.medrow .mlabel .ok{font-size:.62rem;font-weight:800;letter-spacing:1px;color:#5dffb0;background:rgba(0,255,120,.14);padding:3px 8px;border-radius:7px;}
+.medrow .mprog{height:9px;border-radius:7px;background:rgba(255,255,255,0.08);overflow:hidden;margin-top:9px;}
+.medrow .mprog > i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),#ffe08a);box-shadow:0 0 12px var(--gold);transition:width .6s;}
+.medrow .mcount{display:flex;align-items:center;gap:12px;flex:none;}
+.medrow .mcount .nums{font-family:'Orbitron',monospace;font-weight:900;font-size:1.2rem;color:#fff;min-width:74px;text-align:center;}
+.medrow .mcount .nums small{color:var(--steel);font-size:.8rem;}
+.circle-btn{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-size:1.3rem;cursor:pointer;display:grid;place-items:center;transition:.15s;line-height:1;}
+.circle-btn:hover{background:rgba(255,255,255,.14);}
+.med-hint{margin-top:14px;font-size:.78rem;color:var(--steel);text-align:center;}
+
+/* LIVE FEED */
+.feed-wrap{margin-top:8px;}
+.feed-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-family:'Orbitron',monospace;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;}
+.feed-head .dot{width:9px;height:9px;border-radius:50%;background:var(--crimson);box-shadow:0 0 10px var(--crimson);animation:livedot 1.4s infinite;}
+.feed{display:flex;flex-direction:column;gap:12px;max-height:340px;overflow:auto;padding-right:6px;}
+.feed::-webkit-scrollbar{width:6px;}.feed::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:6px;}
+.feed-item{position:relative;display:flex;align-items:center;gap:14px;padding:13px 17px;border-radius:14px;overflow:hidden;
+    background:linear-gradient(120deg,rgba(20,16,8,0.7),rgba(12,15,28,0.7));border:1px solid rgba(255,206,70,0.22);animation:flyin .55s cubic-bezier(.16,1,.3,1);}
+@keyframes flyin{from{opacity:0;transform:translateX(-40px) scale(.96)}to{opacity:1;transform:none}}
+.feed-item.big{border-color:rgba(255,42,69,.6);box-shadow:0 0 36px rgba(255,42,69,.3);}
+.feed-av{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:900;font-family:'Orbitron',monospace;background:linear-gradient(135deg,#ffe08a,var(--gold-deep));color:#1a1206;flex:none;}
+.feed-main{flex:1;min-width:0;}.feed-name{font-weight:800;color:#fff;}
+.feed-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.feed-tag{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:7px;background:rgba(255,255,255,.07);color:#cdd9f2;}
+.feed-tag.wr{color:var(--electric);background:rgba(55,214,255,.12);}
+.feed-tag.dmg{color:#ff8fa0;background:rgba(255,42,69,.12);}
+.feed-tag.med{color:var(--gold);background:rgba(255,170,0,.12);}
+.feed-amt{font-family:'Orbitron',monospace;font-weight:900;font-size:1.25rem;color:#fff;flex:none;}
+.feed-empty{color:var(--steel);text-align:center;padding:28px;font-size:.9rem;}
+
+/* MODAL */
+.modal-back{position:fixed;inset:0;z-index:600;background:rgba(3,5,12,0.78);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-back.show{display:flex;animation:fade .25s;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{width:min(720px,100%);max-height:90vh;overflow:auto;border-radius:22px;padding:28px;
+    background:linear-gradient(160deg,#0d1122,#0a0d1a);border:1px solid rgba(255,206,70,0.3);box-shadow:0 30px 80px rgba(0,0,0,.7);}
+.modal h2{font-family:'Orbitron',monospace;font-size:1.3rem;color:#fff;margin-bottom:4px;}
+.modal .msub{color:var(--steel);font-size:.85rem;margin-bottom:20px;}
+.cfg-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.cfg-tab{flex:1;text-align:center;padding:11px;border-radius:11px;cursor:pointer;font-weight:700;font-size:.85rem;
+    background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#cdd9f2;transition:.15s;}
+.cfg-tab.active{background:linear-gradient(135deg,#ffe08a,var(--gold-deep));color:#1a1206;}
+.cfg-pane{display:none;}.cfg-pane.show{display:block;}
+.cfg-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;margin:12px 0;}
+.cfg-row label{font-size:.85rem;color:#cdd9f2;}
+.cfg-row .hint{font-size:.72rem;color:var(--steel);display:block;margin-top:2px;}
+.cfg-row input[type=number]{width:120px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px;font-family:'Orbitron',monospace;text-align:right;}
+.cfg-row input[type=range]{width:100%;accent-color:var(--gold);}
+.range-row{grid-template-columns:1fr;}
+.range-val{font-family:'Orbitron',monospace;color:var(--gold);font-weight:800;}
+.modal-foot{display:flex;gap:12px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;}
+.preset-list{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+.preset-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);font-size:.8rem;cursor:pointer;}
+.preset-pill:hover{background:rgba(255,255,255,.12);}.preset-pill .x{color:#ff8fa0;font-weight:900;}
+
+/* medal editor */
+.me-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);margin-bottom:10px;}
+.me-ico{width:50px;height:50px;border-radius:11px;flex:none;display:grid;place-items:center;font-size:1.5rem;overflow:hidden;background:rgba(255,255,255,0.05);border:1px dashed rgba(255,206,70,0.4);cursor:pointer;position:relative;}
+.me-ico img{width:100%;height:100%;object-fit:contain;}
+.me-ico .up{position:absolute;bottom:-1px;left:0;right:0;font-size:.5rem;text-align:center;background:rgba(0,0,0,.6);color:var(--gold);padding:1px;}
+.me-fields{flex:1;display:flex;flex-direction:column;gap:6px;}
+.me-fields input[type=text]{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:9px;padding:8px 10px;font-size:.85rem;}
+.me-need{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--steel);}
+.me-need input{width:64px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:8px;padding:6px 8px;font-family:'Orbitron',monospace;text-align:center;}
+
+/* FX / VICTORY / TOAST */
+#flash{position:fixed;inset:0;z-index:550;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(255,200,80,.5),transparent 60%);}
+#flash.go{animation:flash .6s ease;}
+@keyframes flash{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+.shake{animation:shake .5s;}
+@keyframes shake{0%,100%{transform:translate(0,0)}20%{transform:translate(-7px,4px)}40%{transform:translate(6px,-4px)}60%{transform:translate(-4px,3px)}80%{transform:translate(3px,-2px)}}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:800;opacity:0;background:#0d1122;border:1px solid rgba(255,206,70,.4);color:#fff;padding:12px 22px;border-radius:12px;font-weight:600;transition:.3s;box-shadow:0 10px 30px rgba(0,0,0,.5);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.obs-hint{margin-top:22px;font-size:.78rem;color:var(--steel);text-align:center;}
+.obs-hint code{background:rgba(255,255,255,.07);padding:3px 8px;border-radius:6px;color:var(--gold);}
+</style>
+</head>
+<body>
+<canvas id="fxCanvas"></canvas>
+<div class="bg-grid"></div>
+<div id="flash"></div>
+
+<div class="app-layout">
+    <div id="sidebar-placeholder"></div>
+    <div id="header-placeholder"></div>
+    <main class="app-main">
+        <div class="tbc-wrap" id="tbcRoot">
+
+            <div class="tbc-header">
+                <div>
+                    <div class="tbc-kicker"><span class="dot"></span> Tanks Blitz · Live Challenge</div>
+                    <h1 class="tbc-title">Tanks Blitz Challenge</h1>
+                    <div class="tbc-sub">Коллективно усложняем стримеру бой — выберите один челлендж на стрим</div>
+                </div>
+                <div class="tbc-balance">
+                    <div class="lbl">Собрано за сессию</div>
+                    <div class="val"><span id="balanceVal">0</span> ₽</div>
+                    <button class="btn btn-gold" onclick="openSettings()">⚙️ Настроить цели</button>
+                </div>
+            </div>
+
+            <!-- TYPE SELECTOR -->
+            <div class="type-seg" id="typeSeg">
+                <div class="type-btn" data-type="winrate" onclick="selectType('winrate')">
+                    <div class="ti">🎯</div><div class="tn">Win Rate</div>
+                    <div class="td">Донаты поднимают нужный % побед</div>
+                </div>
+                <div class="type-btn" data-type="damage" onclick="selectType('damage')">
+                    <div class="ti">💥</div><div class="tn">Урон</div>
+                    <div class="td">Донаты поднимают нужный средний урон</div>
+                </div>
+                <div class="type-btn" data-type="medals" onclick="selectType('medals')">
+                    <div class="ti">🏅</div><div class="tn">Медали</div>
+                    <div class="td">Набор медалей со своими иконками</div>
+                </div>
+            </div>
+
+            <!-- SESSION BAR -->
+            <div class="sess-bar">
+                <div class="sess-status" id="sessStatus"><span class="ind"></span> <span id="sessText">Сессия не запущена</span></div>
+                <button class="btn btn-green" id="sessBtn" onclick="toggleSession()">▶ Старт сессии</button>
+                <div class="battle-chip" id="battleChip"><span>В бою:</span> <b id="battleState">нет данных</b></div>
+                <div class="sess-spacer"></div>
+                <button class="btn btn-ghost" onclick="testDonate(300)">🎯 Тест 300₽</button>
+                <button class="btn btn-danger" onclick="resetAll()">↺ Сбросить цели</button>
+            </div>
+
+            <!-- ACTIVE STAGE -->
+            <div class="stage" id="stage">
+                <div class="stage-head">
+                    <div class="stage-tag"><span class="stage-ico" id="stIco">🎯</span> <span id="stTitle">Win Rate Challenge</span></div>
+                    <span class="stage-state" id="stState">Идёт</span>
+                </div>
+
+                <!-- gauge view (wr / dmg) -->
+                <div id="gaugeView" class="gaugeflex">
+                    <div class="gauge">
+                        <svg width="230" height="230" viewBox="0 0 230 230">
+                            <circle class="ring-bg" cx="115" cy="115" r="98"></circle>
+                            <circle class="ring-fg" id="ring" cx="115" cy="115" r="98"></circle>
+                            <circle class="ring-live" id="ringLive" cx="115" cy="115" r="80"></circle>
+                        </svg>
+                        <div class="center">
+                            <div class="gval"><span id="gVal">60</span><span class="gunit" id="gUnit">%</span></div>
+                            <div class="gcap">цель из <span id="gCap">85</span><span id="gCapUnit">%</span></div>
+                        </div>
+                    </div>
+                    <div class="gauge-side">
+                        <div class="metric-line"><span>В бою сейчас</span><span class="big" id="liveTxt">—</span></div>
+                        <div class="progbar"><i id="liveBar"></i></div>
+                        <div class="prog-cap" id="capTxt">до потолка</div>
+                        <div class="metric-line" style="margin-top:18px"><span>Текущая планка</span><span class="big" id="reqTxt">—</span></div>
+                    </div>
+                </div>
+
+                <!-- medals view -->
+                <div id="medalsView" style="display:none">
+                    <div class="medlist" id="medlist"></div>
+                    <div class="med-hint">Нажимайте − / + чтобы отмечать взятые медали. Донаты повышают «нужно взять».</div>
+                </div>
+            </div>
+
+            <!-- LIVE FEED -->
+            <div class="feed-wrap">
+                <div class="feed-head"><span class="dot"></span> Live донат-фид</div>
+                <div class="feed" id="feed"><div class="feed-empty">Пока нет донатов в этой сессии.</div></div>
+            </div>
+
+            <div class="obs-hint">Виджет для OBS: <code id="obsUrl">/widget/tanks-blitz-challenge</code>
+                <button class="btn btn-ghost" style="padding:6px 12px;margin-left:8px" onclick="copyObs()">Копировать</button></div>
+        </div>
+    </main>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-back" id="modalBack">
+    <div class="modal">
+        <h2>⚙️ Настройка целей</h2>
+        <div class="msub">Настройте челлендж: стартовое значение, цену за шаг и потолок.</div>
+
+        <div style="margin-bottom:16px;padding:16px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid var(--glass-border)">
+            <div style="font-weight:700;color:#cdd9f2;margin-bottom:10px">📺 Текст на виджете</div>
+            <div class="cfg-row" style="grid-template-columns:1fr"><label>Заголовок<span class="hint">пусто = по умолчанию для типа челленджа</span></label>
+                <input type="text" id="headerText" placeholder="УДЕРЖАТЬ % ПОБЕД ЗА СТРИМ" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px"></div>
+            <div class="cfg-row" style="grid-template-columns:1fr"><label>«Если не удержу» — заголовок</label>
+                <input type="text" id="consTitle" placeholder="ЕСЛИ НЕ УДЕРЖУ" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px"></div>
+            <div class="cfg-row" style="grid-template-columns:1fr"><label>«Если не удержу» — текст наказания<span class="hint">пусто = блок скрыт</span></label>
+                <input type="text" id="consText" placeholder="КРУЧУ ВСЮ МЕГАРАСПАКОВКУ" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px"></div>
+        </div>
+
+        <div class="cfg-tabs">
+            <div class="cfg-tab active" data-pane="wr" onclick="cfgTab('wr')">🎯 Win Rate</div>
+            <div class="cfg-tab" data-pane="dmg" onclick="cfgTab('dmg')">💥 Урон</div>
+            <div class="cfg-tab" data-pane="med" onclick="cfgTab('med')">🏅 Медали</div>
+        </div>
+
+        <div class="cfg-pane show" id="paneWr">
+            <div class="cfg-row"><label>Старт, %<span class="hint">с какого винрейта начинаем</span></label><input type="number" id="wrStart" value="60" step="0.5"></div>
+            <div class="cfg-row"><label>Потолок, %</label><input type="number" id="wrCapIn" value="85" step="0.5"></div>
+            <div class="cfg-row"><label>Цена шага, ₽</label><input type="number" id="wrPer" value="100" step="10"></div>
+            <div class="cfg-row range-row"><label>Шаг: <span class="range-val">+<span id="wrStepVal">1</span>% за <span id="wrPerVal">100</span>₽</span></label><input type="range" id="wrStep" min="0.1" max="5" step="0.1" value="1"></div>
+        </div>
+        <div class="cfg-pane" id="paneDmg">
+            <div class="cfg-row"><label>Старт урона</label><input type="number" id="dmgStart" value="2000" step="50"></div>
+            <div class="cfg-row"><label>Потолок урона</label><input type="number" id="dmgCapIn" value="5000" step="50"></div>
+            <div class="cfg-row"><label>Цена шага, ₽</label><input type="number" id="dmgPer" value="100" step="10"></div>
+            <div class="cfg-row range-row"><label>Шаг: <span class="range-val">+<span id="dmgStepVal">100</span> урона за <span id="dmgPerVal">100</span>₽</span></label><input type="range" id="dmgStep" min="10" max="500" step="10" value="100"></div>
+        </div>
+        <div class="cfg-pane" id="paneMed">
+            <div class="cfg-row"><label>Цена шага, ₽<span class="hint">за сколько ₽ растёт «нужно взять»</span></label><input type="number" id="medPer" value="200" step="10"></div>
+            <div class="cfg-row range-row"><label>Шаг: <span class="range-val">+<span id="medStepVal">1</span> к «нужно» за <span id="medPerVal">200</span>₽</span></label><input type="range" id="medStep" min="0.2" max="3" step="0.2" value="1"></div>
+            <div class="cfg-row"><label>Потолок на одну медаль</label><input type="number" id="medCapIn" value="10" step="1"></div>
+            <div style="margin:14px 0 8px;font-weight:700;color:#cdd9f2">Медали челленджа</div>
+            <div id="medalEdit"></div>
+            <button class="btn btn-ghost" style="padding:8px 14px" onclick="addMedalRow()">+ Добавить медаль</button>
+        </div>
+
+        <div style="margin:18px 0 6px;font-weight:700;color:#cdd9f2">Пресеты</div>
+        <div class="preset-list" id="presetList"></div>
+        <div class="modal-foot">
+            <button class="btn btn-ghost" onclick="savePreset()">💾 Сохранить пресет</button>
+            <button class="btn btn-ghost" onclick="closeSettings()">Отмена</button>
+            <button class="btn btn-gold" onclick="saveSettings()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="medalFile" accept="image/*" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script>
+let CH=null, presets=[], lastProgress=null, uploadTargetRow=null;
+const R=98, RL=80, CIRC=2*Math.PI*R, CIRCL=2*Math.PI*RL;
+const TYPE_META={
+    winrate:{cls:'wr',ico:'🎯',title:'Win Rate Challenge',unit:'%',defHeader:'УДЕРЖАТЬ % ПОБЕД ЗА СТРИМ'},
+    damage:{cls:'dmg',ico:'💥',title:'Damage Challenge',unit:'',defHeader:'УДЕРЖАТЬ СРЕДНИЙ УРОН ЗА СТРИМ'},
+    medals:{cls:'med',ico:'🏅',title:'Medals Challenge',unit:'',defHeader:'ВЗЯТЬ МЕДАЛИ ЗА СТРИМ'}
+};
+let headerDraft={winrate:'',damage:'',medals:''};
+
+document.addEventListener('DOMContentLoaded',()=>{
+    Promise.all([fetch('/components/sidebar.html').then(r=>r.text()).catch(()=>''),fetch('/components/header.html').then(r=>r.text()).catch(()=>'')])
+        .then(([s,h])=>{document.getElementById('sidebar-placeholder').innerHTML=s;document.getElementById('header-placeholder').innerHTML=h;});
+    document.getElementById('obsUrl').textContent=location.origin+'/widget/tanks-blitz-challenge';
+    document.getElementById('medalFile').addEventListener('change',onMedalFile);
+    initFx(); bindRanges(); loadChallenge(); loadProgress();
+    connectWS(); setInterval(loadProgress,15000);
+});
+
+function loadChallenge(){ fetch('/api/blitz-challenge').then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();} }); }
+function loadProgress(){ fetch('/api/blitz-challenge/progress').then(r=>r.json()).then(d=>{ lastProgress=d; renderProgress(); renderSession(); }); }
+function fmt(n){ return Math.round(Number(n)||0).toLocaleString('ru-RU'); }
+
+/* TYPE SELECT (exclusive) */
+function selectType(t){
+    if(!CH) return;
+    const body={ activeType:t, enabled:true,
+        winrate:{enabled:t==='winrate'}, damage:{enabled:t==='damage'}, medals:{enabled:t==='medals'} };
+    fetch('/api/blitz-challenge',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+        .then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();toast('Челлендж: '+TYPE_META[t].title);} });
+}
+
+/* RENDER */
+function render(){
+    if(!CH) return;
+    animateNumber('balanceVal',CH.sessionBalance,true);
+    const t=CH.activeType||'winrate';
+    document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('active',b.dataset.type===t));
+    const meta=TYPE_META[t];
+    const stage=document.getElementById('stage');
+    stage.className='stage '+meta.cls;
+    document.getElementById('stIco').textContent=meta.ico;
+    const ht=(CH.headerTexts&&CH.headerTexts[t])||CH.headerText||meta.defHeader;
+    document.getElementById('stTitle').textContent=ht;
+
+    const gaugeView=document.getElementById('gaugeView'), medalsView=document.getElementById('medalsView');
+    if(t==='medals'){ gaugeView.style.display='none'; medalsView.style.display='block'; renderMedals(); }
+    else { gaugeView.style.display='flex'; medalsView.style.display='none'; renderGauge(t); }
+    renderProgress();
+}
+
+function renderGauge(t){
+    const o=t==='winrate'?CH.winrate:CH.damage;
+    const isWr=t==='winrate';
+    document.getElementById('gVal').textContent=isWr?(Math.round(o.current*10)/10):fmt(o.current);
+    document.getElementById('gUnit').textContent=isWr?'%':'';
+    document.getElementById('gCap').textContent=isWr?o.cap:fmt(o.cap);
+    document.getElementById('gCapUnit').textContent=isWr?'%':'';
+    setRing(document.getElementById('ring'), o.cap>o.start?(o.current-o.start)/(o.cap-o.start):(o.current/Math.max(o.cap,1)));
+    document.getElementById('capTxt').textContent='до потолка '+(isWr?o.cap+'%':fmt(o.cap));
+    document.getElementById('reqTxt').textContent=isWr?(Math.round(o.current*10)/10)+'%':fmt(o.current);
+}
+
+function renderMedals(){
+    const list=CH.medals.list||[]; const box=document.getElementById('medlist'); box.innerHTML='';
+    if(!list.length){ box.innerHTML='<div class="feed-empty">Добавьте медали в настройках челленджа.</div>'; return; }
+    list.forEach(m=>{
+        const done=m.earned>=m.required && m.required>0;
+        const frac=m.required>0?Math.min(1,m.earned/m.required):0;
+        const img=m.image?`<img src="${m.image}" alt="">`:(m.icon||'🏅');
+        const el=document.createElement('div'); el.className='medrow'+(done?' done':'');
+        el.innerHTML=`<div class="mimg">${img}</div>
+            <div class="mbody"><div class="mlabel">${m.label||'Медаль'} ${done?'<span class="ok">ВЗЯТО</span>':''}</div>
+                <div class="mprog"><i style="width:${frac*100}%"></i></div></div>
+            <div class="mcount">
+                <button class="circle-btn" onclick="medalEarned('${m.id}',-1)">−</button>
+                <div class="nums">${m.earned} <small>/ ${m.required}</small></div>
+                <button class="circle-btn" onclick="medalEarned('${m.id}',1)">+</button>
+            </div>`;
+        box.appendChild(el);
+    });
+}
+
+function renderProgress(){
+    if(!CH) return;
+    const p=lastProgress, t=CH.activeType||'winrate';
+    const liveWr=p&&p.hasSession?Number(p.winRate)||0:null;
+    const liveDmg=p&&p.hasSession?Number(p.avgDamage)||0:null;
+    const chip=document.getElementById('battleState');
+    if(p&&p.hasSession){ chip.textContent=`${p.battlesPlayed} боёв · ${p.winRate}% · ${fmt(p.avgDamage)} урон`; }
+    else chip.textContent='нет данных';
+
+    if(t==='winrate'||t==='damage'){
+        const o=t==='winrate'?CH.winrate:CH.damage;
+        const live=t==='winrate'?liveWr:liveDmg;
+        const isWr=t==='winrate';
+        document.getElementById('liveTxt').textContent=live!=null?(isWr?live+'%':fmt(live)):'—';
+        const frac=live!=null&&o.current>0?live/o.current:0;
+        setRingLive(document.getElementById('ringLive'),frac);
+        document.getElementById('liveBar').style.width=Math.min(100,frac*100)+'%';
+        const done=live!=null&&live>=o.current;
+        setStageDone(done); setStageNear(frac);
+    } else {
+        const md=CH.medals;
+        const done=md.totalRequired>0&&md.totalEarned>=md.totalRequired;
+        const frac=md.totalRequired>0?md.totalEarned/md.totalRequired:0;
+        setStageDone(done); setStageNear(frac);
+    }
+}
+
+function renderSession(){
+    const p=lastProgress; const st=document.getElementById('sessStatus'), txt=document.getElementById('sessText'), btn=document.getElementById('sessBtn');
+    const active=p&&p.sessionActive;
+    st.classList.toggle('on',!!active);
+    if(active){
+        const since=p.sessionStartedAt?new Date(p.sessionStartedAt*1000):null;
+        txt.innerHTML=`Сессия активна${since?' · с '+since.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):''} · сыграно <b>${p.battlesPlayed||0}</b> боёв`;
+        btn.textContent='■ Сбросить сессию'; btn.className='btn btn-ghost';
+    } else {
+        txt.textContent='Сессия не запущена (считаем за сутки)';
+        btn.textContent='▶ Старт сессии'; btn.className='btn btn-green';
+    }
+}
+
+function setRing(el,frac){frac=Math.max(0,Math.min(1,frac||0));el.setAttribute('stroke-dasharray',CIRC);el.setAttribute('stroke-dashoffset',CIRC*(1-frac));}
+function setRingLive(el,frac){frac=Math.max(0,Math.min(1,frac||0));el.setAttribute('stroke-dasharray',CIRCL);el.setAttribute('stroke-dashoffset',CIRCL*(1-frac));}
+function setStageDone(done){
+    const s=document.getElementById('stage'), st=document.getElementById('stState');
+    st.textContent=done?'Выполнено':'Идёт'; st.classList.toggle('ok',done);
+    if(done) s.classList.add('done'); else s.classList.remove('done');
+}
+function setStageNear(frac){ document.getElementById('stage').classList.toggle('near',frac>=0.85&&frac<1); }
+
+/* SESSION */
+function toggleSession(){
+    const active=lastProgress&&lastProgress.sessionActive;
+    const url=active?'/api/blitz-challenge/session/reset':'/api/blitz-challenge/session/start';
+    fetch(url,{method:'POST'}).then(r=>r.json()).then(d=>{
+        if(d.success){ toast(active?'Сессия сброшена':'Сессия запущена'); loadProgress(); }
+        else toast(d.error||'Ошибка');
+    });
+}
+
+/* ACTIONS */
+function medalEarned(id,delta){
+    fetch('/api/blitz-challenge/medal-earned',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,delta})})
+        .then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();} });
+}
+function testDonate(a){ fetch('/api/blitz-challenge/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:a,username:'Тест'})}).then(r=>r.json()).then(()=>toast('Тест-донат '+a+'₽')); }
+function resetAll(){ if(!confirm('Сбросить цели к старту и обнулить баланс сессии?'))return;
+    fetch('/api/blitz-challenge/reset',{method:'POST'}).then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();toast('Цели сброшены');} }); }
+
+/* SETTINGS */
+const CFG_TAB_MAP={wr:'winrate',dmg:'damage',med:'medals'};
+const CFG_TAB_REV={winrate:'wr',damage:'dmg',medals:'med'};
+function saveHeaderDraftFromTab(tabPane){
+    const key=CFG_TAB_MAP[tabPane]; if(!key) return;
+    headerDraft[key]=document.getElementById('headerText').value||'';
+}
+function loadHeaderDraftToInput(tabPane){
+    const key=CFG_TAB_MAP[tabPane];
+    document.getElementById('headerText').value=headerDraft[key]||TYPE_META[key].defHeader;
+}
+function cfgTab(p){
+    const prev=document.querySelector('.cfg-tab.active');
+    if(prev) saveHeaderDraftFromTab(prev.dataset.pane);
+    document.querySelectorAll('.cfg-tab').forEach(x=>x.classList.toggle('active',x.dataset.pane===p));
+    document.getElementById('paneWr').classList.toggle('show',p==='wr');
+    document.getElementById('paneDmg').classList.toggle('show',p==='dmg');
+    document.getElementById('paneMed').classList.toggle('show',p==='med');
+    loadHeaderDraftToInput(p);
+}
+function openSettings(){
+    if(!CH) return;
+    const w=CH.winrate,dm=CH.damage,md=CH.medals;
+    sv('wrStart',w.start);sv('wrCapIn',w.cap);sv('wrPer',w.perAmount);sv('wrStep',w.step);
+    sv('dmgStart',dm.start);sv('dmgCapIn',dm.cap);sv('dmgPer',dm.perAmount);sv('dmgStep',dm.step);
+    sv('medPer',md.perAmount);sv('medStep',md.step);sv('medCapIn',md.capPerMedal||10);
+    headerDraft=CH.headerTexts?{...CH.headerTexts}:{
+        winrate:TYPE_META.winrate.defHeader,damage:TYPE_META.damage.defHeader,medals:TYPE_META.medals.defHeader
+    };
+    const raw=CH.consequenceText||''; const sep=raw.indexOf('|||');
+    document.getElementById('consTitle').value=sep>=0?raw.slice(0,sep):'';
+    document.getElementById('consText').value=sep>=0?raw.slice(sep+3):raw;
+    renderMedalEdit(md.list); bindRanges(); loadPresets();
+    cfgTab(CFG_TAB_REV[CH.activeType]||'wr');
+    loadHeaderDraftToInput(CFG_TAB_REV[CH.activeType]||'wr');
+    document.getElementById('modalBack').classList.add('show');
+}
+function closeSettings(){ document.getElementById('modalBack').classList.remove('show'); }
+function sv(id,v){ const e=document.getElementById(id); if(e) e.value=v; }
+function nv(id){ return parseFloat(document.getElementById(id).value)||0; }
+function bindRanges(){
+    const sync=(rid,vid,perId,perValId)=>{ const r=document.getElementById(rid); if(!r)return;
+        const u=()=>{document.getElementById(vid).textContent=r.value; if(perValId)document.getElementById(perValId).textContent=document.getElementById(perId).value;};
+        r.oninput=u; const p=document.getElementById(perId); if(p)p.oninput=u; u(); };
+    sync('wrStep','wrStepVal','wrPer','wrPerVal'); sync('dmgStep','dmgStepVal','dmgPer','dmgPerVal'); sync('medStep','medStepVal','medPer','medPerVal');
+}
+function renderMedalEdit(list){ const box=document.getElementById('medalEdit'); box.innerHTML='';
+    (list&&list.length?list:[{label:'Калибр',icon:'🔥',required:1}]).forEach(addMedalRow); }
+function addMedalRow(m){
+    m=m||{label:'',icon:'🏅',image:'',required:1};
+    const box=document.getElementById('medalEdit');
+    const row=document.createElement('div'); row.className='me-item';
+    row.dataset.id=m.id||('m'+Date.now()+Math.floor(Math.random()*1000));
+    row.dataset.image=m.image||'';
+    const inner=m.image?`<img src="${m.image}">`:(m.icon||'🏅');
+    row.innerHTML=`<div class="me-ico" onclick="pickImage(this.parentNode)">${inner}<span class="up">PNG</span></div>
+        <div class="me-fields"><input type="text" class="lbl" value="${(m.label||'').replace(/"/g,'&quot;')}" placeholder="Название медали">
+            <div class="me-need">нужно взять: <input type="number" class="req" min="0" value="${m.required||1}"></div></div>
+        <button class="circle-btn" onclick="this.closest('.me-item').remove()">×</button>`;
+    box.appendChild(row);
+}
+function pickImage(row){ uploadTargetRow=row; document.getElementById('medalFile').click(); }
+function onMedalFile(e){
+    const file=e.target.files[0]; if(!file||!uploadTargetRow) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+        fetch('/api/blitz-challenge/upload-medal-icon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageData:reader.result})})
+            .then(r=>r.json()).then(d=>{ if(d.success){ uploadTargetRow.dataset.image=d.url;
+                uploadTargetRow.querySelector('.me-ico').innerHTML=`<img src="${d.url}"><span class="up">PNG</span>`; toast('Иконка загружена'); }
+                else toast(d.error||'Ошибка загрузки'); });
+    };
+    reader.readAsDataURL(file); e.target.value='';
+}
+function collectMedals(){
+    return [...document.querySelectorAll('#medalEdit .me-item')].map(r=>({
+        id:r.dataset.id, image:r.dataset.image||'',
+        icon:'🏅', label:r.querySelector('.lbl').value||'Медаль',
+        required:Math.max(0,parseInt(r.querySelector('.req').value)||0), earned:0
+    })).filter(m=>m.label.trim());
+}
+function buildConfig(){
+    return {
+        winrate:{start:nv('wrStart'),cap:nv('wrCapIn'),perAmount:nv('wrPer'),step:nv('wrStep')},
+        damage:{start:nv('dmgStart'),cap:nv('dmgCapIn'),perAmount:nv('dmgPer'),step:nv('dmgStep')},
+        medals:{perAmount:nv('medPer'),step:nv('medStep'),capPerMedal:nv('medCapIn'),list:collectMedals()}
+    };
+}
+function saveSettings(){
+    // сохраняем earned у существующих медалей
+    const cfg=buildConfig();
+    const prev=(CH.medals.list||[]); 
+    cfg.medals.list.forEach(m=>{ const old=prev.find(x=>x.id===m.id); if(old) m.earned=old.earned; });
+    const activeTab=document.querySelector('.cfg-tab.active')?.dataset.pane||CFG_TAB_REV[CH.activeType]||'wr';
+    saveHeaderDraftFromTab(activeTab);
+    cfg.headerTexts={...headerDraft};
+    const ct=document.getElementById('consTitle').value||'', cx=document.getElementById('consText').value||'';
+    cfg.consequenceText=(ct||cx)?(ct+'|||'+cx):'';
+    fetch('/api/blitz-challenge',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)})
+        .then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();toast('Сохранено');closeSettings();} });
+}
+
+/* PRESETS */
+function loadPresets(){ fetch('/api/blitz-challenge/presets').then(r=>r.json()).then(d=>{ presets=d.presets||[];
+    const box=document.getElementById('presetList'); box.innerHTML='';
+    if(!presets.length){ box.innerHTML='<span style="color:var(--steel);font-size:.8rem">Нет пресетов</span>'; return; }
+    presets.forEach(p=>{ const el=document.createElement('div'); el.className='preset-pill';
+        el.innerHTML=`<span onclick='applyPreset(${p.id})'>📦 ${p.name}</span><span class="x" onclick='delPreset(${p.id})'>×</span>`; box.appendChild(el); }); }); }
+function savePreset(){ const name=prompt('Название пресета:','Мой пресет'); if(!name)return;
+    fetch('/api/blitz-challenge/presets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,config:buildConfig()})}).then(()=>{loadPresets();toast('Пресет сохранён');}); }
+function applyPreset(id){ const p=presets.find(x=>x.id===id); if(!p)return; const c=p.config;
+    if(c.winrate){sv('wrStart',c.winrate.start);sv('wrCapIn',c.winrate.cap);sv('wrPer',c.winrate.perAmount);sv('wrStep',c.winrate.step);}
+    if(c.damage){sv('dmgStart',c.damage.start);sv('dmgCapIn',c.damage.cap);sv('dmgPer',c.damage.perAmount);sv('dmgStep',c.damage.step);}
+    if(c.medals){sv('medPer',c.medals.perAmount);sv('medStep',c.medals.step);sv('medCapIn',c.medals.capPerMedal||10);renderMedalEdit(c.medals.list);}
+    bindRanges(); toast('Пресет применён'); }
+function delPreset(id){ fetch('/api/blitz-challenge/presets/'+id,{method:'DELETE'}).then(()=>loadPresets()); }
+
+/* WS */
+function connectWS(){
+    try{ const ws=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws');
+        ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
+            if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){ CH=m.challenge; render(); if(m.lastDonation) onDonation(m.lastDonation); } };
+        ws.onclose=()=>setTimeout(connectWS,3000);
+    }catch(e){ setTimeout(connectWS,4000); }
+}
+function onDonation(ld){ addFeed(ld); flash(ld.amount); }
+function addFeed(ld){
+    const feed=document.getElementById('feed'); const empty=feed.querySelector('.feed-empty'); if(empty)empty.remove();
+    const big=ld.amount>=500; const c=ld.contribution||{}; const tags=[];
+    if(c.winrate>0)tags.push(`<span class="feed-tag wr">+${Math.round(c.winrate*10)/10}% WR</span>`);
+    if(c.damage>0)tags.push(`<span class="feed-tag dmg">+${fmt(c.damage)} урона</span>`);
+    if(c.medals>0)tags.push(`<span class="feed-tag med">+${c.medals} к медали</span>`);
+    const nm=ld.username||'Аноним';
+    const item=document.createElement('div'); item.className='feed-item'+(big?' big':'');
+    item.innerHTML=`<div class="feed-av">${nm.slice(0,1).toUpperCase()}</div><div class="feed-main"><div class="feed-name">${nm}</div><div class="feed-tags">${tags.join('')||'<span class="feed-tag">поддержка</span>'}</div></div><div class="feed-amt">${fmt(ld.amount)} ₽</div>`;
+    feed.prepend(item); while(feed.children.length>30)feed.lastChild.remove();
+}
+
+/* FX */
+function flash(amount){ const f=document.getElementById('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+    const big=amount>=500; burst(big?90:40,big);
+    if(big){ document.getElementById('tbcRoot').classList.add('shake'); setTimeout(()=>document.getElementById('tbcRoot').classList.remove('shake'),500); } }
+
+let fxCtx,parts=[];
+function initFx(){ const cv=document.getElementById('fxCanvas'); const rz=()=>{cv.width=innerWidth;cv.height=innerHeight;}; rz(); addEventListener('resize',rz); fxCtx=cv.getContext('2d');
+    for(let i=0;i<40;i++)parts.push(amber()); (function loop(){ fxCtx.clearRect(0,0,cv.width,cv.height);
+        parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=p.decay; if(p.y<-20||p.life<=0)Object.assign(p,amber());
+            fxCtx.globalAlpha=Math.max(0,Math.min(1,p.life));fxCtx.fillStyle=p.color;fxCtx.beginPath();fxCtx.arc(p.x,p.y,p.r,0,7);fxCtx.fill();});
+        requestAnimationFrame(loop); })(); }
+function amber(){ const cv=document.getElementById('fxCanvas'); const cols=['#ffce46','#ff9d00','#37d6ff','#ff2a45'];
+    return {x:Math.random()*cv.width,y:cv.height+Math.random()*100,vx:(Math.random()-0.5)*0.3,vy:-(0.3+Math.random()*0.7),r:Math.random()*2.2+0.6,life:0.5+Math.random()*0.5,decay:0.0009+Math.random()*0.0012,color:cols[Math.random()*cols.length|0]}; }
+function burst(n,big){ const cv=document.getElementById('fxCanvas'); const cx=cv.width/2,cy=cv.height*0.42;
+    for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2,sp=(big?6:3)*(0.4+Math.random());
+        parts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1,r:Math.random()*3+1,life:1,decay:0.012+Math.random()*0.01,color:['#ffce46','#ff9d00','#fff'][Math.random()*3|0]});}
+    if(parts.length>400)parts.splice(0,parts.length-400); }
+
+const animState={};
+function animateNumber(id,target,sep){ target=Number(target)||0; const el=document.getElementById(id); if(!el)return;
+    const from=animState[id]||0,start=performance.now(),dur=700;
+    (function step(t){ const k=Math.min(1,(t-start)/dur),v=from+(target-from)*(1-Math.pow(1-k,3));
+        el.textContent=sep?Math.round(v).toLocaleString('ru-RU'):Math.round(v); if(k<1)requestAnimationFrame(step); else animState[id]=target; })(start); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+function copyObs(){ navigator.clipboard.writeText(location.origin+'/widget/tanks-blitz-challenge').then(()=>toast('Скопировано')); }
+</script>
+</body>
+</html>

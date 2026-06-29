@@ -1,0 +1,15 @@
+{
+  "replaysDir": "C:\\Users\\ixacy\\Documents\\TanksBlitz\\replays",
+  "gameInstallDir": "E:\\Games\\Tanks_Blitz",
+  "extraReplaysDirs": [
+    "C:\\Users\\ixacy\\Downloads\\31241245124"
+  ],
+  "playerName": "Xasya",
+  "pollIntervalMs": 1000,
+  "pythonPath": "python",
+  "playbackReplayPath": "",
+  "autoPlaybackMinutes": 0,
+  "playbackAccessMinutes": 10,
+  "playbackSpeed": 1,
+  "watchReplayCache": true
+}

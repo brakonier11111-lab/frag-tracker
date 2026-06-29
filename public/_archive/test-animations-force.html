@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест анимаций - Принудительный</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button.active { background: #28a745; }
+        .widget-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            margin: 20px auto;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1e3a8a, #1e40af);
+            overflow: visible;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+        .info {
+            background: #222;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .log {
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Тест анимаций - Принудительный режим</h1>
+        
+        <div class="controls">
+            <button id="testDiscount">💰 Тест скидки (50₽)</button>
+            <button id="testSlowdown">❄️ Тест замедления (x0.5)</button>
+            <button id="testBoth">🎭 Тест оба режима</button>
+            <button id="stopAll">⏹️ Остановить все</button>
+            <button id="refreshWidget">🔄 Обновить виджет</button>
+        </div>
+        
+        <div class="status" id="status">
+            Готов к тестированию
+        </div>
+        
+        <div class="widget-container">
+            <iframe id="widgetFrame" src="http://localhost:3000/widget-mode2-copy.html"></iframe>
+        </div>
+        
+        <div class="info">
+            <h3>📋 Инструкции:</h3>
+            <p>1. Нажмите "Тест скидки" - должны появиться иконки процентов вокруг виджета</p>
+            <p>2. Нажмите "Тест замедления" - должны появиться снежинки вокруг виджета</p>
+            <p>3. Нажмите "Тест оба режима" - должны появиться и иконки, и снежинки</p>
+            <p>4. Проверьте, что элементы летают вокруг всего виджета, а не в углу</p>
+            
+            <h3>📊 Лог операций:</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        async function testDiscount() {
+            log('🧪 Тестируем режим скидки...');
+            updateStatus('Устанавливаем скидку 50₽');
+            
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        timer_discount: 50,
+                        timer_discount_until_ts: Math.floor(Date.now() / 1000) + 300, // 5 минут
+                        timer_slowdown_active: 0, // отключаем замедление
+                        timer_slowdown_factor: 1.0,
+                        timer_slowdown_until_ts: 0
+                    })
+                });
+                
+                if (response.ok) {
+                    log('✅ Скидка установлена успешно');
+                    updateStatus('Скидка активна - проверьте иконки вокруг виджета');
+                } else {
+                    log('❌ Ошибка установки скидки: ' + response.status);
+                }
+            } catch (error) {
+                log('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        async function testSlowdown() {
+            log('🧪 Тестируем режим замедления...');
+            updateStatus('Устанавливаем замедление x0.5');
+            
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        timer_discount: 0, // отключаем скидку
+                        timer_discount_until_ts: 0,
+                        timer_slowdown_active: 1,
+                        timer_slowdown_factor: 0.5, // замедление в 2 раза
+                        timer_slowdown_until_ts: Math.floor(Date.now() / 1000) + 300 // 5 минут
+                    })
+                });
+                
+                if (response.ok) {
+                    log('✅ Замедление установлено успешно');
+                    updateStatus('Замедление активно - проверьте снежинки вокруг виджета');
+                } else {
+                    log('❌ Ошибка установки замедления: ' + response.status);
+                }
+            } catch (error) {
+                log('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        async function testBoth() {
+            log('🧪 Тестируем оба режима одновременно...');
+            updateStatus('Устанавливаем скидку + замедление');
+            
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        timer_discount: 50,
+                        timer_discount_until_ts: Math.floor(Date.now() / 1000) + 300,
+                        timer_slowdown_active: 1,
+                        timer_slowdown_factor: 0.5,
+                        timer_slowdown_until_ts: Math.floor(Date.now() / 1000) + 300
+                    })
+                });
+                
+                if (response.ok) {
+                    log('✅ Оба режима установлены успешно');
+                    updateStatus('Оба режима активны - проверьте иконки и снежинки');
+                } else {
+                    log('❌ Ошибка установки режимов: ' + response.status);
+                }
+            } catch (error) {
+                log('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        async function stopAll() {
+            log('⏹️ Останавливаем все анимации...');
+            updateStatus('Отключаем все эффекты');
+            
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        timer_discount: 0,
+                        timer_discount_until_ts: 0,
+                        timer_slowdown_active: 0,
+                        timer_slowdown_factor: 1.0,
+                        timer_slowdown_until_ts: 0
+                    })
+                });
+                
+                if (response.ok) {
+                    log('✅ Все эффекты отключены');
+                    updateStatus('Все эффекты отключены');
+                } else {
+                    log('❌ Ошибка отключения эффектов: ' + response.status);
+                }
+            } catch (error) {
+                log('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        function refreshWidget() {
+            log('🔄 Обновляем виджет...');
+            const iframe = document.getElementById('widgetFrame');
+            iframe.src = iframe.src;
+            updateStatus('Виджет обновлен');
+        }
+
+        // Event listeners
+        document.getElementById('testDiscount').addEventListener('click', testDiscount);
+        document.getElementById('testSlowdown').addEventListener('click', testSlowdown);
+        document.getElementById('testBoth').addEventListener('click', testBoth);
+        document.getElementById('stopAll').addEventListener('click', stopAll);
+        document.getElementById('refreshWidget').addEventListener('click', refreshWidget);
+
+        // Initialize
+        window.addEventListener('load', () => {
+            log('🚀 Страница загружена, готов к тестированию');
+            updateStatus('Готов к тестированию');
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

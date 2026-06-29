@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест учета стартового значения</title>
+    <style>
+        body {
+            background: #0a0a14;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .test-section {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background: rgba(0, 240, 255, 0.2);
+            border: 1px solid #00f0ff;
+            color: #00f0ff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: rgba(0, 240, 255, 0.3);
+        }
+        .btn-success {
+            background: rgba(0, 255, 71, 0.2);
+            border-color: #00ff47;
+            color: #00ff47;
+        }
+        .btn-warning {
+            background: rgba(255, 193, 7, 0.2);
+            border-color: #ffc107;
+            color: #ffc107;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+        .success { color: #00ff47; }
+        .error { color: #ff003c; }
+        .info { color: #00f0ff; }
+        .warning { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест учета стартового значения</h1>
+    
+    <div class="test-section">
+        <h2>📊 Текущая статистика</h2>
+        <div id="currentStats" class="status">Загрузка...</div>
+        <button class="btn" onclick="loadStats()">🔄 Обновить статистику</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎯 Тест установки стартовой суммы</h2>
+        <button class="btn btn-warning" onclick="setStartingAmount()">💰 Установить стартовую сумму</button>
+        <button class="btn btn-success" onclick="testDonationsStats()">📊 Проверить /api/donations-stats</button>
+        <div id="testResults" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔧 Тест аналитики</h2>
+        <button class="btn" onclick="testAnalytics()">📈 Проверить /api/donations-analytics</button>
+        <div id="analyticsResults" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🌐 Ссылки</h2>
+        <button class="btn" onclick="openPage('mode1-frag-tracker.html')">📊 Режим фрагов</button>
+        <button class="btn" onclick="openPage('donations-analytics.html')">📈 Аналитика донатов</button>
+        <button class="btn" onclick="openPage('mode2-timer.html')">⏰ Режим таймера</button>
+    </div>
+
+    <script>
+        // Загрузить статистику
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/donations-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const totalAmount = data.totalAmount || 0;
+                    const totalCount = data.totalCount || 0;
+                    const donationsAmount = data.donationsAmount || 0;
+                    const donationsCount = data.donationsCount || 0;
+                    const startingAmount = data.startingAmount || 0;
+                    
+                    document.getElementById('currentStats').innerHTML = `
+                        <div class="success">✅ Статистика загружена</div>
+                        <div><strong>Общая сумма:</strong> ${totalAmount.toLocaleString()}₽</div>
+                        <div><strong>Количество донатов:</strong> ${totalCount}</div>
+                        <div class="info"><strong>Сумма из таблицы donations:</strong> ${donationsAmount.toLocaleString()}₽</div>
+                        <div class="info"><strong>Количество из таблицы donations:</strong> ${donationsCount}</div>
+                        <div class="warning"><strong>Стартовое значение:</strong> ${startingAmount.toLocaleString()}₽</div>
+                        <div class="${startingAmount > donationsAmount ? 'warning' : 'info'}">
+                            <strong>Статус:</strong> ${startingAmount > donationsAmount ? 
+                                'Стартовое значение учитывается' : 
+                                'Используется только сумма донатов'}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('currentStats').innerHTML = `
+                        <div class="error">❌ Ошибка: ${data.error}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('currentStats').innerHTML = `
+                    <div class="error">❌ Ошибка запроса: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // Установить стартовую сумму
+        async function setStartingAmount() {
+            const input = prompt('💰 Установить стартовую сумму донатов (₽):', '50000');
+            
+            if (input === null) return; // Отменено
+            
+            const newAmount = Math.max(0, Math.floor(Number(input)) || 0);
+            
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ total_donated: newAmount })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('testResults').innerHTML = `
+                        <div class="success">✅ Стартовая сумма установлена: ${newAmount.toLocaleString()}₽</div>
+                    `;
+                    // Обновляем статистику
+                    loadStats();
+                } else {
+                    document.getElementById('testResults').innerHTML = `
+                        <div class="error">❌ Ошибка установки суммы</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="error">❌ Ошибка установки суммы: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // Тест API donations-stats
+        async function testDonationsStats() {
+            try {
+                const response = await fetch('/api/donations-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('testResults').innerHTML = `
+                        <div class="success">✅ /api/donations-stats работает</div>
+                        <div><strong>Общая сумма:</strong> ${data.totalAmount.toLocaleString()}₽</div>
+                        <div><strong>Количество донатов:</strong> ${data.totalCount}</div>
+                        ${data.startingAmount ? `
+                            <div class="warning"><strong>Стартовое значение:</strong> ${data.startingAmount.toLocaleString()}₽</div>
+                            <div class="info"><strong>Сумма донатов:</strong> ${data.donationsAmount.toLocaleString()}₽</div>
+                        ` : ''}
+                        <div class="info"><strong>Ответ API:</strong></div>
+                        <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; font-size: 0.8rem; overflow-x: auto;">${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    document.getElementById('testResults').innerHTML = `
+                        <div class="error">❌ Ошибка /api/donations-stats: ${data.error}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="error">❌ Ошибка /api/donations-stats: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // Тест аналитики
+        async function testAnalytics() {
+            try {
+                const response = await fetch('/api/donations-analytics');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const totalStats = data.data.totalStats[0];
+                    const startingAmount = data.data.startingAmount;
+                    const donationsAmount = data.data.donationsAmount;
+                    
+                    document.getElementById('analyticsResults').innerHTML = `
+                        <div class="success">✅ /api/donations-analytics работает</div>
+                        <div><strong>Общая сумма:</strong> ${totalStats.totalAmount.toLocaleString()}₽</div>
+                        <div><strong>Количество донатов:</strong> ${totalStats.totalCount}</div>
+                        <div class="warning"><strong>Стартовое значение:</strong> ${startingAmount.toLocaleString()}₽</div>
+                        <div class="info"><strong>Сумма донатов:</strong> ${donationsAmount.toLocaleString()}₽</div>
+                        <div class="${startingAmount > donationsAmount ? 'warning' : 'info'}">
+                            <strong>Статус:</strong> ${startingAmount > donationsAmount ? 
+                                'Стартовое значение учитывается в аналитике' : 
+                                'Используется только сумма донатов'}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('analyticsResults').innerHTML = `
+                        <div class="error">❌ Ошибка /api/donations-analytics: ${data.error}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('analyticsResults').innerHTML = `
+                    <div class="error">❌ Ошибка /api/donations-analytics: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // Открыть страницу
+        function openPage(url) {
+            window.open(`http://localhost:3000/${url}`, '_blank');
+        }
+        
+        // Инициализация
+        loadStats();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

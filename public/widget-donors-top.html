@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Donors</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: rgba(8, 8, 15, 0.95);
+            --bg-end: rgba(12, 12, 20, 0.95);
+            --border-color: rgba(255, 255, 255, 0.15);
+            --accent-yellow: #ffd04e;
+            --accent-cyan: #6bffde;
+            --accent-text: #fff4b0;
+            --panel-radius: 20px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: transparent;
+            min-height: 100vh;
+            font-family: 'Rajdhani', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .top-title {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 800;
+            text-shadow:
+                0 0 18px rgba(0, 0, 0, 0.95),
+                0 0 34px rgba(0, 0, 0, 0.9);
+            white-space: nowrap;
+        }
+
+        .top-widget {
+            width: 100%;
+            background: none;
+            border-radius: var(--panel-radius);
+            padding: 8px 10px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .top-widget::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(120deg, var(--bg-start), var(--bg-end));
+            border: 1px solid var(--border-color);
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.3);
+            z-index: -1;
+            opacity: 1;
+        }
+
+        .rank-glow {
+            position: absolute;
+            left: -4px;
+            top: 0;
+            bottom: 0;
+            width: 12px;
+            border-radius: 50% 0 0 50%;
+            pointer-events: none;
+            opacity: 0.95;
+            transition: background 0.5s ease, opacity 0.35s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.35));
+        }
+        .rank-glow .rank-strip {
+            position: absolute;
+            left: 0;
+            top: 4px;
+            bottom: 4px;
+            width: 3px;
+            border-radius: 999px;
+            box-shadow:
+                0 0 35px rgba(255, 255, 255, 0.75),
+                inset 0 0 30px rgba(255, 255, 255, 0.45);
+            z-index: 1;
+            transition: background 0.25s ease, box-shadow 0.25s ease;
+        }
+        .rank-glow::after {
+            content: '';
+            position: absolute;
+            left: 6px;
+            right: -40px;
+            top: 20%;
+            bottom: 20%;
+            border-radius: inherit;
+            background: linear-gradient(90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 20%,
+                rgba(255, 255, 255, 0) 80%);
+            mix-blend-mode: screen;
+            pointer-events: none;
+            filter: blur(20px);
+            transition: background 0.5s ease, filter 0.5s ease;
+        }
+        .rank-glow.rank-1 {
+            background: linear-gradient(90deg, rgba(255, 230, 130, 1), rgba(255, 165, 0, 0.7));
+        }
+        .rank-glow.rank-2 {
+            background: linear-gradient(90deg, rgba(175, 225, 255, 1), rgba(0, 170, 255, 0.7));
+        }
+        .rank-glow.rank-3 {
+            background: linear-gradient(90deg, rgba(255, 135, 70, 1), rgba(255, 75, 0, 0.7));
+        }
+        .rank-glow.rank-4 {
+            background: linear-gradient(90deg, rgba(250, 150, 255, 1), rgba(180, 90, 255, 0.6));
+        }
+        .rank-glow.rank-5 {
+            background: linear-gradient(90deg, rgba(105, 255, 210, 1), rgba(70, 200, 255, 0.6));
+        }
+        .rank-glow.rank-default {
+            background: linear-gradient(90deg, rgba(106, 255, 239, 0.85), rgba(124, 255, 214, 0.45));
+            opacity: 0.5;
+        }
+        .rank-glow.rank-1 .rank-strip { background: #ffd400; box-shadow: 0 0 38px rgba(255, 212, 0, 1); }
+        .rank-glow.rank-2 .rank-strip { background: #53c8ff; box-shadow: 0 0 38px rgba(83, 200, 255, 1); }
+        .rank-glow.rank-3 .rank-strip { background: #ff4b00; box-shadow: 0 0 38px rgba(255, 75, 0, 1); }
+        .rank-glow.rank-4 .rank-strip { background: #d36fff; box-shadow: 0 0 38px rgba(211, 111, 255, 0.9); }
+        .rank-glow.rank-5 .rank-strip { background: #53ffd7; box-shadow: 0 0 38px rgba(83, 255, 215, 0.9); }
+        .rank-glow.rank-default .rank-strip { background: #6affef; box-shadow: 0 0 28px rgba(106, 255, 239, 0.9); }
+        .rank-glow.rank-1::after { background: radial-gradient(circle, rgba(255, 230, 130, 0.35), rgba(255, 165, 0, 0)); }
+        .rank-glow.rank-2::after { background: radial-gradient(circle, rgba(175, 225, 255, 0.4), rgba(0, 170, 255, 0)); }
+        .rank-glow.rank-3::after { background: radial-gradient(circle, rgba(255, 135, 70, 0.4), rgba(255, 75, 0, 0)); }
+        .rank-glow.rank-4::after { background: radial-gradient(circle, rgba(250, 150, 255, 0.4), rgba(180, 90, 255, 0)); }
+        .rank-glow.rank-5::after { background: radial-gradient(circle, rgba(105, 255, 210, 0.35), rgba(70, 200, 255, 0)); }
+        .rank-glow.rank-1.has-top-overlay::before,
+        .rank-glow.rank-2.has-top-overlay::before,
+        .rank-glow.rank-3.has-top-overlay::before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: -4px;
+            bottom: -4px;
+            width: 40px;
+            border-radius: 0 999px 999px 0;
+            background: inherit;
+            opacity: 0.2;
+            filter: blur(16px);
+            animation: topGlowBurst 4s ease-in-out infinite;
+            mix-blend-mode: screen;
+        }
+        .rank-glow.rank-1.has-top-overlay::before { background: linear-gradient(90deg, rgba(255, 230, 130, 0.9), rgba(255, 165, 0, 0)); }
+        .rank-glow.rank-2.has-top-overlay::before { background: linear-gradient(90deg, rgba(175, 225, 255, 0.9), rgba(0, 170, 255, 0)); }
+        .rank-glow.rank-3.has-top-overlay::before { background: linear-gradient(90deg, rgba(255, 135, 70, 0.9), rgba(255, 75, 0, 0)); }
+
+        @keyframes topGlowBurst {
+            0% {
+                transform: translateX(-12px);
+                opacity: 0.1;
+            }
+            50% {
+                transform: translateX(8px);
+                opacity: 0.55;
+            }
+            100% {
+                transform: translateX(-12px);
+                opacity: 0.1;
+            }
+        }
+
+        .top-widget.no-frame::before {
+            border: none;
+            box-shadow: none;
+        }
+
+        .top-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+
+        .donor-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            color: var(--accent-text);
+            text-transform: uppercase;
+            cursor: default;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            padding-left: 6px;
+            text-shadow:
+                0 4px 12px rgba(0, 0, 0, 0.65),
+                0 1px 3px rgba(0, 0, 0, 0.85);
+        }
+
+        .donor-name span {
+            display: inline-block;
+            white-space: nowrap;
+            line-height: 1;
+        }
+
+        .donor-metrics {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 3px;
+            font-size: 1.35rem;
+            flex-shrink: 0;
+            width: 140px;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .donor-amount {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-yellow);
+            white-space: nowrap;
+            text-shadow:
+                0 0 6px rgba(0, 0, 0, 0.9),
+                0 0 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .donor-time {
+            font-size: 1.1rem;
+            color: var(--accent-cyan);
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+            font-weight: 700;
+            text-shadow:
+                0 0 6px rgba(0, 0, 0, 0.85),
+                0 0 10px rgba(0, 0, 0, 0.55);
+        }
+
+        .no-data {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.65);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div style="position:relative; width:100%; max-width:640px;">
+        <div class="top-title" id="topTitle">ОТМЫВАЛЬЩИКИ</div>
+    <div class="top-widget" id="topWidget">
+        <div class="rank-glow" id="rankGlow">
+            <div class="rank-strip"></div>
+        </div>
+        <div class="top-row" id="topEntry">
+            <div class="donor-name" id="donorName">
+                <span id="donorNameInner">—</span>
+            </div>
+            <div class="donor-metrics">
+                <span class="donor-amount" id="donorAmount">0 ₽</span>
+                <span class="donor-time" id="donorTime">+0с</span>
+            </div>
+        </div>
+        <div class="no-data" id="noDonors">Нет доноров для выбранного периода.</div>
+    </div>
+    </div>
+    <!-- v2: добавили версионирование скрипта, чтобы в OBS точно подтянулась свежая логика -->
+    <script src="/widget-donors-top.js?v=2" defer></script>
+</body>
+</html>
+

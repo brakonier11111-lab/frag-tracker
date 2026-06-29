@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donation Bar для OBS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&family=Montserrat:wght@400;600;700&family=Orbitron:wght@400;600;700&family=Russo+One&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bar-bg-color: rgba(0, 0, 0, 0.9);
+            --bar-fill-color: #4a5568;
+            --bar-border-color: rgba(74, 85, 104, 0.4);
+            --bar-glow-color: rgba(102, 126, 234, 0.2);
+            --text-color: #ffffff;
+            --text-shadow-color: rgba(0, 0, 0, 0.8);
+            --bar-height: 35px;
+            --bar-width: 100%;
+            --border-radius: 30px;
+            --font-family: 'Inter', sans-serif;
+            --animation-speed: 1;
+            --particle-count: 9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: transparent;
+            color: var(--text-color);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .donation-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* ========== ГОРИЗОНТАЛЬНАЯ ========== */
+        .horizontal-bar {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .horizontal-bar .bar-title {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 3px 6px var(--text-shadow-color);
+            animation: textGlow calc(3s / var(--animation-speed)) ease-in-out infinite;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .horizontal-bar .progress-container {
+            position: relative;
+            padding: 10px 0;
+        }
+
+        .horizontal-bar .progress-bar {
+            width: var(--bar-width);
+            height: var(--bar-height);
+            background: var(--bar-bg-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            position: relative;
+            box-shadow: 
+                inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(0, 0, 0, 0.5),
+                0 0 60px var(--bar-glow-color);
+            border: 3px solid var(--bar-border-color);
+            animation: progressBarGlow calc(6s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .horizontal-bar .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, 
+                var(--bar-fill-color) 0%, 
+                color-mix(in srgb, var(--bar-fill-color) 80%, black) 50%,
+                var(--bar-fill-color) 100%
+            );
+            background-size: 300% 300%;
+            border-radius: var(--border-radius);
+            position: relative;
+            transition: width 4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
+            box-shadow: 
+                0 0 20px color-mix(in srgb, var(--bar-fill-color) 60%, transparent),
+                inset 0 3px 6px rgba(255, 255, 255, 0.2);
+            animation: gradientShift calc(12s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        /* ========== ВЕРТИКАЛЬНАЯ ========== */
+        .vertical-bar {
+            height: 100%;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .vertical-bar .bar-title {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 3px 6px var(--text-shadow-color);
+            animation: textGlow calc(3s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .vertical-bar .progress-container {
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .vertical-bar .progress-bar {
+            width: var(--bar-height);
+            height: 400px;
+            background: var(--bar-bg-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            position: relative;
+            box-shadow: 
+                inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(0, 0, 0, 0.5),
+                0 0 60px var(--bar-glow-color);
+            border: 3px solid var(--bar-border-color);
+            animation: progressBarGlow calc(6s / var(--animation-speed)) ease-in-out infinite;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        .vertical-bar .progress-fill {
+            width: 100%;
+            background: linear-gradient(0deg, 
+                var(--bar-fill-color) 0%, 
+                color-mix(in srgb, var(--bar-fill-color) 80%, black) 50%,
+                var(--bar-fill-color) 100%
+            );
+            background-size: 300% 300%;
+            border-radius: var(--border-radius);
+            position: relative;
+            transition: height 4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
+            box-shadow: 
+                0 0 20px color-mix(in srgb, var(--bar-fill-color) 60%, transparent),
+                inset 0 3px 6px rgba(255, 255, 255, 0.2);
+            animation: gradientShift calc(12s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .vertical-bar .progress-text {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+            align-items: center;
+        }
+
+        /* ========== КРУГОВАЯ ========== */
+        .circular-bar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .circular-bar .bar-title {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            text-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 3px 6px var(--text-shadow-color);
+            animation: textGlow calc(3s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .circular-progress {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+
+        .circular-progress svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .circular-progress circle {
+            fill: none;
+            stroke-width: 15;
+        }
+
+        .circular-progress .progress-bg {
+            stroke: var(--bar-bg-color);
+            opacity: 0.3;
+        }
+
+        .circular-progress .progress-ring {
+            stroke: var(--bar-fill-color);
+            stroke-linecap: round;
+            transition: stroke-dashoffset 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            filter: drop-shadow(0 0 10px var(--bar-fill-color));
+            animation: ringGlow calc(3s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .circular-progress .progress-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .circular-progress .current-amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-shadow: 0 0 10px var(--text-shadow-color);
+        }
+
+        .circular-progress .percentage {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        /* ========== УГЛОВЫЕ ========== */
+        .corner-bar {
+            position: fixed;
+            padding: 15px;
+        }
+
+        .corner-bar.top-left {
+            top: 0;
+            left: 0;
+        }
+
+        .corner-bar.top-right {
+            top: 0;
+            right: 0;
+        }
+
+        .corner-bar.bottom-left {
+            bottom: 0;
+            left: 0;
+        }
+
+        .corner-bar.bottom-right {
+            bottom: 0;
+            right: 0;
+        }
+
+        .corner-bar .progress-bar {
+            width: 300px;
+        }
+
+        /* ========== МИНИМАЛИСТИЧНЫЙ СТИЛЬ ========== */
+        .minimal-style .progress-bar {
+            border: none !important;
+            box-shadow: none !important;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .minimal-style .progress-fill {
+            box-shadow: none !important;
+        }
+
+        /* ========== НЕОНОВЫЙ СТИЛЬ ========== */
+        .neon-style .progress-bar {
+            border: 2px solid var(--bar-fill-color) !important;
+            box-shadow: 
+                0 0 20px var(--bar-glow-color),
+                0 0 40px var(--bar-glow-color),
+                inset 0 0 20px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        .neon-style .progress-fill {
+            box-shadow: 
+                0 0 30px var(--bar-fill-color),
+                0 0 60px var(--bar-fill-color),
+                inset 0 0 10px rgba(255, 255, 255, 0.3) !important;
+        }
+
+        /* ========== СТИЛЬ РАДУГИ ========== */
+        .rainbow-style .progress-fill {
+            background: linear-gradient(90deg, 
+                #ff0000, #ff7f00, #ffff00, #00ff00, 
+                #0000ff, #4b0082, #9400d3
+            ) !important;
+            background-size: 200% 100% !important;
+            animation: rainbowShift calc(3s / var(--animation-speed)) linear infinite !important;
+        }
+
+        @keyframes rainbowShift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        /* ========== ОБЩИЕ ЭЛЕМЕНТЫ ========== */
+        .progress-amount-inside {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-shadow: 
+                0 0 10px var(--text-shadow-color),
+                0 0 20px var(--text-shadow-color);
+            z-index: 10;
+            pointer-events: none;
+            animation: amountGlow calc(2s / var(--animation-speed)) ease-in-out infinite;
+            white-space: nowrap;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        .progress-text span {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px 12px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                inset 0 1px 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-percentage {
+            position: absolute;
+            top: 50%;
+            right: 10%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-color);
+            text-shadow: 0 0 10px var(--text-shadow-color);
+            z-index: 10;
+        }
+
+        /* ========== ЧАСТИЦЫ ========== */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--bar-glow-color);
+            border-radius: 50%;
+            animation: float calc(6s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 1s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 2s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 3s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 4s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 5s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 1.5s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 2.5s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 3.5s; }
+
+        /* ========== АНИМАЦИИ ========== */
+        @keyframes progressBarGlow {
+            0%, 100% { 
+                border-color: var(--bar-border-color);
+                box-shadow: 
+                    inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                    0 0 30px rgba(0, 0, 0, 0.5),
+                    0 0 60px var(--bar-glow-color);
+            }
+            50% { 
+                border-color: color-mix(in srgb, var(--bar-border-color) 70%, white);
+                box-shadow: 
+                    inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                    0 0 40px rgba(0, 0, 0, 0.6),
+                    0 0 80px color-mix(in srgb, var(--bar-glow-color) 200%, white);
+            }
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes textGlow {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 20px rgba(255, 255, 255, 0.8),
+                    0 3px 6px var(--text-shadow-color);
+            }
+            50% { 
+                text-shadow: 
+                    0 0 30px rgba(255, 255, 255, 1),
+                    0 4px 8px var(--text-shadow-color);
+            }
+        }
+
+        @keyframes amountGlow {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 10px var(--text-shadow-color),
+                    0 0 20px var(--text-shadow-color);
+            }
+            50% { 
+                text-shadow: 
+                    0 0 15px rgba(0, 0, 0, 1),
+                    0 0 30px rgba(0, 0, 0, 0.8);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(100px) scale(0); 
+                opacity: 0; 
+            }
+            10% { 
+                opacity: 1; 
+                transform: translateY(90px) scale(1); 
+            }
+            90% { 
+                opacity: 1; 
+                transform: translateY(-10px) scale(1); 
+            }
+        }
+
+        @keyframes ringGlow {
+            0%, 100% { 
+                filter: drop-shadow(0 0 10px var(--bar-fill-color));
+            }
+            50% { 
+                filter: drop-shadow(0 0 20px var(--bar-fill-color));
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .vertical-bar .particle {
+            animation: floatVertical calc(6s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        @keyframes floatVertical {
+            0%, 100% { 
+                transform: translateX(100px) scale(0); 
+                opacity: 0; 
+            }
+            10% { 
+                opacity: 1; 
+                transform: translateX(90px) scale(1); 
+            }
+            90% { 
+                opacity: 1; 
+                transform: translateX(-10px) scale(1); 
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+    </style>
+</head>
+<body>
+    <div class="donation-container" id="donation-container">
+        <!-- Контент генерируется динамически -->
+    </div>
+
+    <script>
+        // Парсинг URL параметров
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Настройки из URL
+        const config = {
+            orientation: urlParams.get('orientation') || 'horizontal',
+            style: urlParams.get('style') || 'default', // default, minimal, neon, rainbow
+            barBgColor: urlParams.get('bgColor') || '#000000',
+            barFillColor: urlParams.get('fillColor') || '#4a5568',
+            barBorderColor: urlParams.get('borderColor') || '#4a5568',
+            barGlowColor: urlParams.get('glowColor') || '#667eea',
+            barHeight: parseInt(urlParams.get('height')) || 35,
+            borderRadius: parseInt(urlParams.get('radius')) || 30,
+            animSpeed: parseFloat(urlParams.get('animSpeed')) || 1,
+            fontFamily: urlParams.get('font') || 'Inter',
+            showTitle: urlParams.get('showTitle') !== 'false',
+            showAmount: urlParams.get('showAmount') !== 'false',
+            showStartEnd: urlParams.get('showStartEnd') !== 'false',
+            showPercentage: urlParams.get('showPercentage') === 'true',
+            showParticles: urlParams.get('showParticles') !== 'false'
+        };
+
+        let donationGoal = {
+            title: 'Сбор на новый контент',
+            targetAmount: 10000,
+            currentAmount: 0
+        };
+
+        let updateInterval = null;
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', async function() {
+            applyConfig();
+            await loadGoalData(); // Ждем загрузки данных перед рендерингом
+            renderBar();
+            startAutoUpdate();
+        });
+
+        // Применение конфигурации
+        function applyConfig() {
+            const root = document.documentElement;
+            root.style.setProperty('--bar-bg-color', hexToRgba(config.barBgColor, 0.9));
+            root.style.setProperty('--bar-fill-color', config.barFillColor);
+            root.style.setProperty('--bar-border-color', hexToRgba(config.barBorderColor, 0.4));
+            root.style.setProperty('--bar-glow-color', hexToRgba(config.barGlowColor, 0.2));
+            root.style.setProperty('--bar-height', config.barHeight + 'px');
+            root.style.setProperty('--border-radius', config.borderRadius + 'px');
+            root.style.setProperty('--animation-speed', config.animSpeed);
+            root.style.setProperty('--font-family', `'${config.fontFamily}', sans-serif`);
+        }
+
+        // Конвертация HEX в RGBA
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Загрузка данных
+        async function loadGoalData() {
+            try {
+                const response = await fetch('/api/donation-goal');
+                if (response.ok) {
+                    const data = await response.json();
+                    donationGoal = { ...donationGoal, ...data };
+                    updateDisplay();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                updateDisplay();
+            }
+        }
+
+        // Рендеринг бара
+        function renderBar() {
+            const container = document.getElementById('donation-container');
+            
+            let barClass = '';
+            if (config.style === 'minimal') barClass = 'minimal-style';
+            else if (config.style === 'neon') barClass = 'neon-style';
+            else if (config.style === 'rainbow') barClass = 'rainbow-style';
+
+            let html = '';
+            
+            if (config.orientation === 'circular') {
+                html = createCircularBar();
+            } else if (config.orientation === 'vertical') {
+                html = createVerticalBar();
+            } else if (config.orientation.startsWith('corner-')) {
+                html = createCornerBar();
+            } else {
+                html = createHorizontalBar();
+            }
+
+            container.innerHTML = html;
+            container.className = 'donation-container fade-in ' + barClass;
+            
+            applyVisibility();
+            updateDisplay();
+        }
+
+        // Создание HTML для разных ориентаций
+        function createHorizontalBar() {
+            return `
+                <div class="horizontal-bar">
+                    <div class="bar-title" id="bar-title">${donationGoal.title}</div>
+                    <div class="progress-container">
+                        <div class="particles" id="particles">
+                            ${createParticles()}
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                            <div class="progress-amount-inside" id="progress-amount">0 ₽</div>
+                            <div class="progress-percentage hidden" id="progress-percentage">0%</div>
+                        </div>
+                        <div class="progress-text" id="progress-text">
+                            <span class="start-amount">0 ₽</span>
+                            <span id="target-amount">10,000 ₽</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createVerticalBar() {
+            return `
+                <div class="vertical-bar">
+                    <div class="bar-title" id="bar-title">${donationGoal.title}</div>
+                    <div class="progress-container">
+                        <div class="particles" id="particles">
+                            ${createParticles()}
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="height: 0%"></div>
+                            <div class="progress-amount-inside" id="progress-amount">0 ₽</div>
+                        </div>
+                        <div class="progress-text" id="progress-text">
+                            <span id="target-amount">10,000 ₽</span>
+                            <span class="start-amount">0 ₽</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createCircularBar() {
+            return `
+                <div class="circular-bar">
+                    <div class="bar-title" id="bar-title">${donationGoal.title}</div>
+                    <div class="circular-progress">
+                        <svg>
+                            <circle class="progress-bg" cx="125" cy="125" r="110"></circle>
+                            <circle class="progress-ring" id="progress-ring" cx="125" cy="125" r="110"
+                                stroke-dasharray="691" stroke-dashoffset="691"></circle>
+                        </svg>
+                        <div class="progress-center">
+                            <div class="current-amount" id="progress-amount">0 ₽</div>
+                            <div class="percentage" id="progress-percentage">0%</div>
+                        </div>
+                    </div>
+                    <div class="progress-text" id="progress-text">
+                        <span class="start-amount">0 ₽</span>
+                        <span id="target-amount">10,000 ₽</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createCornerBar() {
+            const cornerClass = {
+                'corner-tl': 'top-left',
+                'corner-tr': 'top-right',
+                'corner-bl': 'bottom-left',
+                'corner-br': 'bottom-right'
+            }[config.orientation];
+
+            return `
+                <div class="corner-bar ${cornerClass}">
+                    <div class="bar-title" id="bar-title">${donationGoal.title}</div>
+                    <div class="progress-container">
+                        <div class="particles" id="particles">
+                            ${createParticles()}
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                            <div class="progress-amount-inside" id="progress-amount">0 ₽</div>
+                        </div>
+                        <div class="progress-text" id="progress-text">
+                            <span class="start-amount">0 ₽</span>
+                            <span id="target-amount">10,000 ₽</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createParticles() {
+            return Array.from({length: 9}, () => '<div class="particle"></div>').join('');
+        }
+
+        // Обновление отображения
+        function updateDisplay() {
+            const titleEl = document.getElementById('bar-title');
+            const targetEl = document.getElementById('target-amount');
+            const amountEl = document.getElementById('progress-amount');
+            
+            if (titleEl) titleEl.textContent = donationGoal.title;
+            if (targetEl) targetEl.textContent = formatCurrency(donationGoal.targetAmount);
+            if (amountEl) amountEl.textContent = formatCurrency(donationGoal.currentAmount);
+            
+            const percentage = donationGoal.targetAmount > 0 ? 
+                Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100) : 0;
+            
+            if (config.orientation === 'circular') {
+                const ring = document.getElementById('progress-ring');
+                if (ring) {
+                    const circumference = 691;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+                }
+            } else if (config.orientation === 'vertical') {
+                const fill = document.getElementById('progress-fill');
+                if (fill) fill.style.height = percentage + '%';
+            } else {
+                const fill = document.getElementById('progress-fill');
+                if (fill) fill.style.width = percentage + '%';
+            }
+            
+            const percentEl = document.getElementById('progress-percentage');
+            if (percentEl) {
+                percentEl.textContent = Math.round(percentage) + '%';
+            }
+        }
+
+        // Применение видимости элементов
+        function applyVisibility() {
+            if (!config.showTitle) {
+                const title = document.getElementById('bar-title');
+                if (title) title.classList.add('hidden');
+            }
+            if (!config.showAmount) {
+                const amount = document.getElementById('progress-amount');
+                if (amount) amount.classList.add('hidden');
+            }
+            if (!config.showStartEnd) {
+                const text = document.getElementById('progress-text');
+                if (text) text.classList.add('hidden');
+            }
+            if (!config.showPercentage) {
+                const percent = document.getElementById('progress-percentage');
+                if (percent) percent.classList.add('hidden');
+            } else {
+                const percent = document.getElementById('progress-percentage');
+                if (percent) percent.classList.remove('hidden');
+            }
+            if (!config.showParticles) {
+                const particles = document.getElementById('particles');
+                if (particles) particles.classList.add('hidden');
+            }
+        }
+
+        // Форматирование валюты
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ru-RU').format(Math.round(amount)) + ' ₽';
+        }
+
+        // Автообновление
+        function startAutoUpdate() {
+            updateInterval = setInterval(() => {
+                loadGoalData();
+            }, 5000);
+        }
+
+        // Очистка
+        window.addEventListener('beforeunload', () => {
+            if (updateInterval) clearInterval(updateInterval);
+        });
+    </script>
+</body>
+</html>
+

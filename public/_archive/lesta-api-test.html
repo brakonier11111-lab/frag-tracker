@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест Lesta Games API</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --neon-yellow: #ffff00;
+            --dark: #0a0a14;
+            --darker: #050508;
+            --light: #f5f5f5;
+            --widget-bg-opacity: 0.95;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, var(--widget-bg-opacity)) 0%,
+                rgba(8, 8, 20, calc(var(--widget-bg-opacity) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--widget-bg-opacity) * 0.85)) 100%
+            );
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(0, 240, 255, 0.1);
+            position: relative;
+            overflow: visible;
+        }
+
+        .container::before,
+        .container::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background:
+                radial-gradient(12px 2px at left center, var(--neon-blue), rgba(0,0,0,0) 70%),
+                linear-gradient(90deg, var(--neon-blue), var(--neon-blue)),
+                radial-gradient(12px 2px at right center, var(--neon-blue), rgba(0,0,0,0) 70%);
+            background-repeat: no-repeat;
+            background-size: 12px 100%, calc(100% - 24px) 100%, 12px 100%;
+            background-position: left center, center, right center;
+        }
+        .container::before { top: 6px; }
+        .container::after { bottom: 6px; }
+        
+        h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(255, 0, 60, 0.5);
+            text-align: center;
+        }
+
+        .nav-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .nav-link {
+            color: var(--neon-purple);
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            color: var(--neon-blue);
+        }
+
+        .test-section {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .test-section h3 {
+            color: var(--neon-green);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--neon-blue);
+            font-weight: 600;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: var(--light);
+            font-size: 14px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        .btn-success {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .btn-warning {
+            border-color: var(--neon-yellow);
+            color: var(--neon-yellow);
+        }
+
+        .result {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result.success {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .result.error {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.success {
+            background: var(--neon-green);
+        }
+
+        .status-indicator.error {
+            background: var(--neon-red);
+        }
+
+        .status-indicator.loading {
+            background: var(--neon-yellow);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LESTA GAMES API TEST</h1>
+        
+        <div class="nav-links">
+            <a href="/" class="nav-link">🏠 Главная</a>
+            <a href="/admin" class="nav-link">👨‍💼 Админка</a>
+            <a href="/lesta-stats" class="nav-link">📊 Статистика</a>
+            <a href="/lesta-test" class="nav-link">🧪 Базовый тест</a>
+        </div>
+
+        <!-- Тест поиска игроков -->
+        <div class="test-section">
+            <h3>🔍 Поиск игроков</h3>
+            <div class="form-group">
+                <label>Никнейм игрока:</label>
+                <input type="text" id="searchNickname" placeholder="Введите никнейм для поиска" value="test">
+            </div>
+            <div class="form-group">
+                <label>Тип поиска:</label>
+                <select id="searchType">
+                    <option value="startswith">По началу имени</option>
+                    <option value="exact">Точное совпадение</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="testPlayerSearch()">🔍 ПОИСК ИГРОКОВ</button>
+            <div id="searchResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Тест достижений -->
+        <div class="test-section">
+            <h3>🏆 Достижения игрока</h3>
+            <div class="form-group">
+                <label>Account ID:</label>
+                <input type="text" id="achievementsAccountId" placeholder="Введите Account ID">
+            </div>
+            <div class="form-group">
+                <label>Поля ответа:</label>
+                <input type="text" id="achievementsFields" placeholder="achievements,max_series" value="achievements,max_series">
+            </div>
+            <button class="btn btn-success" onclick="testAchievements()">🏆 ПОЛУЧИТЬ ДОСТИЖЕНИЯ</button>
+            <div id="achievementsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Тест статистики по технике -->
+        <div class="test-section">
+            <h3>🚗 Статистика по технике</h3>
+            <div class="form-group">
+                <label>Account ID:</label>
+                <input type="text" id="tankStatsAccountId" placeholder="Введите Account ID">
+            </div>
+            <div class="form-group">
+                <label>Tank ID:</label>
+                <input type="text" id="tankStatsTankId" placeholder="Введите Tank ID" value="1">
+            </div>
+            <div class="form-group">
+                <label>Поля ответа:</label>
+                <input type="text" id="tankStatsFields" placeholder="all,mark_of_mastery" value="all,mark_of_mastery">
+            </div>
+            <button class="btn btn-warning" onclick="testTankStats()">🚗 ПОЛУЧИТЬ СТАТИСТИКУ ПО ТЕХНИКЕ</button>
+            <div id="tankStatsResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Тест списка техники -->
+        <div class="test-section">
+            <h3>🚗 Список техники</h3>
+            <div class="form-group">
+                <label>Нация:</label>
+                <select id="vehiclesNation">
+                    <option value="">Все нации</option>
+                    <option value="ussr">СССР</option>
+                    <option value="germany">Германия</option>
+                    <option value="usa">США</option>
+                    <option value="france">Франция</option>
+                    <option value="uk">Великобритания</option>
+                    <option value="china">Китай</option>
+                    <option value="japan">Япония</option>
+                    <option value="czech">Чехия</option>
+                    <option value="poland">Польша</option>
+                    <option value="sweden">Швеция</option>
+                    <option value="italy">Италия</option>
+                    <option value="other">Другие</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Поля ответа:</label>
+                <input type="text" id="vehiclesFields" placeholder="tank_id,name,tier,type" value="tank_id,name,tier,type,nation">
+            </div>
+            <button class="btn btn-primary" onclick="testVehicles()">🚗 ПОЛУЧИТЬ СПИСОК ТЕХНИКИ</button>
+            <div id="vehiclesResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        function showResult(elementId, data, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result';
+            element.innerHTML = '<span class="status-indicator loading"></span>Загрузка...';
+        }
+
+        async function testPlayerSearch() {
+            const nickname = document.getElementById('searchNickname').value;
+            const type = document.getElementById('searchType').value;
+            
+            if (!nickname) {
+                showResult('searchResult', { error: 'Введите никнейм для поиска' }, false);
+                return;
+            }
+
+            showLoading('searchResult');
+
+            try {
+                const response = await fetch(`/api/lesta-search?nickname=${encodeURIComponent(nickname)}&type=${type}`);
+                const data = await response.json();
+                showResult('searchResult', data, data.success);
+            } catch (error) {
+                showResult('searchResult', { error: error.message }, false);
+            }
+        }
+
+        async function testAchievements() {
+            const accountId = document.getElementById('achievementsAccountId').value;
+            const fields = document.getElementById('achievementsFields').value;
+            
+            if (!accountId) {
+                showResult('achievementsResult', { error: 'Введите Account ID' }, false);
+                return;
+            }
+
+            showLoading('achievementsResult');
+
+            try {
+                const response = await fetch(`/api/lesta-achievements?account_id=${accountId}&fields=${encodeURIComponent(fields)}`);
+                const data = await response.json();
+                showResult('achievementsResult', data, data.success);
+            } catch (error) {
+                showResult('achievementsResult', { error: error.message }, false);
+            }
+        }
+
+        async function testTankStats() {
+            const accountId = document.getElementById('tankStatsAccountId').value;
+            const tankId = document.getElementById('tankStatsTankId').value;
+            const fields = document.getElementById('tankStatsFields').value;
+            
+            if (!accountId || !tankId) {
+                showResult('tankStatsResult', { error: 'Введите Account ID и Tank ID' }, false);
+                return;
+            }
+
+            showLoading('tankStatsResult');
+
+            try {
+                const response = await fetch(`/api/lesta-tankstats?account_id=${accountId}&tank_id=${tankId}&fields=${encodeURIComponent(fields)}`);
+                const data = await response.json();
+                showResult('tankStatsResult', data, data.success);
+            } catch (error) {
+                showResult('tankStatsResult', { error: error.message }, false);
+            }
+        }
+
+        async function testVehicles() {
+            const nation = document.getElementById('vehiclesNation').value;
+            const fields = document.getElementById('vehiclesFields').value;
+            
+            showLoading('vehiclesResult');
+
+            try {
+                let url = `/api/lesta-vehicles?fields=${encodeURIComponent(fields)}`;
+                if (nation) {
+                    url += `&nation=${nation}`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                showResult('vehiclesResult', data, data.success);
+            } catch (error) {
+                showResult('vehiclesResult', { error: error.message }, false);
+            }
+        }
+
+        // Автозаполнение Account ID из настроек
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/api/lesta-sync');
+                const data = await response.json();
+                if (data.success && data.account_id) {
+                    document.getElementById('achievementsAccountId').value = data.account_id;
+                    document.getElementById('tankStatsAccountId').value = data.account_id;
+                }
+            } catch (error) {
+                console.log('Не удалось получить Account ID из настроек');
+            }
+        });
+    </script>
+</body>
+</html>

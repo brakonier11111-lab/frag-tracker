@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация замедления</title>
+    <style>
+        :root {
+            --border: #00f0ff;
+            --accent: #00ff47;
+            --bg-start: #020205;
+            --bg-end: #05050d;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at top, rgba(0, 240, 255, 0.25), transparent 45%), #010103;
+            font-family: 'Rajdhani', 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: #fff;
+        }
+        .slowdown-window {
+            width: min(360px, 100%);
+            background: linear-gradient(135deg, rgba(5, 15, 25, 0.99), rgba(10, 20, 35, 0.95));
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 22px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-15px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .slowdown-window.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .slowdown-title {
+            font-size: 0.9rem;
+            color: var(--border);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .slowdown-info {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 6px;
+        }
+        .slowdown-time {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: 'Orbitron', monospace;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+        .slowdown-progress {
+            width: 100%;
+            height: 7px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+        .slowdown-progress .bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--border), var(--accent));
+            transition: width 0.3s ease;
+        }
+        .slowdown-additional {
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="slowdown-window" id="infoWindow">
+        <div class="slowdown-title">🐢 Таймер замедлен</div>
+        <div class="slowdown-info">Фактор: <span id="infoFactor">×1.0</span></div>
+        <div class="slowdown-info">Осталось</div>
+        <div class="slowdown-time" id="infoTime">00:00</div>
+        <div class="slowdown-progress">
+            <div class="bar" id="infoBar"></div>
+        </div>
+        <div class="slowdown-additional" id="infoAdditional">Ждём начала</div>
+    </div>
+    <script>
+        const windowEl = document.getElementById('infoWindow');
+        const factorEl = document.getElementById('infoFactor');
+        const timeEl = document.getElementById('infoTime');
+        const barEl = document.getElementById('infoBar');
+        const additionalEl = document.getElementById('infoAdditional');
+        let untilTs = 0;
+        let durationSec = 0;
+
+        function updateTimer() {
+            if (!untilTs) {
+                windowEl.classList.remove('active');
+                return;
+            }
+            const now = Math.floor(Date.now() / 1000);
+            const remaining = Math.max(0, untilTs - now);
+            if (remaining <= 0) {
+                windowEl.classList.remove('active');
+                return;
+            }
+            const minutes = Math.floor(remaining / 60).toString().padStart(2,'0');
+            const seconds = (remaining % 60).toString().padStart(2,'0');
+            timeEl.textContent = `${minutes}:${seconds}`;
+            const perc = durationSec ? Math.min(100, (remaining/ (durationSec || 1)) * 100) : 0;
+            barEl.style.width = `${perc}%`;
+        }
+
+        function showWindow(factor, until, duration) {
+            factorEl.textContent = `×${parseFloat(factor || 1).toFixed(2)}`;
+            untilTs = parseInt(until) || 0;
+            durationSec = parseInt(duration) || durationSec || ((untilTs - Math.floor(Date.now()/1000)) || 0);
+            const place = duration ? `Длительность ${Math.floor(duration/60)}:${(duration%60).toString().padStart(2,'0')}` : 'Замедление активно';
+            additionalEl.textContent = place;
+            windowEl.classList.add('active');
+            updateTimer();
+        }
+
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws?type=widget`);
+        socket.addEventListener('message', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'STATE_UPDATE') {
+                    if (data.state?.timer_slowdown_active) {
+                        showWindow(data.state.timer_slowdown_factor, data.state.timer_slowdown_until_ts, data.state.timer_slowdown_duration);
+                    } else {
+                        windowEl.classList.remove('active');
+                    }
+                }
+                if (data.type === 'SLOWDOWN_RESULT') {
+                    showWindow(data.factor, data.until_ts, data.duration);
+                }
+            } catch (error) {
+                console.warn('Slowdown info widget error', error);
+            }
+        });
+
+        setInterval(updateTimer, 1000);
+    </script>
+</body>
+</html>
+

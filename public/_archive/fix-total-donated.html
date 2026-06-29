@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исправление total_donated</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        button {
+            padding: 15px 30px;
+            background: #ff0040;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+        }
+        button:hover { background: #ff0066; }
+        .result {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .info { color: #4444ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Исправление рассинхронизации total_donated</h1>
+        
+        <div class="result">
+            <h3>📊 Текущая ситуация:</h3>
+            <div id="currentState">Загрузка...</div>
+        </div>
+        
+        <button onclick="checkCurrentState()">🔄 Проверить текущее состояние</button>
+        <button onclick="fixTotalDonated()">🔧 Исправить total_donated</button>
+        
+        <div class="result">
+            <h3>📋 Результат:</h3>
+            <div id="result">Нажмите кнопку для исправления</div>
+        </div>
+    </div>
+
+    <script>
+        async function checkCurrentState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                const statsResponse = await fetch('/api/donations-stats');
+                const statsData = await statsResponse.json();
+                
+                document.getElementById('currentState').innerHTML = `
+                    <div class="info">💰 total_donated в app_state: ${data.state.total_donated}</div>
+                    <div class="info">📊 Реальная сумма из donations: ${statsData.totalAmount}</div>
+                    <div class="info">📈 Количество донатов: ${statsData.totalCount}</div>
+                    <div class="${data.state.total_donated != statsData.totalAmount ? 'error' : 'success'}">
+                        ${data.state.total_donated != statsData.totalAmount ? '❌ РАССИНХРОНИЗАЦИЯ!' : '✅ Все в порядке'}
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('currentState').innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        async function fixTotalDonated() {
+            try {
+                document.getElementById('result').innerHTML = '<div class="info">🔄 Исправляем...</div>';
+                
+                const response = await fetch('/api/fix-total-donated', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('result').innerHTML = `
+                        <div class="success">✅ Исправление выполнено успешно!</div>
+                        <div class="info">📊 Старое значение: ${data.oldValue}</div>
+                        <div class="info">📊 Новое значение: ${data.newValue}</div>
+                        <div class="info">🔄 Изменений в БД: ${data.changes}</div>
+                    `;
+                    
+                    // Обновляем текущее состояние
+                    setTimeout(checkCurrentState, 1000);
+                } else {
+                    document.getElementById('result').innerHTML = `<div class="error">❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        // Проверяем состояние при загрузке
+        window.addEventListener('load', checkCurrentState);
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

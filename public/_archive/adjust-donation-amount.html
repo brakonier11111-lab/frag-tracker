@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Корректировка суммы донатов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .form-group {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: #fff;
+            font-size: 16px;
+        }
+        button {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #cc0000;
+        }
+        .info {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #2a4a2a;
+            border: 2px solid #44ff44;
+        }
+        .error {
+            background: #4a2a2a;
+            border: 2px solid #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Корректировка суммы донатов</h1>
+    
+    <div class="info">
+        <p><strong>Внимание:</strong> Это вычтет указанную сумму из:</p>
+        <ul>
+            <li>Общей суммы донатов (total_donated)</li>
+            <li>Суммы донатов указанного пользователя</li>
+        </ul>
+        <p>Будет создан корректирующий донат с отрицательной суммой.</p>
+    </div>
+
+    <div class="form-group">
+        <label>Имя пользователя:</label>
+        <input type="text" id="username" value="СВОшник" placeholder="СВОшник">
+    </div>
+
+    <div class="form-group">
+        <label>Сумма для вычитания (₽):</label>
+        <input type="number" id="amount" value="14000" min="1" step="1">
+    </div>
+
+    <button onclick="adjustAmount()">✅ Вычесть сумму</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function adjustAmount() {
+            const username = document.getElementById('username').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            if (!username) {
+                showResult('Введите имя пользователя', 'error');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showResult('Введите корректную сумму (больше 0)', 'error');
+                return;
+            }
+
+            if (!confirm(`Вычесть ${amount}₽ от суммы донатов пользователя "${username}"?\n\nЭто вычтет сумму из:\n- Общей суммы донатов\n- Суммы донатов пользователя`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/donations/adjust', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, amount })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult(
+                        `✅ Успешно!\n\nВычтено: ${amount}₽\nПользователь: ${username}\nНовая общая сумма: ${data.newTotalDonated}₽`,
+                        'success'
+                    );
+                } else {
+                    showResult(`❌ Ошибка: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `info ${type}`;
+            resultDiv.innerHTML = message.replace(/\n/g, '<br>');
+        }
+    </script>
+</body>
+</html>
+
+
+
+

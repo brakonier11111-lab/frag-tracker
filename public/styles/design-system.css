@@ -1,0 +1,714 @@
+/* ===================================
+   Современная дизайн-система Frag Tracker
+   =================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Orbitron:wght@400;600;700;800;900&display=swap');
+
+:root {
+    /* Цветовая палитра - неоновая тема */
+    --color-neon-red: #ff003c;
+    --color-neon-blue: #00f0ff;
+    --color-neon-purple: #b300ff;
+    --color-neon-green: #00ff47;
+    --color-neon-yellow: #ffff00;
+    
+    /* Алиасы для обратной совместимости */
+    --neon-red: var(--color-neon-red);
+    --neon-blue: var(--color-neon-blue);
+    --neon-purple: var(--color-neon-purple);
+    --neon-green: var(--color-neon-green);
+    --neon-yellow: var(--color-neon-yellow);
+    
+    /* Базовые цвета */
+    --color-dark: #0a0a14;
+    --color-darker: #050508;
+    --color-light: #f5f5f5;
+    --color-white: #ffffff;
+    
+    /* Алиасы для базовых цветов */
+    --dark: var(--color-dark);
+    --darker: var(--color-darker);
+    --light: var(--color-light);
+    --widget-bg-opacity: 0.95;
+    
+    /* Градиенты */
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --gradient-danger: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    --gradient-warning: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --gradient-neon: linear-gradient(45deg, var(--color-neon-red), var(--color-neon-blue));
+    
+    /* Glass-morphism */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-bg-hover: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-border-hover: rgba(255, 255, 255, 0.2);
+    --glass-blur: blur(20px);
+    
+    /* Тени */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.4);
+    --shadow-glow-blue: 0 0 20px rgba(0, 240, 255, 0.3);
+    --shadow-glow-purple: 0 0 20px rgba(179, 0, 255, 0.3);
+    --shadow-glow-red: 0 0 20px rgba(255, 0, 60, 0.3);
+    --shadow-glow-green: 0 0 20px rgba(0, 255, 71, 0.3);
+    
+    /* Радиусы */
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+    
+    /* Отступы */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+    
+    /* Типографика */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-display: 'Orbitron', monospace;
+    
+    /* Переходы */
+    --transition-fast: 150ms ease;
+    --transition-base: 300ms ease;
+    --transition-slow: 500ms ease;
+    
+    /* Z-index слои */
+    --z-base: 1;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-fixed: 300;
+    --z-modal-backdrop: 400;
+    --z-modal: 500;
+    --z-popover: 600;
+    --z-tooltip: 700;
+    --z-notification: 800;
+}
+
+/* ===================================
+   Базовые стили
+   =================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-sans);
+    background: linear-gradient(135deg, var(--color-darker) 0%, var(--color-dark) 50%, #1a1a2e 100%);
+    color: var(--color-light);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+span {
+    font-family: "Roboto", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ===================================
+   Типографика
+   =================================== */
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+}
+
+h1 {
+    font-size: clamp(2rem, 5vw, 4rem);
+    background: var(--gradient-neon);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(255, 0, 60, 0.5);
+}
+
+h2 {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    color: var(--color-neon-blue);
+}
+
+h3 {
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    color: var(--color-neon-purple);
+}
+
+p {
+    margin-bottom: var(--spacing-md);
+}
+
+a {
+    color: var(--color-neon-blue);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+a:hover {
+    color: var(--color-neon-purple);
+}
+
+/* ===================================
+   Компоненты: Кнопки
+   =================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-primary {
+    background: var(--gradient-primary);
+    color: var(--color-white);
+    box-shadow: var(--shadow-md), var(--shadow-glow-purple);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), var(--shadow-glow-purple);
+}
+
+.btn-success {
+    background: var(--gradient-success);
+    color: var(--color-white);
+    box-shadow: var(--shadow-md), var(--shadow-glow-green);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), var(--shadow-glow-green);
+}
+
+.btn-danger {
+    background: var(--gradient-danger);
+    color: var(--color-white);
+    box-shadow: var(--shadow-md), var(--shadow-glow-red);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), var(--shadow-glow-red);
+}
+
+.btn-warning {
+    background: var(--gradient-warning);
+    color: var(--color-white);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-ghost {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--color-light);
+    backdrop-filter: var(--glass-blur);
+}
+
+.btn-ghost:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    transform: translateY(-2px);
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+.btn-lg {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+}
+
+/* ===================================
+   Компоненты: Карточки
+   =================================== */
+
+.card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-lg);
+    transition: all var(--transition-base);
+}
+
+.card:hover {
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--shadow-xl), var(--shadow-glow-blue);
+    transform: translateY(-4px);
+}
+
+.card-header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.card-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-neon-blue);
+    margin-bottom: var(--spacing-xs);
+}
+
+.card-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+}
+
+.card-body {
+    margin-bottom: var(--spacing-md);
+}
+
+.card-footer {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+/* ===================================
+   Компоненты: Формы
+   =================================== */
+
+.form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    color: var(--color-light);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    transition: all var(--transition-base);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--color-neon-blue);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1), var(--shadow-glow-blue);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+/* ===================================
+   Стили для выпадающих списков (select)
+   =================================== */
+
+/* Базовые стили для всех select элементов */
+select,
+.form-select {
+    background: rgba(10, 10, 20, 0.95) !important;
+    background-color: rgba(10, 10, 20, 0.95) !important;
+    color: var(--color-light) !important;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+/* Стрелка для select */
+select,
+.form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300f0ff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+/* Опции в выпадающем списке */
+select option,
+.form-select option,
+option {
+    background: rgba(10, 10, 20, 0.95) !important;
+    background-color: rgba(10, 10, 20, 0.95) !important;
+    color: var(--color-light) !important;
+    padding: 10px;
+}
+
+/* Select при фокусе */
+select:focus,
+.form-select:focus {
+    background-color: rgba(10, 10, 20, 0.98) !important;
+    border-color: var(--color-neon-blue);
+    box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1), var(--shadow-glow-blue);
+}
+
+/* Select при наведении */
+select:hover,
+.form-select:hover {
+    background-color: rgba(10, 10, 20, 0.98) !important;
+    border-color: var(--glass-border-hover);
+}
+
+/* Для браузеров, которые не поддерживают стилизацию option */
+select::-ms-expand {
+    display: none;
+}
+
+/* ===================================
+   Компоненты: Навигация
+   =================================== */
+
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(5, 5, 8, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+    z-index: var(--z-fixed);
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.navbar-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.navbar-brand {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-neon-green);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    transition: all var(--transition-base);
+}
+
+.navbar-brand:hover {
+    color: var(--color-neon-blue);
+    transform: scale(1.05);
+}
+
+.navbar-nav {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    list-style: none;
+}
+
+.navbar-link {
+    padding: 8px 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-light);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all var(--transition-base);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.navbar-link:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--color-neon-purple);
+    box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.navbar-link.active {
+    background: var(--color-neon-purple);
+    color: var(--color-dark);
+    border-color: var(--color-neon-purple);
+    box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+}
+
+/* ===================================
+   Компоненты: Модальные окна
+   =================================== */
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(5px);
+    z-index: var(--z-modal-backdrop);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+    opacity: 0;
+    animation: fadeIn var(--transition-base) forwards;
+}
+
+.modal {
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-xl), var(--shadow-glow-purple);
+    transform: translateY(20px);
+    animation: slideUp var(--transition-base) forwards;
+}
+
+@keyframes fadeIn {
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ===================================
+   Компоненты: Уведомления
+   =================================== */
+
+.notification {
+    position: fixed;
+    top: 100px;
+    right: var(--spacing-lg);
+    background: var(--gradient-success);
+    color: var(--color-white);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-notification);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-weight: 600;
+    transform: translateX(400px);
+    transition: transform var(--transition-base);
+    max-width: 400px;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification.error {
+    background: var(--gradient-danger);
+}
+
+.notification.warning {
+    background: var(--gradient-warning);
+}
+
+/* ===================================
+   Утилиты: Сетки
+   =================================== */
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--spacing-lg);
+    padding-top: calc(80px + var(--spacing-lg));
+}
+
+.grid {
+    display: grid;
+    gap: var(--spacing-lg);
+}
+
+.grid-2 {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.grid-3 {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.grid-4 {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* ===================================
+   Утилиты: Отступы
+   =================================== */
+
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+.mt-xl { margin-top: var(--spacing-xl); }
+
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+.mb-xl { margin-bottom: var(--spacing-xl); }
+
+.p-sm { padding: var(--spacing-sm); }
+.p-md { padding: var(--spacing-md); }
+.p-lg { padding: var(--spacing-lg); }
+.p-xl { padding: var(--spacing-xl); }
+
+/* ===================================
+   Анимации
+   =================================== */
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ===================================
+   Адаптивность
+   =================================== */
+
+@media (max-width: 768px) {
+    .container {
+        padding: var(--spacing-md);
+        padding-top: calc(100px + var(--spacing-md));
+    }
+    
+    .navbar-container {
+        flex-direction: column;
+    }
+    
+    .navbar-nav {
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+        grid-template-columns: 1fr;
+    }
+    
+    .card {
+        padding: var(--spacing-md);
+    }
+}
+
+/* ===================================
+   Скроллбар
+   =================================== */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}

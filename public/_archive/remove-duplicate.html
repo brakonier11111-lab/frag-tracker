@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Удаление дубликата доната</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .donation-item {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .donation-item.duplicate {
+            border: 2px solid #ff4444;
+        }
+        button {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #cc0000;
+        }
+        .info {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Поиск дубликатов доната от СВОшник на 7000₽</h1>
+    <button onclick="findDuplicates()">Найти дубликаты</button>
+    <div id="results"></div>
+
+    <script>
+        async function findDuplicates() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Поиск...</p>';
+
+            try {
+                // Получаем все донаты
+                const response = await fetch('/api/donations?limit=1000');
+                const data = await response.json();
+                
+                // Фильтруем донаты от СВОшник на 7000₽
+                const svoshnikDonations = data.donations.filter(d => 
+                    d.username && d.username.includes('СВОшник') && d.amount === 7000
+                );
+
+                if (svoshnikDonations.length === 0) {
+                    resultsDiv.innerHTML = '<p>Донаты не найдены</p>';
+                    return;
+                }
+
+                if (svoshnikDonations.length === 1) {
+                    resultsDiv.innerHTML = '<p>Найден только один донат, дубликатов нет</p>';
+                    return;
+                }
+
+                // Сортируем по дате (самый новый первый)
+                svoshnikDonations.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                let html = `<div class="info">
+                    <strong>Найдено донатов: ${svoshnikDonations.length}</strong><br>
+                    Последний донат (дубликат) будет удален
+                </div>`;
+
+                svoshnikDonations.forEach((donation, index) => {
+                    const isDuplicate = index === 0; // Первый (самый новый) - дубликат
+                    html += `
+                        <div class="donation-item ${isDuplicate ? 'duplicate' : ''}">
+                            <strong>${isDuplicate ? '🔴 ДУБЛИКАТ (будет удален)' : '✅ Оригинал'}</strong><br>
+                            ID: ${donation.id}<br>
+                            Пользователь: ${donation.username}<br>
+                            Сумма: ${donation.amount}₽<br>
+                            Время добавлено: ${donation.time_earned || 0}с<br>
+                            Дата: ${donation.created_at}<br>
+                            ${isDuplicate ? `<button onclick="deleteDonation('${donation.id}', ${donation.amount}, ${donation.time_earned || 0})">Удалить этот донат</button>` : ''}
+                        </div>
+                    `;
+                });
+
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: #ff4444;">Ошибка: ${error.message}</p>`;
+            }
+        }
+
+        async function deleteDonation(donationId, amount, timeEarned) {
+            if (!confirm(`Удалить донат ID: ${donationId}?\nСумма: ${amount}₽\nВремя: ${timeEarned}с`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/donations/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ donationId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Донат удален!\n\nУбрано из суммы: ${data.removedAmount}₽\nУбрано из таймера: ${data.removedTime}с\n\nНовое состояние:\nТаймер: ${data.newTimerSeconds}с\nВсего донатов: ${data.newTotalDonated}₽`);
+                    findDuplicates(); // Обновляем список
+                } else {
+                    alert(`❌ Ошибка: ${data.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Ошибка: ${error.message}`);
+            }
+        }
+
+        // Автоматически ищем дубликаты при загрузке страницы
+        window.onload = findDuplicates;
+    </script>
+</body>
+</html>
+
+
+
+

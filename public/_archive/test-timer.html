@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Timer Test</title>
+</head>
+<body>
+    <h1>Timer Test</h1>
+    <button onclick="testSetTime()">Test Set Time</button>
+    <div id="result"></div>
+
+    <script>
+        async function testSetTime() {
+            try {
+                const response = await fetch('/api/timer-control', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'set',
+                        seconds: 3600 // 1 hour
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 
+                    '<p>Response: ' + JSON.stringify(result) + '</p>';
+                
+                console.log('Timer set result:', result);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    '<p>Error: ' + error.message + '</p>';
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

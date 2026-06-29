@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка и исправление суммы донатов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .info {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #2a4a2a;
+            border: 2px solid #44ff44;
+        }
+        .error {
+            background: #4a2a2a;
+            border: 2px solid #ff4444;
+        }
+        .warning {
+            background: #4a4a2a;
+            border: 2px solid #ffff44;
+        }
+        button {
+            background: #44ff44;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        button.danger {
+            background: #ff4444;
+            color: #fff;
+        }
+        button.danger:hover {
+            background: #cc0000;
+        }
+        .stat {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Управление донатами</h1>
+    
+    <div class="info" style="margin-bottom: 20px; border: 2px solid #4444ff;">
+        <h2>📊 Добавить донат для топа дня</h2>
+        <p style="margin: 10px 0; color: #aaa;">Добавляет донат в топ дня, но НЕ изменяет общую сумму донатов</p>
+        <div style="margin: 15px 0;">
+            <label>Пользователь: <input type="text" id="usernameForTop" value="СВОшник" style="padding: 8px; border-radius: 5px; border: 1px solid #444; background: #2a2a2a; color: #fff; width: 150px; margin: 0 10px;"></label>
+            <label>Сумма: <input type="number" id="amountForTop" value="9200" min="1" step="1" style="padding: 8px; border-radius: 5px; border: 1px solid #444; background: #2a2a2a; color: #fff; width: 150px; margin: 0 10px;">₽</label>
+        </div>
+        <button onclick="addDonationForTop()" style="background: #4444ff;">➕ Добавить в топ дня</button>
+    </div>
+    
+    <div class="info" style="margin-bottom: 20px; border: 2px solid #ff4444;">
+        <h2>🔧 Вычесть сумму из донатов</h2>
+        <p style="margin: 10px 0; color: #aaa;">Вычитает сумму из общей суммы донатов и суммы донатов пользователя</p>
+        <div style="margin: 15px 0;">
+            <label>Сумма для вычитания: <input type="number" id="amountToAdjust" value="7000" min="1" step="1" style="padding: 8px; border-radius: 5px; border: 1px solid #444; background: #2a2a2a; color: #fff; width: 150px; margin: 0 10px;">₽</label>
+            <label>Пользователь: <input type="text" id="usernameToAdjust" value="СВОшник" style="padding: 8px; border-radius: 5px; border: 1px solid #444; background: #2a2a2a; color: #fff; width: 150px; margin: 0 10px;"></label>
+        </div>
+        <button onclick="adjustAmount()" class="danger">🔧 Вычесть сумму</button>
+    </div>
+    
+    <button onclick="checkStatus()">🔄 Проверить текущее состояние</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function checkStatus() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="info">Проверка...</div>';
+
+            try {
+                // Проверяем состояние приложения
+                const stateResponse = await fetch('/api/state');
+                const stateData = await stateResponse.json();
+                
+                // Проверяем статистику донатов
+                const statsResponse = await fetch('/api/donations-stats');
+                const statsData = await statsResponse.json();
+
+                let html = '<div class="info">';
+                html += '<h2>📊 Текущее состояние:</h2>';
+                
+                if (stateData.success) {
+                    const totalFromState = Math.round(stateData.state.total_donated || 0);
+                    html += `<div class="stat">Общая сумма (app_state): ${totalFromState.toLocaleString()}₽</div>`;
+                }
+                
+                if (statsData.success) {
+                    const totalFromStats = Math.round(statsData.totalAmount || 0);
+                    html += `<div class="stat">Сумма из API (/api/donations-stats): ${totalFromStats.toLocaleString()}₽</div>`;
+                    
+                    if (stateData.success) {
+                        const totalFromState = Math.round(stateData.state.total_donated || 0);
+                        if (totalFromState !== totalFromStats) {
+                            html += '<div class="warning">⚠️ Суммы не совпадают! Виджет может показывать неправильную сумму.</div>';
+                        } else {
+                            html += '<div class="success">✅ Суммы совпадают!</div>';
+                        }
+                    }
+                }
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        async function adjustAmount() {
+            const amount = parseFloat(document.getElementById('amountToAdjust').value) || 0;
+            const username = document.getElementById('usernameToAdjust').value.trim();
+
+            if (!username) {
+                alert('Введите имя пользователя');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                alert('Введите корректную сумму (больше 0)');
+                return;
+            }
+
+            if (!confirm(`Вычесть ${amount}₽ от суммы донатов пользователя "${username}"?\n\nЭто вычтет сумму из:\n- Общей суммы донатов\n- Суммы донатов пользователя`)) {
+                return;
+            }
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="info">Выполнение корректировки...</div>';
+
+            try {
+                const response = await fetch('/api/donations/adjust', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, amount: amount })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h2>✅ Корректировка выполнена!</h2>
+                            <div class="stat">Вычтено: ${amount}₽</div>
+                            <div class="stat">Пользователь: ${username}</div>
+                            <div class="stat">Новая общая сумма: ${data.newTotalDonated.toLocaleString()}₽</div>
+                            <p>Виджет должен обновиться автоматически через WebSocket.</p>
+                            <p>Если виджет не обновился, обновите страницу виджета вручную.</p>
+                        </div>
+                    `;
+                    
+                    // Проверяем состояние через 1 секунду
+                    setTimeout(checkStatus, 1000);
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+
+        async function addDonationForTop() {
+            const amount = parseFloat(document.getElementById('amountForTop').value) || 0;
+            const username = document.getElementById('usernameForTop').value.trim();
+
+            if (!username) {
+                alert('Введите имя пользователя');
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                alert('Введите корректную сумму (больше 0)');
+                return;
+            }
+
+            if (!confirm(`Добавить ${amount}₽ для пользователя "${username}" в топ дня?\n\nЭто НЕ изменит общую сумму донатов, только добавит запись в топ дня.`)) {
+                return;
+            }
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<div class="info">Добавление доната для топа дня...</div>';
+
+            try {
+                const response = await fetch('/api/donations/add-for-top', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, amount: amount })
+                });
+
+                // Проверяем статус ответа
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Ошибка сервера:', response.status, text);
+                    resultDiv.innerHTML = `<div class="error">❌ Ошибка сервера (${response.status}): ${text.substring(0, 200)}</div>`;
+                    return;
+                }
+
+                // Проверяем Content-Type
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Неверный Content-Type:', contentType, text);
+                    resultDiv.innerHTML = `<div class="error">❌ Сервер вернул не JSON. Content-Type: ${contentType}<br>Ответ: ${text.substring(0, 200)}</div>`;
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h2>✅ Донат добавлен для топа дня!</h2>
+                            <div class="stat">Добавлено: ${amount}₽</div>
+                            <div class="stat">Пользователь: ${username}</div>
+                            <div class="stat">ID доната: ${data.donationId}</div>
+                            <p>Донат появится в виджете топа дня. Общая сумма донатов НЕ изменилась.</p>
+                            <p>Виджет топа должен обновиться автоматически через WebSocket.</p>
+                        </div>
+                    `;
+                    
+                    // Проверяем состояние через 1 секунду
+                    setTimeout(checkStatus, 1000);
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${data.error || 'Неизвестная ошибка'}</div>`;
+                }
+            } catch (error) {
+                console.error('Ошибка при запросе:', error);
+                resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}<br>Проверьте консоль браузера для подробностей.</div>`;
+            }
+        }
+
+        // Автоматически проверяем при загрузке
+        window.onload = checkStatus;
+    </script>
+</body>
+</html>
+

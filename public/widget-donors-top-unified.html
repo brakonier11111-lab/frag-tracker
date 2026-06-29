@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Топ Донатеров (Универсальный)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            padding: 0;
+            margin: 0;
+        }
+
+        .section {
+            margin-bottom: 8px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1.1px;
+            margin-bottom: 8px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .donors-carousel {
+            position: relative;
+            min-height: 140px;
+            overflow: hidden;
+        }
+
+        .donor-item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .donor-item.active {
+            opacity: 1;
+            transform: translateX(0);
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .donor-item.prev {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        .donor-item.next {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        .donor-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .donor-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .donor-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .donor-tier-title {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .donor-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        }
+
+        .donor-stats {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .donor-amount {
+            font-size: 1rem;
+            color: #00ff88;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+        }
+
+        .donor-amount::after {
+            content: '₽';
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-left: 2px;
+        }
+
+        .donor-time {
+            font-size: 0.8rem;
+            color: #00aaff;
+            font-weight: 500;
+            text-shadow: 0 0 6px rgba(0, 170, 255, 0.4);
+        }
+
+        .carousel-indicator {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 6px;
+            z-index: 20;
+        }
+
+        .carousel-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .carousel-dot.active {
+            background: rgba(255, 255, 255, 0.8);
+            width: 20px;
+            border-radius: 3px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%,
+                rgba(255, 255, 255, 0.1) 20%,
+                rgba(255, 255, 255, 0.1) 80%,
+                transparent 100%
+            );
+            margin: 8px 0;
+        }
+
+        @media (max-width: 600px) {
+            .donor-item {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .donor-icon {
+                width: 48px;
+                height: 48px;
+                font-size: 24px;
+            }
+
+            .donor-name {
+                font-size: 1.1rem;
+            }
+
+            .donor-amount {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Топ за сутки -->
+    <div class="section">
+        <div class="section-title">Топ за сутки</div>
+        <div class="donors-carousel" id="todayCarousel"></div>
+        <div class="carousel-indicator" id="todayIndicator"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ОТМЫВАЛЬЩИКИ -->
+    <div class="section">
+        <div class="section-title">ОТМЫВАЛЬЩИКИ</div>
+        <div class="donors-carousel" id="totalCarousel"></div>
+        <div class="carousel-indicator" id="totalIndicator"></div>
+    </div>
+
+    <script>
+        let todayDonors = [];
+        let totalDonors = [];
+        let tierConfig = [];
+        let todayIndex = 0;
+        let totalIndex = 0;
+        let todayInterval = null;
+        let totalInterval = null;
+        const CAROUSEL_INTERVAL = 5000;
+
+        // Параметры из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const limit = parseInt(urlParams.get('limit')) || 10;
+        const fromDate = urlParams.get('from_date');
+
+        // Загружаем настройки достижений
+        async function loadTierConfig() {
+            try {
+                const response = await fetch('/api/donor-tiers');
+                const data = await response.json();
+                if (data.success) {
+                    tierConfig = data.tiers;
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки настроек достижений:', error);
+            }
+        }
+
+        // Получаем информацию о тире донатера
+        function getTierInfo(totalAmount) {
+            if (tierConfig.length === 0) {
+                if (totalAmount >= 100000) return { title: 'ТОП спонсор', icon: '💫', color: '#ffff00' };
+                if (totalAmount >= 50000) return { title: 'Легендарный спонсор', icon: '🔥', color: '#ff0000' };
+                if (totalAmount >= 15000) return { title: 'Платиновый спонсор', icon: '👑', color: '#ff00ff' };
+                if (totalAmount >= 5000) return { title: 'Золотой спонсор', icon: '💎', color: '#ffaa00' };
+                if (totalAmount >= 3000) return { title: 'Верный спонсор', icon: '✨', color: '#00aaff' };
+                if (totalAmount >= 500) return { title: 'Поддерживающий', icon: '🌟', color: '#00ff00' };
+                return { title: 'Обычный донатер', icon: '⭐', color: '#ffffff' };
+            }
+
+            for (let i = tierConfig.length - 1; i >= 0; i--) {
+                const tier = tierConfig[i];
+                if (totalAmount >= tier.min_amount && totalAmount <= (tier.max_amount || Infinity)) {
+                    return tier;
+                }
+            }
+
+            return tierConfig[0] || { title: 'Обычный донатер', icon: '⭐', color: '#ffffff' };
+        }
+
+        // Форматирование времени
+        function formatTime(seconds) {
+            if (seconds < 60) {
+                return `${seconds} сек`;
+            } else if (seconds < 3600) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return secs > 0 ? `${minutes}:${secs.toString().padStart(2, '0')} мин` : `${minutes} мин`;
+            } else {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                return minutes > 0 ? `${hours}:${minutes.toString().padStart(2, '0')} ч` : `${hours} ч`;
+            }
+        }
+
+        // Загружаем топ за сутки
+        async function loadTodayDonors() {
+            try {
+                const url = `/api/donors/top/today?limit=${limit}`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    todayDonors = data.donors || [];
+                    renderDonors('today', todayDonors, todayIndex);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки топа за сутки:', error);
+                const container = document.getElementById('todayCarousel');
+                if (container) {
+                    container.innerHTML = '<div class="empty-state">Нет данных за сутки</div>';
+                }
+            }
+        }
+
+        // Загружаем общий топ
+        async function loadTotalDonors() {
+            try {
+                let url = `/api/donors/top?limit=${limit}`;
+                if (fromDate) {
+                    url += `&from_date=${fromDate}`;
+                }
+
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                if (data.success) {
+                    totalDonors = data.donors || [];
+                    renderDonors('total', totalDonors, totalIndex);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки общего топа:', error);
+                const container = document.getElementById('totalCarousel');
+                if (container) {
+                    container.innerHTML = '<div class="empty-state">Нет данных</div>';
+                }
+            }
+        }
+
+        // Рендеринг донатеров
+        function renderDonors(type, donors, startIndex) {
+            const container = document.getElementById(`${type}Carousel`);
+            const indicator = document.getElementById(`${type}Indicator`);
+            
+            if (!container) return;
+
+            if (donors.length === 0) {
+                container.innerHTML = '<div class="empty-state">Нет донатеров</div>';
+                if (indicator) indicator.innerHTML = '';
+                if (type === 'today') stopCarousel('today');
+                if (type === 'total') stopCarousel('total');
+                return;
+            }
+
+            container.innerHTML = '';
+            if (indicator) indicator.innerHTML = '';
+
+            donors.forEach((donor, index) => {
+                // Используем tier_info из API, если есть, иначе вычисляем на клиенте
+                const tier = donor.tier_info || getTierInfo(donor.total_amount || donor.display_amount || 0);
+                const amount = donor.display_amount || donor.today_amount || donor.total_amount || 0;
+                const timeEarned = donor.display_time_earned || donor.today_time_earned || donor.period_time_earned || 0;
+                
+                const iconDisplay = tier.icon_path 
+                    ? `<img src="${tier.icon_path}" alt="${tier.title}">` 
+                    : (tier.icon || '⭐');
+                
+                const item = document.createElement('div');
+                item.className = 'donor-item';
+                item.dataset.index = index;
+                item.innerHTML = `
+                    <div class="donor-icon" style="color: ${tier.color || '#ffffff'};">
+                        ${iconDisplay}
+                    </div>
+                    <div class="donor-info">
+                        <div class="donor-tier-title">${tier.title}</div>
+                        <div class="donor-name" style="color: ${tier.color || '#ffffff'};">
+                            ${donor.username}
+                        </div>
+                        <div class="donor-stats">
+                            <div class="donor-amount">${Math.round(amount)}</div>
+                            ${timeEarned > 0 ? `<div class="donor-time">${formatTime(timeEarned)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(item);
+
+                // Создаем индикатор
+                if (indicator) {
+                    const dot = document.createElement('div');
+                    dot.className = 'carousel-dot';
+                    dot.dataset.index = index;
+                    dot.onclick = () => goToDonor(type, index);
+                    indicator.appendChild(dot);
+                }
+            });
+
+            // Показываем первый донатер
+            showDonor(type, startIndex);
+            startCarousel(type);
+        }
+
+        function showDonor(type, index) {
+            const items = document.querySelectorAll(`#${type}Carousel .donor-item`);
+            const dots = document.querySelectorAll(`#${type}Indicator .carousel-dot`);
+            
+            if (items.length === 0) return;
+
+            // Убираем активный класс у всех
+            items.forEach(item => {
+                item.classList.remove('active', 'prev', 'next');
+            });
+            if (dots.length > 0) {
+                dots.forEach(dot => {
+                    dot.classList.remove('active');
+                });
+            }
+
+            // Добавляем классы для анимации
+            if (items[index]) {
+                items[index].classList.add('active');
+                if (type === 'today') {
+                    todayIndex = index;
+                } else {
+                    totalIndex = index;
+                }
+            }
+
+            if (dots[index]) {
+                dots[index].classList.add('active');
+            }
+
+            // Добавляем классы для предыдущего и следующего
+            if (index > 0 && items[index - 1]) {
+                items[index - 1].classList.add('prev');
+            }
+            if (index < items.length - 1 && items[index + 1]) {
+                items[index + 1].classList.add('next');
+            }
+        }
+
+        function nextDonor(type) {
+            let donors, currentIndex;
+            if (type === 'today') {
+                donors = todayDonors;
+                currentIndex = todayIndex;
+            } else {
+                donors = totalDonors;
+                currentIndex = totalIndex;
+            }
+
+            if (donors.length === 0) return;
+            const nextIndex = (currentIndex + 1) % donors.length;
+            showDonor(type, nextIndex);
+        }
+
+        function goToDonor(type, index) {
+            const donors = type === 'today' ? todayDonors : totalDonors;
+            if (index >= 0 && index < donors.length) {
+                showDonor(type, index);
+                stopCarousel(type);
+                startCarousel(type);
+            }
+        }
+
+        function startCarousel(type) {
+            const donors = type === 'today' ? todayDonors : totalDonors;
+            if (donors.length <= 1) return;
+            
+            stopCarousel(type);
+            
+            const interval = setInterval(() => {
+                nextDonor(type);
+            }, CAROUSEL_INTERVAL);
+
+            if (type === 'today') {
+                todayInterval = interval;
+            } else {
+                totalInterval = interval;
+            }
+        }
+
+        function stopCarousel(type) {
+            if (type === 'today') {
+                if (todayInterval) {
+                    clearInterval(todayInterval);
+                    todayInterval = null;
+                }
+            } else {
+                if (totalInterval) {
+                    clearInterval(totalInterval);
+                    totalInterval = null;
+                }
+            }
+        }
+
+        // WebSocket подключение для мгновенных обновлений
+        let wsConnection = null;
+        function connectWebSocket() {
+            if (wsConnection) {
+                wsConnection.close();
+                wsConnection = null;
+            }
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const connectionUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            wsConnection = new WebSocket(connectionUrl);
+            wsConnection.addEventListener('message', (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'NEW_DONATION' || data.type === 'STATE_UPDATE' || data.type === 'TOP_DONORS_UPDATE') {
+                        loadTodayDonors();
+                        loadTotalDonors();
+                    }
+                } catch (e) {
+                    console.warn('Unified top donors WS parse error', e);
+                }
+            });
+            wsConnection.addEventListener('close', () => setTimeout(connectWebSocket, 3000));
+            wsConnection.addEventListener('error', (e) => console.warn('Unified top donors WS error', e));
+        }
+
+        // Инициализация
+        async function init() {
+            await loadTierConfig();
+            await loadTodayDonors();
+            await loadTotalDonors();
+            
+            // Подключаемся к WebSocket
+            connectWebSocket();
+            
+            // Обновляем каждые 30 секунд (как резервный механизм)
+            setInterval(async () => {
+                await loadTodayDonors();
+                await loadTotalDonors();
+            }, 30000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
+

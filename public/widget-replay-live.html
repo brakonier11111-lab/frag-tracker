@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Replay Live — OBS</title>
+<!-- live-widget-v87: no battle summary here — use /widget-replay-summary -->
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blitz-bg:#1e1e1e;--blitz-surface:#282828;--blitz-line:rgba(255,255,255,.08);
+  --ally:#6cbcfb;--ally-rgb:108,188,251;--ally-gold:#ffcc00;--ally-gold-rgb:255,204,0;
+  --enemy:#e85d5d;--enemy-rgb:232,93,93;--enemy-hot:#ff8a65;
+  --gold-glow-soft:0 0 18px rgba(255,204,0,.22),0 0 36px rgba(255,204,0,.08);
+  --gold-glow-mid:0 0 12px rgba(255,204,0,.42),0 0 28px rgba(255,180,0,.16);
+  --gold-inset:inset 0 1px 0 rgba(255,230,140,.32),inset 0 -14px 28px rgba(255,204,0,.07);
+  --mvp-green:#5dde8a;--mvp-green-rgb:93,222,138;
+  --mvp-green-glow:0 0 16px rgba(93,222,138,.28),0 0 32px rgba(93,222,138,.10);
+  --mvp-green-inset:inset 0 1px 0 rgba(180,255,210,.24),inset 0 -14px 28px rgba(93,222,138,.08);
+  --mvp-red-glow:0 0 16px rgba(232,93,93,.32),0 0 32px rgba(232,93,93,.12);
+  --mvp-red-inset:inset 0 1px 0 rgba(255,190,180,.22),inset 0 -14px 28px rgba(232,93,93,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+body{
+  font-family:'Exo 2',sans-serif;color:#fff;
+  display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;
+  padding:14px;gap:14px;
+  position:relative;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:geometricPrecision;
+}
+.stage{
+  position:relative;width:fit-content;max-width:100%;
+  transform-origin:left bottom;
+  contain:layout style paint;
+  backface-visibility:hidden;
+  flex:0 0 auto;
+}
+.stage.stage-hidden{
+  visibility:hidden!important;
+  pointer-events:none!important;
+  opacity:0!important;
+  position:absolute!important;
+  left:0!important;bottom:0!important;
+  width:0!important;height:0!important;
+  overflow:hidden!important;
+  margin:0!important;padding:0!important;
+  flex:0 0 0!important;
+}
+.hidden{display:none!important}
+
+.idle-hidden{visibility:hidden!important;pointer-events:none!important;opacity:0!important}
+.idle-chip{contain:layout style paint;backface-visibility:hidden}
+
+/* —— timer strip —— */
+.timer-strip{
+  position:absolute;left:14px;top:14px;z-index:10;
+  display:flex;align-items:center;gap:12px;
+  padding:8px 16px;border-radius:4px;
+  background:var(--blitz-bg);
+  border:1px solid var(--blitz-line);
+  box-shadow:none;
+}
+.timer-strip .badge{display:inline-flex;align-items:center;gap:6px;font-size:.58rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--ally-gold)}
+.timer-strip .badge .dot{width:6px;height:6px;border-radius:50%;background:#e85d5d;box-shadow:none}
+.timer-strip .badge.live .dot{animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.timer-strip .clock{font-family:'Exo 2',sans-serif;font-size:1.35rem;font-weight:900;letter-spacing:.04em;color:#fff;text-shadow:none}
+.timer-strip .clock .sub{font-size:.65rem;color:rgba(255,255,255,.45);margin-left:8px;font-weight:700}
+
+/* —— duel layout —— */
+.duel{display:flex;gap:16px;align-items:flex-end;margin-top:52px;width:1142px;max-width:1142px;flex:0 0 1142px}
+
+/* —— team window —— */
+.team-window{
+  width:264px;height:378px;min-height:378px;
+  border-radius:4px;position:relative;overflow:visible;
+  background:var(--blitz-bg);
+  border:1px solid var(--blitz-line);
+  box-shadow:none;
+}
+.team-window::before{display:none}
+.team-window.allies{
+  width:264px;flex:0 0 264px;
+  border-top:2px solid var(--ally);
+  background:var(--blitz-bg);
+  box-shadow:none;
+}
+.team-window.enemies{
+  width:264px;flex:0 0 264px;
+  border-top:2px solid var(--enemy);
+  background:var(--blitz-bg);
+  box-shadow:none;
+}
+.team-window.allies.mvp-flash{animation:windowMvpFlashAllies .9s ease-out}
+.team-window.enemies.mvp-flash{animation:windowMvpFlashEnemies .9s ease-out}
+@keyframes windowMvpFlashAllies{
+  0%{filter:brightness(1);box-shadow:none}
+  18%{filter:brightness(1.12);box-shadow:0 0 28px rgba(93,222,138,.32),inset 0 0 18px rgba(93,222,138,.12)}
+  100%{filter:brightness(1);box-shadow:none}
+}
+@keyframes windowMvpFlashEnemies{
+  0%{filter:brightness(1);box-shadow:none}
+  18%{filter:brightness(1.12);box-shadow:0 0 28px rgba(232,93,93,.34),inset 0 0 18px rgba(232,93,93,.12)}
+  100%{filter:brightness(1);box-shadow:none}
+}
+
+.tw-head{
+  padding:12px 14px 10px;display:flex;align-items:center;gap:8px;
+  font-size:.64rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;
+  border-bottom:1px solid var(--blitz-line);
+  background:rgba(255,255,255,.03);
+  text-shadow:none;
+}
+.team-window.allies .tw-head{color:var(--ally)}
+.team-window.enemies .tw-head{color:var(--enemy)}
+.tw-head .tw-icon{font-size:.5rem;opacity:.7}
+.team-window.allies .tw-head,
+.team-window.enemies .tw-head{display:none}
+
+.tw-body{padding:12px 12px 14px;display:flex;flex-direction:column;gap:6px}
+.team-window.allies .tw-body,
+.team-window.enemies .tw-body{
+  height:378px;overflow:hidden;
+  box-sizing:border-box;
+}
+
+/* —— MVP card —— */
+.mvp-card{
+  position:relative;border-radius:4px;padding:11px 13px 10px;margin-bottom:4px;
+  height:104px;flex:0 0 104px;
+  overflow:hidden;transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .35s;
+}
+.team-window.allies .mvp-card{
+  border:1px solid rgba(93,222,138,.48);
+  background:
+    radial-gradient(circle at 88% 72%,rgba(93,222,138,.22),transparent 50%),
+    radial-gradient(circle at 8% 12%,rgba(108,188,251,.12),transparent 44%),
+    radial-gradient(ellipse 80% 45% at 50% 100%,rgba(255,160,50,.10),transparent 65%),
+    linear-gradient(158deg,rgba(93,222,138,.12),rgba(108,188,251,.05) 48%,rgba(0,0,0,.32));
+  box-shadow:var(--mvp-green-glow),var(--mvp-green-inset),0 0 20px rgba(255,140,40,.08);
+}
+.team-window.enemies .mvp-card{
+  border:1px solid rgba(232,93,93,.52);
+  background:
+    radial-gradient(circle at 88% 72%,rgba(232,93,93,.24),transparent 50%),
+    radial-gradient(circle at 8% 12%,rgba(255,100,90,.12),transparent 44%),
+    radial-gradient(ellipse 80% 45% at 50% 100%,rgba(255,90,25,.14),transparent 65%),
+    linear-gradient(158deg,rgba(232,93,93,.14),rgba(180,40,50,.06) 48%,rgba(0,0,0,.32));
+  box-shadow:var(--mvp-red-glow),var(--mvp-red-inset),0 0 22px rgba(255,80,20,.12);
+}
+.team-window.allies .mvp-card::before{
+  content:'';position:absolute;inset:0;border-radius:4px;pointer-events:none;z-index:0;
+  background:linear-gradient(128deg,rgba(180,255,210,.12) 0%,transparent 38%,transparent 62%,rgba(93,222,138,.08) 100%);
+}
+.team-window.enemies .mvp-card::before{
+  content:'';position:absolute;inset:0;border-radius:4px;pointer-events:none;z-index:0;
+  background:linear-gradient(128deg,rgba(255,200,190,.12) 0%,transparent 38%,transparent 62%,rgba(232,93,93,.08) 100%);
+}
+.team-window.allies .mvp-card::after{
+  content:'';position:absolute;inset:0;border-radius:4px;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 108%,rgba(255,190,70,.34) 0%,rgba(93,222,138,.22) 38%,transparent 72%),
+    radial-gradient(ellipse 45% 35% at 18% 95%,rgba(255,130,45,.20) 0%,transparent 65%),
+    radial-gradient(ellipse 40% 30% at 82% 92%,rgba(180,255,160,.14) 0%,transparent 60%);
+  animation:mvpFireGlow 2.6s ease-in-out infinite;
+  mix-blend-mode:screen;
+}
+.team-window.enemies .mvp-card::after{
+  content:'';position:absolute;inset:0;border-radius:4px;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 108%,rgba(255,120,35,.38) 0%,rgba(255,60,25,.26) 35%,transparent 72%),
+    radial-gradient(ellipse 48% 38% at 22% 96%,rgba(255,180,50,.22) 0%,transparent 62%),
+    radial-gradient(ellipse 42% 32% at 78% 94%,rgba(255,80,40,.18) 0%,transparent 58%);
+  animation:mvpFireGlow 2.4s ease-in-out infinite;
+  mix-blend-mode:screen;
+}
+.mvp-card > *:not(.mvp-dmg-row){position:relative;z-index:1}
+@keyframes mvpFireGlow{
+  0%,100%{opacity:.52;transform:scaleY(1) scaleX(1)}
+  28%{opacity:.92;transform:scaleY(1.08) scaleX(1.03)}
+  52%{opacity:.68;transform:scaleY(.96) scaleX(.99)}
+  76%{opacity:.98;transform:scaleY(1.05) scaleX(1.02)}
+}
+.team-window.allies .mvp-card.takeover{animation:mvpTakeoverSoft .5s ease-out}
+.team-window.enemies .mvp-card.takeover{animation:mvpTakeoverSoft .5s ease-out}
+@keyframes mvpTakeoverSoft{
+  0%{opacity:.55}
+  100%{opacity:1}
+}
+
+.mvp-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:'Exo 2',sans-serif;font-size:.48rem;font-weight:900;letter-spacing:.2em;
+  padding:2px 7px;border-radius:3px;margin-bottom:5px;
+}
+.team-window.allies .mvp-badge{
+  color:#082012;
+  background:linear-gradient(180deg,#9af0bc 0%,#5dde8a 52%,#3cb86a 100%);
+  border:1px solid rgba(180,255,210,.55);
+  box-shadow:0 0 12px rgba(93,222,138,.42),0 2px 5px rgba(0,0,0,.35);
+}
+.team-window.enemies .mvp-badge{
+  color:#fff5f3;
+  background:linear-gradient(180deg,#ff9a90 0%,#e85d5d 55%,#c43a3a 100%);
+  border:1px solid rgba(255,190,180,.48);
+  box-shadow:0 0 14px rgba(232,93,93,.42),0 2px 5px rgba(0,0,0,.35);
+}
+.team-window.allies .mvp-badge .crown{filter:drop-shadow(0 0 4px rgba(93,222,138,.55))}
+.team-window.enemies .mvp-badge .crown{filter:drop-shadow(0 0 4px rgba(232,93,93,.55))}
+.mvp-badge .crown{font-size:.62rem;line-height:1}
+
+.mvp-nick{
+  font-size:1.22rem;font-weight:900;line-height:1.10;
+  max-width:calc(100% - 102px);margin-top:12px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.team-window.allies .mvp-nick{
+  color:#f2fff7;
+  text-shadow:0 2px 8px rgba(0,0,0,.88),0 0 16px rgba(93,222,138,.32),0 0 22px rgba(108,188,251,.10);
+}
+.team-window.enemies .mvp-nick{
+  color:#fff5f3;
+  text-shadow:0 2px 8px rgba(0,0,0,.88),0 0 16px rgba(232,93,93,.34),0 0 22px rgba(232,93,93,.12);
+}
+.mvp-card.me,.rank-row.me{position:relative}
+.team-window.allies .mvp-card.me{
+  border-color:rgba(255,204,0,.78);
+  background:
+    radial-gradient(circle at 88% 70%,rgba(255,204,0,.32),transparent 46%),
+    radial-gradient(circle at 10% 12%,rgba(93,222,138,.20),transparent 42%),
+    linear-gradient(135deg,rgba(255,204,0,.16),rgba(93,222,138,.12) 46%,rgba(7,8,13,.90));
+  box-shadow:
+    0 0 24px rgba(255,204,0,.42),
+    0 0 44px rgba(255,204,0,.16),
+    0 0 16px rgba(93,222,138,.20),
+    var(--gold-inset);
+}
+.team-window.enemies .mvp-card.me{
+  border-color:rgba(255,204,0,.72);
+  background:
+    radial-gradient(circle at 88% 70%,rgba(255,204,0,.28),transparent 46%),
+    radial-gradient(circle at 10% 12%,rgba(232,93,93,.18),transparent 42%),
+    linear-gradient(135deg,rgba(255,204,0,.14),rgba(232,93,93,.12) 46%,rgba(7,8,13,.90));
+  box-shadow:
+    0 0 24px rgba(255,204,0,.38),
+    0 0 40px rgba(255,204,0,.14),
+    0 0 16px rgba(232,93,93,.18),
+    var(--gold-inset);
+}
+.team-window.allies .mvp-card.me::before{
+  background:linear-gradient(128deg,rgba(255,240,180,.18) 0%,transparent 38%,transparent 62%,rgba(255,204,0,.10) 100%);
+}
+.team-window.enemies .mvp-card.me::before{
+  background:linear-gradient(128deg,rgba(255,240,180,.14) 0%,transparent 38%,transparent 62%,rgba(255,204,0,.08) 100%);
+}
+.team-window.allies .mvp-card.me::after,
+.team-window.enemies .mvp-card.me::after{
+  background:
+    radial-gradient(ellipse 95% 60% at 50% 110%,rgba(255,210,80,.42) 0%,rgba(255,140,30,.28) 32%,transparent 70%),
+    radial-gradient(ellipse 55% 42% at 30% 98%,rgba(255,180,50,.26) 0%,transparent 62%),
+    radial-gradient(ellipse 50% 38% at 72% 96%,rgba(255,100,35,.22) 0%,transparent 58%);
+  animation:mvpFireGlowGold 2.2s ease-in-out infinite;
+}
+@keyframes mvpFireGlowGold{
+  0%,100%{opacity:.58;transform:scaleY(1)}
+  35%{opacity:1;transform:scaleY(1.1)}
+  62%{opacity:.74;transform:scaleY(.97)}
+  82%{opacity:.95;transform:scaleY(1.06)}
+}
+.team-window.allies .mvp-card.me .mvp-nick{
+  color:#fff8dc;
+  text-shadow:0 0 20px rgba(255,204,0,.55),0 0 12px rgba(93,222,138,.28),0 2px 10px rgba(0,0,0,.92);
+}
+.team-window.enemies .mvp-card.me .mvp-nick{
+  color:#fff4e8;
+  text-shadow:0 0 20px rgba(255,204,0,.50),0 0 12px rgba(232,93,93,.22),0 2px 10px rgba(0,0,0,.92);
+}
+.team-window.allies .mvp-card.me .mvp-badge{
+  color:#1a1200;
+  background:linear-gradient(180deg,#ffe066 0%,#ffcc00 52%,#d9a800 100%);
+  border-color:rgba(255,240,180,.62);
+  box-shadow:var(--gold-glow-mid),0 2px 5px rgba(0,0,0,.35);
+}
+.team-window.enemies .mvp-card.me .mvp-badge{
+  border-color:rgba(255,230,160,.55);
+  box-shadow:0 0 14px rgba(255,204,0,.36),0 0 22px rgba(232,93,93,.16),0 2px 5px rgba(0,0,0,.35);
+}
+.team-window.allies .mvp-card.me .mvp-dmg,
+.team-window.enemies .mvp-card.me .mvp-dmg{
+  filter:drop-shadow(0 0 10px rgba(255,204,0,.28));
+}
+
+.mvp-tank{
+  font-size:.75rem;color:rgba(255,255,255,.72);font-weight:800;margin-top:4px;
+  max-width:calc(100% - 102px);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-shadow:0 2px 8px rgba(0,0,0,.95),0 0 10px rgba(255,255,255,.16);
+}
+.mvp-dmg-row{
+  position:absolute;right:10px;top:5px;z-index:3;
+  display:flex;flex-direction:column;align-items:flex-end;justify-content:flex-start;gap:2px;
+  max-width:96px;overflow:visible;
+}
+.mvp-stats-col{
+  display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+  min-width:0;
+}
+.mvp-stats-col .dmg-pack{align-items:flex-end}
+.dmg-pack{
+  display:inline-flex;align-items:flex-end;justify-content:flex-end;gap:4px;
+  flex:0 0 auto;max-width:100%;min-width:0;
+}
+.player-frags{
+  display:inline-flex;align-items:center;justify-content:center;
+  gap:2px;line-height:1;vertical-align:bottom;
+}
+.frag-swords-icon{
+  width:11px;height:11px;flex:0 0 11px;
+  color:rgba(255,255,255,.94);
+  filter:drop-shadow(0 0 4px rgba(255,255,255,.32));
+}
+.frag-count{
+  font-family:'Orbitron',sans-serif;
+  font-size:.56rem;font-weight:900;letter-spacing:.01em;line-height:1;
+  color:rgba(255,255,255,.94);
+  text-shadow:0 1px 7px rgba(0,0,0,.92),0 0 8px rgba(255,255,255,.22);
+  font-variant-numeric:tabular-nums;
+  min-width:.65rem;text-align:center;
+}
+.mvp-stats-col .player-frags{margin-bottom:1px}
+.mvp-stats-col .frag-count{font-size:.58rem}
+.mvp-stats-col .frag-swords-icon{width:12px;height:12px;flex-basis:12px}
+.dmg-pack-wrap{display:contents}
+.dmg-share{
+  font-family:'Orbitron',sans-serif;font-size:.62rem;font-weight:900;line-height:1;
+  color:rgba(255,255,255,.62);letter-spacing:.03em;padding-bottom:2px;
+  text-shadow:0 2px 8px rgba(0,0,0,.95),0 0 12px rgba(255,255,255,.35);
+}
+.mvp-card .dmg-share{font-size:.72rem;padding-bottom:5px}
+.mvp-dmg{
+  font-family:'Orbitron',sans-serif;font-size:1.70rem;font-weight:900;line-height:1;
+  letter-spacing:.02em;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.team-window.allies .mvp-dmg,.team-window.enemies .mvp-dmg{
+  color:var(--dmg-color,#fffef8);
+  text-shadow:0 3px 10px rgba(0,0,0,.92),var(--dmg-glow,0 0 14px rgba(255,255,255,.18));
+}
+.team-window.allies .mvp-card .mvp-dmg{filter:drop-shadow(0 0 8px rgba(93,222,138,.22))}
+.team-window.enemies .mvp-card .mvp-dmg{filter:drop-shadow(0 0 8px rgba(232,93,93,.24))}
+.mvp-dmg.bump{animation:dmgBump .4s ease}
+@keyframes dmgBump{0%{transform:scale(1)}40%{transform:scale(1.12);color:#fff}100%{transform:scale(1)}}
+.mvp-dmg-label{font-size:.50rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.62);font-weight:900;padding-bottom:0;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+
+/* —— rank list —— */
+.rank-list{display:flex;flex-direction:column;gap:3px}
+.rank-row{
+  position:relative;overflow:hidden;
+  display:grid;grid-template-columns:20px minmax(0,1fr) minmax(0,max-content);gap:6px;align-items:center;
+  padding:5px 6px 6px;border-radius:4px;
+  background:rgba(0,0,0,.25);border:1px solid var(--blitz-line);
+  transition:background .2s,border-color .2s,opacity .3s;
+}
+.rank-row > *{position:relative;z-index:1}
+.rank-row::after{
+  content:'';position:absolute;top:0;bottom:0;width:var(--hp-pct,0%);
+  border-radius:4px;pointer-events:none;z-index:0;opacity:.75;
+}
+.team-window.allies .rank-row{
+  background:rgba(0,0,0,.25);
+  border-color:var(--blitz-line);
+  border-left:2px solid var(--mvp-green);
+  box-shadow:none;
+}
+.team-window.allies .rank-row::after{
+  left:0;background:rgba(var(--mvp-green-rgb),.12);border:none;box-shadow:none;
+}
+.team-window.enemies .rank-row{
+  background:rgba(0,0,0,.25);
+  border-color:var(--blitz-line);
+  border-right:2px solid var(--enemy);
+  box-shadow:none;
+}
+.team-window.enemies .rank-row::after{
+  right:0;background:rgba(232,93,93,.12);border:none;box-shadow:none;
+}
+.rank-row:hover{background:rgba(0,0,0,.24)}
+.team-window.allies .rank-row.me{
+  border:1px solid rgba(255,204,0,.38);
+  border-left:2px solid var(--mvp-green);
+  box-shadow:0 0 10px rgba(255,204,0,.10),inset 0 0 12px rgba(255,204,0,.05);
+  outline:1px solid rgba(255,204,0,.22);
+  outline-offset:-2px;
+}
+.team-window.enemies .rank-row.me{
+  border:1px solid rgba(255,204,0,.34);
+  border-right:2px solid var(--enemy);
+  background:rgba(0,0,0,.25);
+  box-shadow:0 0 10px rgba(255,204,0,.10),inset 0 0 12px rgba(255,204,0,.05);
+  outline:1px solid rgba(255,204,0,.20);
+  outline-offset:-2px;
+}
+.team-window.allies .rank-row.me .rank-nick,
+.team-window.enemies .rank-row.me .rank-nick{
+  color:#fff6e8;
+  text-shadow:0 2px 8px rgba(0,0,0,.92),0 0 10px rgba(255,204,0,.18);
+}
+
+.rank-num{
+  font-family:'Orbitron',sans-serif;font-size:.72rem;font-weight:800;
+  color:rgba(255,255,255,.48);text-align:center;
+  text-shadow:0 2px 7px rgba(0,0,0,.95);
+}
+.rank-info{min-width:0}
+.rank-nick{
+  font-size:.74rem;font-weight:800;color:rgba(255,255,255,.98);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;
+  text-shadow:
+    0 2px 4px rgba(0,0,0,1),
+    0 0 7px rgba(0,0,0,1),
+    0 0 12px rgba(0,0,0,.92),
+    0 0 10px rgba(255,255,255,.12);
+}
+.rank-tank{
+  font-size:.51rem;color:rgba(255,255,255,.50);font-weight:700;margin-top:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-shadow:
+    0 2px 4px rgba(0,0,0,1),
+    0 0 7px rgba(0,0,0,1),
+    0 0 10px rgba(0,0,0,.88);
+}
+.rank-tank.unknown{color:rgba(255,255,255,.26)}
+.rank-row .dmg-pack{min-width:0;max-width:100%;overflow:hidden;justify-content:flex-end;justify-self:end}
+.rank-dmg{
+  font-family:'Orbitron',sans-serif;font-size:.78rem;font-weight:800;
+  min-width:0;max-width:76px;text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.team-window.allies .rank-dmg,.team-window.enemies .rank-dmg{color:var(--dmg-color,#fff);text-shadow:0 2px 8px rgba(0,0,0,1),var(--dmg-glow,0 0 10px rgba(255,255,255,.25))}
+.rank-dmg.bump{animation:dmgBump .35s ease}
+.dmg-low{--dmg-color:#ff8b8b;--dmg-glow:0 0 12px rgba(255,90,90,.34)}
+.dmg-mid{--dmg-color:#ffd84f;--dmg-glow:0 0 14px rgba(255,216,79,.38)}
+.dmg-high{--dmg-color:#62ff8e;--dmg-glow:0 0 16px rgba(98,255,142,.42)}
+.dmg-elite{
+  --dmg-color:rgb(calc(193 + var(--elite,0) * 32),calc(124 - var(--elite,0) * 48),255);
+  --elite-glow:calc(18px + var(--elite,0) * 28px);
+  --dmg-glow:
+    0 0 var(--elite-glow) rgba(177,54,255,calc(.52 + var(--elite,0) * .34)),
+    0 0 calc(var(--elite-glow) * 1.25) rgba(117,0,255,calc(.20 + var(--elite,0) * .22));
+}
+.dmg-epic{
+  --dmg-color:rgb(calc(214 + var(--epic,0) * 41),calc(72 + var(--epic,0) * 102),calc(255 - var(--epic,0) * 70));
+  --epic-glow:calc(34px + var(--epic,0) * 74px);
+  --dmg-glow:
+    0 0 var(--epic-glow) rgba(179,38,255,calc(.72 + var(--epic,0) * .24)),
+    0 0 calc(var(--epic-glow) * 1.55) rgba(111,0,255,calc(.34 + var(--epic,0) * .24)),
+    0 0 calc(var(--epic-glow) * 1.05) rgba(255,205,70,calc(var(--gold,0) * .72));
+}
+.rank-row.destroyed .rank-nick,
+.rank-row.destroyed .rank-tank,
+.mvp-card.destroyed .mvp-nick,
+.mvp-card.destroyed .mvp-tank{
+  opacity:.52;filter:saturate(.55) brightness(.82);
+  text-shadow:0 2px 8px rgba(0,0,0,.95);
+}
+.rank-row.destroyed{border-color:rgba(255,255,255,.08);filter:saturate(.62) brightness(.86)}
+.rank-row.destroyed .rank-num{opacity:.42}
+.rank-row.destroyed .rank-dmg{opacity:.64;filter:saturate(.75) brightness(.88)}
+.mvp-card.destroyed .mvp-dmg{opacity:.72;filter:saturate(.82) brightness(.9)}
+.mvp-card.destroyed{filter:saturate(.72) brightness(.86)}
+
+.rank-empty{
+  padding:20px 8px;text-align:center;font-size:.72rem;
+  color:rgba(255,255,255,.25);letter-spacing:.1em;text-transform:uppercase;
+}
+
+/* —— team HP window (WoT Blitz duel bars) —— */
+.team-window.hp-window{
+  width:296px;min-width:296px;max-width:296px;flex:0 0 296px;
+  height:auto;min-height:0;
+  align-self:flex-end;
+  background:transparent;
+  border:none;border-radius:0;
+  box-shadow:none;
+  overflow:visible;
+  position:relative;z-index:1;
+}
+.team-window.hp-window::before{display:none}
+.team-window.hp-window .tw-head{display:none}
+.hp-body{
+  display:flex;align-items:stretch;justify-content:center;
+  width:100%;max-width:100%;
+  padding:8px 4px 6px;
+  box-sizing:border-box;
+  overflow:visible;
+}
+.hp-duel{
+  display:flex;align-items:flex-start;justify-content:center;
+  gap:6px;width:100%;
+}
+.hp-duel-side{
+  flex:1 1 0;min-width:0;
+  display:flex;flex-direction:column;gap:4px;
+}
+.hp-duel-side.allies{align-items:stretch}
+.hp-duel-side.enemies{align-items:stretch}
+.hp-seg-bar{
+  position:relative;width:100%;height:12px;
+  background:#353535;
+  border:1px solid #000;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.hp-seg-fill{
+  position:absolute;top:0;bottom:0;
+  width:0%;max-width:100%;
+  transition:width .25s ease;
+  z-index:1;
+}
+.hp-duel-side.allies .hp-seg-fill{
+  left:0;right:auto;
+  background:#45b649;
+}
+.hp-duel-side.enemies .hp-seg-fill{
+  left:auto;right:0;
+  background:#e53535;
+}
+.hp-seg-fill.hp-bar-drop{animation:hpBarDrop .55s cubic-bezier(.18,.82,.24,1) both}
+@keyframes hpBarDrop{
+  0%{width:var(--from-pct)}
+  100%{width:var(--to-pct)}
+}
+.hp-seg-grid{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(10% - 1px),
+    rgba(0,0,0,.38) calc(10% - 1px),
+    rgba(0,0,0,.38) 10%
+  );
+}
+.hp-seg-value{
+  font-family:'Exo 2',sans-serif;
+  font-size:.78rem;font-weight:800;line-height:1;
+  color:#fff;letter-spacing:.01em;
+  font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 2px rgba(0,0,0,.85);
+}
+.hp-duel-side.allies .hp-seg-value{text-align:right;padding-right:1px}
+.hp-duel-side.enemies .hp-seg-value{text-align:left;padding-left:1px}
+.hp-number{display:inline-block;font-variant-numeric:tabular-nums}
+.hp-duel-side.hp-warn .hp-seg-value{color:var(--ally-gold)}
+.hp-duel-side.hp-low .hp-seg-value{color:#ff6b6b}
+.hp-number.hp-value-drop{animation:hpValueDrop .48s cubic-bezier(.2,.9,.24,1)}
+@keyframes hpValueDrop{
+  0%{transform:translateY(-6px);opacity:0}
+  100%{transform:translateY(0);opacity:1}
+}
+.hp-empty{
+  width:100%;flex:1 1 100%;
+  padding:24px 8px;text-align:center;font-size:.68rem;
+  color:rgba(255,255,255,.28);letter-spacing:.08em;line-height:1.5;
+}
+.team-window.author-window{
+  width:270px;height:108px;min-height:108px;flex:0 0 270px;
+  align-self:flex-end;
+  background:var(--blitz-bg);
+  border:1px solid rgba(255,204,0,.28);
+  border-top:2px solid var(--ally-gold);
+  box-shadow:none;
+  transition:border-color .25s,box-shadow .25s;
+}
+.team-window.author-window.author-not-mvp{
+  border-color:rgba(255,204,0,.46);
+  box-shadow:0 0 14px rgba(255,204,0,.12);
+}
+.team-window.author-window.author-is-mvp{
+  border-color:rgba(255,204,0,.82);
+  box-shadow:0 0 22px rgba(255,204,0,.30),0 0 38px rgba(255,204,0,.12);
+}
+.team-window.author-window::before,.team-window.author-window::after{display:none}
+.author-body{
+  position:relative;z-index:1;
+  padding:10px 14px 11px;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  height:108px;min-height:108px;gap:0;text-align:center;
+}
+.author-label{
+  font-size:.58rem;font-weight:900;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--ally-gold);margin-bottom:6px;text-shadow:none;
+}
+.author-nick{
+  max-width:100%;
+  font-size:1.1rem;font-weight:900;line-height:1.05;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:none;
+}
+.author-damage-share{
+  margin-top:7px;
+  font-family:'Exo 2',sans-serif;font-size:.66rem;font-weight:900;line-height:1;
+  color:var(--ally-gold);text-shadow:none;
+}
+.author-damage-share .label{
+  font-family:'Exo 2',sans-serif;font-size:.46rem;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.52);vertical-align:.12em;
+}
+.author-damage-share .prefix{
+  font-family:'Exo 2',sans-serif;font-size:.50rem;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(255,255,255,.62);margin-right:5px;vertical-align:.12em;
+}
+.author-achievements{
+  width:100%;min-height:18px;margin-top:6px;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;overflow:hidden;
+}
+.author-achievement{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  min-width:0;
+  padding:2px 3px;border-radius:8px;
+  font-size:.39rem;font-weight:900;letter-spacing:.02em;text-transform:uppercase;
+  color:#fff;
+  background:linear-gradient(90deg,rgba(var(--ally-gold-rgb),.24),rgba(var(--ally-rgb),.16));
+  border:1px solid rgba(var(--ally-gold-rgb),.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 12px rgba(var(--ally-gold-rgb),.18);
+  text-shadow:0 2px 6px rgba(0,0,0,1);
+  white-space:nowrap;
+}
+.author-place{
+  font-family:'Orbitron',sans-serif;font-size:.55rem;line-height:1;color:var(--ally-gold);
+}
+.author-achievement-name{
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;
+}
+.author-achievement.muted{
+  color:rgba(255,255,255,.52);
+  background:rgba(0,0,0,.22);
+  border-color:rgba(255,255,255,.08);
+  box-shadow:none;
+}
+
+/* idle */
+.idle-chip{
+  position:relative;z-index:30;
+  padding:12px 18px;border-radius:4px;opacity:.92;
+  background:var(--blitz-bg);border:1px solid var(--blitz-line);
+  font-size:.78rem;color:rgba(255,255,255,.72);letter-spacing:.08em;
+  flex:0 0 auto;
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+}
+</style>
+</head>
+<body>
+
+<div class="stage stage-hidden" id="stage">
+  <div class="live-ui" id="liveUi">
+  <div class="timer-strip">
+    <div class="badge live" id="badge"><span class="dot"></span><span id="badgeText">REPLAY</span></div>
+    <div class="clock"><span id="timer">07:00</span><span class="sub" id="duration"></span></div>
+  </div>
+  <div class="duel" id="duel">
+    <div class="team-window author-window">
+      <div class="author-body" id="authorPanel"></div>
+    </div>
+    <div class="team-window allies">
+      <div class="tw-head"><span class="tw-icon">◆</span> Союзники</div>
+      <div class="tw-body" id="playersAllies"></div>
+    </div>
+    <div class="team-window hp-window">
+      <div class="hp-body" id="teamHpPanel">
+        <div class="hp-empty">Нет данных HP</div>
+      </div>
+    </div>
+    <div class="team-window enemies">
+      <div class="tw-head"><span class="tw-icon">◆</span> Противник</div>
+      <div class="tw-body" id="playersEnemies"></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<div class="idle-chip" id="idlePanel">Ожидание реплея</div>
+
+<script>
+const qs = (id)=>document.getElementById(id);
+const BATTLE_DURATION_SEC = 420;
+const MAX_ROWS = 7;
+const MAX_CLIENT_CLOCK_EXTRAPOLATE_SEC = 0.12;
+const DUEL_W = 1142;
+const BODY_PAD = 14;
+const VIEWPORT_W = DUEL_W + BODY_PAD * 2;
+const VIEWPORT_H = 520;
+const renderScale = Math.max(1, Math.min(3, Number(new URLSearchParams(location.search).get('scale')) || 1));
+{
+  const vw = Math.ceil(VIEWPORT_W * renderScale);
+  const vh = Math.ceil(VIEWPORT_H * renderScale);
+  document.documentElement.style.width = `${vw}px`;
+  document.documentElement.style.height = `${vh}px`;
+  document.documentElement.style.minWidth = `${vw}px`;
+  document.body.style.width = `${vw}px`;
+  document.body.style.height = `${vh}px`;
+  document.body.style.minWidth = `${vw}px`;
+  if (renderScale > 1) {
+    document.body.style.padding = `${BODY_PAD * renderScale}px`;
+    const stage = document.getElementById('stage');
+    if (stage) stage.style.transform = `scale(${renderScale})`;
+  }
+}
+
+const FRAG_SWORDS_SVG = '<svg viewBox="0 0 16 16" class="frag-swords-icon" aria-hidden="true"><path fill="currentColor" d="M3.1 13.4 6.1 6.4 4.8 5.1 6.2 3.7 7.5 5 11.8 2.8 9.6 7.1 13.4 10.2 8.9 8.1 5.7 12.3z"/><path fill="currentColor" d="M12.9 13.4 9.9 6.4 11.2 5.1 9.8 3.7 8.5 5 4.2 2.8 6.4 7.1 2.6 10.2 7.1 8.1 10.3 12.3z"/></svg>';
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function fmtDmg(v){return v==null||v===''? '0' : String(v)}
+function fmtHp(v){
+  const n = Math.max(0, Math.round(Number(v) || 0));
+  return n.toLocaleString('ru-RU');
+}
+
+function fmtClock(sec){
+  const s = Math.max(0, Math.floor(sec || 0));
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+let timeline = null;
+let liveData = null;
+const teamUi = {
+  allies: { mvpNick: '', mvpKey: '', dmg: {}, anim: {}, rankOrderSig: '', structureSig: '' },
+  enemies: { mvpNick: '', mvpKey: '', dmg: {}, anim: {}, rankOrderSig: '', structureSig: '' }
+};
+const teamHpUi = {
+  allies: { current: null, pct: null },
+  enemies: { current: null, pct: null },
+  renderSig: ''
+};
+
+function dmgAtPoints(points, clockSec){
+  if(!points || !points.length) return 0;
+  let lo = 0, hi = points.length - 1, best = 0;
+  while(lo <= hi){
+    const mid = (lo + hi) >> 1;
+    if(points[mid][0] <= clockSec){ best = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  return points[best][1];
+}
+
+function serverClockAgeSec(d){
+  if (!d || !d.updatedAt) return 0;
+  const ts = Date.parse(d.updatedAt);
+  return Number.isFinite(ts) ? Math.max(0, (Date.now() - ts) / 1000) : 0;
+}
+
+function syncAnchorClock(d, serverClock){
+  return Number.isFinite(serverClock) ? serverClock : 0;
+}
+
+function playbackClockAgeSec(d){
+  const posAt = Number(d?.gamePositionAt);
+  if (Number.isFinite(posAt) && posAt > 0) {
+    return Math.max(0, (Date.now() - posAt) / 1000);
+  }
+  return serverClockAgeSec(d);
+}
+
+function playbackClockSec(){
+  const serverClock = Number(liveData?.playbackClockSec);
+  if(!Number.isFinite(serverClock)) return 0;
+
+  const running = liveData?.playbackClockRunning === true;
+  if (!running) return Math.max(0, serverClock);
+
+  const clockSource = liveData?.clockSource || liveData?.playbackDebug?.clockSource || '';
+  if (clockSource === 'waiting_game_cache' || clockSource === 'idle') {
+    return Math.max(0, serverClock);
+  }
+
+  const speed = Math.max(0.25, Number(timeline?.speed || liveData?.playbackTimeline?.speed || liveData?.playbackSpeed || 1));
+  const maxExtra = (clockSource === 'game_cache' || clockSource === 'game_cache_frozen')
+    ? MAX_CLIENT_CLOCK_EXTRAPOLATE_SEC
+    : 0.2;
+  const extrapolate = Math.min(maxExtra, playbackClockAgeSec(liveData) * speed);
+  const dataEnd = Number(timeline?.replayDataDurationSec || liveData?.playbackTimeline?.replayDataDurationSec
+    || timeline?.durationSec || liveData?.replayDataDurationSec || 0);
+  const clock = serverClock + extrapolate;
+  const cap = dataEnd > 0 ? dataEnd : 0;
+  return cap > 0 ? Math.max(0, Math.min(clock, cap)) : Math.max(0, clock);
+}
+
+function statsClockForPlayback(displayClock){
+  const offset = liveData?.movementStartSec || liveData?.battleStartOffsetSec || timeline?.movementStartSec || 15;
+  const inIntro = liveData?.introPhase || (displayClock < offset - 0.05);
+  return inIntro ? Math.min(displayClock, Math.max(0, offset - 0.05)) : displayClock;
+}
+
+function battleCountdownDisplay(d, running, clock){
+  const offset = d.movementStartSec || d.battleStartOffsetSec || timeline?.movementStartSec || 15;
+  const total = timeline?.countdownDurationSec || BATTLE_DURATION_SEC;
+  const dataEnd = Number(timeline?.replayDataDurationSec || liveData?.playbackTimeline?.replayDataDurationSec
+    || d.replayDataDurationSec || timeline?.durationSec || 0);
+  const atEnd = d.replayAtEnd || (dataEnd > 0 && (clock || 0) >= dataEnd - 0.25);
+  if ((clock || 0) < offset - 0.05 && !atEnd) return '07:00';
+  if (!running && !atEnd) return '07:00';
+  if (d.introPhase && !atEnd) return '07:00';
+  const battleElapsed = Math.max(0, (clock || 0) - offset);
+  return fmtClock(Math.max(0, total - battleElapsed));
+}
+
+function shouldReconcileStaleHp(clockSec){
+  return liveData?.replayAtEnd === true;
+}
+
+function reconcileStaleAliveHp(rows, clockSec){
+  if (!shouldReconcileStaleHp(clockSec)) return rows;
+
+  const staleGapSec = 20;
+  const telemetryDeltaSec = 3;
+  if (!rows || !rows.length) return rows;
+
+  const byTeam = new Map();
+  rows.forEach((row) => {
+    const team = row.team || 0;
+    if (team !== 1 && team !== 2) return;
+    if (!byTeam.has(team)) byTeam.set(team, []);
+    byTeam.get(team).push(row);
+  });
+
+  byTeam.forEach((teamRows) => {
+    const alive = teamRows.filter((row) => (row.currentHp || 0) > 0);
+    if (alive.length <= 1) return;
+
+    const lastClockOf = (row) => lastTelemetryClockAt(row.hpPoints || [], clockSec);
+    const maxLastClock = alive.reduce((best, row) => Math.max(best, lastClockOf(row)), -1);
+    if (maxLastClock < 0) return;
+
+    alive.forEach((row) => {
+      const lastClock = lastClockOf(row);
+      const age = clockSec - lastClock;
+      if (lastClock < maxLastClock - telemetryDeltaSec && age > staleGapSec) {
+        row.currentHp = 0;
+      }
+    });
+  });
+
+  return rows;
+}
+
+function timelinePlayersAt(clockSec){
+  const hpByEntity = new Map();
+  const hpByNick = new Map();
+  const maxHpByEntity = new Map();
+  const maxHpByNick = new Map();
+  const liveByEntity = new Map();
+  const liveByNick = new Map();
+  const clockSource = liveData?.clockSource || liveData?.playbackDebug?.clockSource || '';
+  const trustServerHp = (clockSource === 'game_cache' || clockSource === 'game_cache_frozen' || clockSource === 'zip_wall_sync') && !liveData?.introPhase;
+  (liveData?.teamHpDebug || liveData?.playbackTimeline?.teamHpDebug || timeline?.teamHpDebug || []).forEach((row)=>{
+    if(trustServerHp && row.entityId) hpByEntity.set(row.entityId, row.currentHp);
+    if(trustServerHp && row.nickname) hpByNick.set(row.nickname, row.currentHp);
+    const maxHp = row.chosenHp || row.type5Hp || row.vehicleHp || row.heuristicHp || 0;
+    if(row.entityId && maxHp) maxHpByEntity.set(row.entityId, maxHp);
+    if(row.nickname && maxHp) maxHpByNick.set(row.nickname, maxHp);
+  });
+  (liveData?.players || []).forEach((row)=>{
+    if(row.entityId) liveByEntity.set(row.entityId, row);
+    if(row.nickname) liveByNick.set(row.nickname, row);
+  });
+  const fragMap = fragsAtClock(clockSec);
+  const players = (timeline.players || []).map((p)=>{
+    const liveRow = liveByEntity.get(p.entityId) || liveByNick.get(p.nickname) || {};
+    const maxHp = maxHpByEntity.get(p.entityId) ?? maxHpByNick.get(p.nickname) ?? liveRow.maxHp ?? p.maxHp ?? p.spawnMaxHp ?? peakEntityHp(p);
+    const currentHp = hpByEntity.get(p.entityId)
+      ?? hpByNick.get(p.nickname)
+      ?? liveRow.currentHp
+      ?? currentEntityHp(Object.assign({}, p, { spawnMaxHp: maxHp || p.spawnMaxHp }), clockSec, timeline?.victimHits || liveData?.playbackTimeline?.victimHits || []);
+    return {
+      ...p,
+      ...liveRow,
+      entityId: p.entityId,
+      nickname: p.nickname,
+      team: p.team,
+      tankName: p.tankName || liveRow.tankName || '',
+      currentHp,
+      maxHp,
+      frags: fragMap.get(p.entityId) || liveRow.frags || 0,
+      platoonGroupId: p.platoonGroupId || liveRow.platoonGroupId || 0,
+      hpPoints: p.hpPoints || [],
+      damageDealt: dmgAtPoints(p.points, clockSec)
+    };
+  });
+  reconcileStaleAliveHp(players, clockSec);
+  return players;
+}
+
+function hpValueAtPoints(points, clockSec){
+  if(!points || !points.length) return null;
+  let lo = 0, hi = points.length - 1, best = -1;
+  while(lo <= hi){
+    const mid = (lo + hi) >> 1;
+    if(points[mid][0] <= clockSec){ best = mid; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+  if(best < 0) return null;
+  if(isPlaceholderHpPoint(points[best])) return null;
+  return points[best][1];
+}
+
+function damageReceivedBefore(hits, entityId, clockSec){
+  let dmg = 0;
+  (hits || []).forEach((hit)=>{
+    const victimId = hit.victimId != null ? hit.victimId : hit.entityId;
+    if(victimId === entityId && hit.clock <= clockSec) dmg += hit.damage || 0;
+  });
+  return dmg;
+}
+
+const POST_SUB3_HIT_EPS_SEC = 0.05;
+
+function isPlaceholderHpPoint(point){
+  return Boolean(point && point[0] <= 0 && point[1] === 0);
+}
+
+function hasMeaningfulHpTelemetry(hpPoints, clockSec){
+  return (hpPoints || []).some((point)=> point[0] <= clockSec && !isPlaceholderHpPoint(point));
+}
+
+function lastTelemetryClockAt(points, clockSec){
+  let last = null;
+  (points || []).forEach((point)=>{
+    if (point[0] <= clockSec && !isPlaceholderHpPoint(point)) last = point[0];
+  });
+  return last;
+}
+
+function applyVictimHitsAfterClock(hits, entityId, clockSec, anchorClock, hp){
+  let value = hp;
+  (hits || []).forEach((hit)=>{
+    const victimId = hit.victimId != null ? hit.victimId : hit.entityId;
+    if (victimId !== entityId) return;
+    if (anchorClock != null && hit.clock <= anchorClock + POST_SUB3_HIT_EPS_SEC) return;
+    if (hit.clock > clockSec) return;
+    value -= hit.damage || 0;
+  });
+  return Math.max(0, value);
+}
+
+function currentEntityHp(p, clockSec, victimHits){
+  const spawn = p.spawnMaxHp || p.maxHp || 0;
+  const hits = victimHits || [];
+  const hpPoints = p.hpPoints || [];
+
+  if (hpPoints.length) {
+    for (let i = 0; i < hpPoints.length; i += 1) {
+      if (hpPoints[i][0] > clockSec) break;
+      if (isPlaceholderHpPoint(hpPoints[i])) continue;
+      if (hpPoints[i][1] === 0) return 0;
+    }
+  }
+
+  const sub3 = hpValueAtPoints(hpPoints, clockSec);
+  if (sub3 != null) {
+    const anchorClock = lastTelemetryClockAt(hpPoints, clockSec);
+    return applyVictimHitsAfterClock(hits, p.entityId, clockSec, anchorClock, sub3);
+  }
+
+  if (spawn > 0 && !hasMeaningfulHpTelemetry(hpPoints, clockSec)) {
+    return spawn;
+  }
+
+  const damageTaken = spawn > 0
+    ? damageReceivedBefore(hits, p.entityId, clockSec)
+    : 0;
+
+  if (spawn > 0 && damageTaken >= spawn) return 0;
+
+  if(spawn > 0) {
+    return Math.max(0, spawn - damageTaken);
+  }
+  const sub4 = hpValueAtPoints(p.sub4HpPoints, clockSec);
+  if(sub4 != null && sub4 >= 1400 && sub4 <= 3500) return sub4;
+  return 0;
+}
+
+function peakEntityHp(p){
+  if(p.spawnMaxHp > 0) return p.spawnMaxHp;
+  const sub3 = (p.hpPoints || []).reduce((best, point)=>Math.max(best, point[1] || 0), 0);
+  if(sub3 > 0) return sub3;
+  return (p.sub4HpPoints || []).reduce((best, point)=>Math.max(best, point[1] || 0), 0);
+}
+
+function teamHpFromPlayers(players, authorTeam, clockSec, authorNick, victimHits){
+  const allies = { current: 0, max: 0, alive: 0, total: 0 };
+  const enemies = { current: 0, max: 0, alive: 0, total: 0 };
+  const merged = new Map();
+  const addPlayer = (p)=>{
+    if (!p) return;
+    const key = p.entityId || p.nickname;
+    if (!key) return;
+    const prev = merged.get(key) || {};
+    merged.set(key, Object.assign({}, prev, p));
+  };
+  (players || []).forEach(addPlayer);
+  (liveData?.players || []).forEach(addPlayer);
+  const roster = enrichPlayerTeams([...merged.values()], liveData?.players);
+
+  function bucketFor(p){
+    const nick = p.nickname || '';
+    const team = p.team || 0;
+    if (!authorTeam) return null;
+    if (team === authorTeam || (authorNick && nick === authorNick)) return allies;
+    if (team === 1 || team === 2) return enemies;
+    return null;
+  }
+
+  roster.forEach((p)=>{
+    const bucket = bucketFor(p);
+    if (!bucket) return;
+    bucket.total += 1;
+    const current = currentEntityHp(p, clockSec, victimHits);
+    const peak = peakEntityHp(p);
+    if (peak > 0) bucket.max += peak;
+    bucket.current += Math.max(0, current);
+    if (current > 0) bucket.alive += 1;
+  });
+
+  const pct = (row)=>{
+    if (row.max > 0) return Math.round((row.current / row.max) * 100);
+    if (row.total > 0 && row.current > 0) return 100;
+    return 0;
+  };
+  return {
+    allies: Object.assign({}, allies, { percent: pct(allies) }),
+    enemies: Object.assign({}, enemies, { percent: pct(enemies) })
+  };
+}
+
+function teamHpSnapshot(clockSec){
+  const serverHp = liveData?.teamHp || liveData?.playbackTimeline?.teamHp || timeline?.teamHp || null;
+  if (serverHp && (serverHp.allies?.max || serverHp.enemies?.max || serverHp.allies?.total || serverHp.enemies?.total)) {
+    return serverHp;
+  }
+
+  const authorNick = timeline?.authorNickname || liveData?.authorNickname || '';
+  const authorTeam = timeline?.authorTeam
+    || liveData?.playbackTimeline?.authorTeam
+    || resolveAuthorTeam(liveData?.players || [], authorNick, 0);
+  const victimHits = timeline?.victimHits || liveData?.playbackTimeline?.victimHits || [];
+  if (timeline?.players?.length) {
+    return teamHpFromPlayers(timeline.players, authorTeam, clockSec, authorNick, victimHits);
+  }
+  return liveData?.teamHp || liveData?.playbackTimeline?.teamHp || null;
+}
+
+function updateTeamHpCounters(el){
+  let active = false;
+  ['allies','enemies'].forEach((side)=>{
+    const st = teamHpUi[side];
+    const anim = st?.anim;
+    if(!anim) return;
+    const value = currentAnimatedValue(anim);
+    st.display = value;
+    const node = el.querySelector(`.hp-number[data-side="${side}"]`);
+    if(node) node.textContent = fmtHp(value);
+    const max = Number(st.max) || 0;
+    if (max > 0) {
+      const fill = el.querySelector(`.hp-seg-fill[data-side="${side}"]`);
+      if (fill) fill.style.width = Math.max(0, Math.min(100, Math.round((value / max) * 100))) + '%';
+    }
+    if(performance.now() - anim.start < anim.duration) active = true;
+    else st.anim = null;
+  });
+  return active;
+}
+
+function renderTeamHp(clockSec){
+  const el = qs('teamHpPanel');
+  const hp = teamHpSnapshot(clockSec);
+  if (!hp || (!hp.allies?.max && !hp.enemies?.max)) {
+    teamHpUi.renderSig = '';
+    el.innerHTML = '<div class="hp-empty">Нет данных HP</div>';
+    return;
+  }
+
+  const renderSig = [
+    Math.round(Number(hp.allies?.current) || 0),
+    hp.allies?.percent || 0,
+    hp.allies?.alive || 0,
+    hp.allies?.total || 0,
+    Math.round(Number(hp.enemies?.current) || 0),
+    hp.enemies?.percent || 0,
+    hp.enemies?.alive || 0,
+    hp.enemies?.total || 0
+  ].join('|');
+  if (teamHpUi.renderSig === renderSig) {
+    updateTeamHpCounters(el);
+    return;
+  }
+  teamHpUi.renderSig = renderSig;
+
+  function sideBlock(side, row){
+    const pct = row.percent || 0;
+    const current = Math.max(0, Math.round(Number(row.current) || 0));
+    const maxHp = Math.max(0, Math.round(Number(row.max) || 0));
+    const prev = teamHpUi[side] || { current: null, pct: null };
+    const prevPct = prev.pct == null ? pct : prev.pct;
+    const prevDisplay = prev.anim ? currentAnimatedValue(prev.anim) : (prev.display ?? prev.current ?? current);
+    const changed = prev.current != null && current !== prev.current;
+    const decreased = prev.current != null && current < prev.current;
+    const anim = changed
+      ? {
+        from: prevDisplay,
+        to: current,
+        start: performance.now(),
+        duration: Math.min(900, Math.max(420, Math.abs(current - prevDisplay) / 8))
+      }
+      : prev.anim || null;
+    const displayCurrent = anim ? currentAnimatedValue(anim) : current;
+    teamHpUi[side] = { current, pct, max: maxHp, display: displayCurrent, anim };
+    const hpState = pct <= 25 ? ' hp-low' : (pct <= 50 ? ' hp-warn' : '');
+    const barClass = decreased ? ' hp-bar-drop' : '';
+    const valueClass = decreased ? ' hp-value-drop' : '';
+    const barStyle = `--from-pct:${prevPct}%;--to-pct:${pct}%;width:${pct}%`;
+    return `<div class="hp-duel-side ${side}${hpState}">
+      <div class="hp-seg-bar">
+        <div class="hp-seg-fill${barClass}" data-side="${side}" style="${barStyle}"></div>
+        <div class="hp-seg-grid" aria-hidden="true"></div>
+      </div>
+      <div class="hp-seg-value"><span class="hp-number${valueClass}" data-side="${side}">${fmtHp(displayCurrent)}</span></div>
+    </div>`;
+  }
+
+  el.innerHTML = `<div class="hp-duel">${sideBlock('allies', hp.allies)}${sideBlock('enemies', hp.enemies)}</div>`;
+}
+
+function resolveAuthorTeam(list, authorNick, hintTeam){
+  if (hintTeam === 1 || hintTeam === 2) return hintTeam;
+  const author = (list || []).find((p)=>p.nickname === authorNick);
+  if (author && (author.team === 1 || author.team === 2)) return author.team;
+  return 0;
+}
+
+function enrichPlayerTeams(list, fallbackList){
+  const byEntity = new Map();
+  const byNick = new Map();
+  (fallbackList || []).forEach((p)=>{
+    if (p.entityId && p.team) byEntity.set(p.entityId, p.team);
+    if (p.nickname && p.team) byNick.set(p.nickname, p.team);
+  });
+  return (list || []).map((p)=>Object.assign({}, p, {
+    team: (p.team === 1 || p.team === 2)
+      ? p.team
+      : (byEntity.get(p.entityId) || byNick.get(p.nickname) || 0)
+  }));
+}
+
+function splitTeams(list, authorNick, hintTeam){
+  const enriched = enrichPlayerTeams(list, liveData?.players);
+  const myTeam = resolveAuthorTeam(enriched, authorNick, hintTeam)
+    || resolveAuthorTeam(liveData?.players || [], authorNick, liveData?.playbackTimeline?.authorTeam);
+  const allies = [], enemies = [], unknown = [];
+  enriched.forEach((p)=>{
+    if (myTeam && p.team === myTeam) allies.push(p);
+    else if (myTeam && (p.team === 1 || p.team === 2)) enemies.push(p);
+    else unknown.push(p);
+  });
+  if (unknown.length) (myTeam ? allies : enemies).push(...unknown);
+  const byDmg = (a,b)=>(b.damageDealt||0)-(a.damageDealt||0);
+  return { allies: allies.sort(byDmg), enemies: enemies.sort(byDmg), myTeam };
+}
+
+function currentAnimatedValue(anim){
+  if(!anim) return 0;
+  if(anim.from === anim.to) return anim.to;
+  const t = Math.min(1, (performance.now() - anim.start) / anim.duration);
+  const eased = 1 - Math.pow(1 - t, 3);
+  return Math.round(anim.from + (anim.to - anim.from) * eased);
+}
+
+function damageRender(side, nick, dmg){
+  const st = teamUi[side];
+  const target = Math.max(0, Number(dmg) || 0);
+  let anim = st.anim[nick];
+  const current = anim ? currentAnimatedValue(anim) : target;
+  const prevTarget = st.dmg[nick];
+  const now = performance.now();
+  let bumpUntil = anim?.bumpUntil || 0;
+
+  if(!anim || prevTarget !== target){
+    anim = {
+      from: current,
+      to: target,
+      start: now,
+      duration: Math.abs(target - current) > 900 ? 620 : 460,
+      bumpUntil: prevTarget != null && prevTarget !== target ? now + 380 : bumpUntil
+    };
+    st.anim[nick] = anim;
+    st.dmg[nick] = target;
+  }
+
+  return {
+    value: currentAnimatedValue(st.anim[nick]),
+    bump: now < (st.anim[nick].bumpUntil || 0) ? ' bump' : ''
+  };
+}
+
+function damageClass(value){
+  const dmg = Math.max(0, Number(value) || 0);
+  if(dmg < 500) return { cls: ' dmg-low', style: '' };
+  if(dmg < 2000) return { cls: ' dmg-mid', style: '' };
+  if(dmg < 3000) return { cls: ' dmg-high', style: '' };
+  if(dmg < 4000) {
+    const elite = Math.max(0, Math.min(1, (dmg - 3000) / 1000));
+    return { cls: ' dmg-elite', style: ` style="--elite:${elite.toFixed(3)}"` };
+  }
+  const epic = Math.max(0, Math.min(1, (dmg - 4000) / 6000));
+  const gold = Math.max(0, Math.min(1, (dmg - 5000) / 5000));
+  return { cls: ' dmg-epic', style: ` style="--epic:${epic.toFixed(3)};--gold:${gold.toFixed(3)}"` };
+}
+
+function damageShare(playerDmg, teamTotal){
+  const total = Math.max(0, Number(teamTotal) || 0);
+  if(total <= 0) return '0%';
+  const pct = Math.round((Math.max(0, Number(playerDmg) || 0) / total) * 100);
+  return `${pct}%`;
+}
+
+function playerKey(p){
+  return String(p.entityId || p.nickname || '?');
+}
+
+function isDestroyed(p){
+  return p.currentHp != null && Number(p.currentHp) <= 0;
+}
+
+function playerHpPercent(p){
+  const max = Number(p?.maxHp || p?.spawnMaxHp);
+  const rawCurrent = Number(p?.currentHp);
+  const current = Number.isFinite(rawCurrent) ? rawCurrent : max;
+  if(!Number.isFinite(max) || max <= 0) return null;
+  return Math.max(0, Math.min(100, Math.round((current / max) * 100)));
+}
+
+function playerHpStyle(p){
+  const pct = playerHpPercent(p);
+  return pct == null ? '' : ` style="--hp-pct:${pct}%"`;
+}
+
+function applyDamageSpan(span, side, nick, value, baseClass){
+  const d = damageRender(side, nick, value);
+  const dc = damageClass(d.value);
+  span.textContent = fmtDmg(d.value);
+  span.className = baseClass + dc.cls + d.bump;
+  if (dc.style) {
+    const m = dc.style.match(/style="([^"]*)"/);
+    if (m) span.setAttribute('style', m[1]);
+  } else {
+    span.removeAttribute('style');
+  }
+}
+
+function buildTeamStructureSig(sorted, mvp, hasMvp, authorNick){
+  const mvpKey = hasMvp && mvp ? playerKey(mvp) : '';
+  const rows = (hasMvp ? sorted.slice(1) : sorted).map((p)=>[
+    playerKey(p),
+    isDestroyed(p) ? 1 : 0,
+    String(p.tankName || ''),
+    String(p.frags || 0),
+    authorNick && p.nickname === authorNick ? 1 : 0
+  ].join(':'));
+  return mvpKey + '|' + rows.join('|');
+}
+
+function refreshTeamHpRows(el, sorted, hasMvp){
+  const rows = hasMvp ? sorted.slice(1) : sorted;
+  rows.forEach((p)=>{
+    const key = playerKey(p);
+    const row = el.querySelector(`.rank-row[data-key="${CSS.escape(key)}"]`);
+    if (!row) return;
+    const pct = playerHpPercent(p);
+    if (pct == null) row.style.removeProperty('--hp-pct');
+    else row.style.setProperty('--hp-pct', pct + '%');
+  });
+}
+
+function refreshTeamDamage(el, sorted, mvp, hasMvp, side){
+  if (hasMvp && mvp) {
+    const mvpCol = el.querySelector('[data-role="mvp"] .mvp-stats-col');
+    if (mvpCol) mvpCol.outerHTML = mvpStatsHtml(side, mvp.nickname, mvp.damageDealt, mvp.frags);
+  }
+  const rows = hasMvp ? sorted.slice(1) : sorted;
+  rows.forEach((p)=>{
+    const key = playerKey(p);
+    const row = el.querySelector(`.rank-row[data-key="${CSS.escape(key)}"]`);
+    const pack = row?.querySelector('.dmg-pack');
+    if (pack) pack.outerHTML = rankStatsHtml(side, p.nickname, p.damageDealt, p.frags);
+  });
+}
+
+function renderWithFlip(el, html, side, rankOrderSig, options){
+  const st = teamUi[side];
+  const skipFlip = options?.skipFlip === true;
+  const shouldFlip = !skipFlip && st.rankOrderSig && st.rankOrderSig !== rankOrderSig;
+  const previous = new Map();
+
+  if (shouldFlip) {
+    el.querySelectorAll('.rank-row[data-key]').forEach((node)=>{
+      previous.set(node.dataset.key, node.getBoundingClientRect());
+    });
+  }
+
+  el.innerHTML = html;
+
+  if (shouldFlip) {
+    el.querySelectorAll('.rank-row[data-key]').forEach((node)=>{
+      const before = previous.get(node.dataset.key);
+      if (!before) return;
+      const after = node.getBoundingClientRect();
+      const dx = before.left - after.left;
+      const dy = before.top - after.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      node.animate([
+        { transform: `translate3d(${dx}px, ${dy}px, 0)` },
+        { transform: 'translate3d(0, 0, 0)' }
+      ], {
+        duration: 380,
+        easing: 'cubic-bezier(.25,.8,.25,1)',
+        fill: 'both'
+      });
+    });
+  }
+
+  st.rankOrderSig = rankOrderSig;
+}
+
+function renderTeamWindow(el, list, authorNick, side){
+  const st = teamUi[side];
+  const sorted = (list || []).slice(0, MAX_ROWS);
+  const topDmg = sorted[0]?.damageDealt || 0;
+  const hasMvp = topDmg > 0;
+  const mvp = hasMvp ? sorted[0] : null;
+  const rest = hasMvp ? sorted.slice(1) : sorted;
+  const rankOrderSig = rest.map((p)=>playerKey(p)).join('|');
+  const mvpKey = hasMvp && mvp ? playerKey(mvp) : '';
+  const structureSig = buildTeamStructureSig(sorted, mvp, hasMvp, authorNick);
+  const mvpChanged = (st.mvpKey || '') !== mvpKey;
+
+  if (!sorted.length) {
+    el.innerHTML = '<div class="rank-empty">—</div>';
+    st.mvpNick = '';
+    st.mvpKey = '';
+    st.structureSig = '';
+    st.rankOrderSig = '';
+    return;
+  }
+
+  if (st.structureSig === structureSig && el.querySelector('[data-key]')) {
+    refreshTeamDamage(el, sorted, mvp, hasMvp, side);
+    refreshTeamHpRows(el, sorted, hasMvp);
+    return;
+  }
+
+  let mvpHtml = '';
+  if (mvp) {
+    const mvpNick = mvp.nickname || '?';
+    if (mvpChanged) {
+      const win = el.closest('.team-window');
+      if (win) {
+        win.classList.remove('mvp-flash');
+        requestAnimationFrame(()=> win.classList.add('mvp-flash'));
+      }
+    }
+    st.mvpNick = mvpNick;
+    st.mvpKey = mvpKey;
+
+    const mvpMe = authorNick && mvpNick === authorNick ? ' me' : '';
+    const tankMvp = mvp.tankName ? `<div class="mvp-tank">${esc(mvp.tankName)}</div>` : '';
+    const destroyed = isDestroyed(mvp) ? ' destroyed' : '';
+
+    mvpHtml = `
+    <div class="mvp-card${mvpMe}${destroyed}${mvpChanged ? ' takeover' : ''}" data-key="${esc(playerKey(mvp))}" data-role="mvp">
+      <div class="mvp-badge"><span class="crown">♛</span> MVP</div>
+      <div class="mvp-nick">${esc(mvpNick)}</div>
+      ${tankMvp}
+      <div class="mvp-dmg-row">
+        ${mvpStatsHtml(side, mvpNick, mvp.damageDealt, mvp.frags)}
+      </div>
+    </div>`;
+  } else {
+    st.mvpNick = '';
+    st.mvpKey = '';
+  }
+
+  const rowsHtml = (hasMvp ? rest : sorted).map((p, i)=>{
+    const nick = p.nickname || '?';
+    const me = authorNick && nick === authorNick ? ' me' : '';
+    const tank = p.tankName
+      ? `<div class="rank-tank">${esc(p.tankName)}</div>`
+      : '<div class="rank-tank unknown">Танк неизвестен</div>';
+    const rankNum = hasMvp ? i + 2 : i + 1;
+    const destroyed = isDestroyed(p) ? ' destroyed' : '';
+    return `<div class="rank-row${me}${destroyed}" data-key="${esc(playerKey(p))}"${playerHpStyle(p)}>
+      <span class="rank-num">${rankNum}</span>
+      <div class="rank-info">
+        <div class="rank-nick">${esc(nick)}</div>
+        ${tank}
+      </div>
+      ${rankStatsHtml(side, nick, p.damageDealt, p.frags)}
+    </div>`;
+  }).join('');
+
+  renderWithFlip(
+    el,
+    mvpHtml + (rowsHtml ? `<div class="rank-list">${rowsHtml}</div>` : ''),
+    side,
+    rankOrderSig,
+    { skipFlip: mvpChanged }
+  );
+  st.structureSig = structureSig;
+}
+
+function renderPlayersByTeam(list, authorNick, hintTeam){
+  const { allies, enemies } = splitTeams(list, authorNick, hintTeam);
+  renderTeamWindow(qs('playersAllies'), allies, authorNick, 'allies');
+  renderTeamWindow(qs('playersEnemies'), enemies, authorNick, 'enemies');
+}
+
+function withBlockedHits(players){
+  return (players || []).map((p)=>Object.assign({}, p, {
+    blockedHits: Math.max(0, (Number(p.hitsReceived) || 0) - (Number(p.penetrationsReceived) || 0))
+  }));
+}
+
+function authorAchievements(players, author){
+  const roster = withBlockedHits(players);
+  const current = roster.find((p)=>p.entityId && author?.entityId && p.entityId === author.entityId)
+    || roster.find((p)=>p.nickname && author?.nickname && p.nickname === author.nickname)
+    || author;
+  const team = current?.team || 0;
+  const teamRoster = team ? roster.filter((p)=>p.team === team) : roster;
+  const badges = [
+    ['damageDealt', 'УРОН'],
+    ['hits', 'ПОПАДАНИЙ'],
+    ['penetrations', 'ПРОБИТИЙ']
+  ].map(([metric, label])=>{
+    const value = Number(current?.[metric]) || 0;
+    const ranked = teamRoster
+      .map((p)=>Number(p?.[metric]) || 0)
+      .sort((a,b)=>b-a);
+    const place = value > 0 ? ranked.findIndex((v)=>v <= value) + 1 : 0;
+    return { label, value: place || '—', prefix: '#' };
+  });
+  badges.push({ label: 'ТОЧНОСТЬ', value: authorAccuracyPercent(current) || '—', prefix: '' });
+  return badges;
+}
+
+function authorAccuracyPercent(author){
+  const shots = Number(author?.shotsFired) || 0;
+  const hits = Number(author?.hits) || 0;
+  let s = shots;
+  let h = hits;
+  if (s > 0 && h > s) {
+    const tmp = s;
+    s = h;
+    h = tmp;
+  }
+  if (s <= 0) return null;
+  return `${Math.round((Math.min(h, s) / s) * 100)}%`;
+}
+
+function authorTeamDamageShare(players, author){
+  if(!author) return '0%';
+  const team = author.team || 0;
+  const roster = team ? (players || []).filter((p)=>p.team === team) : (players || []);
+  const teamTotal = roster.reduce((sum, p)=>sum + (Number(p.damageDealt) || 0), 0);
+  const authorDmg = Number(author.damageDealt) || 0;
+  if(teamTotal <= 0) return '0%';
+  return `${Math.round((authorDmg / teamTotal) * 100)}%`;
+}
+
+function fitAuthorNick(){
+  const node = qs('authorPanel')?.querySelector('.author-nick');
+  if(!node) return;
+  node.style.fontSize = '';
+  const base = parseFloat(getComputedStyle(node).fontSize) || 18;
+  let size = base;
+  while(node.scrollWidth > node.clientWidth && size > 12){
+    size -= 1;
+    node.style.fontSize = `${size}px`;
+  }
+}
+
+function authorIsTeamMvp(players, authorNick){
+  if (!authorNick || !players?.length) return false;
+  const author = players.find((p)=>p.nickname === authorNick);
+  if (!author || (author.team !== 1 && author.team !== 2)) return false;
+  const teamPlayers = players.filter((p)=>p.team === author.team);
+  const sorted = [...teamPlayers].sort((a,b)=>(Number(b.damageDealt)||0)-(Number(a.damageDealt)||0));
+  const top = sorted[0];
+  return !!(top && top.nickname === authorNick && (Number(top.damageDealt)||0) > 0);
+}
+
+function updateAuthorWindowState(players, authorNick){
+  const win = document.querySelector('.author-window');
+  if (!win) return;
+  const isMvp = authorIsTeamMvp(players, authorNick);
+  win.classList.toggle('author-is-mvp', isMvp);
+  win.classList.toggle('author-not-mvp', !!authorNick && !isMvp);
+}
+
+function renderAuthorPanel(authorNick, currentPlayers){
+  const el = qs('authorPanel');
+  const players = currentPlayers || timeline?.players || liveData?.players || liveData?.playbackTimeline?.players || [];
+  const author = (players || []).find((p)=>p.nickname === authorNick)
+    || (liveData?.players || []).find((p)=>p.nickname === authorNick)
+    || null;
+  const nick = authorNick || author?.nickname || '—';
+  const achievements = authorAchievements(players, author);
+  const authorShare = authorTeamDamageShare(players, author);
+  const achievementsHtml = achievements.map((item)=>`
+    <span class="author-achievement${item.value === '—' ? ' muted' : ''}">
+      <span class="author-place">${esc(item.prefix || '')}${esc(item.value)}</span>
+      <span class="author-achievement-name">${esc(item.label)}</span>
+    </span>`).join('');
+
+  el.innerHTML = `
+    <div class="author-label">Автор реплея</div>
+    <div class="author-nick">${esc(nick)}</div>
+    <div class="author-damage-share"><span class="prefix">нанес</span>${authorShare}<span class="label"> урона команды</span></div>
+    <div class="author-achievements">${achievementsHtml}</div>`;
+  updateAuthorWindowState(players, authorNick);
+  fitAuthorNick();
+}
+
+function resetTeamUi(){
+  teamUi.allies = { mvpNick: '', mvpKey: '', dmg: {}, anim: {}, rankOrderSig: '', structureSig: '' };
+  teamUi.enemies = { mvpNick: '', mvpKey: '', dmg: {}, anim: {}, rankOrderSig: '', structureSig: '' };
+  teamHpUi.allies = { current: null, pct: null, max: null };
+  teamHpUi.enemies = { current: null, pct: null, max: null };
+  teamHpUi.renderSig = '';
+}
+
+let lastRecordingPath = '';
+let lastReplaySwitchAt = 0;
+
+function adoptTimeline(d){
+  if (d.status !== 'playback' && d.status !== 'recording') {
+    lastRecordingPath = '';
+    lastReplaySwitchAt = 0;
+    timeline = null;
+    return;
+  }
+
+  const switchAt = Number(d.replaySwitchAt) || 0;
+  if (switchAt && switchAt !== lastReplaySwitchAt) {
+    lastReplaySwitchAt = switchAt;
+    timeline = null;
+    resetTeamUi();
+  }
+
+  const key = d.recordingPath || d.activeReplayPath || d.sourceLabel || d.playbackTimeline?.replayKey || '';
+  if (key && lastRecordingPath && lastRecordingPath !== key) {
+    timeline = null;
+    resetTeamUi();
+  }
+  if (key) lastRecordingPath = key;
+
+  const tl = d.playbackTimeline;
+  if(!tl || !tl.players || !tl.players.length){
+    if (d.players && d.players.length) {
+      const timelineKey = key || d.sourceLabel || 'live';
+      const serverClock = Number(d.playbackClockSec);
+      const running = d.playbackClockRunning === true;
+      const movementStart = d.movementStartSec != null
+        ? d.movementStartSec
+        : (d.battleStartOffsetSec != null ? d.battleStartOffsetSec : 15);
+      timeline = {
+        replayKey: timelineKey,
+        localStartedAt: Date.now(),
+        anchorClock: running && Number.isFinite(serverClock) ? syncAnchorClock(d, serverClock) : 0,
+        movementStartSec: movementStart,
+        battleStartOffsetSec: movementStart,
+        clockRunning: running,
+        authorTeam: d.playbackTimeline?.authorTeam || d.authorTeam || 0,
+        authorPlatoonGroupId: d.authorPlatoonGroupId || d.playbackTimeline?.authorPlatoonGroupId || 0,
+        authorNickname: d.authorNickname || '',
+        durationSec: d.replayDataDurationSec || 0,
+        replayDataDurationSec: d.replayDataDurationSec || 0,
+        countdownDurationSec: BATTLE_DURATION_SEC,
+        teamHp: d.teamHp || null,
+        teamHpDebug: d.teamHpDebug || [],
+        players: d.players.map((row) => ({
+          entityId: row.entityId || 0,
+          nickname: row.nickname || '',
+          team: row.team || 0,
+          vehicleId: row.vehicleId || 0,
+          tankName: row.tankName || '',
+          points: [[0, Number(row.damageDealt) || 0]],
+          hpPoints: [[0, 0]],
+          spawnMaxHp: row.maxHp || row.spawnMaxHp || 0,
+          maxHp: row.maxHp || row.spawnMaxHp || 0,
+          damageDealt: row.damageDealt || 0,
+          hits: row.hits || 0,
+          penetrations: row.penetrations || 0
+        })),
+        victimHits: []
+      };
+      return;
+    }
+    timeline = null;
+    return;
+  }
+  const timelineKey = key || tl.replayKey || '';
+  const serverClock = Number(d.playbackClockSec);
+  const running = d.playbackClockRunning === true;
+  const movementStart = tl.movementStartSec != null
+    ? tl.movementStartSec
+    : (tl.battleStartOffsetSec != null ? tl.battleStartOffsetSec : 15);
+
+  if(!timeline || timeline.replayKey !== timelineKey){
+    timeline = Object.assign({}, tl, {
+      replayKey: timelineKey,
+      localStartedAt: Date.now(),
+      anchorClock: running && Number.isFinite(serverClock) ? syncAnchorClock(d, serverClock) : 0,
+      movementStartSec: movementStart,
+      battleStartOffsetSec: movementStart,
+      clockRunning: running,
+      authorTeam: tl.authorTeam || 0,
+      authorPlatoonGroupId: tl.authorPlatoonGroupId || d.authorPlatoonGroupId || 0,
+      authorNickname: tl.authorNickname || d.authorNickname || '',
+      combatHits: tl.combatHits || [],
+      victimHits: tl.victimHits || []
+    });
+    resetTeamUi();
+    return;
+  }
+
+  timeline.speed = tl.speed || timeline.speed || 1;
+  timeline.durationSec = tl.durationSec || timeline.durationSec || 0;
+  timeline.countdownDurationSec = tl.countdownDurationSec || BATTLE_DURATION_SEC;
+  timeline.movementStartSec = movementStart;
+  timeline.battleStartOffsetSec = movementStart;
+  timeline.clockRunning = running;
+  timeline.players = tl.players;
+  timeline.combatHits = tl.combatHits || timeline.combatHits || [];
+  timeline.victimHits = tl.victimHits || timeline.victimHits || [];
+  timeline.authorTeam = tl.authorTeam || timeline.authorTeam || 0;
+  timeline.authorPlatoonGroupId = tl.authorPlatoonGroupId || timeline.authorPlatoonGroupId || d.authorPlatoonGroupId || 0;
+  timeline.authorNickname = tl.authorNickname || timeline.authorNickname || d.authorNickname || '';
+
+  if (tl.rewindAt && tl.rewindAt !== timeline.lastRewindAt) {
+    timeline.lastRewindAt = tl.rewindAt;
+    timeline.localStartedAt = Date.now();
+    timeline.anchorClock = running && Number.isFinite(serverClock) ? syncAnchorClock(d, serverClock) : 0;
+    resetTeamUi();
+    return;
+  }
+
+  if (running && Number.isFinite(serverClock)) {
+    const target = syncAnchorClock(d, serverClock);
+    const localClock = (timeline.anchorClock || 0) + ((Date.now() - timeline.localStartedAt) / 1000) * (timeline.speed || 1);
+    if (Math.abs(localClock - target) > 0.35) {
+      timeline.localStartedAt = Date.now();
+      timeline.anchorClock = target;
+    }
+  } else if (!running) {
+    timeline.localStartedAt = Date.now();
+    timeline.anchorClock = 0;
+  }
+}
+
+function replayInfoReady(d){
+  if (!d || d.status !== 'playback') return false;
+  const n = Number(d.playerCount) || 0;
+  if (n > 0) return true;
+  if (Array.isArray(d.players) && d.players.length) return true;
+  const tl = d.playbackTimeline;
+  return Boolean(tl && Array.isArray(tl.players) && tl.players.length);
+}
+
+function replayPlaybackLoading(d){
+  if (!d || d.status !== 'playback') return false;
+  if (replayPlaybackEnded(d)) return false;
+  if (Array.isArray(d.players) && d.players.length) return false;
+  const tl = d.playbackTimeline;
+  if (tl && Array.isArray(tl.players) && tl.players.length) return false;
+  if (d.playbackLoading === true) return true;
+  return !replayInfoReady(d);
+}
+
+function liveWidgetShouldHide(d){
+  if (!d) return false;
+  if (d.replayEndSummary && (d.replayEndSummary.visible || d.replayEndSummary.pending)) return true;
+  if (d.mode === 'playback_summary' || d.mode === 'playback_ended') return true;
+  if (d.replayAtEnd === true) return true;
+  return false;
+}
+
+function replayStageActive(d){
+  if (!d) return false;
+  if (d.status === 'recording') return true;
+  if (d.status === 'processing') return true;
+  if (d.status === 'playback') return true;
+  return false;
+}
+
+function replayPlaybackEnded(d){
+  if (!d) return false;
+  if (d.mode === 'playback_summary' || d.mode === 'playback_ended') return true;
+  if (d.replayAtEnd === true) return true;
+  const src = d.clockSource || d.playbackDebug?.clockSource || '';
+  return src === 'replay_end';
+}
+
+function replayLiveVisible(d){
+  return replayInfoReady(d);
+}
+
+function stageShouldShow(d){
+  return replayStageActive(d);
+}
+
+function fragsAtClock(clockSec){
+  const players = timeline?.players || [];
+  const hits = timeline?.combatHits
+    || liveData?.playbackTimeline?.combatHits
+    || [];
+  const frags = new Map();
+  const credited = new Set();
+
+  players.forEach((p)=>{
+    const victimId = p.entityId;
+    if (!victimId) return;
+    let deathClock = null;
+    for (const pt of (p.hpPoints || [])) {
+      if (pt[0] > clockSec) break;
+      if (isPlaceholderHpPoint(pt)) continue;
+      if (pt[1] === 0) {
+        deathClock = pt[0];
+        break;
+      }
+    }
+    if (deathClock == null) return;
+
+    let killHit = null;
+    hits.forEach((hit)=>{
+      if (hit.victimId !== victimId) return;
+      if (hit.clock > clockSec) return;
+      if (hit.clock > deathClock + 0.35) return;
+      if (!killHit || hit.clock > killHit.clock) killHit = hit;
+    });
+    const attackerId = killHit && killHit.entityId;
+    if (!attackerId || attackerId === victimId || credited.has(victimId)) return;
+    credited.add(victimId);
+    frags.set(attackerId, (frags.get(attackerId) || 0) + 1);
+  });
+
+  return frags;
+}
+
+function fragsBadgeHtml(frags){
+  const n = Number(frags) || 0;
+  if (n <= 0) return '';
+  return `<span class="player-frags" title="Фраги">${FRAG_SWORDS_SVG}<span class="frag-count">${n}</span></span>`;
+}
+
+function rankStatsHtml(side, nick, dmgValue, frags){
+  const dmg = damageRender(side, nick, dmgValue);
+  const dmgClass = damageClass(dmg.value);
+  return `<span class="dmg-pack">${fragsBadgeHtml(frags)}<span class="rank-dmg${dmgClass.cls}${dmg.bump}"${dmgClass.style}>${fmtDmg(dmg.value)}</span></span>`;
+}
+
+function mvpStatsHtml(side, nick, dmgValue, frags){
+  const dmg = damageRender(side, nick, dmgValue);
+  const dmgClass = damageClass(dmg.value);
+  return `<div class="mvp-stats-col"><span class="mvp-dmg-label">Урон</span><span class="dmg-pack">${fragsBadgeHtml(frags)}<span class="mvp-dmg${dmgClass.cls}${dmg.bump}"${dmgClass.style}>${fmtDmg(dmg.value)}</span></span></div>`;
+}
+
+function renderPlaybackLoading(d){
+  const label = d.sourceLabel || (d.recordingPath ? d.recordingPath.split(/[/\\]/).pop() : 'реплей');
+  qs('badgeText').textContent = 'REPLAY';
+  qs('timer').textContent = d.battleTimeLabel || d.countdownLabel || '00:00';
+  qs('duration').textContent = d.playbackDebug?.legacyReplayUnsupported
+    ? '· старый реплей (2024), live недоступен'
+    : (d.playbackDebug?.extractOk === false
+      ? '· не удалось прочитать .tbreplay'
+      : '· загрузка…');
+  qs('authorPanel').innerHTML = `<div class="author-label">Загрузка реплея</div><div class="author-nick">${esc(label)}</div>`;
+  qs('playersAllies').innerHTML = '<div class="rank-empty">…</div>';
+  qs('playersEnemies').innerHTML = '<div class="rank-empty">…</div>';
+  qs('teamHpPanel').innerHTML = '<div class="hp-empty">Загрузка данных боя</div>';
+}
+
+let uiVisibility = {
+  stage: false,
+  live: true,
+  idle: true,
+  lastStageAt: 0,
+  lastIdleAt: Date.now()
+};
+const UI_HIDE_MS = 2500;
+const UI_IDLE_STREAK_TO_HIDE = 4;
+let idlePollStreak = 0;
+let stagePaintLatch = false;
+let lastPanelVis = { stage: null, idle: null };
+
+function applyIdleWaitingUi() {
+  const stageEl = qs('stage');
+  const idleEl = qs('idlePanel');
+  if (stageEl) stageEl.classList.add('stage-hidden');
+  if (idleEl) {
+    idleEl.classList.remove('idle-hidden', 'hidden');
+    idleEl.textContent = 'Ожидание реплея';
+  }
+  uiVisibility.stage = false;
+  uiVisibility.idle = true;
+  uiVisibility.lastIdleAt = Date.now();
+  lastPanelVis.stage = 'hidden';
+  lastPanelVis.idle = 'visible';
+}
+
+function setPanelVisibility(el, hidden, softClass, hardClass, visKey) {
+  if (!el) return;
+  const state = hidden ? 'hidden' : 'visible';
+  if (visKey && lastPanelVis[visKey] === state) return;
+  if (visKey) lastPanelVis[visKey] = state;
+  if (hidden) {
+    el.classList.add(softClass);
+    el.classList.remove(hardClass);
+  } else {
+    el.classList.remove(softClass);
+    el.classList.remove(hardClass);
+  }
+}
+
+function renderMeta(d){
+  const recordingActive = d.status === 'recording';
+  const battleEnded = liveWidgetShouldHide(d);
+  const playbackActive = (d.status === 'playback' || d.status === 'processing') && !battleEnded;
+  const idleActive = d.status === 'idle' || battleEnded;
+  const now = Date.now();
+  const loadingPlayback = d.status === 'playback' && d.playbackLoading === true && !battleEnded;
+
+  const wantStage = recordingActive || playbackActive || loadingPlayback;
+  const wantIdle = idleActive && !recordingActive && !playbackActive;
+
+  if (battleEnded) {
+    uiVisibility.stage = false;
+    stagePaintLatch = false;
+    idlePollStreak = UI_IDLE_STREAK_TO_HIDE;
+  } else if (wantStage) {
+    uiVisibility.stage = true;
+    uiVisibility.lastStageAt = now;
+    idlePollStreak = 0;
+    stagePaintLatch = true;
+  } else if (wantIdle) {
+    idlePollStreak += 1;
+  } else {
+    idlePollStreak = 0;
+  }
+
+  if (battleEnded) {
+    // force hide — no post-battle summary on live widget
+  } else if (wantStage) {
+    // already latched above
+  } else if (uiVisibility.stage && now - uiVisibility.lastStageAt < UI_HIDE_MS) {
+    // hold stage — avoids OBS flash between polls
+  } else if (uiVisibility.stage && stagePaintLatch && idlePollStreak < UI_IDLE_STREAK_TO_HIDE) {
+    // require several consecutive idle polls before hiding
+  } else {
+    uiVisibility.stage = false;
+    if (!wantStage && idlePollStreak >= UI_IDLE_STREAK_TO_HIDE) {
+      stagePaintLatch = false;
+    }
+  }
+
+  if (wantIdle) {
+    uiVisibility.idle = true;
+    uiVisibility.lastIdleAt = now;
+  } else if (uiVisibility.idle && now - uiVisibility.lastIdleAt < UI_HIDE_MS) {
+    // hold idle briefly
+  } else {
+    uiVisibility.idle = false;
+  }
+
+  const hideStage = !uiVisibility.stage;
+  const hideIdle = !uiVisibility.idle || recordingActive || playbackActive || uiVisibility.stage;
+
+  const stageEl = qs('stage');
+  const liveEl = qs('liveUi');
+  const idleEl = qs('idlePanel');
+
+  setPanelVisibility(stageEl, hideStage, 'stage-hidden', 'hidden', 'stage');
+  setPanelVisibility(liveEl, false, 'stage-hidden', 'hidden');
+  setPanelVisibility(idleEl, hideIdle, 'idle-hidden', 'hidden', 'idle');
+
+  if (idleEl && !hideIdle) {
+    idleEl.classList.remove('hidden');
+  }
+
+  if (battleEnded && !recordingActive) {
+    idleEl.textContent = 'Ожидание реплея';
+  } else if (idleActive && !recordingActive) {
+    idleEl.textContent = 'Ожидание реплея';
+  } else if (!uiVisibility.stage) {
+    idleEl.textContent = 'Ожидание боя';
+  }
+
+  if (!uiVisibility.stage && !uiVisibility.idle && !recordingActive) {
+    return false;
+  }
+  if (uiVisibility.idle && !recordingActive && !playbackActive) {
+    liveData = d;
+    return false;
+  }
+
+  liveData = d;
+  qs('badgeText').textContent = d.status === 'playback' ? 'REPLAY' : 'LIVE';
+  return uiVisibility.stage || stagePaintLatch;
+}
+
+function paintFrame(){
+  const metaOk = liveData && renderMeta(liveData);
+  if (!metaOk && !stagePaintLatch) {
+    requestAnimationFrame(paintFrame);
+    return;
+  }
+  if (!liveData) {
+    requestAnimationFrame(paintFrame);
+    return;
+  }
+
+  if (liveWidgetShouldHide(liveData) && liveData.status !== 'recording') {
+    requestAnimationFrame(paintFrame);
+    return;
+  }
+
+  const authorNick = timeline?.authorNickname || liveData.authorNickname || '';
+  const hintTeam = timeline?.authorTeam || liveData?.playbackTimeline?.authorTeam || liveData?.authorTeam || 0;
+
+  if (replayPlaybackLoading(liveData)) {
+    renderPlaybackLoading(liveData);
+    requestAnimationFrame(paintFrame);
+    return;
+  }
+
+  if (!replayLiveVisible(liveData) && liveData.status !== 'recording') {
+    requestAnimationFrame(paintFrame);
+    return;
+  }
+
+  if (liveData.status === 'playback'){
+    const running = liveData.playbackClockRunning === true
+      || (!liveData.replayAtEnd && liveData.clockSource !== 'replay_end');
+    const clock = playbackClockSec();
+    const statsClock = statsClockForPlayback(clock);
+    const offset = liveData.movementStartSec || liveData.battleStartOffsetSec || 15;
+    const inIntro = running && (liveData.introPhase || clock < offset);
+
+    if (timeline) {
+      const currentPlayers = timelinePlayersAt(statsClock);
+      renderAuthorPanel(authorNick, currentPlayers);
+      renderPlayersByTeam(currentPlayers, authorNick, hintTeam);
+      renderTeamHp(statsClock);
+    } else {
+      const currentPlayers = liveData.players || [];
+      renderAuthorPanel(authorNick, currentPlayers);
+      renderPlayersByTeam(currentPlayers, authorNick, hintTeam);
+      renderTeamHp(statsClock);
+    }
+
+    qs('timer').textContent = battleCountdownDisplay(liveData, running && !liveData.replayAtEnd, clock);
+    qs('duration').textContent = (running && !liveData.replayAtEnd)
+      ? (inIntro ? '· до боя' : '')
+      : (liveData.replayAtEnd ? '· конец' : (liveData.clockSource === 'waiting_game_cache' ? '· ждём Play' : ''));
+  } else {
+    const currentPlayers = liveData.players || [];
+    renderAuthorPanel(authorNick, currentPlayers);
+    renderPlayersByTeam(currentPlayers, authorNick, hintTeam);
+    renderTeamHp(0);
+    qs('timer').textContent = liveData.battleTimeLabel || '00:00';
+    qs('duration').textContent = '';
+  }
+
+  requestAnimationFrame(paintFrame);
+}
+
+async function poll(){
+  try{
+    const r = await fetch('/api/replay-live');
+    const j = await r.json();
+    if(!j.success) return;
+    liveData = j.data;
+    adoptTimeline(j.data);
+  }catch(e){}
+}
+
+applyIdleWaitingUi();
+poll();
+setInterval(poll, 250);
+requestAnimationFrame(paintFrame);
+</script>
+</body>
+</html>

@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marathon Timer Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .marathon-widget {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #333333;
+            border-radius: 12px;
+            padding: 25px;
+            width: 450px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .marathon-title {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .title-main {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .title-sub {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .countdown-section {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .countdown-label {
+            font-size: 0.75rem;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .countdown-timer {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .timer-segment {
+            text-align: center;
+        }
+
+        .timer-number {
+            display: block;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #333333;
+            border-radius: 8px;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #ffffff;
+            line-height: 60px;
+            margin-bottom: 5px;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .timer-label {
+            font-size: 0.7rem;
+            color: #888888;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .status-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-icon {
+            width: 16px;
+            height: 16px;
+            background: #00ff00;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 0.875rem;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .uptime {
+            text-align: right;
+        }
+
+        .uptime-time {
+            font-size: 1rem;
+            color: #ffffff;
+            font-weight: 700;
+            font-family: 'Orbitron', monospace;
+            margin-bottom: 3px;
+        }
+
+        .uptime-labels {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            font-size: 0.6rem;
+            color: #888888;
+            text-transform: uppercase;
+        }
+
+        .donation-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .donation-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .donation-icon {
+            width: 20px;
+            height: 20px;
+            background: #ffffff;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        .donation-title {
+            font-size: 0.875rem;
+            color: #ffffff;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .donation-price {
+            font-size: 1rem;
+            color: #ffffff;
+            font-weight: 700;
+            margin-left: auto;
+        }
+
+        .total-section {
+            text-align: center;
+        }
+
+        .total-amount {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #333333;
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin-bottom: 8px;
+        }
+
+        .total-number {
+            font-size: 1.5rem;
+            color: #ffffff;
+            font-weight: 900;
+            font-family: 'Orbitron', monospace;
+            margin-right: 8px;
+        }
+
+        .total-currency {
+            font-size: 1.2rem;
+            color: #ff4444;
+            font-weight: 700;
+        }
+
+        .total-label {
+            font-size: 0.7rem;
+            color: #888888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Discount effects */
+        .marathon-widget.discount-active {
+            border-color: #ffff00;
+            box-shadow: 0 0 30px rgba(255, 255, 0, 0.3);
+        }
+
+        .marathon-widget.discount-active .title-main {
+            color: #ffff00;
+            text-shadow: 0 0 20px #ffff00;
+        }
+
+        .marathon-widget.discount-active .timer-number {
+            border-color: #ffff00;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
+        }
+
+        /* Freeze effects */
+        .marathon-widget.freeze-active {
+            border-color: #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .marathon-widget.freeze-active .title-main {
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff;
+        }
+
+        .marathon-widget.freeze-active .timer-number {
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            color: #00ffff;
+        }
+
+        .marathon-widget.freeze-active .status-icon {
+            background: #00ffff;
+            box-shadow: 0 0 10px #00ffff;
+        }
+
+        /* Snowflakes for freeze effect */
+        .snowflakes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .snowflake {
+            position: absolute;
+            color: #bde7ff;
+            font-size: 1rem;
+            animation: floatSnow 4s ease-in-out infinite;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+        }
+
+        .snowflake:nth-child(1) { left: 10%; top: 10%; animation-delay: 0s; }
+        .snowflake:nth-child(2) { left: 20%; top: 20%; animation-delay: 0.5s; }
+        .snowflake:nth-child(3) { left: 30%; top: 15%; animation-delay: 1s; }
+        .snowflake:nth-child(4) { left: 40%; top: 25%; animation-delay: 1.5s; }
+        .snowflake:nth-child(5) { left: 50%; top: 10%; animation-delay: 2s; }
+        .snowflake:nth-child(6) { left: 60%; top: 20%; animation-delay: 2.5s; }
+        .snowflake:nth-child(7) { left: 70%; top: 15%; animation-delay: 3s; }
+        .snowflake:nth-child(8) { left: 80%; top: 25%; animation-delay: 3.5s; }
+        .snowflake:nth-child(9) { left: 90%; top: 10%; animation-delay: 4s; }
+
+        @keyframes floatSnow {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-15px) rotate(180deg); opacity: 1; }
+        }
+
+        /* Discount icons */
+        .discount-icons {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .discount-icon {
+            position: absolute;
+            font-size: 1.2rem;
+            animation: floatDiscount 3s ease-in-out infinite;
+        }
+
+        .discount-icon:nth-child(1) { left: -30px; animation-delay: 0s; }
+        .discount-icon:nth-child(2) { left: -10px; animation-delay: 0.5s; }
+        .discount-icon:nth-child(3) { left: 10px; animation-delay: 1s; }
+        .discount-icon:nth-child(4) { left: 30px; animation-delay: 1.5s; }
+
+        @keyframes floatDiscount {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.8; }
+            50% { transform: translateY(-8px) scale(1.1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="marathon-widget" id="marathonWidget">
+        <!-- Discount icons -->
+        <div class="discount-icons" id="discountIcons" style="display: none;">
+            <div class="discount-icon">💰</div>
+            <div class="discount-icon">🎁</div>
+            <div class="discount-icon">💎</div>
+            <div class="discount-icon">⭐</div>
+        </div>
+        
+        <!-- Snowflakes -->
+        <div class="snowflakes" id="snowflakes" style="display: none;">
+            <div class="snowflake">❄</div>
+            <div class="snowflake">❅</div>
+            <div class="snowflake">❆</div>
+            <div class="snowflake">❄</div>
+            <div class="snowflake">❅</div>
+            <div class="snowflake">❆</div>
+            <div class="snowflake">❄</div>
+            <div class="snowflake">❅</div>
+            <div class="snowflake">❆</div>
+        </div>
+
+        <div class="marathon-title">
+            <div class="title-main">БЕСКОНЕЧНЫЙ</div>
+            <div class="title-sub">СТРИМ-МАРАФОН</div>
+        </div>
+        
+        <div class="countdown-section">
+            <div class="countdown-label">ОСТАЛОСЬ</div>
+            <div class="countdown-timer">
+                <div class="timer-segment">
+                    <div class="timer-number" id="hours">00</div>
+                    <div class="timer-label">Ч</div>
+                </div>
+                <div class="timer-segment">
+                    <div class="timer-number" id="minutes">00</div>
+                    <div class="timer-label">МИН</div>
+                </div>
+                <div class="timer-segment">
+                    <div class="timer-number" id="seconds">00</div>
+                    <div class="timer-label">СЕК</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-section">
+            <div class="status-left">
+                <div class="status-icon"></div>
+                <div class="status-text">Уже в эфире</div>
+            </div>
+            <div class="uptime">
+                <div class="uptime-time" id="uptime">00 : 00 : 00 : 00</div>
+                <div class="uptime-labels">
+                    <span>Д</span>
+                    <span>Ч</span>
+                    <span>М</span>
+                    <span>С</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="donation-section">
+            <div class="donation-header">
+                <div class="donation-icon"></div>
+                <div class="donation-title">УВЕЛИЧЬ ВРЕМЯ</div>
+                <div class="donation-price" id="donationPrice">100 RUB за +1 МИН</div>
+            </div>
+        </div>
+        
+        <div class="total-section">
+            <div class="total-amount">
+                <span class="total-number" id="totalAmount">0</span>
+                <span class="total-currency">RUB</span>
+            </div>
+            <div class="total-label">ВАША ПОДДЕРЖКА</div>
+        </div>
+    </div>
+
+    <script>
+        let currentState = {
+            timer_seconds: 0,
+            timer_paused: 0,
+            stream_duration_seconds: 0,
+            cost_per_minute: 100,
+            discount_active: 0,
+            discount_percent: 0,
+            discount_until_ts: 0,
+            donation_total: 0,
+            timer_slowdown_active: 0,
+            timer_slowdown_factor: 1.0,
+            timer_slowdown_until_ts: 0
+        };
+
+        let timerInterval = null;
+        let streamStartTime = null;
+        let ws = null;
+
+        // WebSocket connection
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                console.log('🔗 WebSocket connected');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'state_update') {
+                        updateState(data.state);
+                    }
+                } catch (e) {
+                    console.error('Error parsing WebSocket message:', e);
+                }
+            };
+            
+            ws.onclose = function() {
+                console.log('🔌 WebSocket disconnected, reconnecting...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function updateState(newState) {
+            const oldState = { ...currentState };
+            currentState = { ...currentState, ...newState };
+            
+            // Initialize stream start time if not set
+            if (!streamStartTime && currentState.timer_seconds > 0) {
+                streamStartTime = Date.now() - (currentState.timer_seconds * 1000);
+            }
+            
+            updateDisplay();
+            startTimerIfNeeded();
+        }
+
+        function startTimerIfNeeded() {
+            if (currentState.timer_seconds > 0 && !currentState.timer_paused && !timerInterval) {
+                startTimer();
+            } else if ((currentState.timer_seconds <= 0 || currentState.timer_paused) && timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+            
+            const BASE_TICK_MS = 250;
+            let accumulatedMs = 0;
+            
+            timerInterval = setInterval(() => {
+                if (currentState.timer_seconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    return;
+                }
+                
+                if (currentState.timer_paused) {
+                    updateDisplay();
+                    return;
+                }
+
+                const nowSec = Math.floor(Date.now() / 1000);
+                
+                // Auto-stop slowdown when expired
+                if (currentState.timer_slowdown_active && currentState.timer_slowdown_until_ts && nowSec >= currentState.timer_slowdown_until_ts) {
+                    currentState.timer_slowdown_active = 0;
+                    currentState.timer_slowdown_factor = 1.0;
+                    currentState.timer_slowdown_until_ts = 0;
+                }
+
+                // Apply slowdown factor
+                const factor = currentState.timer_slowdown_active ? Math.max(0.1, parseFloat(currentState.timer_slowdown_factor) || 1.0) : 1.0;
+                accumulatedMs += BASE_TICK_MS;
+                const msPerLogicalSecond = 1000 * factor;
+                
+                while (accumulatedMs >= msPerLogicalSecond && currentState.timer_seconds > 0) {
+                    currentState.timer_seconds--;
+                    accumulatedMs -= msPerLogicalSecond;
+                }
+                
+                updateDisplay();
+            }, BASE_TICK_MS);
+        }
+
+        function updateDisplay() {
+            updateTimer();
+            updateUptime();
+            updateDonationInfo();
+            updateEffects();
+        }
+
+        function updateTimer() {
+            const hours = Math.floor(currentState.timer_seconds / 3600);
+            const minutes = Math.floor((currentState.timer_seconds % 3600) / 60);
+            const seconds = currentState.timer_seconds % 60;
+            
+            document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+        }
+
+        function updateUptime() {
+            if (!streamStartTime) {
+                document.getElementById('uptime').textContent = '00 : 00 : 00 : 00';
+                return;
+            }
+            
+            const elapsed = Math.floor((Date.now() - streamStartTime) / 1000);
+            const days = Math.floor(elapsed / 86400);
+            const hours = Math.floor((elapsed % 86400) / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const secs = elapsed % 60;
+            
+            document.getElementById('uptime').textContent = 
+                `${days.toString().padStart(2, '0')} : ${hours.toString().padStart(2, '0')} : ${minutes.toString().padStart(2, '0')} : ${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateDonationInfo() {
+            const cost = currentState.discount_active ? 
+                Math.round(currentState.cost_per_minute * (1 - currentState.discount_percent / 100)) : 
+                currentState.cost_per_minute;
+            
+            document.getElementById('donationPrice').textContent = `${cost} RUB за +1 МИН`;
+            // Округляем сумму до целых рублей
+            const roundedTotal = Math.round(currentState.donation_total || 0);
+            document.getElementById('totalAmount').textContent = roundedTotal.toLocaleString();
+        }
+
+        function updateEffects() {
+            const widget = document.getElementById('marathonWidget');
+            const discountIcons = document.getElementById('discountIcons');
+            const snowflakes = document.getElementById('snowflakes');
+            
+            // Remove all effect classes
+            widget.classList.remove('discount-active', 'freeze-active');
+            
+            // Discount effects
+            if (currentState.discount_active) {
+                widget.classList.add('discount-active');
+                discountIcons.style.display = 'block';
+            } else {
+                discountIcons.style.display = 'none';
+            }
+            
+            // Freeze effects
+            if (currentState.timer_slowdown_active) {
+                widget.classList.add('freeze-active');
+                snowflakes.style.display = 'block';
+            } else {
+                snowflakes.style.display = 'none';
+            }
+        }
+
+        // Initialize
+        connectWebSocket();
+        updateDisplay();
+        
+        // Update uptime every second
+        setInterval(updateUptime, 1000);
+    </script>
+</body>
+</html>
+
+
+

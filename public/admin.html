@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФРАГ-ТРЕКЕР | АДМИНКА</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --neon-yellow: #ffff00;
+            --dark: #0a0a14;
+            --darker: #050508;
+            --light: #f5f5f5;
+            --widget-bg-opacity: 0.95;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 80px;
+        }
+
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .menu-logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .menu-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .menu-item.active {
+            background: var(--neon-purple);
+            color: var(--dark);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(255, 0, 60, 0.5);
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--neon-purple);
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            color: var(--neon-blue);
+        }
+
+        .panel {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, var(--widget-bg-opacity)) 0%,
+                rgba(8, 8, 20, calc(var(--widget-bg-opacity) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--widget-bg-opacity) * 0.85)) 100%
+            );
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: visible;
+        }
+
+        .panel::before,
+        .panel::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background:
+                radial-gradient(12px 2px at left center, var(--strip-color), rgba(0,0,0,0) 70%),
+                linear-gradient(90deg, var(--strip-color), var(--strip-color)),
+                radial-gradient(12px 2px at right center, var(--strip-color), rgba(0,0,0,0) 70%);
+            background-repeat: no-repeat;
+            background-size: 12px 100%, calc(100% - 24px) 100%, 12px 100%;
+            background-position: left center, center, right center;
+        }
+        .panel::before { top: 6px; }
+        .panel::after { bottom: 6px; }
+
+        .panel-danger {
+            --strip-color: var(--neon-red);
+            border-color: rgba(255, 0, 60, 0.3);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(255, 0, 60, 0.1);
+        }
+
+        .panel-warning {
+            --strip-color: var(--neon-blue);
+            border-color: rgba(0, 240, 255, 0.3);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(0, 240, 255, 0.1);
+        }
+
+        .panel-success {
+            --strip-color: var(--neon-green);
+            border-color: rgba(0, 255, 71, 0.3);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(0, 255, 71, 0.1);
+        }
+
+        .panel-info {
+            --strip-color: var(--neon-purple);
+            border-color: rgba(179, 0, 255, 0.3);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(179, 0, 255, 0.1);
+        }
+
+        h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            color: var(--neon-blue);
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            margin: 5px;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn-success {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 0 15px rgba(0, 255, 71, 0.3);
+        }
+
+        .btn-warning {
+            border-color: var(--neon-yellow);
+            color: var(--neon-yellow);
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
+        }
+
+        .btn-danger {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.3);
+        }
+
+        .btn-info {
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+        }
+
+        .btn-info:hover {
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.3);
+        }
+
+        /* Специальные стили для кнопок быстрого списания */
+        .btn-danger[data-sub] {
+            background: rgba(255, 0, 60, 0.4);
+            color: #ffffff;
+            border: 2px solid var(--neon-red);
+            font-weight: 900;
+            font-size: 1.1rem;
+            text-shadow: 0 0 10px rgba(255, 0, 60, 0.8);
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.3);
+        }
+
+        .btn-danger[data-sub]:hover {
+            background: rgba(255, 0, 60, 0.6);
+            box-shadow: 0 0 20px rgba(255, 0, 60, 0.5);
+            transform: scale(1.05);
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .status-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        .status-value.connected {
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .status-value.disconnected {
+            color: var(--neon-red);
+            text-shadow: 0 0 10px var(--neon-red);
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, 0.95) 0%,
+                rgba(8, 8, 20, 0.9) 100%
+            );
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 15px 20px;
+            color: var(--light);
+            font-size: 0.9rem;
+            max-width: 400px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(0, 240, 255, 0.3);
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            white-space: pre-line;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .notification.error {
+            border-color: rgba(255, 0, 60, 0.5);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(255, 0, 60, 0.3);
+        }
+
+        /* Modal windows */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active,
+        .modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, 0.95) 0%,
+                rgba(8, 8, 20, 0.9) 50%,
+                rgba(12, 12, 25, 0.85) 100%
+            );
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(179, 0, 255, 0.3);
+            animation: slideUp 0.3s ease;
+            color: var(--light);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn {
+                display: block;
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Верхнее меню -->
+    <nav class="top-menu">
+        <div class="menu-container">
+            <a href="/index.html" class="menu-logo">
+                🎯 ФРАГ-ТРЕКЕР
+            </a>
+            <div class="menu-nav">
+                <a href="/index.html" class="menu-item">🏠 Главная</a>
+                <a href="/mode1-frag-tracker.html" class="menu-item">🎯 Фраг-трекер</a>
+                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
+                <a href="/mode3-custom.html" class="menu-item">⚙️ Кастом</a>
+                <a href="/frag-stats.html" class="menu-item">📊 Статистика</a>
+                <a href="/lesta-stats.html" class="menu-item">🏆 Lesta Games</a>
+                <a href="/admin.html" class="menu-item active">🔧 Админ</a>
+                <a href="/analytics.html" class="menu-item">📈 Аналитика</a>
+            </div>
+        </div>
+    </nav>
+
+    <a href="/" class="back-link">← НАЗАД</a>
+    
+    <div class="container">
+        <div class="header">
+            <h1 class="title">АДМИНКА</h1>
+            <p class="subtitle">Панель управления</p>
+        </div>
+
+        <!-- Статус подключений -->
+        <div class="panel panel-info">
+            <h2>📊 СТАТУС СИСТЕМЫ</h2>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-label">DonationAlerts</div>
+                    <div class="status-value" id="daStatus">Проверка...</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">DonatePay</div>
+                    <div class="status-value" id="dpStatus">Проверка...</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">Lesta Games</div>
+                    <div class="status-value" id="lestaStatus">Проверка...</div>
+                </div>
+                <div class="status-item">
+                    <div class="status-label">WebSocket</div>
+                    <div class="status-value" id="wsStatus">Проверка...</div>
+                </div>
+            </div>
+            </div>
+
+        <!-- Настройки DonationAlerts -->
+        <div class="panel panel-warning">
+            <h2>🔗 DONATIONALERTS</h2>
+            <p>Настройка интеграции с DonationAlerts</p>
+            <div style="background: rgba(255,255,0,0.1); border: 1px solid #ff0; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 0.9rem;">
+                <strong>📋 Инструкция по настройке:</strong>
+                <ol>
+                    <li>Зайдите на <a href="https://www.donationalerts.com/application" target="_blank">DonationAlerts Applications</a></li>
+                    <li>Создайте новое приложение или используйте существующее</li>
+                    <li>Установите Redirect URI: <code>http://localhost:3000/auth/callback</code></li>
+                    <li>Скопируйте Client ID и Client Secret</li>
+                    <li>Настройте переменные окружения DA_CLIENT_ID и DA_CLIENT_SECRET</li>
+                </ol>
+            </div>
+            <br>
+            <button class="btn btn-primary" onclick="setupDA()">🔑 НАСТРОИТЬ DA</button>
+            <button class="btn btn-primary" onclick="testDA()">🧪 ТЕСТ DA</button>
+            <button class="btn btn-warning" onclick="forceCheckDonations()">🔄 ПРОВЕРИТЬ ДОНАТЫ</button>
+            <button class="btn btn-danger" onclick="debugDonations()">🔍 ДИАГНОСТИКА ДОНАТОВ</button>
+            <button class="btn btn-danger" onclick="removeOneZeroBattle()">🗑️ УДАЛИТЬ ОДИН БОЙ БЕЗ ФРАГОВ</button>
+            <button class="btn btn-info" onclick="diagnoseFragStats()">🔍 ДИАГНОСТИКА СТАТИСТИКИ ФРАГОВ</button>
+            <button class="btn btn-success" onclick="startAutoRefresh()">🚀 ЗАПУСТИТЬ АВТООБНОВЛЕНИЕ</button>
+            <button class="btn btn-warning" onclick="stopAutoRefresh()">⏹️ ОСТАНОВИТЬ АВТООБНОВЛЕНИЕ</button>
+            <button class="btn btn-primary" onclick="forceRefreshFragStats()">🔄 ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ</button>
+            <button class="btn btn-info" onclick="testBattleFragLogic()">🧪 ТЕСТ ЛОГИКИ БОЕВ И ФРАГОВ</button>
+            <button class="btn btn-success" onclick="initializeStartingStats()">🚀 ИНИЦИАЛИЗАЦИЯ СТАРТОВЫХ ЗНАЧЕНИЙ</button>
+            <button class="btn btn-warning" onclick="editStatsManually()">✏️ РЕДАКТИРОВАТЬ СТАТИСТИКУ</button>
+            <button class="btn btn-danger" onclick="addBattleForce()">🔨 ПРИНУДИТЕЛЬНО ДОБАВИТЬ БОЙ</button>
+            <button class="btn btn-info" onclick="syncLestaState()">🔄 СИНХРОНИЗИРОВАТЬ С LESTA GAMES</button>
+            <button class="btn btn-warning" onclick="diagnosePolling()">🔍 ДИАГНОСТИКА ОПРОСА ДОНАТОВ</button>
+            <button class="btn btn-danger" onclick="forceCheckNewDonations()">🔄 ПРИНУДИТЕЛЬНАЯ ПРОВЕРКА НОВЫХ ДОНАТОВ</button>
+            <button class="btn btn-warning" onclick="resetLastSeenId()">🔄 СБРОС LAST SEEN ID</button>
+            <br><br>
+            <a href="/donation-alerts-test.html" class="btn btn-success" target="_blank">🔍 ДИАГНОСТИКА DA</a>
+        </div>
+
+        <!-- Настройки DonatePay -->
+        <div class="panel panel-warning">
+            <h2>💰 DONATEPAY</h2>
+            <p>Настройка интеграции с DonatePay</p>
+            <br>
+            <button class="btn btn-primary" onclick="setupDonatePay()">🔗 НАСТРОИТЬ DONATEPAY</button>
+            <button class="btn btn-info" onclick="testDonatePay()">🧪 ТЕСТ DONATEPAY</button>
+            <button class="btn btn-warning" onclick="resetDonatePay429()">🔄 СБРОСИТЬ ОШИБКУ 429</button>
+            <p style="margin-top: 10px; font-size: 0.8rem; color: #aaa;">
+                Webhook URL: <code>http://localhost:3000/webhook/donatepay</code><br>
+                Real-time уведомления через Centrifugo
+            </p>
+                </div>
+
+        <!-- Настройки Lesta Games -->
+        <div class="panel panel-success">
+            <h2>🎮 LESTA GAMES</h2>
+            <p>Настройка интеграции с World of Tanks Blitz</p>
+            <br>
+            <button class="btn btn-warning" onclick="setupLestaGames()">🎮 НАСТРОИТЬ LESTA GAMES</button>
+            <button class="btn btn-warning" onclick="authLestaGames()">🔑 АВТОРИЗОВАТЬ LESTA</button>
+            <button class="btn btn-warning" onclick="syncLestaStats()">🔄 СИНХРОНИЗИРОВАТЬ LESTA</button>
+            <button class="btn btn-info" onclick="searchLestaPlayer()">🔍 НАЙТИ ИГРОКА</button>
+            </div>
+
+        <!-- Управление режимами -->
+        <div class="panel panel-danger">
+            <h2>⚙️ УПРАВЛЕНИЕ РЕЖИМАМИ</h2>
+            <p>Быстрые действия для управления трекерами</p>
+            <br>
+            <button class="btn btn-success" onclick="window.location.href='/mode1-frag-tracker'">🎯 РЕЖИМ 1</button>
+            <button class="btn btn-success" onclick="window.location.href='/mode2-timer'">⏱️ РЕЖИМ 2</button>
+            <button class="btn btn-success" onclick="window.location.href='/mode3-custom'">⚙️ РЕЖИМ 3</button>
+            <button class="btn btn-info" onclick="window.location.href='/lesta-stats'">🎮 LESTA СТАТИСТИКА</button>
+            <button class="btn btn-info" onclick="window.location.href='/analytics'">📊 АНАЛИТИКА</button>
+        </div>
+
+        <!-- Управление полоской сбора донатов -->
+        <div class="panel panel-info">
+            <h2>📊 ПОЛОСКА СБОРА ДОНАТОВ</h2>
+            <p>Управление упрощенным виджетом полоски сбора донатов</p>
+            <br>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Название полоски:</label>
+                    <input type="text" id="bar-title" class="form-input" placeholder="Сбор донатов" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Целевая сумма (₽):</label>
+                    <input type="number" id="bar-target" class="form-input" placeholder="1000" min="1" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff;">
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Текущая сумма (₽):</label>
+                <input type="number" id="bar-current" class="form-input" placeholder="0" min="0" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff;">
+            </div>
+            <button class="btn btn-success" onclick="saveDonationBar()">💾 Сохранить настройки</button>
+            <button class="btn btn-primary" onclick="loadDonationBar()">🔄 Загрузить текущее состояние</button>
+            <button class="btn btn-warning" onclick="resetDonationBar()">🔄 Обнулить сумму</button>
+            <br><br>
+            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+                <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">🔗 Ссылка для OBS:</label>
+                <input type="text" id="bar-url" class="form-input" value="http://localhost:3000/widget/donation-bar" readonly style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 0.85rem;">
+                <button class="btn btn-info" onclick="copyBarUrl()" style="margin-top: 5px;">📋 Копировать ссылку</button>
+            </div>
+        </div>
+
+        <!-- Системные действия -->
+        <div class="panel panel-danger">
+            <h2>🚨 СИСТЕМНЫЕ ДЕЙСТВИЯ</h2>
+            <p>Опасные операции - используйте с осторожностью</p>
+            <br>
+            <button class="btn btn-danger" onclick="resetAll()">🗑️ СБРОС ВСЕХ ДАННЫХ</button>
+            <button class="btn btn-danger" onclick="clearDonations()">🧹 ОЧИСТИТЬ ДОНАТЫ</button>
+            <button class="btn btn-danger" onclick="restartServer()">🔄 ПЕРЕЗАПУСТИТЬ СЕРВЕР</button>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        let ws;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+
+        function connectWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+                
+            ws.onopen = function() {
+                    console.log('✅ WebSocket подключен');
+                updateStatus('wsStatus', 'Подключен', 'connected');
+                reconnectAttempts = 0;
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                console.log('📨 Получено сообщение:', data);
+                
+                if (data.type === 'state_update') {
+                    updateUI(data.state);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('❌ WebSocket отключен');
+                updateStatus('wsStatus', 'Отключен', 'disconnected');
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    console.log(`🔄 Попытка переподключения ${reconnectAttempts}/${maxReconnectAttempts}`);
+                    setTimeout(connectWebSocket, 2000 * reconnectAttempts);
+                }
+            };
+
+            ws.onerror = function(error) {
+                console.error('❌ Ошибка WebSocket:', error);
+                updateStatus('wsStatus', 'Ошибка', 'disconnected');
+            };
+        }
+
+        function updateStatus(elementId, text, className) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = text;
+                element.className = `status-value ${className}`;
+            }
+        }
+
+        function updateUI(state) {
+            // Обновляем статусы на основе состояния
+            if (state.da_token) {
+                updateStatus('daStatus', 'Подключен', 'connected');
+            } else {
+                updateStatus('daStatus', 'Не подключен', 'disconnected');
+            }
+
+            if (state.dp_api_key) {
+                updateStatus('dpStatus', 'Настроен', 'connected');
+            } else {
+                updateStatus('dpStatus', 'Не настроен', 'disconnected');
+            }
+
+            if (state.lesta_access_token) {
+                updateStatus('lestaStatus', 'Авторизован', 'connected');
+            } else {
+                updateStatus('lestaStatus', 'Не авторизован', 'disconnected');
+            }
+        }
+
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${isError ? 'error' : ''} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function showModal(title, content) {
+            // Создаем модальное окно с glass-morphism стилем
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            modalContent.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; font-size: 1.5rem; color: #667eea;">${title}</h2>
+                    <button onclick="this.closest('.modal').remove()" class="btn btn-danger" style="padding: 8px 12px; font-size: 0.8rem;">
+                        ✕ ЗАКРЫТЬ
+                    </button>
+                </div>
+                <div style="border: 1px solid var(--glass-border); padding: 15px; border-radius: 8px; background: rgba(0, 0, 0, 0.3); font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap;">
+                    ${content}
+                </div>
+            `;
+            
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // Закрытие по клику вне модального окна
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+        // Функции для работы с DonationAlerts
+        function setupDA() {
+            window.open('/auth/donationalerts', 'DA Auth', 'width=600,height=700');
+        }
+
+        function testDA() {
+            fetch('/api/test-da')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('✅ DonationAlerts работает корректно');
+                    } else {
+                        showNotification('❌ Ошибка DonationAlerts: ' + data.error, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка подключения к DonationAlerts', true);
+                });
+        }
+
+        function forceCheckDonations() {
+            fetch('/api/force-check-donations', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('✅ Проверка донатов выполнена');
+                    } else {
+                        showNotification('❌ Ошибка проверки: ' + data.error, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка подключения к серверу', true);
+                });
+        }
+
+        function debugDonations() {
+            showNotification('🔍 Запуск диагностики донатов...', 'info');
+            
+            fetch('/api/debug-donations')
+                .then(response => response.json())
+                .then(data => {
+                    let result = '🔍 ДИАГНОСТИКА ДОНАТОВ\n\n';
+                    
+                    result += `📅 Время: ${new Date(data.timestamp).toLocaleString()}\n\n`;
+                    
+                    result += '🔑 DonationAlerts:\n';
+                    result += `   Токен: ${data.daConfig.hasToken ? 'ЕСТЬ' : 'НЕТ'}\n`;
+                    result += `   Client ID: ${data.daConfig.clientId || 'НЕ НАСТРОЕН'}\n`;
+                    result += `   Client Secret: ${data.daConfig.hasClientSecret ? 'ЕСТЬ' : 'НЕТ'}\n\n`;
+                    
+                    result += '🔄 Опрос:\n';
+                    result += `   В процессе: ${data.polling.isPollingInProgress ? 'ДА' : 'НЕТ'}\n`;
+                    result += `   Задержка: ${data.polling.pollDelayMs}мс\n`;
+                    result += `   Интервал: ${data.polling.hasPollingInterval ? 'АКТИВЕН' : 'НЕ АКТИВЕН'}\n\n`;
+                    
+                    result += '🗄️ База данных:\n';
+                    result += `   Токен в БД: ${data.dbToken || 'ОШИБКА'}\n`;
+                    result += `   Донатов в БД: ${data.donationsCount || 0}\n\n`;
+                    
+                    if (data.lastDonations && data.lastDonations.length > 0) {
+                        result += '📋 Последние донаты в БД:\n';
+                        data.lastDonations.forEach((donation, index) => {
+                            result += `   ${index + 1}. ${donation.username}: ${donation.amount} ${donation.currency}\n`;
+                            result += `      Сообщение: ${donation.message || 'Нет'}\n`;
+                            result += `      Дата: ${new Date(donation.created_at).toLocaleString()}\n`;
+                            result += `      Фраги: ${donation.frags_earned || 0}\n\n`;
+                        });
+                    } else {
+                        result += '⚠️ Донатов в БД нет\n\n';
+                    }
+                    
+                    result += '📡 API тест:\n';
+                    if (data.apiTest.success) {
+                        result += `   ✅ API работает\n`;
+                        result += `   📊 Получено донатов: ${data.apiTest.count}\n`;
+                        
+                        if (data.apiTest.donations && data.apiTest.donations.length > 0) {
+                            result += `   📋 Последние донаты из API:\n`;
+                            data.apiTest.donations.forEach((donation, index) => {
+                                result += `      ${index + 1}. ${donation.username}: ${donation.amount} ${donation.currency}\n`;
+                                result += `         Сообщение: ${donation.message || 'Нет'}\n`;
+                                result += `         Дата: ${new Date(donation.created_at).toLocaleString()}\n\n`;
+                            });
+                        } else {
+                            result += `   ⚠️ Донатов в API нет\n`;
+                        }
+                    } else {
+                        result += `   ❌ Ошибка API: ${data.apiTest.error}\n`;
+                    }
+                    
+                    result += '\n💡 РЕКОМЕНДАЦИИ:\n';
+                    if (!data.daConfig.hasToken) {
+                        result += '   • Выполните OAuth авторизацию\n';
+                    }
+                    if (data.donationsCount === 0) {
+                        result += '   • Отправьте тестовый донат в DonationAlerts\n';
+                    }
+                    if (!data.polling.hasPollingInterval) {
+                        result += '   • Перезапустите сервер\n';
+                    }
+                    if (data.apiTest.success && data.apiTest.count > 0 && data.donationsCount === 0) {
+                        result += '   • Проблема с сохранением донатов в БД\n';
+                    }
+                    
+                    // Показываем результат в модальном окне
+                    showModal('🔍 Диагностика донатов', result);
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка диагностики: ' + error.message, true);
+                });
+        }
+
+        function removeOneZeroBattle() {
+            if (!confirm('🗑️ Удалить один бой без фрагов из статистики?\n\nЭто поможет исправить дублирование боев.')) {
+                return;
+            }
+            
+            showNotification('🗑️ Удаление боя без фрагов...', 'info');
+            
+            fetch('/api/frag-stats/remove-one-zero', { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let result = '🗑️ БОЙ БЕЗ ФРАГОВ УДАЛЕН\n\n';
+                        
+                        if (data.removedBattle) {
+                            result += '📋 Удаленный бой:\n';
+                            result += `   ID: ${data.removedBattle.id}\n`;
+                            result += `   Время: ${new Date(data.removedBattle.time).toLocaleString()}\n`;
+                            result += `   Фраги: ${data.removedBattle.frags}\n\n`;
+                        }
+                        
+                        if (data.currentStats) {
+                            result += '📊 Текущая статистика:\n';
+                            result += `   Всего боев: ${data.currentStats.totalBattles}\n`;
+                            result += `   Всего фрагов: ${data.currentStats.totalFrags}\n\n`;
+                        }
+                        
+                        result += '✅ Статистика теперь корректна!\n';
+                        result += '🚀 Система готова к корректному сбору статистики';
+                        
+                        showModal('🗑️ Бой удален', result);
+                        showNotification('✅ Бой без фрагов удален', 'success');
+                    } else {
+                        showNotification('❌ Ошибка: ' + data.message, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка удаления: ' + error.message, true);
+                });
+        }
+
+        function diagnoseFragStats() {
+            showNotification('🔍 Диагностика статистики фрагов...', 'info');
+            
+            fetch('/api/frag-stats/diagnose')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let result = '🔍 ДИАГНОСТИКА СТАТИСТИКИ ФРАГОВ\n\n';
+                        
+                        result += `📅 Дата: ${data.date}\n\n`;
+                        
+                        result += '📊 Общая статистика:\n';
+                        result += `   Всего боев: ${data.totalBattles}\n`;
+                        result += `   Всего фрагов: ${data.totalFrags}\n`;
+                        result += `   Боев с фрагами: ${data.battlesWithFrags}\n`;
+                        result += `   Боев без фрагов: ${data.battlesWithoutFrags}\n`;
+                        result += `   Среднее фрагов за бой: ${data.avgFragsPerBattle}\n\n`;
+                        
+                        if (data.battles && data.battles.length > 0) {
+                            result += '📋 Детальный анализ боев:\n';
+                            data.battles.forEach((battle, index) => {
+                                result += `   ${index + 1}. ID: ${battle.id}\n`;
+                                result += `      Время: ${battle.time}\n`;
+                                result += `      Фраги: ${battle.frags}\n`;
+                                result += `      Тип: ${battle.type}\n\n`;
+                            });
+                        }
+                        
+                        if (data.duplicates && data.duplicates.length > 0) {
+                            result += '⚠️ Найдены дубликаты:\n';
+                            data.duplicates.forEach((duplicate, index) => {
+                                result += `   ${index + 1}. Время: ${duplicate.time}\n`;
+                                duplicate.battles.forEach((battle, battleIndex) => {
+                                    result += `      ${battleIndex + 1}. ID: ${battle.id}, Фраги: ${battle.frags}\n`;
+                                });
+                                result += '\n';
+                            });
+                        } else {
+                            result += '✅ Дубликатов не найдено\n\n';
+                        }
+                        
+                        result += '💡 Рекомендации:\n';
+                        if (data.battlesWithoutFrags > 0) {
+                            result += `   • Найдено ${data.battlesWithoutFrags} боев без фрагов\n`;
+                            result += '   • Возможно, это дубликаты от синхронизации Lesta API\n';
+                            result += '   • Используйте кнопку "УДАЛИТЬ ОДИН БОЙ БЕЗ ФРАГОВ"\n';
+                        }
+                        
+                        if (data.totalBattles > 1 && data.totalFrags === 0) {
+                            result += '   • Все бои без фрагов - возможно проблема с записью фрагов\n';
+                        }
+                        
+                        if (data.totalBattles === 1 && data.totalFrags > 0) {
+                            result += '   • Корректная статистика: 1 бой с фрагами\n';
+                        }
+                        
+                        if (data.totalBattles === 0) {
+                            result += '   • Нет данных за сегодня\n';
+                        }
+                        
+                        showModal('🔍 Диагностика статистики фрагов', result);
+                    } else {
+                        showNotification('❌ Ошибка диагностики: ' + data.message, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка диагностики: ' + error.message, true);
+                });
+        }
+
+        function startAutoRefresh() {
+            showNotification('🚀 Запуск автообновления статистики...', 'info');
+            
+            fetch('/api/auto-refresh/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('✅ Автообновление статистики запущено', 'success');
+                    } else {
+                        showNotification('❌ Ошибка запуска: ' + data.error, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка запуска автообновления: ' + error.message, true);
+                });
+        }
+
+        function stopAutoRefresh() {
+            showNotification('⏹️ Остановка автообновления статистики...', 'info');
+            
+            fetch('/api/auto-refresh/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('✅ Автообновление статистики остановлено', 'success');
+                    } else {
+                        showNotification('❌ Ошибка остановки: ' + data.error, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка остановки автообновления: ' + error.message, true);
+                });
+        }
+
+        function forceRefreshFragStats() {
+            showNotification('🔄 Принудительное обновление статистики фрагов...', 'info');
+            
+            fetch('/api/force-refresh-frag-stats', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('✅ Статистика фрагов обновлена', 'success');
+                    } else {
+                        showNotification('❌ Ошибка обновления: ' + data.error, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка принудительного обновления: ' + error.message, true);
+                });
+        }
+
+        function testBattleFragLogic() {
+            showNotification('🧪 Тестирование логики боев и фрагов...', 'info');
+            
+            fetch('/api/battle-frag-logic-test')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let result = '🧪 ТЕСТ ЛОГИКИ БОЕВ И ФРАГОВ\n\n';
+                        
+                        result += '📊 Текущая статистика Lesta Games:\n';
+                        result += `   Боев: ${data.current.battles}\n`;
+                        result += `   Фрагов: ${data.current.frags}\n\n`;
+                        
+                        result += '📋 Предыдущая статистика:\n';
+                        result += `   Боев: ${data.previous.battles}\n`;
+                        result += `   Фрагов: ${data.previous.frags}\n\n`;
+                        
+                        result += '📈 Изменения:\n';
+                        result += `   Боев: ${data.differences.battles > 0 ? '+' : ''}${data.differences.battles}\n`;
+                        result += `   Фрагов: ${data.differences.frags > 0 ? '+' : ''}${data.differences.frags}\n\n`;
+                        
+                        result += '🔍 Логика:\n';
+                        result += `   Новые бои: ${data.logic.newBattles ? 'ДА' : 'НЕТ'}\n`;
+                        result += `   Новые фраги: ${data.logic.newFrags ? 'ДА' : 'НЕТ'}\n`;
+                        result += `   Боев к записи: ${data.logic.battlesToRecord}\n`;
+                        result += `   Фрагов к распределению: ${data.logic.fragsToDistribute}\n\n`;
+                        
+                        result += '💡 Рекомендация:\n';
+                        result += `   ${data.recommendation}\n\n`;
+                        
+                        result += '🎯 Примеры:\n';
+                        result += '   • 30500 → 30501 боев, фраги не изменились → 1 бой с 0 фрагами\n';
+                        result += '   • 30500 → 30502 боев, +3 фрага → 1 бой с 3 фрагами, 1 бой с 0 фрагами\n';
+                        result += '   • 30500 → 30500 боев, +2 фрага → фраг от доната: 2 фрага';
+                        
+                        showModal('🧪 Тест логики боев и фрагов', result);
+                    } else {
+                        showNotification('❌ Ошибка тестирования: ' + data.message, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка тестирования: ' + error.message, true);
+                });
+        }
+
+        function initializeStartingStats() {
+            // Показываем диалог для ввода значений
+            const totalBattles = prompt('Введите общее количество боев:', '19');
+            if (!totalBattles) return;
+            
+            const totalFrags = prompt('Введите общее количество фрагов:', '37');
+            if (!totalFrags) return;
+            
+            const battlesWithoutFrags = prompt('Введите количество боев без фрагов:', '4');
+            if (!battlesWithoutFrags) return;
+            
+            // Проверяем корректность данных
+            const totalBattlesNum = parseInt(totalBattles);
+            const totalFragsNum = parseInt(totalFrags);
+            const battlesWithoutFragsNum = parseInt(battlesWithoutFrags);
+            
+            if (battlesWithoutFragsNum > totalBattlesNum) {
+                showNotification('❌ Количество боев без фрагов не может быть больше общего количества боев', true);
+                return;
+            }
+            
+            if (totalFragsNum < 0) {
+                showNotification('❌ Количество фрагов не может быть отрицательным', true);
+                return;
+            }
+            
+            // Показываем расчеты
+            const battlesWithFrags = totalBattlesNum - battlesWithoutFragsNum;
+            const fragsPerBattle = battlesWithFrags > 0 ? Math.floor(totalFragsNum / battlesWithFrags) : 0;
+            const remainingFrags = totalFragsNum - (fragsPerBattle * battlesWithFrags);
+            
+            let calculation = '🚀 ИНИЦИАЛИЗАЦИЯ СТАРТОВЫХ ЗНАЧЕНИЙ\n\n';
+            calculation += '📊 Введенные данные:\n';
+            calculation += `   Всего боев: ${totalBattlesNum}\n`;
+            calculation += `   Всего фрагов: ${totalFragsNum}\n`;
+            calculation += `   Боев без фрагов: ${battlesWithoutFragsNum}\n\n`;
+            
+            calculation += '📈 Расчеты:\n';
+            calculation += `   Боев с фрагами: ${battlesWithFrags}\n`;
+            calculation += `   Фрагов за бой: ${fragsPerBattle}\n`;
+            calculation += `   Остаток фрагов: ${remainingFrags}\n\n`;
+            
+            calculation += '🎯 Распределение:\n';
+            if (battlesWithFrags > 0) {
+                calculation += `   • ${battlesWithFrags} боев с фрагами:\n`;
+                calculation += `     - 1-й бой: ${fragsPerBattle + remainingFrags} фрагов\n`;
+                if (battlesWithFrags > 1) {
+                    calculation += `     - ${battlesWithFrags - 1} боев: по ${fragsPerBattle} фрагов\n`;
+                }
+            }
+            if (battlesWithoutFragsNum > 0) {
+                calculation += `   • ${battlesWithoutFragsNum} боев: по 0 фрагов\n`;
+            }
+            
+            const confirmInit = confirm(calculation + '\n\nПродолжить инициализацию?');
+            if (!confirmInit) return;
+            
+            showNotification('🚀 Инициализация стартовых значений...', 'info');
+            
+            fetch('/api/initialize-starting-stats', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    totalBattles: totalBattlesNum,
+                    totalFrags: totalFragsNum,
+                    battlesWithoutFrags: battlesWithoutFragsNum
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let result = '✅ ИНИЦИАЛИЗАЦИЯ ЗАВЕРШЕНА\n\n';
+                    result += '📊 Созданная локальная статистика:\n';
+                    result += `   Всего боев: ${data.stats.totalBattles}\n`;
+                    result += `   Всего фрагов: ${data.stats.totalFrags}\n`;
+                    result += `   Боев с фрагами: ${data.stats.battlesWithFrags}\n`;
+                    result += `   Боев без фрагов: ${data.stats.battlesWithoutFrags}\n`;
+                    result += `   Фрагов за бой: ${data.stats.fragsPerBattle}\n`;
+                    result += `   Остаток фрагов: ${data.stats.remainingFrags}\n\n`;
+                    result += '🎉 Локальная статистика готова к работе!\n\n';
+                    result += '⚠️ ВАЖНО: Состояние Lesta Games НЕ изменено.\n';
+                    result += 'Система продолжит отслеживать изменения от реальной статистики Lesta Games API.\n\n';
+                    result += '💡 Для синхронизации используйте кнопку "🔄 СИНХРОНИЗИРОВАТЬ С LESTA GAMES"';
+                    
+                    showModal('✅ Инициализация завершена', result);
+                    showNotification('✅ Стартовые значения инициализированы', 'success');
+                } else {
+                    showNotification('❌ Ошибка инициализации: ' + data.message, true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка инициализации: ' + error.message, true);
+            });
+        }
+
+        function editStatsManually() {
+            // Получаем текущую статистику
+            showNotification('📊 Получение текущей статистики...', 'info');
+            
+            fetch('/api/get-current-stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const currentStats = data.stats;
+                        
+                        // Показываем диалог для редактирования значений
+                        const totalBattles = prompt(
+                            `Редактирование статистики\n\nТекущие значения:\nВсего боев: ${currentStats.totalBattles}\nВсего фрагов: ${currentStats.totalFrags}\nБоев без фрагов: ${currentStats.battlesWithoutFrags}\n\nВведите новое количество боев:`,
+                            currentStats.totalBattles.toString()
+                        );
+                        if (!totalBattles) return;
+                        
+                        const totalFrags = prompt('Введите новое количество фрагов:', currentStats.totalFrags.toString());
+                        if (!totalFrags) return;
+                        
+                        const battlesWithoutFrags = prompt('Введите новое количество боев без фрагов:', currentStats.battlesWithoutFrags.toString());
+                        if (!battlesWithoutFrags) return;
+                        
+                        // Проверяем корректность данных
+                        const totalBattlesNum = parseInt(totalBattles);
+                        const totalFragsNum = parseInt(totalFrags);
+                        const battlesWithoutFragsNum = parseInt(battlesWithoutFrags);
+                        
+                        if (battlesWithoutFragsNum > totalBattlesNum) {
+                            showNotification('❌ Количество боев без фрагов не может быть больше общего количества боев', true);
+                            return;
+                        }
+                        
+                        if (totalFragsNum < 0) {
+                            showNotification('❌ Количество фрагов не может быть отрицательным', true);
+                            return;
+                        }
+                        
+                        // Показываем расчеты
+                        const battlesWithFrags = totalBattlesNum - battlesWithoutFragsNum;
+                        const fragsPerBattle = battlesWithFrags > 0 ? Math.floor(totalFragsNum / battlesWithFrags) : 0;
+                        const remainingFrags = totalFragsNum - (fragsPerBattle * battlesWithFrags);
+                        
+                        let calculation = '✏️ РЕДАКТИРОВАНИЕ СТАТИСТИКИ\n\n';
+                        calculation += '📊 Новые значения:\n';
+                        calculation += `   Всего боев: ${totalBattlesNum}\n`;
+                        calculation += `   Всего фрагов: ${totalFragsNum}\n`;
+                        calculation += `   Боев без фрагов: ${battlesWithoutFragsNum}\n\n`;
+                        
+                        calculation += '📈 Расчеты:\n';
+                        calculation += `   Боев с фрагами: ${battlesWithFrags}\n`;
+                        calculation += `   Фрагов за бой: ${fragsPerBattle}\n`;
+                        calculation += `   Остаток фрагов: ${remainingFrags}\n\n`;
+                        
+                        calculation += '🎯 Распределение:\n';
+                        if (battlesWithFrags > 0) {
+                            calculation += `   • ${battlesWithFrags} боев с фрагами:\n`;
+                            calculation += `     - 1-й бой: ${fragsPerBattle + remainingFrags} фрагов\n`;
+                            if (battlesWithFrags > 1) {
+                                calculation += `     - ${battlesWithFrags - 1} боев: по ${fragsPerBattle} фрагов\n`;
+                            }
+                        }
+                        if (battlesWithoutFragsNum > 0) {
+                            calculation += `   • ${battlesWithoutFragsNum} боев: по 0 фрагов\n`;
+                        }
+                        
+                        const confirmEdit = confirm(calculation + '\n\n⚠️ ВНИМАНИЕ: Это действие перезапишет существующую статистику!\n\nПродолжить редактирование?');
+                        if (!confirmEdit) return;
+                        
+                        showNotification('✏️ Редактирование статистики...', 'info');
+                        
+                        fetch('/api/edit-stats-manually', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                totalBattles: totalBattlesNum,
+                                totalFrags: totalFragsNum,
+                                battlesWithoutFrags: battlesWithoutFragsNum
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                let result = '✅ РЕДАКТИРОВАНИЕ ЗАВЕРШЕНО\n\n';
+                                result += '📊 Обновленная локальная статистика:\n';
+                                result += `   Всего боев: ${data.stats.totalBattles}\n`;
+                                result += `   Всего фрагов: ${data.stats.totalFrags}\n`;
+                                result += `   Боев с фрагами: ${data.stats.battlesWithFrags}\n`;
+                                result += `   Боев без фрагов: ${data.stats.battlesWithoutFrags}\n`;
+                                result += `   Фрагов за бой: ${data.stats.fragsPerBattle}\n`;
+                                result += `   Остаток фрагов: ${data.stats.remainingFrags}\n\n`;
+                                result += '🎉 Локальная статистика успешно обновлена!\n\n';
+                                result += '⚠️ ВАЖНО: Состояние Lesta Games НЕ изменено.\n';
+                                result += 'Система продолжит отслеживать изменения от реальной статистики Lesta Games API.\n\n';
+                                result += '💡 Для синхронизации используйте кнопку "🔄 СИНХРОНИЗИРОВАТЬ С LESTA GAMES"';
+                                
+                                showModal('✅ Редактирование завершено', result);
+                                showNotification('✅ Статистика успешно отредактирована', 'success');
+                            } else {
+                                showNotification('❌ Ошибка редактирования: ' + data.message, true);
+                            }
+                        })
+                        .catch(error => {
+                            showNotification('❌ Ошибка редактирования: ' + error.message, true);
+                        });
+                    } else {
+                        showNotification('❌ Ошибка получения статистики: ' + data.message, true);
+                    }
+                })
+                .catch(error => {
+                    showNotification('❌ Ошибка получения статистики: ' + error.message, true);
+                });
+        }
+
+        function addBattleForce() {
+            // Показываем диалог для ввода фрагов
+            const frags = prompt('🔨 Принудительное добавление боя\n\nВведите количество фрагов в бою:', '0');
+            if (frags === null) return;
+            
+            const fragsNum = parseInt(frags);
+            if (isNaN(fragsNum) || fragsNum < 0) {
+                showNotification('❌ Введите корректное количество фрагов (0 или больше)', true);
+                return;
+            }
+            
+            const source = prompt('Введите источник боя (lesta, donation, manual):', 'manual');
+            if (!source) return;
+            
+            showNotification('🔨 Принудительное добавление боя...', 'info');
+            
+            fetch('/api/add-battle-force', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    frags: fragsNum,
+                    source: source
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let result = '✅ БОЙ ПРИНУДИТЕЛЬНО ДОБАВЛЕН\n\n';
+                    result += '📊 Информация о бое:\n';
+                    result += `   Время: ${data.battle.battleTime}\n`;
+                    result += `   Фраги: ${data.battle.frags}\n`;
+                    result += `   Источник: ${data.battle.source}\n\n`;
+                    result += '🎉 Бой успешно добавлен в статистику!';
+                    
+                    showModal('✅ Бой добавлен', result);
+                    showNotification('✅ Бой принудительно добавлен', 'success');
+                } else {
+                    showNotification('❌ Ошибка добавления боя: ' + data.error, true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка добавления боя: ' + error.message, true);
+            });
+        }
+
+        function syncLestaState() {
+            const confirmSync = confirm(
+                '🔄 СИНХРОНИЗАЦИЯ С LESTA GAMES\n\n' +
+                'Это действие синхронизирует состояние Lesta Games с текущей локальной статистикой фрагов.\n\n' +
+                'После синхронизации система будет отслеживать изменения от этих значений.\n\n' +
+                'Продолжить синхронизацию?'
+            );
+            
+            if (!confirmSync) return;
+            
+            showNotification('🔄 Синхронизация с Lesta Games...', 'info');
+            
+            fetch('/api/sync-lesta-state', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let result = '✅ СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА\n\n';
+                    result += '📊 Синхронизированная статистика:\n';
+                    result += `   Боев: ${data.stats.totalBattles}\n`;
+                    result += `   Фрагов: ${data.stats.totalFrags}\n\n`;
+                    result += '🎯 Теперь система будет отслеживать изменения от этих значений\n\n';
+                    result += '⚠️ ВАЖНО: Это означает, что система будет считать изменения от текущей локальной статистики, а не от реальной статистики Lesta Games API';
+                    
+                    showModal('✅ Синхронизация завершена', result);
+                    showNotification('✅ Состояние Lesta Games синхронизировано', 'success');
+                } else {
+                    showNotification('❌ Ошибка синхронизации: ' + data.message, true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка синхронизации: ' + error.message, true);
+            });
+        }
+
+        function diagnosePolling() {
+            showNotification('🔍 Диагностика опроса донатов...', 'info');
+            
+            fetch('/api/diagnose-polling')
+            .then(response => response.json())
+            .then(data => {
+                let result = '🔍 ДИАГНОСТИКА ОПРОСА ДОНАТОВ\n\n';
+                
+                result += '📊 Конфигурация DonationAlerts:\n';
+                result += `   Токен: ${data.daConfig.hasToken ? 'ЕСТЬ' : 'НЕТ'}\n`;
+                if (data.daConfig.hasToken) {
+                    result += `   Токен: ${data.daConfig.tokenPreview}\n`;
+                }
+                result += `   Client ID: ${data.daConfig.clientId}\n`;
+                result += `   Client Secret: ${data.daConfig.hasClientSecret ? 'ЕСТЬ' : 'НЕТ'}\n`;
+                result += `   API URL: ${data.daConfig.apiUrl}\n\n`;
+                
+                result += '🔄 Статус опроса:\n';
+                result += `   В процессе: ${data.polling.isPollingInProgress ? 'ДА' : 'НЕТ'}\n`;
+                result += `   Интервал: ${data.polling.pollDelayMs}мс\n`;
+                result += `   Активен: ${data.polling.hasPollingInterval ? 'ДА' : 'НЕТ'}\n`;
+                result += `   Первый опрос: ${data.polling.firstPollDone ? 'ВЫПОЛНЕН' : 'НЕ ВЫПОЛНЕН'}\n`;
+                result += `   Последний ID: ${data.polling.lastSeenDonationId || 'НЕ УСТАНОВЛЕН'}\n`;
+                result += `   Обработано ID: ${data.polling.processedDonationIdsCount}\n\n`;
+                
+                result += '🧪 Результаты тестов:\n';
+                if (data.testResults.donationsApi.success) {
+                    result += `   ✅ API донатов: РАБОТАЕТ (${data.testResults.donationsApi.count} донатов)\n`;
+                    if (data.testResults.donationsApi.sample) {
+                        result += `   📊 Пример: ${data.testResults.donationsApi.sample.username} - ${data.testResults.donationsApi.sample.amount} ${data.testResults.donationsApi.sample.currency}\n`;
+                    }
+                } else {
+                    result += `   ❌ API донатов: ОШИБКА - ${data.testResults.donationsApi.error}\n`;
+                }
+                
+                showModal('🔍 Диагностика опроса', result);
+                showNotification('✅ Диагностика завершена', 'success');
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка диагностики: ' + error.message, true);
+            });
+        }
+
+        function forceCheckNewDonations() {
+            const confirmCheck = confirm(
+                '🔄 ПРИНУДИТЕЛЬНАЯ ПРОВЕРКА НОВЫХ ДОНАТОВ\n\n' +
+                'Это действие сбросит фильтры и проверит все донаты из API.\n\n' +
+                'Используйте это, если новые донаты не появляются в системе.\n\n' +
+                'Продолжить проверку?'
+            );
+            
+            if (!confirmCheck) return;
+            
+            showNotification('🔄 Принудительная проверка новых донатов...', 'info');
+            
+            fetch('/api/force-check-new-donations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let result = '✅ ПРИНУДИТЕЛЬНАЯ ПРОВЕРКА ЗАВЕРШЕНА\n\n';
+                    result += '🔄 Фильтры сброшены и восстановлены\n';
+                    result += '📊 Все донаты из API проверены\n';
+                    result += '💡 Новые донаты должны появиться в системе\n\n';
+                    result += '⚠️ ВАЖНО: Проверьте статистику фрагов и донаты в БД';
+                    
+                    showModal('✅ Проверка завершена', result);
+                    showNotification('✅ Принудительная проверка выполнена', 'success');
+                } else {
+                    showNotification('❌ Ошибка проверки: ' + data.error, true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка проверки: ' + error.message, true);
+            });
+        }
+
+        function resetLastSeenId() {
+            const confirmReset = confirm(
+                '🔄 СБРОС LAST SEEN ID\n\n' +
+                'Это действие сбросит lastSeenDonationId и проверит все донаты.\n\n' +
+                'Используйте это, если система не видит новые донаты.\n\n' +
+                'Продолжить сброс?'
+            );
+            
+            if (!confirmReset) return;
+            
+            showNotification('🔄 Сброс lastSeenDonationId...', 'info');
+            
+            fetch('/api/reset-last-seen-id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let result = '✅ СБРОС LAST SEEN ID ЗАВЕРШЕН\n\n';
+                    result += `🔄 Старый ID: ${data.originalId || 'не установлен'}\n`;
+                    result += `🔄 Новый ID: ${data.newId || 'не установлен'}\n\n`;
+                    result += '📊 Все донаты проверены\n';
+                    result += '💡 Новые донаты должны появиться в системе\n\n';
+                    result += '⚠️ ВАЖНО: Проверьте статистику фрагов и донаты в БД';
+                    
+                    showModal('✅ Сброс завершен', result);
+                    showNotification('✅ lastSeenDonationId сброшен', 'success');
+                } else {
+                    showNotification('❌ Ошибка сброса: ' + data.error, true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка сброса: ' + error.message, true);
+            });
+        }
+
+        // Функция для сброса ошибки 429 DonatePay
+        function resetDonatePay429() {
+            const confirmReset = confirm(
+                '🔄 СБРОС ОШИБКИ 429 DONATEPAY\n\n' +
+                'Это действие сбросит блокировку от ошибки 429 (Too Many Requests).\n\n' +
+                'Используйте это, если:\n' +
+                '• Вы обновили API ключ\n' +
+                '• Прошло достаточно времени с последней ошибки\n' +
+                '• Вы хотите протестировать API сразу\n\n' +
+                'Продолжить сброс?'
+            );
+            
+            if (!confirmReset) return;
+            
+            showNotification('🔄 Сброс ошибки 429 DonatePay...', 'info');
+            
+            fetch('/api/donatepay-reset-429', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let result = '✅ ОШИБКА 429 СБРОШЕНА\n\n';
+                    result += '🔄 Блокировка от ошибки 429 снята\n';
+                    result += '📊 Теперь можно протестировать DonatePay API\n\n';
+                    result += '💡 Нажмите "🧪 ТЕСТ DONATEPAY" для проверки';
+                    
+                    showModal('✅ Сброс завершен', result);
+                    showNotification('✅ Ошибка 429 сброшена', 'success');
+                } else {
+                    showNotification('❌ Ошибка сброса: ' + data.error, true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка сброса: ' + error.message, true);
+            });
+        }
+
+        // Функции для работы с DonatePay
+        function setupDonatePay() {
+            const apiKey = prompt('Введите API ключ DonatePay:\n\nТестовый ключ: u0NsXcZXdNXrWoBwHFQ7QM50PUJiPRyj4Fwn0MYwYQUCNY9rqrRXwBvU7Cmg');
+            if (!apiKey) return;
+            
+            const widgetUrl = prompt('Введите URL виджета алертов DonatePay:\n\nПример: https://widget.donatepay.ru/alert-box/widget/YOUR_WIDGET_ID\n\nТестовый виджет: https://widget.donatepay.ru/alert-box/widget/e0d7682d3705124aee044aa487192762f004dab90ed6e9e6633adee15bfdbcff\n\nОставьте пустым, если не нужен виджет:');
+            
+            fetch('/api/donatepay-config', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                    apiKey: apiKey,
+                    widgetUrl: widgetUrl || ''
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let message = '✅ DonatePay настроен успешно';
+                    if (data.userInfo) {
+                        message += `\nПользователь: ${data.userInfo.name} (ID: ${data.userInfo.id})`;
+                    }
+                    if (data.warning) {
+                        message += `\n⚠️ ${data.warning}`;
+                    }
+                    showNotification(message);
+                } else {
+                    showNotification('❌ Ошибка настройки DonatePay', true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка настройки DonatePay', true);
+            });
+        }
+
+        function testDonatePay() {
+            showNotification('🧪 Тестирование DonatePay...', 'info');
+            fetch('/api/donatepay-test')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let message = `✅ DONATEPAY API РАБОТАЕТ!\n\n`;
+                        message += `👤 Пользователь: ${data.userInfo.name} (ID: ${data.userInfo.id})\n\n`;
+                        if (data.note) {
+                            message += `📌 ${data.note}\n\n`;
+                        }
+                        message += `📡 Centrifugo:\n`;
+                        message += `   Статус: ${data.centrifugoConnected ? '✅ Подключен' : '❌ Не подключен'}\n`;
+                        message += `   Состояние: ${data.centrifugoStatus}\n\n`;
+                        message += `🆕 Новых транзакций (/newTransactions): ${data.newTransactionsCount || 0}\n`;
+                        if (data.lastTransactionId) {
+                            message += `📋 Последний ID транзакции: ${data.lastTransactionId}\n`;
+                        }
+                        if (data.newTransactionsError) {
+                            message += `⚠️ Ошибка /newTransactions: ${data.newTransactionsError}\n`;
+                        }
+                        message += `\n📦 Виджет:\n`;
+                        message += `   URL: ${data.widgetUrl || 'Не настроен'}\n`;
+                        message += `   Транзакций виджета: ${data.widgetDonationsCount || 0}\n`;
+                        message += `   Последних событий: ${data.lastEventsCount || 0}\n\n`;
+                        message += `💡 Примечание: Polling отключен - используются только real-time уведомления`;
+                        showModal('✅ Тест DonatePay', message);
+                        showNotification('✅ Тест DonatePay завершен - см. модальное окно', 'success');
+                    } else {
+                        let errorMsg = `❌ ОШИБКА ТЕСТИРОВАНИЯ DONATEPAY\n\n`;
+                        errorMsg += `Ошибка: ${data.error}\n\n`;
+                        if (data.details) {
+                            errorMsg += `Детали: ${data.details}\n\n`;
+                        }
+                        if (data.retryAfter) {
+                            const minutes = Math.ceil(data.retryAfter / 60);
+                            const seconds = data.retryAfter % 60;
+                            errorMsg += `⏰ Повторить через: ${minutes} мин ${seconds} сек\n\n`;
+                        }
+                        if (data.lastError) {
+                            errorMsg += `Последняя ошибка:\n`;
+                            errorMsg += `   Статус: ${data.lastError.status}\n`;
+                            errorMsg += `   Сообщение: ${data.lastError.message || 'Нет'}\n\n`;
+                        }
+                        if (data.lastErrorTime) {
+                            errorMsg += `Время ошибки: ${new Date(data.lastErrorTime).toLocaleString()}\n\n`;
+                        }
+                        if (data.canReset) {
+                            errorMsg += `💡 Вы можете сбросить ошибку 429 вручную, нажав кнопку "🔄 СБРОСИТЬ ОШИБКУ 429"\n`;
+                            errorMsg += `   Это позволит сразу протестировать новый API ключ.\n\n`;
+                        } else {
+                            errorMsg += `💡 Рекомендация: Подождите несколько минут перед повторной попыткой`;
+                        }
+                        showModal('❌ Ошибка теста DonatePay', errorMsg);
+                        showNotification('❌ Ошибка тестирования DonatePay - см. модальное окно', true);
+                    }
+                })
+                .catch(error => {
+                    const errorMsg = `❌ ОШИБКА ПОДКЛЮЧЕНИЯ К DONATEPAY API\n\n${error.message}\n\nПроверьте:\n• Сервер запущен\n• Интернет-соединение\n• Настройки API ключа`;
+                    showModal('❌ Ошибка подключения', errorMsg);
+                    showNotification('❌ Ошибка подключения к DonatePay API - см. модальное окно', true);
+                });
+        }
+
+        // Функции для работы с Lesta Games
+        function setupLestaGames() {
+            const applicationId = prompt('Введите Application ID Lesta Games:\n\nПолучить можно на: https://developers.lesta.ru/');
+            if (!applicationId) return;
+            
+            fetch('/api/lesta-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                    applicationId: applicationId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('✅ Lesta Games настроен успешно');
+                } else {
+                    showNotification('❌ Ошибка настройки Lesta Games', true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка настройки Lesta Games', true);
+            });
+        }
+
+        function authLestaGames() {
+            window.open('/auth/lesta', 'Lesta Games Auth', 'width=600,height=700');
+        }
+
+        async function syncLestaStats() {
+            try {
+                const response = await fetch('/api/lesta-sync', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(`✅ Синхронизация Lesta Games выполнена!\nБои: ${data.stats.battles}, Фраги: ${data.stats.frags}`);
+                } else {
+                    showNotification('❌ Ошибка синхронизации Lesta Games', true);
+                }
+            } catch (error) {
+                showNotification('❌ Ошибка синхронизации Lesta Games', true);
+            }
+        }
+
+        function searchLestaPlayer() {
+            const nickname = prompt('Введите никнейм игрока для поиска:');
+            if (!nickname) return;
+            
+            fetch('/api/lesta-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                    nickname: nickname
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`✅ Найден игрок: ${data.player.nickname} (ID: ${data.player.account_id})`);
+                } else {
+                    showNotification('❌ Игрок не найден', true);
+                }
+            })
+            .catch(error => {
+                showNotification('❌ Ошибка поиска игрока', true);
+            });
+        }
+
+        // Функции для управления полоской сбора донатов
+        function loadDonationBar() {
+            fetch('/api/donation-bar/state')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.state) {
+                        document.getElementById('bar-title').value = data.state.title || 'Сбор донатов';
+                        document.getElementById('bar-target').value = data.state.target_amount || 1000;
+                        document.getElementById('bar-current').value = data.state.current_amount || 0;
+                        showNotification('✅ Состояние полоски загружено');
+                    } else {
+                        showNotification('❌ Ошибка загрузки состояния', true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка загрузки:', error);
+                    showNotification('❌ Ошибка загрузки состояния', true);
+                });
+        }
+
+        function saveDonationBar() {
+            const title = document.getElementById('bar-title').value || 'Сбор донатов';
+            const target = parseFloat(document.getElementById('bar-target').value) || 1000;
+            const current = parseFloat(document.getElementById('bar-current').value) || 0;
+
+            fetch('/api/donation-bar/state', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title,
+                    target_amount: target,
+                    current_amount: current
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('✅ Настройки полоски сохранены');
+                } else {
+                    showNotification('❌ Ошибка сохранения', true);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка сохранения:', error);
+                showNotification('❌ Ошибка сохранения', true);
+            });
+        }
+
+        function resetDonationBar() {
+            if (confirm('Обнулить текущую сумму полоски сбора?')) {
+                const title = document.getElementById('bar-title').value || 'Сбор донатов';
+                const target = parseFloat(document.getElementById('bar-target').value) || 1000;
+
+                fetch('/api/donation-bar/state', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        target_amount: target,
+                        current_amount: 0
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('bar-current').value = 0;
+                        showNotification('✅ Сумма обнулена');
+                    } else {
+                        showNotification('❌ Ошибка обнуления', true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка обнуления:', error);
+                    showNotification('❌ Ошибка обнуления', true);
+                });
+            }
+        }
+
+        function copyBarUrl() {
+            const urlInput = document.getElementById('bar-url');
+            urlInput.select();
+            document.execCommand('copy');
+            showNotification('✅ Ссылка скопирована в буфер обмена');
+        }
+
+        // Системные функции
+        function resetAll() {
+            if (confirm('⚠️ ВНИМАНИЕ! Это действие удалит ВСЕ данные. Продолжить?')) {
+                fetch('/api/reset-all', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('✅ Все данные сброшены');
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            showNotification('❌ Ошибка сброса данных', true);
+                        }
+                    });
+            }
+        }
+
+        function clearDonations() {
+            if (confirm('Удалить все донаты?')) {
+                fetch('/api/clear-donations', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('✅ Донаты очищены');
+                        } else {
+                            showNotification('❌ Ошибка очистки донатов', true);
+                        }
+                    });
+            }
+        }
+
+        function restartServer() {
+            if (confirm('Перезапустить сервер?')) {
+                fetch('/api/restart', { method: 'POST' })
+                    .then(() => {
+                        showNotification('🔄 Сервер перезапускается...');
+                        setTimeout(() => location.reload(), 3000);
+                    });
+            }
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            connectWebSocket();
+            
+            // Проверяем статусы при загрузке
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    updateUI(data);
+                })
+                .catch(error => {
+                    console.error('Ошибка получения статуса:', error);
+                });
+            
+            // Загружаем состояние полоски сбора донатов
+            loadDonationBar();
+        });
+    </script>
+</body>
+</html>

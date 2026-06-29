@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>VK Play OAuth Implicit</title>
+	<style>body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;padding:20px;background:#0b0f17;color:#e8eef7}</style>
+</head>
+<body>
+	<div>Завершаем авторизацию VK Play…</div>
+	<script>
+	(function(){
+		function parseHash(){
+			const hash = window.location.hash.replace(/^#/, '');
+			const params = new URLSearchParams(hash);
+			return {
+				access_token: params.get('access_token'),
+				token_type: params.get('token_type'),
+				expire_time: params.get('expire_time'),
+				state: params.get('state')
+			};
+		}
+		const data = parseHash();
+		if (!data.access_token) {
+			document.body.innerHTML = '<div style="color:#ff6b6b">Не получен access_token в hash. Проверьте настройки Redirect URL.</div>';
+			return;
+		}
+		fetch('/oauth/vkplay/implicit', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(data)
+		}).then(r=>r.json()).then(()=>{
+			window.location.replace('/stream-integrations.html');
+		}).catch(err=>{
+			document.body.innerHTML = '<pre>'+String(err)+'</pre>';
+		});
+	})();
+	</script>
+</body>
+</html>
+
+
+

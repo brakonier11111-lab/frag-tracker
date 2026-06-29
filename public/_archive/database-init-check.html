@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка инициализации БД</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+        }
+        .status-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .success {
+            color: #51cf66;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .warning {
+            color: #ffc107;
+        }
+        button {
+            background: #4c6ef5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #364fc7;
+        }
+        .result {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗄️ Проверка инициализации базы данных</h1>
+    
+    <div class="status-card">
+        <h2>📊 Проверка состояния БД</h2>
+        <button onclick="checkDatabaseStatus()">🔍 Проверить состояние БД</button>
+        <button onclick="checkTables()">📋 Проверить таблицы</button>
+        <button onclick="checkData()">📈 Проверить данные</button>
+        <div id="status" class="result">Нажмите кнопку для проверки...</div>
+    </div>
+
+    <div class="status-card">
+        <h2>🔄 Инициализация БД</h2>
+        <button onclick="initializeDatabase()">⚡ Инициализировать БД</button>
+        <button onclick="resetDatabase()">🗑️ Сбросить БД</button>
+        <div id="init-status" class="result">Готов к инициализации...</div>
+    </div>
+
+    <script>
+        async function checkDatabaseStatus() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = 'Проверка состояния базы данных...';
+            
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.innerHTML = `<span class="success">✅ База данных работает</span>\n\nСостояние приложения:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    statusDiv.innerHTML = `<span class="error">❌ Ошибка БД: ${data.error || 'Неизвестная ошибка'}</span>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ Ошибка подключения: ${error.message}</span>`;
+            }
+        }
+
+        async function checkTables() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = 'Проверка таблиц...';
+            
+            try {
+                // Проверяем различные API endpoints для проверки таблиц
+                const endpoints = [
+                    '/api/donations-stats',
+                    '/api/donations-analytics',
+                    '/api/timer-modes-analytics'
+                ];
+                
+                let result = '📋 Результаты проверки таблиц:\n\n';
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(endpoint);
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            result += `✅ ${endpoint}: OK\n`;
+                        } else {
+                            result += `❌ ${endpoint}: ${data.error || 'Ошибка'}\n`;
+                        }
+                    } catch (error) {
+                        result += `❌ ${endpoint}: ${error.message}\n`;
+                    }
+                }
+                
+                statusDiv.innerHTML = result;
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ Ошибка проверки таблиц: ${error.message}</span>`;
+            }
+        }
+
+        async function checkData() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = 'Проверка данных...';
+            
+            try {
+                const [statsResponse, analyticsResponse] = await Promise.all([
+                    fetch('/api/donations-stats'),
+                    fetch('/api/donations-analytics')
+                ]);
+                
+                const stats = await statsResponse.json();
+                const analytics = await analyticsResponse.json();
+                
+                let result = '📈 Данные в базе:\n\n';
+                
+                if (stats.success) {
+                    result += `💰 Статистика донатов:\n`;
+                    result += `- Всего донатов: ${stats.totalCount || 0}\n`;
+                    result += `- Общая сумма: ${stats.totalAmount || 0}₽\n`;
+                    result += `- Стартовая сумма: ${stats.startingAmount || 0}₽\n\n`;
+                } else {
+                    result += `❌ Ошибка статистики: ${stats.error}\n\n`;
+                }
+                
+                if (analytics.success) {
+                    const data = analytics.data;
+                    result += `📊 Аналитика:\n`;
+                    result += `- Общая статистика: ${data.totalStats ? data.totalStats.length : 0} записей\n`;
+                    result += `- Статистика по часам: ${data.hourlyStats ? data.hourlyStats.length : 0} записей\n`;
+                    result += `- Статистика по дням: ${data.dailyStats ? data.dailyStats.length : 0} записей\n`;
+                    result += `- Распределение сумм: ${data.amountDistribution ? data.amountDistribution.length : 0} записей\n`;
+                    result += `- Топ донатеров: ${data.topDonors ? data.topDonors.length : 0} записей\n`;
+                } else {
+                    result += `❌ Ошибка аналитики: ${analytics.error}\n`;
+                }
+                
+                statusDiv.innerHTML = result;
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ Ошибка проверки данных: ${error.message}</span>`;
+            }
+        }
+
+        async function initializeDatabase() {
+            const statusDiv = document.getElementById('init-status');
+            statusDiv.innerHTML = 'Инициализация базы данных...';
+            
+            try {
+                // Создаем начальное состояние
+                const stateResponse = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        current_mode: 'mode1',
+                        frag_cost: 50,
+                        frag_amount: 1,
+                        frags_needed: 10,
+                        frags_done: 0,
+                        current_balance: 0,
+                        total_donated: 0,
+                        frag_name: 'фраг',
+                        widget_left_label: 'ОСТАЛОСЬ',
+                        widget_right_label: 'СДЕЛАНО',
+                        widget_progress_label: 'До +1 фрага:',
+                        widget_bg_opacity: 0.95,
+                        widget_cost_font_size: 1.4,
+                        timer_seconds: 0,
+                        timer_paused: false,
+                        cost_per_minute: 50,
+                        timer_alert_text: 'добавил времени',
+                        timer_slowdown_active: false,
+                        timer_slowdown_factor: 1.0,
+                        timer_slowdown_until_ts: 0,
+                        custom_goal_name: 'единица',
+                        custom_units_needed: 10,
+                        custom_units_done: 0,
+                        custom_current_balance: 0,
+                        custom_unit_cost: 50,
+                        custom_unit_amount: 1,
+                        custom_widget_left_label: 'ОСТАЛОСЬ',
+                        custom_widget_right_label: 'СДЕЛАНО',
+                        custom_alert_text: 'добавил к цели'
+                    })
+                });
+                
+                if (stateResponse.ok) {
+                    statusDiv.innerHTML = '<span class="success">✅ База данных успешно инициализирована!</span>\n\nВсе таблицы созданы и начальные данные установлены.';
+                } else {
+                    const error = await stateResponse.text();
+                    statusDiv.innerHTML = `<span class="error">❌ Ошибка инициализации: ${error}</span>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ Ошибка инициализации: ${error.message}</span>`;
+            }
+        }
+
+        async function resetDatabase() {
+            if (!confirm('Вы уверены, что хотите сбросить базу данных? Все данные будут удалены!')) {
+                return;
+            }
+            
+            const statusDiv = document.getElementById('init-status');
+            statusDiv.innerHTML = 'Сброс базы данных...';
+            
+            try {
+                // Сбрасываем донаты
+                const resetResponse = await fetch('/api/reset-donations-count', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (resetResponse.ok) {
+                    // Сбрасываем состояние
+                    const stateResponse = await fetch('/api/state', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            current_mode: 'mode1',
+                            frag_cost: 50,
+                            frag_amount: 1,
+                            frags_needed: 10,
+                            frags_done: 0,
+                            current_balance: 0,
+                            total_donated: 0,
+                            timer_seconds: 0,
+                            timer_paused: false,
+                            cost_per_minute: 50,
+                            timer_alert_text: 'добавил времени',
+                            timer_slowdown_active: false,
+                            timer_slowdown_factor: 1.0,
+                            timer_slowdown_until_ts: 0,
+                            custom_goal_name: 'единица',
+                            custom_units_needed: 10,
+                            custom_units_done: 0,
+                            custom_current_balance: 0,
+                            custom_unit_cost: 50,
+                            custom_unit_amount: 1
+                        })
+                    });
+                    
+                    if (stateResponse.ok) {
+                        statusDiv.innerHTML = '<span class="success">✅ База данных успешно сброшена!</span>\n\nВсе данные удалены и установлены значения по умолчанию.';
+                    } else {
+                        statusDiv.innerHTML = '<span class="warning">⚠️ Донаты сброшены, но состояние не обновлено</span>';
+                    }
+                } else {
+                    statusDiv.innerHTML = '<span class="error">❌ Ошибка сброса базы данных</span>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span class="error">❌ Ошибка сброса: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Виджет «Параметр от донатов» | Фраг-трекер</title>
+    <link rel="preload" href="/components/sidebar.html" as="fetch">
+    <link rel="preload" href="/components/header.html" as="fetch">
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <style>
+        .app-layout { min-height: 100vh; }
+        .page-head { margin-bottom: 2rem; }
+        .page-title { font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; color: var(--color-neon-blue); margin-bottom: 0.5rem; }
+        .page-desc { color: rgba(255,255,255,0.75); font-size: 1rem; }
+        .tabs {
+            display: inline-flex;
+            gap: 6px;
+            padding: 4px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12);
+            margin-top: 0.5rem;
+        }
+        .tab-btn {
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.7);
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+            white-space: nowrap;
+        }
+        .tab-btn-active {
+            background: rgba(0,240,255,0.16);
+            color: #00f0ff;
+            box-shadow: 0 0 12px rgba(0,240,255,0.4);
+        }
+        .tab-btn:not(.tab-btn-active):hover {
+            background: rgba(255,255,255,0.04);
+        }
+        .card { background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: var(--spacing-lg); margin-bottom: 1.5rem; }
+        .card h3 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--color-neon-blue); }
+        .form-row { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+        .form-row label { min-width: 180px; color: rgba(255,255,255,0.9); }
+        .form-row input[type="text"], .form-row input[type="number"] { padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: #fff; }
+        .form-row input:focus { outline: none; border-color: var(--color-neon-blue); }
+        .btn { padding: 10px 20px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; border: 1px solid var(--glass-border); transition: var(--transition-base); }
+        .btn-primary { background: var(--color-neon-blue); color: #0a0a14; border-color: var(--color-neon-blue); }
+        .btn-primary:hover { box-shadow: var(--shadow-glow-blue); }
+        .btn-secondary { background: transparent; color: var(--color-neon-blue); }
+        .btn-secondary:hover { background: rgba(0,240,255,0.15); }
+        .preview-frame-wrap { background: #0a0a14; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--glass-border); }
+        .preview-frame { width: 100%; height: 200px; border: none; display: block; }
+        .obs-link { word-break: break-all; padding: 10px; background: rgba(0,0,0,0.4); border-radius: var(--radius-sm); font-size: 0.9rem; margin-top: 0.5rem; }
+        .obs-link a { color: var(--color-neon-blue); }
+        .help-text { font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-top: 4px; }
+        .manage-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+        .manage-row .current-display { font-family: var(--font-display); font-size: 1.5rem; color: var(--color-neon-green); }
+        .manual-add input { width: 100px; padding: 8px 12px; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-placeholder"></div>
+        <div id="header-placeholder"></div>
+        <main class="app-main">
+            <div class="container" style="max-width: 900px;">
+                <div class="page-head">
+                    <h1 class="page-title">Виджет «Параметр от донатов»</h1>
+                    <p class="page-desc" id="pageDesc">
+                        Стартовое значение растёт от донатов: за каждые N₽ добавляется X единиц. Текст над значением, лимит и стоимость отображаются в виджете для OBS.
+                    </p>
+                    <div class="tabs" aria-label="Режимы виджета">
+                        <button type="button" class="tab-btn tab-btn-active" id="tabWinrate">Режим: % побед</button>
+                        <button type="button" class="tab-btn" id="tabAvgDamage">Режим: ср. урон</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Настройки</h3>
+                    <div class="form-row">
+                        <label>Название виджета</label>
+                        <input type="text" id="name" value="" placeholder="Например: Цель по донатам" />
+                    </div>
+                    <div class="form-row">
+                        <label>Текст над значением</label>
+                        <input type="text" id="goal_text" value="" placeholder="Что нужно сделать (отображается над значением)" />
+                        <span class="help-text" id="goalTextHelp">Например: Держим процент побед</span>
+                    </div>
+                    <div class="form-row">
+                        <label>Единица измерения</label>
+                        <input type="text" id="unit_label" value="%" placeholder="%, очков, урона…" />
+                        <span class="help-text" id="unitHelp">Любой текст: %, очков, уровень и т.д.</span>
+                    </div>
+                    <div class="form-row">
+                        <label>Стартовое значение</label>
+                        <input type="number" id="start_value" value="70" step="1" />
+                        <span class="help-text" id="startValueHelp">Текущее значение в виджете; при сохранении виджет сразу обновится</span>
+                    </div>
+                    <div class="form-row">
+                        <label>Лимит (макс. значение)</label>
+                        <input type="number" id="cap_value" value="100" step="any" />
+                        <span class="help-text" id="capHelp">Выше этого не поднимется</span>
+                    </div>
+                    <div class="form-row" style="align-items: flex-start;">
+                        <label>Калькулятор</label>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="help-text" style="margin-top: 0;">
+                                Стоимость 1%: <strong id="costPer1Display" style="color: var(--color-neon-blue);">—</strong> ₽ &nbsp;·&nbsp; За <strong id="addValueLabel" style="color: var(--color-neon-blue);">0.10</strong>%: <strong id="per01Display" style="color: var(--color-neon-blue);">100</strong> ₽
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span style="color: rgba(255,255,255,0.8); font-size: 0.9rem;">Сумма (₽):</span>
+                                <input type="number" id="calcAmount" value="" min="0" step="1" placeholder="500" style="width: 90px;" />
+                                <span style="color: rgba(255,255,255,0.7);">→ добавит:</span>
+                                <strong id="calcResult" style="color: var(--color-neon-green); font-size: 1rem;">—</strong>
+                            </div>
+                        </div>
+                        <span class="help-text">Ориентир: введите сумму и смотрите, сколько % она даст при текущих настройках</span>
+                    </div>
+                    <div class="form-row">
+                        <label>За сколько ₽ добавлять</label>
+                        <input type="number" id="per_amount" value="100" min="0.01" step="any" />
+                        <span class="help-text">Например: 100 — за каждые 100₽</span>
+                    </div>
+                    <div class="form-row">
+                        <label>Сколько единиц добавлять</label>
+                        <input type="number" id="add_value" value="0.1" step="any" />
+                        <span class="help-text">За per_amount ₽ добавляется столько единиц. 150₽ при 100₽/0.1 = +0.15</span>
+                    </div>
+                    <div class="form-row">
+                        <label>Виджет включён</label>
+                        <input type="checkbox" id="enabled" checked />
+                    </div>
+                    <div class="form-row">
+                        <label>Непрозрачность фона окна</label>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <input type="range" id="widget_bg_opacity" min="0" max="100" value="100" style="width: 160px;" />
+                            <span id="widget_bg_opacity_label" style="color: rgba(255,255,255,0.9); min-width: 48px;">100%</span>
+                        </div>
+                        <span class="help-text">Регулирует прозрачность фона основного окна виджета (0 — прозрачный, 100 — непрозрачный)</span>
+                    </div>
+                    <div class="form-row" style="align-items: flex-start;">
+                        <label>Окно с информацией для зрителей</label>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; min-width: 0;">
+                                <input type="checkbox" id="info_window_enabled" checked />
+                                <span>Показывать информационное окно под основным виджетом</span>
+                            </label>
+                            <input type="text" id="info_window_title" value="" placeholder="Заголовок (яркий, сверху)" style="max-width: 400px;" />
+                            <input type="text" id="fallback_text" value="" placeholder="Текст в нижнем окне (например: что будет, если не удержали процент)" style="max-width: 400px;" />
+                        </div>
+                        <span class="help-text">Окно всегда под основным, в том же стиле (светлее). Включите или отключите его видимость галкой выше.</span>
+                    </div>
+                    <div class="form-row" style="align-items: flex-start;">
+                        <label>Таймер обратного отсчёта</label>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; min-width: 0;">
+                                <input type="checkbox" id="timer_enabled" />
+                                <span>Показывать таймер под блоком «Лимит»</span>
+                            </label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-weight: normal;">Длительность (минуты):</label>
+                                <input type="number" id="timer_duration_minutes" value="5" min="1" max="999" step="1" style="width: 80px;" />
+                            </div>
+                        </div>
+                        <span class="help-text">Таймер обратного отсчёта от заданной длительности до 00:00. После загрузки виджета отсчёт начинается заново.</span>
+                    </div>
+                    <div class="form-row" style="margin-top: 1rem;">
+                        <button class="btn btn-primary" id="saveBtn">Сохранить</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Управление</h3>
+                    <div class="manage-row">
+                        <span style="color: rgba(255,255,255,0.8);">Текущее значение:</span>
+                        <span class="current-display" id="currentDisplay">—</span>
+                        <span id="currentUnitDisplay">%</span>
+                    </div>
+                    <div class="manage-row">
+                        <span style="color: rgba(255,255,255,0.8);">Сессия Lesta:</span>
+                        <span class="current-display" id="lestaSessionWinrate">—</span>
+                    </div>
+                    <div class="manage-row" style="gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary" id="lestaSessionStartBtn">Старт сессии Lesta</button>
+                        <button type="button" class="btn btn-secondary" id="lestaSessionResetBtn">Сбросить сессию</button>
+                        <span class="help-text" style="margin-top: 0;">Нажмите «Старт», чтобы зафиксировать текущую статистику Lesta. В виджете OBS отобразится формат <strong>текущий% / цель%</strong> (винрейт сессии слева, цель от донатов справа).</span>
+                    </div>
+                    <div class="manage-row" id="lestaSessionDetails" style="display: none; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 10px; border-radius: 4px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12);">
+                        <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.08em;">
+                            Сессия Lesta активна
+                        </div>
+                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.9);">
+                            Боев: <span id="lestaSessionBattles">0</span>
+                        </div>
+                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.9);">
+                            Винрейт: <span id="lestaSessionWinrateText">0.00%</span>
+                        </div>
+                        <div style="font-size: 0.95rem; color: rgba(255,255,255,0.9);">
+                            Ср. урон: <span id="lestaSessionAvgDamageText">0</span>
+                        </div>
+                    </div>
+                    <div class="manage-row manual-add">
+                        <label style="min-width: auto;">Ручной донат (₽):</label>
+                        <input type="number" id="manualAmount" value="100" min="1" step="1" placeholder="Сумма" />
+                        <button type="button" class="btn btn-primary" id="addDonationBtn">Добавить</button>
+                        <span class="help-text" style="margin-top: 0;">Добавит к значению как будто пришёл донат на эту сумму</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Превью (как в OBS)</h3>
+                    <p class="help-text">После старта сессии Lesta в большом числе: <strong>52% / 70%</strong> — слева винрейт за сессию, справа цель от донатов.</p>
+                    <div class="preview-frame-wrap">
+                        <iframe id="previewFrame" class="preview-frame" src="/widget/donation-driven" title="Превью виджета"></iframe>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Ссылка для OBS (Browser Source)</h3>
+                    <div class="obs-link">
+                        <a href="/widget/donation-driven" target="_blank" id="obsUrl">/widget/donation-driven</a>
+                    </div>
+                    <p class="help-text">Размер в OBS: например 400×220 px. Задайте ширину и высоту сразу при добавлении источника — без растягивания потом, иначе будет размыто.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        (function() {
+            const baseUrl = window.location.origin;
+            const LESTA_SESSION_FLAG_KEY = 'dd_lesta_session_active_flag';
+            let currentMode = 'winrate'; // 'winrate' | 'avgDamage'
+            document.getElementById('obsUrl').href = baseUrl + '/widget/donation-driven';
+            document.getElementById('obsUrl').textContent = baseUrl + '/widget/donation-driven';
+
+            function updateLestaSessionLine(data) {
+                const lineEl = document.getElementById('lestaSessionWinrate');
+                const panelEl = document.getElementById('lestaSessionDetails');
+                const battlesEl = document.getElementById('lestaSessionBattles');
+                const winrateEl = document.getElementById('lestaSessionWinrateText');
+                const avgDmgEl = document.getElementById('lestaSessionAvgDamageText');
+                const startBtn = document.getElementById('lestaSessionStartBtn');
+                if (!lineEl) return;
+
+                // Флаг в БД (started_at) + локальный флаг в браузере — считаем сессию активной,
+                // даже если цифры ещё не успели обновиться.
+                const backendStarted = !!(data && data.lesta_session_started_at && data.lesta_session_started_at > 0);
+                const localStarted = window.localStorage.getItem(LESTA_SESSION_FLAG_KEY) === '1';
+                const started = backendStarted || localStarted;
+
+                const battles = started ? (data.lesta_session_battles || 0) : 0;
+                const winrate = started && typeof data.lesta_session_winrate === 'number' ? data.lesta_session_winrate : 0;
+                const avgDmg = started && typeof data.lesta_session_avg_damage === 'number' ? data.lesta_session_avg_damage : 0;
+
+                if (started) {
+                    lineEl.textContent =
+                        'Боев: ' + battles +
+                        ', Винрейт: ' + winrate.toFixed(2) + '%'+
+                        ', ср. урон: ' + avgDmg;
+
+                    if (panelEl) panelEl.style.display = 'flex';
+                    if (battlesEl) battlesEl.textContent = battles;
+                    if (winrateEl) winrateEl.textContent = winrate.toFixed(2) + '%';
+                    if (avgDmgEl) avgDmgEl.textContent = avgDmg;
+
+                    if (startBtn) {
+                        startBtn.textContent = 'Сессия Lesta активна';
+                        startBtn.classList.remove('btn-secondary');
+                        startBtn.classList.add('btn-success');
+                        startBtn.disabled = true;
+                        startBtn.style.cursor = 'default';
+                    }
+                } else {
+                    lineEl.textContent = '—';
+                    if (panelEl) panelEl.style.display = 'none';
+                    if (startBtn) {
+                        startBtn.textContent = 'Старт сессии Lesta';
+                        startBtn.classList.remove('btn-success');
+                        startBtn.classList.add('btn-secondary');
+                        startBtn.disabled = false;
+                        startBtn.style.cursor = '';
+                    }
+                }
+            }
+
+            function applyModeTexts() {
+                const pageDescEl = document.getElementById('pageDesc');
+                const goalHelpEl = document.getElementById('goalTextHelp');
+                const unitHelpEl = document.getElementById('unitHelp');
+                const startHelpEl = document.getElementById('startValueHelp');
+                const capHelpEl = document.getElementById('capHelp');
+                const unitInput = document.getElementById('unit_label');
+
+                if (currentMode === 'avgDamage') {
+                    if (pageDescEl) {
+                        pageDescEl.textContent =
+                            'Донаты поднимают целевой средний урон, который нужно удержать за сессию. ' +
+                            'Стартовое значение, лимит и стоимость за донат отображаются в виджете для OBS.';
+                    }
+                    if (goalHelpEl) {
+                        goalHelpEl.textContent = 'Например: Держим средний урон по сессии';
+                    }
+                    if (unitHelpEl) {
+                        unitHelpEl.textContent = 'Например: урона, ед. урона, ДПМ и т.д.';
+                    }
+                    if (startHelpEl) {
+                        startHelpEl.textContent = 'Начальный целевой средний урон, который донаты будут повышать';
+                    }
+                    if (capHelpEl) {
+                        capHelpEl.textContent = 'Максимальный целевой средний урон, выше этого не поднимется';
+                    }
+                    if (unitInput && !unitInput.value) {
+                        unitInput.placeholder = 'урона';
+                    }
+                } else {
+                    if (pageDescEl) {
+                        pageDescEl.textContent =
+                            'Стартовое значение растёт от донатов: за каждые N₽ добавляется X единиц. ' +
+                            'Текст над значением, лимит и стоимость отображаются в виджете для OBS.';
+                    }
+                    if (goalHelpEl) {
+                        goalHelpEl.textContent = 'Например: Держим процент побед';
+                    }
+                    if (unitHelpEl) {
+                        unitHelpEl.textContent = 'Любой текст: %, очков, уровень и т.д.';
+                    }
+                    if (startHelpEl) {
+                        startHelpEl.textContent = 'Текущее значение в виджете; при сохранении виджет сразу обновится';
+                    }
+                    if (capHelpEl) {
+                        capHelpEl.textContent = 'Выше этого не поднимется';
+                    }
+                }
+            }
+
+            function setupTabs() {
+                const tabWinrate = document.getElementById('tabWinrate');
+                const tabAvgDamage = document.getElementById('tabAvgDamage');
+                if (!tabWinrate || !tabAvgDamage) return;
+
+                function setMode(mode) {
+                    if (mode === currentMode) return;
+                    currentMode = mode;
+                    tabWinrate.classList.toggle('tab-btn-active', mode === 'winrate');
+                    tabAvgDamage.classList.toggle('tab-btn-active', mode === 'avgDamage');
+                    applyModeTexts();
+                    load();
+                }
+
+                tabWinrate.addEventListener('click', () => setMode('winrate'));
+                tabAvgDamage.addEventListener('click', () => setMode('avgDamage'));
+
+                applyModeTexts();
+            }
+
+            function getApiBase() {
+                return currentMode === 'avgDamage'
+                    ? '/api/donation-driven-widget-damage'
+                    : '/api/donation-driven-widget';
+            }
+
+            function getWidgetUrl() {
+                return currentMode === 'avgDamage'
+                    ? '/widget/donation-driven-damage'
+                    : '/widget/donation-driven';
+            }
+
+            function load() {
+                fetch(getApiBase())
+                    .then(r => r.json())
+                    .then(data => {
+                        document.getElementById('name').value = (data.name && data.name !== 'Цель по донатам') ? data.name : '';
+                        document.getElementById('goal_text').value = data.goal_text || '';
+                        document.getElementById('unit_label').value = data.unit_label || '%';
+                        document.getElementById('start_value').value = data.start_value ?? 70;
+                        document.getElementById('cap_value').value = data.cap_value ?? 100;
+                        document.getElementById('per_amount').value = data.per_amount ?? 100;
+                        document.getElementById('add_value').value = data.add_value ?? 0.1;
+                        document.getElementById('enabled').checked = data.enabled !== 0;
+                        var opacity = data.widget_bg_opacity != null && !isNaN(data.widget_bg_opacity) ? Math.min(1, Math.max(0, data.widget_bg_opacity)) : 1;
+                        document.getElementById('widget_bg_opacity').value = Math.round(opacity * 100);
+                        document.getElementById('widget_bg_opacity_label').textContent = Math.round(opacity * 100) + '%';
+                        document.getElementById('info_window_enabled').checked = data.info_window_enabled !== 0;
+                        var rawFallback = (data.fallback_text != null ? String(data.fallback_text) : '') || '';
+                        var sep = rawFallback.indexOf('|||');
+                        var loadedTitle = (sep >= 0 ? rawFallback.slice(0, sep).trim() : '');
+                        var loadedBody = (sep >= 0 ? rawFallback.slice(sep + 3).trim() : rawFallback.trim());
+                        document.getElementById('info_window_title').value = loadedTitle;
+                        document.getElementById('fallback_text').value = loadedBody;
+                        var ftInput = document.getElementById('fallback_threshold');
+                        if (ftInput) {
+                            ftInput.value = data.fallback_threshold != null ? data.fallback_threshold : 50;
+                        }
+                        document.getElementById('timer_enabled').checked = data.timer_enabled !== 0;
+                        var sec = data.timer_duration_seconds != null ? parseInt(data.timer_duration_seconds, 10) : 300;
+                        document.getElementById('timer_duration_minutes').value = Math.max(1, Math.min(999, Math.round(sec / 60)));
+                        updateLestaSessionLine(data);
+                        var add = parseFloat(data.add_value) || 0.1;
+                        var per = parseFloat(data.per_amount) || 100;
+                        updateCalcDisplay(per, add);
+                        updateCurrentDisplay(data.current_value ?? data.start_value ?? 70, data.unit_label || '%', data);
+                        reloadPreview();
+
+                        // состояние кнопки и панели сессии обновляет updateLestaSessionLine
+                    })
+                    .catch(e => console.error(e));
+            }
+
+            function updateCurrentDisplay(val, unit, data) {
+                const n = Number(val);
+                var goalText = isNaN(n) ? '—' : n.toFixed(2);
+                const u = unit || '%';
+                const started = data && (
+                    data.lesta_session_active === 1 ||
+                    (data.lesta_session_started_at && data.lesta_session_started_at > 0)
+                );
+                if (started && typeof data.lesta_session_winrate === 'number') {
+                    const swr = data.lesta_session_winrate.toFixed(2).replace(/\.?0+$/, '');
+                    document.getElementById('currentDisplay').textContent = swr + '% / ' + goalText;
+                    document.getElementById('currentUnitDisplay').textContent = u;
+                } else {
+                    document.getElementById('currentDisplay').textContent = goalText;
+                    document.getElementById('currentUnitDisplay').textContent = u;
+                }
+            }
+
+            function updateCostPer1FromPerAmount() {
+                var per = parseFloat(document.getElementById('per_amount').value);
+                var add = parseFloat(document.getElementById('add_value').value);
+                updateCalcDisplay(per, add);
+            }
+
+            function updateCalcDisplay(per, add) {
+                if (add && add > 0 && !isNaN(per)) {
+                    var cost1 = per / add;
+                    document.getElementById('costPer1Display').textContent = Math.round(cost1);
+                    document.getElementById('addValueLabel').textContent = add;
+                    document.getElementById('per01Display').textContent = per.toFixed(2).replace(/\.?0+$/, '');
+                }
+                updateCalcResult();
+            }
+
+            function updateCalcResult() {
+                var amount = parseFloat(document.getElementById('calcAmount').value);
+                var per = parseFloat(document.getElementById('per_amount').value);
+                var add = parseFloat(document.getElementById('add_value').value);
+                var unit = document.getElementById('unit_label').value || '%';
+                var el = document.getElementById('calcResult');
+                if (!amount || amount <= 0 || !per || per <= 0 || !add) {
+                    el.textContent = '—';
+                    return;
+                }
+                var added = (amount / per) * add;
+                el.textContent = '+' + added.toFixed(2) + ' ' + unit;
+            }
+
+            function reloadPreview() {
+                const iframe = document.getElementById('previewFrame');
+                if (iframe) {
+                    iframe.src = baseUrl + getWidgetUrl() + '?t=' + Date.now();
+                }
+                const obsLinkEl = document.getElementById('obsUrl');
+                if (obsLinkEl) {
+                    const url = baseUrl + getWidgetUrl();
+                    obsLinkEl.href = url;
+                    obsLinkEl.textContent = url;
+                }
+            }
+
+            document.getElementById('per_amount').addEventListener('input', updateCostPer1FromPerAmount);
+            document.getElementById('add_value').addEventListener('input', updateCostPer1FromPerAmount);
+            document.getElementById('calcAmount').addEventListener('input', updateCalcResult);
+            document.getElementById('calcAmount').addEventListener('change', updateCalcResult);
+            document.getElementById('widget_bg_opacity').addEventListener('input', function() {
+                document.getElementById('widget_bg_opacity_label').textContent = this.value + '%';
+            });
+
+            document.getElementById('saveBtn').addEventListener('click', () => {
+                const startVal = document.getElementById('start_value').value;
+                const payload = {
+                    name: document.getElementById('name').value,
+                    goal_text: document.getElementById('goal_text').value,
+                    unit_label: document.getElementById('unit_label').value,
+                    start_value: startVal === '' ? undefined : parseFloat(startVal),
+                    cap_value: parseFloat(document.getElementById('cap_value').value),
+                    per_amount: parseFloat(document.getElementById('per_amount').value),
+                    add_value: parseFloat(document.getElementById('add_value').value),
+                    enabled: document.getElementById('enabled').checked ? 1 : 0,
+                    widget_bg_opacity: parseInt(document.getElementById('widget_bg_opacity').value, 10) / 100,
+                    info_window_enabled: document.getElementById('info_window_enabled').checked ? 1 : 0,
+                    info_window_title: document.getElementById('info_window_title').value,
+                    fallback_text: document.getElementById('fallback_text').value,
+                    timer_enabled: document.getElementById('timer_enabled').checked ? 1 : 0,
+                    timer_duration_seconds: Math.max(60, parseInt(document.getElementById('timer_duration_minutes').value, 10) * 60)
+                };
+                if (payload.start_value !== undefined && isNaN(payload.start_value)) {
+                    alert('Стартовое значение должно быть числом');
+                    return;
+                }
+                fetch(getApiBase(), {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                })
+                    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                    .then(({ ok, data }) => {
+                        if (!ok) throw new Error(data.error || 'Ошибка сохранения');
+                        if (data.current_value !== undefined) updateCurrentDisplay(data.current_value, data.unit_label || '%', data);
+                        if (data.start_value !== undefined) document.getElementById('start_value').value = data.start_value;
+                        reloadPreview();
+                    })
+                    .catch(e => alert('Ошибка: ' + e.message));
+            });
+
+            var addBtn = document.getElementById('addDonationBtn');
+            if (addBtn) {
+                addBtn.addEventListener('click', () => {
+                    const amount = parseFloat(document.getElementById('manualAmount').value);
+                    if (!amount || amount <= 0 || isNaN(amount)) {
+                        alert('Введите сумму больше 0');
+                        return;
+                    }
+                    fetch(getApiBase() + '/add', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount: amount })
+                    })
+                        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                        .then(({ ok, data }) => {
+                            if (!ok) throw new Error(data.error || 'Ошибка добавления');
+                            if (data.current_value !== undefined) updateCurrentDisplay(data.current_value, data.unit_label || '%', data);
+                            reloadPreview();
+                        })
+                        .catch(e => alert('Ошибка: ' + e.message));
+                });
+            }
+
+            var lestaStartBtn = document.getElementById('lestaSessionStartBtn');
+            if (lestaStartBtn) {
+                lestaStartBtn.addEventListener('click', () => {
+                    fetch(getApiBase() + '/lesta-session/start', {
+                        method: 'POST'
+                    })
+                        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                        .then(({ ok, data }) => {
+                            if (!ok || !data.success) {
+                                throw new Error((data && data.error) || 'Ошибка старта сессии Lesta');
+                            }
+                            // Фиксируем флаг в браузере, чтобы сессия визуально не слетала при F5
+                            window.localStorage.setItem(LESTA_SESSION_FLAG_KEY, '1');
+                            // Мгновенно обновляем UI как активную сессию (0 боев, 0%/0 урона, пока не придут реальные цифры)
+                            updateLestaSessionLine({
+                                lesta_session_started_at: data.session && data.session.started_at ? data.session.started_at : Date.now() / 1000,
+                                lesta_session_battles: 0,
+                                lesta_session_winrate: 0,
+                                lesta_session_avg_damage: 0
+                            });
+                            // Затем подтягиваем реальные цифры из API
+                            load();
+                        })
+                        .catch(e => alert('Ошибка старта сессии Lesta: ' + e.message));
+                });
+            }
+
+            var lestaResetBtn = document.getElementById('lestaSessionResetBtn');
+            if (lestaResetBtn) {
+                lestaResetBtn.addEventListener('click', () => {
+                    fetch(getApiBase() + '/lesta-session/reset', {
+                        method: 'POST'
+                    })
+                        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+                        .then(({ ok, data }) => {
+                            if (!ok || !data.success) {
+                                throw new Error((data && data.error) || 'Ошибка сброса сессии Lesta');
+                            }
+                            window.localStorage.removeItem(LESTA_SESSION_FLAG_KEY);
+                            updateLestaSessionLine({
+                                lesta_session_started_at: 0,
+                                lesta_session_battles: 0,
+                                lesta_session_winrate: 0,
+                                lesta_session_avg_damage: 0
+                            });
+                        })
+                        .catch(e => alert('Ошибка сброса сессии Lesta: ' + e.message));
+                });
+            }
+
+            // Периодически обновляем строку с винрейтом сессии, чтобы она отражала свежие данные Lesta
+            setInterval(function() {
+                fetch('/api/donation-driven-widget')
+                    .then(r => r.json())
+                    .then(function(data) {
+                        updateLestaSessionLine(data);
+                        updateCurrentDisplay(data.current_value ?? data.start_value ?? 70, data.unit_label || '%', data);
+                    })
+                    .catch(() => {});
+            }, 5000);
+
+            const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws');
+            ws.onmessage = function(ev) {
+                try {
+                    const msg = JSON.parse(ev.data);
+                    if (msg.type === 'DONATION_DRIVEN_UPDATE' && msg.widget && currentMode === 'winrate') {
+                        updateCurrentDisplay(msg.widget.current_value, msg.widget.unit_label || '%', msg.widget);
+                    } else if (msg.type === 'DONATION_DRIVEN_DAMAGE_UPDATE' && msg.widget && currentMode === 'avgDamage') {
+                        updateCurrentDisplay(msg.widget.current_value, msg.widget.unit_label || '%');
+                    }
+                } catch (_) {}
+            };
+
+            setupTabs();
+            load();
+        })();
+    </script>
+    <script>
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
+        });
+    </script>
+</body>
+</html>

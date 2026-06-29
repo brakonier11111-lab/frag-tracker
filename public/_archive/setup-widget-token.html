@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Настройка токена виджета</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px 0; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 5px; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Настройка токена виджета DonationAlerts</h1>
+    <p>Токен: <strong>F19xSligynHj8fnX6MQ3</strong></p>
+    <button onclick="setupToken()">✅ Настроить токен</button>
+    <button onclick="testWidget()">🧪 Тестировать виджет</button>
+    <button onclick="forceCheck()">🔄 Принудительная проверка</button>
+    <div id="result"></div>
+
+    <script>
+        async function setupToken() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '⏳ Сохранение токена...';
+            
+            try {
+                const response = await fetch('/api/da-widget-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        token: 'F19xSligynHj8fnX6MQ3'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = '<div class="result success">';
+                    html += '<h3>✅ Токен виджета успешно сохранен!</h3>';
+                    
+                    if (data.testResult) {
+                        html += `<p><strong>Найдено донатов в виджете:</strong> ${data.testResult.donationsFound}</p>`;
+                        
+                        if (data.testResult.donations && data.testResult.donations.length > 0) {
+                            html += '<p><strong>Примеры донатов:</strong></p><ul>';
+                            data.testResult.donations.forEach((d, i) => {
+                                html += `<li>${d.username} - ${d.amount} ${d.currency}</li>`;
+                            });
+                            html += '</ul>';
+                        } else {
+                            html += '<p>⚠️ Донаты не найдены в виджете (возможно, донатов пока нет)</p>';
+                        }
+                    }
+                    
+                    if (data.error) {
+                        html += `<p>⚠️ Предупреждение: ${data.error}</p>`;
+                    }
+                    
+                    html += '<p><strong>💡 Система будет проверять донаты каждые 3-5 секунд</strong></p>';
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error"><h3>❌ Ошибка</h3><p>${data.error}</p></div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error"><h3>❌ Ошибка подключения</h3><p>${error.message}</p></div>`;
+            }
+        }
+        
+        async function testWidget() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '⏳ Тестирование виджета...';
+            
+            try {
+                const response = await fetch('/api/force-check-widget-da', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = '<div class="result success">';
+                    html += `<h3>✅ Виджет работает!</h3>`;
+                    html += `<p><strong>Найдено донатов:</strong> ${data.donationsFound}</p>`;
+                    
+                    if (data.donations && data.donations.length > 0) {
+                        html += '<p><strong>Донаты из виджета:</strong></p><ul>';
+                        data.donations.forEach((d, i) => {
+                            html += `<li>ID: ${d.id}, ${d.username} - ${d.amount} ${d.currency}</li>`;
+                        });
+                        html += '</ul>';
+                    } else {
+                        html += '<p>⚠️ Донаты не найдены (возможно, донатов пока нет в виджете)</p>';
+                    }
+                    html += '</div>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<div class="result error"><h3>❌ Ошибка</h3><p>${data.error}</p></div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error"><h3>❌ Ошибка подключения</h3><p>${error.message}</p></div>`;
+            }
+        }
+        
+        async function forceCheck() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '⏳ Принудительная проверка донатов...';
+            
+            try {
+                const response = await fetch('/api/force-check-donations', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="result success"><h3>✅ Проверка выполнена</h3><p>Проверьте логи сервера для деталей</p></div>';
+                } else {
+                    resultDiv.innerHTML = `<div class="result error"><h3>❌ Ошибка</h3><p>${data.error}</p></div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error"><h3>❌ Ошибка подключения</h3><p>${error.message}</p></div>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+

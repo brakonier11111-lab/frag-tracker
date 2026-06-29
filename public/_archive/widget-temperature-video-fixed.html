@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Video Only Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .video-only-widget {
+            position: relative;
+            width: 300px;
+            height: 420px;
+            border-radius: 15px;
+            overflow: hidden;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.5s ease-out;
+        }
+
+        .video-only-widget.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Видео занимает весь виджет */
+        .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* Fallback контент */
+        .fallback-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, 0.95) 0%, 
+                rgba(8, 8, 20, 0.9) 50%, 
+                rgba(12, 12, 25, 0.85) 100%
+            );
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ff4400;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 68, 0, 0.8);
+            z-index: 2;
+        }
+
+        .fallback-content.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-only-widget" id="videoOnlyWidget">
+        <!-- Fallback контент -->
+        <div class="fallback-content" id="fallbackContent">
+            ПЕРЕГРЕВ ТАЙМЕРА
+        </div>
+        
+        <!-- Видео -->
+        <video class="video-background" id="videoElement" muted loop playsinline preload="auto">
+            <!-- Попробуем разные пути и форматы -->
+            <source src="/assets/Widget Peregrev.mov" type="video/quicktime">
+            <source src="/assets/Widget Peregrev.mov" type="video/mp4">
+            <source src="C:\Users\ixacy\Downloads\Рабочая если что\Рабочая резерв — копия\assets\Widget Peregrev.mov" type="video/quicktime">
+            <source src="C:\Users\ixacy\Downloads\Рабочая если что\Рабочая резерв — копия\assets\Widget Peregrev.mov" type="video/mp4">
+            <!-- Если видео не поддерживается -->
+            <p style="color: white; text-align: center; padding: 20px;">
+                Ваш браузер не поддерживает видео формат MOV.<br>
+                Попробуйте использовать Chrome или Firefox.
+            </p>
+        </video>
+    </div>
+
+    <script>
+        let temperatureMode = {
+            active: false,
+            currentAmount: 0,
+            targetAmount: 10000,
+            coolingRate: 50,
+            peakRewardMinutes: 5
+        };
+
+        let ws = null;
+        let videoLoaded = false;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            
+            console.log('🔗 Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                console.log('✅ WebSocket connected');
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 WebSocket message received:', data);
+                    
+                    switch(data.type) {
+                        case 'INIT_STATE':
+                            console.log('🔄 Initial state received:', data.state);
+                            updateTemperatureMode(data.state.temperatureMode || temperatureMode);
+                            break;
+                        case 'temperature_mode_toggle':
+                            temperatureMode.active = data.active;
+                            temperatureMode.currentAmount = data.currentAmount || 0;
+                            temperatureMode.targetAmount = data.targetAmount || 10000;
+                            temperatureMode.coolingRate = data.coolingRate || 50;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_update':
+                            temperatureMode.currentAmount = data.currentAmount;
+                            temperatureMode.targetAmount = data.targetAmount || temperatureMode.targetAmount;
+                            temperatureMode.coolingRate = data.coolingRate || temperatureMode.coolingRate;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || temperatureMode.peakRewardMinutes;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_peak':
+                            showTemperaturePeak(data);
+                            break;
+                        default:
+                            console.log('📨 Other WebSocket message type:', data.type);
+                    }
+                } catch (e) {
+                    console.error('Error parsing WebSocket message:', e);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('❌ WebSocket disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('❌ WebSocket error:', error);
+            };
+        }
+
+        function updateTemperatureMode(data) {
+            temperatureMode.active = data.active;
+            temperatureMode.currentAmount = data.currentAmount || 0;
+            temperatureMode.targetAmount = data.targetAmount || 10000;
+            temperatureMode.coolingRate = data.coolingRate || 50;
+            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+            
+            const videoOnlyWidgetEl = document.getElementById('videoOnlyWidget');
+            const videoElement = document.getElementById('videoElement');
+            const fallbackContent = document.getElementById('fallbackContent');
+            
+            if (temperatureMode.active) {
+                // Показываем виджет при включении режима температуры
+                videoOnlyWidgetEl.classList.add('show');
+                console.log('🎥 Video widget activated - temperature mode ON');
+                
+                // Скрываем fallback контент если видео загружено
+                if (videoLoaded) {
+                    fallbackContent.classList.add('hidden');
+                }
+                
+                // Принудительно запускаем видео
+                if (videoElement && videoLoaded) {
+                    videoElement.play().catch(error => {
+                        console.error('❌ Ошибка воспроизведения видео:', error);
+                        // Показываем fallback контент
+                        fallbackContent.classList.remove('hidden');
+                    });
+                }
+            } else {
+                // Скрываем виджет при выключении режима температуры
+                videoOnlyWidgetEl.classList.remove('show');
+                console.log('🎥 Video widget deactivated - temperature mode OFF');
+            }
+        }
+
+        function showTemperaturePeak(data) {
+            console.log('🔥 Temperature peak reached!', data);
+        }
+
+        // Подключаемся к WebSocket при загрузке страницы
+        connectWebSocket();
+
+        // Обработчики событий для видео
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoElement = document.getElementById('videoElement');
+            const fallbackContent = document.getElementById('fallbackContent');
+            
+            if (videoElement) {
+                // Обработчик загрузки видео
+                videoElement.addEventListener('loadeddata', function() {
+                    console.log('✅ Видео загружено успешно');
+                    videoLoaded = true;
+                    fallbackContent.classList.add('hidden');
+                    
+                    // Автоматически запускаем видео
+                    videoElement.play().catch(error => {
+                        console.error('❌ Не удалось запустить видео:', error);
+                        fallbackContent.classList.remove('hidden');
+                    });
+                });
+                
+                // Обработчик ошибок видео
+                videoElement.addEventListener('error', function(e) {
+                    console.error('❌ Ошибка загрузки видео:', e);
+                    console.error('❌ Детали ошибки:', videoElement.error);
+                    videoLoaded = false;
+                    fallbackContent.classList.remove('hidden');
+                });
+                
+                // Обработчик начала воспроизведения
+                videoElement.addEventListener('play', function() {
+                    console.log('▶️ Видео начало воспроизводиться');
+                    fallbackContent.classList.add('hidden');
+                });
+                
+                // Обработчик паузы
+                videoElement.addEventListener('pause', function() {
+                    console.log('⏸️ Видео поставлено на паузу');
+                });
+                
+                // Обработчик окончания видео (для зацикливания)
+                videoElement.addEventListener('ended', function() {
+                    console.log('🔄 Видео закончилось, перезапускаем');
+                    videoElement.currentTime = 0;
+                    videoElement.play().catch(error => {
+                        console.error('❌ Ошибка перезапуска видео:', error);
+                    });
+                });
+                
+                // Принудительно пытаемся запустить видео при загрузке страницы
+                setTimeout(() => {
+                    if (!videoLoaded) {
+                        videoElement.play().catch(error => {
+                            console.error('❌ Не удалось запустить видео при загрузке:', error);
+                            fallbackContent.classList.remove('hidden');
+                        });
+                    }
+                }, 1000);
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Borderless Marathon Timer</title>
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            overflow: hidden;
+        }
+        body {
+            display: flex;
+            align-items: stretch;
+            justify-content: stretch;
+        }
+        iframe {
+            flex: 1;
+            border: none;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="timerFrame" src="widget-mode2-copy.html" allowtransparency="true"></iframe>
+    <script>
+        const frame = document.getElementById('timerFrame');
+
+        function simplify() {
+            if (!frame || !frame.contentDocument) return;
+            const { document: innerDoc } = frame.contentWindow;
+            innerDoc.documentElement.style.background = 'transparent';
+            innerDoc.body.style.background = 'transparent';
+            const widget = innerDoc.querySelector('.marathon-widget');
+            if (widget) {
+                widget.style.background = 'transparent';
+                widget.style.border = 'none';
+                widget.style.boxShadow = 'none';
+                widget.style.padding = '0';
+            }
+            const inlineAlert = innerDoc.querySelector('.inline-alert');
+            if (inlineAlert) {
+                inlineAlert.style.left = '0';
+                inlineAlert.style.right = '0';
+            }
+        }
+
+        function refreshUntilReady(attempts = 0) {
+            try {
+                simplify();
+            } catch (error) {
+                if (attempts < 5) {
+                    setTimeout(() => refreshUntilReady(attempts + 1), 200);
+                }
+            }
+        }
+
+        frame.addEventListener('load', () => {
+            refreshUntilReady();
+            setTimeout(refreshUntilReady, 500);
+            setTimeout(refreshUntilReady, 1500);
+        });
+
+        window.addEventListener('resize', refreshUntilReady);
+    </script>
+</body>
+</html>
+

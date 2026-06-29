@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Виджет сбора донатов для OBS</title>
+    <script>
+        // Legacy URL support: always open the maintained widget implementation.
+        (function() {
+            var target = '/widget/donation-goal' + window.location.search + window.location.hash;
+            if (window.location.pathname !== '/widget/donation-goal') {
+                window.location.replace(target);
+            }
+        })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Версия стилей: v2.0 - Обновленный шрифт Inter */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            --glass-bg: rgba(0, 0, 0, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.8);
+            --shadow-glow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Arial', sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .donation-widget {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .widget-title-container {
+            text-align: center;
+            margin-bottom: -5px;
+            width: 100%;
+        }
+
+        .widget-title {
+            font-family: 'Inter', 'Arial', sans-serif !important;
+            font-size: 1.4rem !important;
+            font-weight: 800 !important;
+            color: #ffffff !important;
+            margin: 0 !important;
+            letter-spacing: 1px !important;
+            line-height: 1.1 !important;
+            text-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.8) !important,
+                0 0 40px rgba(255, 255, 255, 0.6) !important,
+                0 0 60px rgba(255, 255, 255, 0.4) !important,
+                0 3px 6px rgba(0, 0, 0, 1) !important;
+            animation: textGlow 3s ease-in-out infinite !important;
+            text-rendering: optimizeLegibility !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+            text-transform: uppercase !important;
+        }
+
+        @keyframes textGlow {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 20px rgba(255, 255, 255, 0.8) !important,
+                    0 0 40px rgba(255, 255, 255, 0.6) !important,
+                    0 0 60px rgba(255, 255, 255, 0.4) !important,
+                    0 3px 6px rgba(0, 0, 0, 1) !important;
+            }
+            50% { 
+                text-shadow: 
+                    0 0 30px rgba(255, 255, 255, 1) !important,
+                    0 0 60px rgba(255, 255, 255, 0.8) !important,
+                    0 0 90px rgba(255, 255, 255, 0.6) !important,
+                    0 4px 8px rgba(0, 0, 0, 1) !important;
+            }
+        }
+
+        .widget-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .widget-description {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        /* Полоска прогресса */
+        .progress-container {
+            width: 100%;
+            margin: 0;
+            position: relative;
+            padding: 5px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 32px;
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.95) 0%, 
+                rgba(8, 8, 18, 0.98) 30%,
+                rgba(15, 15, 25, 0.95) 70%,
+                rgba(0, 0, 0, 0.95) 100%
+            );
+            border-radius: 25px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 
+                inset 0 4px 8px rgba(0, 0, 0, 0.7),
+                0 0 20px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(102, 126, 234, 0.2),
+                0 0 60px rgba(102, 126, 234, 0.1);
+            border: 3px solid rgba(74, 85, 104, 0.4);
+            animation: progressBarGlow 6s ease-in-out infinite;
+        }
+
+        @keyframes progressBarGlow {
+            0%, 100% { 
+                border-color: rgba(74, 85, 104, 0.4);
+                box-shadow: 
+                    inset 0 4px 8px rgba(0, 0, 0, 0.7),
+                    0 0 20px rgba(0, 0, 0, 0.5),
+                    0 0 40px rgba(74, 85, 104, 0.2),
+                    0 0 60px rgba(74, 85, 104, 0.1);
+            }
+            50% { 
+                border-color: rgba(74, 85, 104, 0.7);
+                box-shadow: 
+                    inset 0 4px 8px rgba(0, 0, 0, 0.7),
+                    0 0 30px rgba(0, 0, 0, 0.6),
+                    0 0 60px rgba(74, 85, 104, 0.4),
+                    0 0 80px rgba(74, 85, 104, 0.2);
+            }
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                transparent 30%, 
+                rgba(255, 255, 255, 0.08) 50%, 
+                transparent 70%
+            );
+            animation: progressGlow 3.5s ease-in-out infinite;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, 
+                #4a5568 0%, 
+                #2d3748 15%, 
+                #1a202c 30%, 
+                #2d3748 45%,
+                #4a5568 60%,
+                #2d3748 75%,
+                #1a202c 90%,
+                #4a5568 100%
+            );
+            background-size: 300% 300%;
+            border-radius: 25px;
+            position: relative;
+            transition: width 4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
+            box-shadow: 
+                0 0 20px rgba(74, 85, 104, 0.6),
+                0 0 40px rgba(74, 85, 104, 0.4),
+                0 0 60px rgba(74, 85, 104, 0.2),
+                inset 0 2px 4px rgba(255, 255, 255, 0.2);
+            animation: gradientShift 12s ease-in-out infinite, fillGlow 6s ease-in-out infinite;
+        }
+
+        @keyframes fillGlow {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 20px rgba(74, 85, 104, 0.6),
+                    0 0 40px rgba(74, 85, 104, 0.4),
+                    0 0 60px rgba(74, 85, 104, 0.2),
+                    inset 0 2px 4px rgba(255, 255, 255, 0.2);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 30px rgba(74, 85, 104, 0.8),
+                    0 0 60px rgba(74, 85, 104, 0.6),
+                    0 0 90px rgba(74, 85, 104, 0.4),
+                    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+            }
+        }
+
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                transparent 30%, 
+                rgba(255, 255, 255, 0.25) 50%, 
+                transparent 70%
+            );
+            animation: pulse 2.2s ease-in-out infinite;
+        }
+
+        /* Дополнительные эффекты */
+        .progress-container::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            right: -8px;
+            bottom: -8px;
+            background: linear-gradient(45deg, 
+                rgba(102, 126, 234, 0.15), 
+                rgba(118, 75, 162, 0.15), 
+                rgba(79, 172, 254, 0.15), 
+                rgba(0, 242, 254, 0.15)
+            );
+            border-radius: 28px;
+            z-index: -1;
+            animation: outerGlow 3.5s ease-in-out infinite;
+        }
+
+        .progress-container::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 110%;
+            height: 35px;
+            background: radial-gradient(ellipse, 
+                rgba(102, 126, 234, 0.25) 0%, 
+                transparent 70%
+            );
+            z-index: -2;
+            animation: backgroundPulse 4.5s ease-in-out infinite;
+        }
+
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.03); }
+        }
+
+        @keyframes progressGlow {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes outerGlow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.08); }
+        }
+
+        @keyframes backgroundPulse {
+            0%, 100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.35; transform: translate(-50%, -50%) scale(1.15); }
+        }
+
+        /* Эффект достижения цели */
+        .goal-reached .progress-fill {
+            background: linear-gradient(135deg, 
+                #ff6b6b 0%, 
+                #ee5a24 25%, 
+                #fa709a 50%, 
+                #fee140 75%, 
+                #ff6b6b 100%
+            );
+            animation: celebration 1.2s ease-in-out, gradientShift 2.5s ease-in-out infinite;
+            box-shadow: 
+                0 0 35px rgba(255, 107, 107, 0.9),
+                inset 0 2px 4px rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes celebration {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.08); }
+            50% { transform: scale(1.15); }
+            75% { transform: scale(1.08); }
+        }
+
+        /* Частицы */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: rgba(102, 126, 234, 0.7);
+            border-radius: 50%;
+            animation: float 5s ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { left: 15%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 35%; animation-delay: 1s; }
+        .particle:nth-child(3) { left: 55%; animation-delay: 2s; }
+        .particle:nth-child(4) { left: 75%; animation-delay: 3s; }
+        .particle:nth-child(5) { left: 25%; animation-delay: 4s; }
+        .particle:nth-child(6) { left: 85%; animation-delay: 1.5s; }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(80px) scale(0); 
+                opacity: 0; 
+            }
+            10% { 
+                opacity: 1; 
+                transform: translateY(70px) scale(1); 
+            }
+            90% { 
+                opacity: 1; 
+                transform: translateY(-10px) scale(1); 
+            }
+        }
+
+        /* Эффект неонового свечения */
+        .neon-glow {
+            animation: neonGlow 2.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes neonGlow {
+            from {
+                text-shadow: 
+                    0 0 5px rgba(102, 126, 234, 0.6),
+                    0 0 10px rgba(102, 126, 234, 0.6),
+                    0 0 15px rgba(102, 126, 234, 0.6);
+            }
+            to {
+                text-shadow: 
+                    0 0 2px rgba(102, 126, 234, 0.9),
+                    0 0 5px rgba(102, 126, 234, 0.9),
+                    0 0 8px rgba(102, 126, 234, 0.9);
+            }
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .progress-text span {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px 12px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                inset 0 1px 2px rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .progress-text span:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: translateY(-1px);
+            box-shadow: 
+                0 4px 12px rgba(0, 0, 0, 0.4),
+                inset 0 1px 2px rgba(255, 255, 255, 0.15);
+        }
+
+        .progress-amount-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 
+                0 0 8px rgba(0, 0, 0, 0.8),
+                0 0 16px rgba(0, 0, 0, 0.6),
+                0 0 24px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            pointer-events: none;
+            animation: amountGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes amountGlow {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 8px rgba(0, 0, 0, 0.8),
+                    0 0 16px rgba(0, 0, 0, 0.6),
+                    0 0 24px rgba(0, 0, 0, 0.4);
+            }
+            50% { 
+                text-shadow: 
+                    0 0 12px rgba(0, 0, 0, 1),
+                    0 0 24px rgba(0, 0, 0, 0.8),
+                    0 0 36px rgba(0, 0, 0, 0.6);
+            }
+        }
+
+        .progress-percentage {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+
+        /* Статистика */
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 20px;
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            flex: 1;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 3px;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        /* Таймер обратного отсчета */
+        .countdown-timer {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+
+        .countdown-title {
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .countdown-display {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .countdown-item {
+            background: var(--primary-gradient);
+            border-radius: 8px;
+            padding: 8px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .countdown-number {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: block;
+        }
+
+        .countdown-label {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+
+        /* Анимации */
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .glow-effect {
+            animation: glow 2s infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 20px rgba(79, 172, 254, 0.5); }
+            to { box-shadow: 0 0 30px rgba(79, 172, 254, 0.8); }
+        }
+
+        /* Адаптивность */
+        @media (max-width: 400px) {
+            .widget-title {
+                font-size: 1.4rem;
+            }
+            
+            .progress-text {
+                font-size: 1rem;
+            }
+            
+            .progress-percentage {
+                font-size: 1.2rem;
+            }
+            
+            .stats-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .stat-item {
+                padding: 8px;
+            }
+        }
+
+        /* Эффект достижения цели */
+        .goal-reached .progress-fill {
+            background: var(--warning-gradient);
+            animation: celebration 1s ease-in-out;
+        }
+
+        @keyframes celebration {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Скрытие элементов при загрузке */
+        .loading {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .loaded {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="donation-widget fade-in loading" id="donation-widget">
+        <!-- Название сбора -->
+        <div class="widget-title-container">
+            <h1 class="widget-title" id="goal-title">Сбор на новый контент</h1>
+        </div>
+        
+        <!-- Полоска прогресса -->
+        <div class="progress-container">
+            <div class="particles">
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+                <div class="particle"></div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                <div class="progress-amount-center" id="current-amount-center">0 ₽</div>
+            </div>
+            <div class="progress-text">
+                <span class="start-amount">0 ₽</span>
+                <span id="target-amount">10,000 ₽</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let donationGoal = {
+            title: 'Сбор на новый контент',
+            description: 'Поддержите создание качественного контента!',
+            targetAmount: 10000,
+            currentAmount: 0,
+            totalDonations: 0,
+            avgDonation: 0,
+            endDate: null,
+            lastDonationTime: null
+        };
+
+        let countdownInterval = null;
+        let updateInterval = null;
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGoalData();
+            startAutoUpdate();
+        });
+
+        // Загрузка данных цели
+        async function loadGoalData() {
+            try {
+                const response = await fetch('/api/donation-goal');
+                if (response.ok) {
+                    const data = await response.json();
+                    donationGoal = { ...donationGoal, ...data };
+                    updateDisplay();
+                    startCountdown();
+                    
+                    // Показываем виджет после загрузки
+                    document.getElementById('donation-widget').classList.remove('loading');
+                    document.getElementById('donation-widget').classList.add('loaded');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки данных цели:', error);
+                // Показываем виджет даже при ошибке
+                document.getElementById('donation-widget').classList.remove('loading');
+                document.getElementById('donation-widget').classList.add('loaded');
+            }
+        }
+
+        // Обновление отображения
+        function updateDisplay() {
+            document.getElementById('goal-title').textContent = donationGoal.title;
+            document.getElementById('target-amount').textContent = formatCurrency(donationGoal.targetAmount);
+            
+            const percentage = donationGoal.targetAmount > 0 ? 
+                Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100) : 0;
+            
+            // Отображаем сумму внутри полоски всегда по центру
+            const amountElement = document.getElementById('current-amount-center');
+            amountElement.textContent = formatCurrency(donationGoal.currentAmount);
+            
+            // Обновляем сумму в центре полоски (фиксировано по центру)
+            const amountCenter = document.getElementById('current-amount-center');
+            amountCenter.textContent = formatCurrency(donationGoal.currentAmount);
+
+            // Плавная анимация полоски прогресса
+            const progressFill = document.getElementById('progress-fill');
+            if (donationGoal.currentAmount <= 0 || percentage <= 0) {
+                // При нулевой сумме полностью скрываем заполняемую часть полоски
+                progressFill.style.width = '0%';
+                progressFill.style.display = 'none';
+            } else {
+                progressFill.style.display = 'block';
+                progressFill.style.width = percentage + '%';
+            }
+            
+            // Эффект достижения цели
+            if (percentage >= 100) {
+                document.getElementById('donation-widget').classList.add('goal-reached');
+            } else {
+                document.getElementById('donation-widget').classList.remove('goal-reached');
+            }
+        }
+
+        // Форматирование валюты
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ru-RU').format(Math.round(amount)) + ' ₽';
+        }
+
+        // Обратный отсчет
+        function startCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            if (!donationGoal.endDate) {
+                document.getElementById('countdown-timer').style.display = 'none';
+                document.getElementById('days-left').textContent = '∞';
+                return;
+            }
+
+            document.getElementById('countdown-timer').style.display = 'block';
+
+            countdownInterval = setInterval(() => {
+                const now = new Date().getTime();
+                const endTime = new Date(donationGoal.endDate).getTime();
+                const timeLeft = endTime - now;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    document.getElementById('days').textContent = '0';
+                    document.getElementById('hours').textContent = '0';
+                    document.getElementById('minutes').textContent = '0';
+                    document.getElementById('days-left').textContent = '0';
+                    return;
+                }
+
+                const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+                document.getElementById('days').textContent = days;
+                document.getElementById('hours').textContent = hours;
+                document.getElementById('minutes').textContent = minutes;
+                document.getElementById('days-left').textContent = days;
+            }, 1000);
+        }
+
+        // Автообновление данных
+        function startAutoUpdate() {
+            updateInterval = setInterval(() => {
+                loadGoalData();
+            }, 5000); // Обновляем каждые 5 секунд
+        }
+
+        // Очистка при закрытии
+        window.addEventListener('beforeunload', () => {
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (updateInterval) clearInterval(updateInterval);
+        });
+    </script>
+</body>
+</html>

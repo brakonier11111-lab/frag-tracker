@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8" />
+	<title>Статистика чата — YouTube и VK Play</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+	<style>
+		:root {
+			--bg: #0b0f17;
+			--card: rgba(255,255,255,0.06);
+			--card-border: rgba(255,255,255,0.12);
+			--accent: #6ea8fe;
+			--accent-2: #9b59ff;
+			--ok: #32d296;
+			--error: #ff6b6b;
+			--text: #e8eef7;
+			--muted: rgba(232,238,247,0.7);
+		}
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+		.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+		.h1 { font-size: 28px; font-weight: 800; letter-spacing: .2px; margin: 86px 0 16px; }
+		.sub { color: var(--muted); margin-bottom: 24px; }
+
+		.filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center; }
+		.select { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.02); color: var(--text); font-size: 14px; }
+		.select:focus { outline: 1px solid var(--accent); }
+		.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.04); color: var(--muted); }
+		.btn { appearance: none; border: 0; outline: 0; cursor: pointer; padding: 8px 14px; border-radius: 999px; color: #0b0f17; font-weight: 600; font-size: 13px; background: linear-gradient(135deg, #6ea8fe, #9b59ff); }
+		.btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--card-border); }
+
+		.card { background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; backdrop-filter: blur(10px); margin-bottom: 16px; }
+		.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+		.card-title { font-size: 18px; font-weight: 600; }
+		.card-sub { font-size: 13px; color: var(--muted); }
+
+		.table-wrapper { border-radius: 12px; border: 1px solid var(--card-border); overflow: hidden; background: rgba(0,0,0,0.25); }
+		table { width: 100%; border-collapse: collapse; font-size: 13px; }
+		th, td { padding: 8px 10px; text-align: left; }
+		th { background: rgba(255,255,255,0.04); font-weight: 600; color: var(--muted); position: sticky; top: 0; z-index: 1; }
+		tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+		tbody tr:hover { background: rgba(255,255,255,0.06); }
+		platform-badge { font-size: 11px; padding: 2px 6px; border-radius: 999px; }
+		.platform-yt { background: rgba(255,71,87,0.2); color: #ff6b6b; }
+		.platform-vk { background: rgba(110,168,254,0.2); color: #6ea8fe; }
+		.platform-rt { background: rgba(50,210,150,0.2); color: #32d296; }
+
+		.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px; }
+		.stat-item { padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); }
+		.stat-label { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+		.stat-value { font-size: 18px; font-weight: 700; }
+
+		.small { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+		@media (max-width: 600px) {
+			.card-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+			.filters { flex-direction: column; align-items: flex-start; }
+		}
+	</style>
+</head>
+<body>
+	<div id="menu-container"></div>
+	<div class="page">
+		<div class="h1">Статистика чата</div>
+		<div class="sub">Кто чаще всего пишет в чате. Общая статистика и по отдельным платформам.</div>
+
+		<div class="card">
+			<div class="card-header">
+				<div>
+					<div class="card-title">Статистика чата</div>
+					<div class="card-sub">Быстрый просмотр активности зрителей по периодам.</div>
+				</div>
+			</div>
+
+			<div class="filters">
+				<div>
+					<div class="card-sub" style="margin-bottom:4px;">Период</div>
+					<div style="display:flex; flex-wrap:wrap; gap:6px;">
+						<button class="btn ghost" data-period-btn="day">День</button>
+						<button class="btn ghost" data-period-btn="week">Неделя</button>
+						<button class="btn ghost" data-period-btn="month">Месяц</button>
+						<button class="btn ghost" data-period-btn="all">Всё время</button>
+					</div>
+				</div>
+				<div>
+					<div class="card-sub" style="margin-bottom:4px;">Поиск пользователя</div>
+					<input id="user-search" class="select" placeholder="Ник или его часть" style="width:220px; padding:6px 10px; border-radius:999px;" />
+				</div>
+				<!-- Скрытый select, чтобы переиспользовать существующую логику -->
+				<select id="filter-period" style="display:none;">
+					<option value="all">Всё время</option>
+					<option value="month">Месяц</option>
+					<option value="week">Неделя</option>
+					<option value="day">День</option>
+				</select>
+				<button class="btn ghost" id="btn-refresh">Обновить</button>
+				<span class="badge" id="summary-badge">Загружаем статистику...</span>
+			</div>
+
+			<div class="stats-grid">
+				<div class="stat-item">
+					<div class="stat-label">Уникальных пользователей</div>
+					<div class="stat-value" id="stat-users">—</div>
+				</div>
+				<div class="stat-item">
+					<div class="stat-label">Всего сообщений</div>
+					<div class="stat-value" id="stat-messages">—</div>
+				</div>
+				<div class="stat-item">
+					<div class="stat-label">Сообщений у топ-1</div>
+					<div class="stat-value" id="stat-top1">—</div>
+				</div>
+			</div>
+
+			<div class="table-wrapper" style="max-height: 520px; overflow: auto;">
+				<table>
+					<thead>
+						<tr>
+							<th>#</th>
+							<th>Пользователь</th>
+							<th>Сообщений</th>
+							<th>Первое сообщение</th>
+							<th>Последнее сообщение</th>
+						</tr>
+					</thead>
+					<tbody id="stats-body">
+						<tr><td colspan="6">Загрузка...</td></tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="small">
+				Данные берутся из общей таблицы чата (`chat_messages`) и обновляются автоматически по мере работы бота.
+			</div>
+		</div>
+	</div>
+
+	<script>
+		async function loadMenu() {
+			try {
+				const res = await fetch('/menu.html');
+				document.getElementById('menu-container').innerHTML = await res.text();
+			} catch (e) {
+				console.warn('menu load fail', e);
+			}
+		}
+		loadMenu();
+
+		function formatDate(iso) {
+			if (!iso) return '—';
+			const d = new Date(iso);
+			if (Number.isNaN(d.getTime())) return iso;
+			return d.toLocaleString();
+		}
+
+		let ALL_STATS = [];
+
+		async function loadStats() {
+			const period = document.getElementById('filter-period').value;
+			const tbody = document.getElementById('stats-body');
+			const summary = document.getElementById('summary-badge');
+			const statUsers = document.getElementById('stat-users');
+			const statMessages = document.getElementById('stat-messages');
+			const statTop1 = document.getElementById('stat-top1');
+
+			tbody.innerHTML = '<tr><td colspan="5">Загрузка...</td></tr>';
+			summary.textContent = 'Загружаем статистику...';
+
+			try {
+				const params = new URLSearchParams();
+				params.set('period', period);
+				const res = await fetch('/api/chat/stats?' + params.toString());
+				const data = await res.json();
+				const stats = (data && data.stats) || [];
+
+				ALL_STATS = stats;
+
+				if (!stats.length) {
+					tbody.innerHTML = '<tr><td colspan="5">Пока нет данных за выбранный период.</td></tr>';
+					statUsers.textContent = '0';
+					statMessages.textContent = '0';
+					statTop1.textContent = '0';
+					summary.textContent = 'Нет данных';
+					return;
+				}
+
+				renderStatsTable(stats, period);
+			} catch (e) {
+				console.warn('Ошибка загрузки статистики чата:', e);
+				tbody.innerHTML = '<tr><td colspan="5">Ошибка загрузки статистики.</td></tr>';
+				summary.textContent = 'Ошибка загрузки';
+			}
+		}
+
+		function renderStatsTable(allStats, period) {
+			const tbody = document.getElementById('stats-body');
+			const summary = document.getElementById('summary-badge');
+			const statUsers = document.getElementById('stat-users');
+			const statMessages = document.getElementById('stat-messages');
+			const statTop1 = document.getElementById('stat-top1');
+			const searchValue = (document.getElementById('user-search').value || '').trim().toLowerCase();
+
+			let filtered = allStats;
+			if (searchValue) {
+				filtered = allStats.filter(row => (row.username || '').toLowerCase().includes(searchValue));
+			}
+
+			let totalMessages = 0;
+			allStats.forEach((row) => {
+				totalMessages += row.messages_count || 0;
+			});
+
+			const visible = filtered.slice(0, 100);
+			const topCount = visible.length ? (visible[0].messages_count || 0) : 0;
+
+			statUsers.textContent = String(allStats.length);
+			statMessages.textContent = String(totalMessages);
+			statTop1.textContent = String(topCount);
+
+			const periodLabel =
+				period === 'day' ? 'за день' :
+				period === 'week' ? 'за 7 дней' :
+				period === 'month' ? 'за 30 дней' : 'за всё время';
+
+			const filterLabel = searchValue ? `, фильтр по "${searchValue}"` : '';
+			summary.textContent = `Показано топ ${visible.length} из ${filtered.length} пользователей (${periodLabel}${filterLabel})`;
+
+			if (!visible.length) {
+				tbody.innerHTML = '<tr><td colspan="5">Нет пользователей по заданным условиям.</td></tr>';
+				return;
+			}
+
+			const rowsHtml = visible.map((row, index) => {
+				return `
+					<tr>
+						<td>${index + 1}</td>
+						<td>${row.username || 'Аноним'}</td>
+						<td>${row.messages_count || 0}</td>
+						<td>${formatDate(row.first_message_at)}</td>
+						<td>${formatDate(row.last_message_at)}</td>
+					</tr>
+				`;
+			}).join('');
+
+			tbody.innerHTML = rowsHtml;
+		}
+
+		document.getElementById('btn-refresh').addEventListener('click', loadStats);
+
+		// Быстрые кнопки периода
+		const periodSelect = document.getElementById('filter-period');
+		const periodButtons = document.querySelectorAll('[data-period-btn]');
+		periodButtons.forEach(btn => {
+			btn.addEventListener('click', () => {
+				const value = btn.getAttribute('data-period-btn');
+				periodSelect.value = value;
+				periodButtons.forEach(b => b.classList.toggle('active', b === btn));
+				loadStats();
+			});
+		});
+
+		// По умолчанию — "Всё время"
+		periodButtons.forEach(btn => {
+			if (btn.getAttribute('data-period-btn') === 'all') {
+				btn.classList.add('active');
+			}
+		});
+
+		// Поиск пользователя по вводу
+		document.getElementById('user-search').addEventListener('input', () => {
+			if (!ALL_STATS || !ALL_STATS.length) return;
+			const period = document.getElementById('filter-period').value;
+			renderStatsTable(ALL_STATS, period);
+		});
+
+		// Первая загрузка
+		loadStats();
+	</script>
+</body>
+</html>
+

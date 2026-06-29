@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Полоска режимов</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-yellow: #ffff00;
+            --neon-purple: #ff00ff;
+            --neon-red: #ff0040;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: transparent;
+            color: white;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .mode-strip {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                rgba(0, 0, 0, 0.8) 0%,
+                rgba(10, 10, 20, 0.7) 50%,
+                rgba(0, 0, 0, 0.8) 100%
+            );
+            border-radius: 8px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .current-mode {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mode-icon {
+            font-size: 1.5rem;
+            animation: iconPulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes iconPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        .mode-text {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .mode-indicators {
+            display: flex;
+            gap: 4px;
+        }
+
+        .indicator {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .indicator.active {
+            background: var(--neon-blue);
+            box-shadow: 0 0 6px var(--neon-blue);
+        }
+
+        .cta-text {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            font-style: italic;
+        }
+
+        /* Цветовые схемы */
+        .mode-normal .mode-text { color: var(--neon-blue); }
+        .mode-normal .indicator.active { background: var(--neon-blue); box-shadow: 0 0 6px var(--neon-blue); }
+
+        .mode-discount .mode-text { color: var(--neon-yellow); }
+        .mode-discount .indicator.active { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+
+        .mode-slowdown .mode-text { color: var(--neon-purple); }
+        .mode-slowdown .indicator.active { background: var(--neon-purple); box-shadow: 0 0 6px var(--neon-purple); }
+
+        .mode-temperature .mode-text { color: var(--neon-red); }
+        .mode-temperature .indicator.active { background: var(--neon-red); box-shadow: 0 0 6px var(--neon-red); }
+
+        /* Анимации */
+        .current-mode {
+            animation: slideInLeft 0.5s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            0% { 
+                opacity: 0; 
+                transform: translateX(-15px); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+
+        /* Эффект свечения */
+        .mode-strip::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.02), transparent);
+            animation: stripShimmer 5s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes stripShimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="mode-strip" id="modeStrip">
+        <div class="current-mode">
+            <div class="mode-icon" id="modeIcon">⏰</div>
+            <div class="mode-text" id="modeText">ОБЫЧНЫЙ</div>
+        </div>
+        
+        <div class="mode-indicators">
+            <div class="indicator active" data-mode="0"></div>
+            <div class="indicator" data-mode="1"></div>
+            <div class="indicator" data-mode="2"></div>
+            <div class="indicator" data-mode="3"></div>
+        </div>
+        
+        <div class="cta-text">Донатьте!</div>
+    </div>
+
+    <script>
+        const modes = [
+            { icon: '⏰', text: 'ОБЫЧНЫЙ', color: '#00d4ff' },
+            { icon: '🎁', text: 'СКИДКА', color: '#ffff00' },
+            { icon: '🐢', text: 'ЗАМЕДЛЕНИЕ', color: '#ff00ff' },
+            { icon: '🔥', text: 'ПЕРЕГРЕВ', color: '#ff0040' }
+        ];
+
+        let currentMode = 0;
+        let rotationInterval;
+
+        function updateMode(index) {
+            const mode = modes[index];
+            const strip = document.getElementById('modeStrip');
+            
+            // Обновляем класс
+            strip.className = `mode-strip mode-${['normal', 'discount', 'slowdown', 'temperature'][index]}`;
+            
+            // Обновляем содержимое
+            document.getElementById('modeIcon').textContent = mode.icon;
+            document.getElementById('modeText').textContent = mode.text;
+            
+            // Обновляем индикаторы
+            document.querySelectorAll('.indicator').forEach((indicator, i) => {
+                indicator.classList.toggle('active', i === index);
+            });
+            
+            // Анимация
+            const currentModeEl = document.querySelector('.current-mode');
+            currentModeEl.style.animation = 'none';
+            setTimeout(() => {
+                currentModeEl.style.animation = 'slideInLeft 0.5s ease-out';
+            }, 10);
+        }
+
+        function startRotation() {
+            rotationInterval = setInterval(() => {
+                currentMode = (currentMode + 1) % modes.length;
+                updateMode(currentMode);
+            }, 2500);
+        }
+
+        function stopRotation() {
+            if (rotationInterval) {
+                clearInterval(rotationInterval);
+            }
+        }
+
+        // Клики по индикаторам
+        document.querySelectorAll('.indicator').forEach((indicator, index) => {
+            indicator.addEventListener('click', () => {
+                currentMode = index;
+                updateMode(currentMode);
+                stopRotation();
+                setTimeout(startRotation, 6000);
+            });
+        });
+
+        // Hover для паузы
+        document.getElementById('modeStrip').addEventListener('mouseenter', stopRotation);
+        document.getElementById('modeStrip').addEventListener('mouseleave', startRotation);
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            updateMode(0);
+            startRotation();
+        });
+
+        // Пауза при скрытии
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopRotation();
+            } else {
+                startRotation();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

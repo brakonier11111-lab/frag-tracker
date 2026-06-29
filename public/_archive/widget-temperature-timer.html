@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Timer Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-orange: #ff4400;
+            --neon-yellow: #ffff00;
+            --neon-red: #ff0000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .temperature-timer-widget {
+            position: relative;
+            padding: 12px 24px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 50% 0%, rgba(255, 68, 0, 0.5), rgba(5, 5, 15, 0.9));
+            box-shadow:
+                0 0 25px rgba(255, 68, 0, 0.8),
+                0 0 60px rgba(255, 68, 0, 0.6),
+                0 8px 20px rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            opacity: 0;
+            transform: translateY(25px) scale(0.9);
+            transition: all 0.45s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .temperature-timer-widget.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .timer-labels {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .timer-main-label {
+            font-family: 'Orbitron', monospace;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow:
+                0 0 14px rgba(0, 0, 0, 1),
+                0 0 26px rgba(0, 0, 0, 0.9);
+        }
+
+        .timer-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.6rem;
+            font-weight: 900;
+            letter-spacing: 0.16em;
+            color: var(--neon-yellow);
+            text-shadow:
+                0 0 20px rgba(255, 255, 0, 0.9),
+                0 0 40px rgba(255, 255, 0, 0.7),
+                0 4px 10px rgba(0, 0, 0, 1);
+            min-width: 6.5ch;
+            text-align: center;
+        }
+
+        .timer-value.pulse {
+            animation: timerPulse 1s ease-in-out infinite;
+        }
+
+        .timer-value.critical {
+            color: var(--neon-red);
+            text-shadow:
+                0 0 20px rgba(255, 0, 0, 1),
+                0 0 40px rgba(255, 0, 0, 0.85),
+                0 4px 10px rgba(0, 0, 0, 1);
+            animation: timerCritical 0.65s ease-in-out infinite;
+        }
+
+        @keyframes timerPulse {
+            0%   { transform: scale(1);   }
+            50%  { transform: scale(1.05);}
+            100% { transform: scale(1);   }
+        }
+
+        @keyframes timerCritical {
+            0% {
+                transform: scale(1);
+                text-shadow:
+                    0 0 12px rgba(255, 0, 0, 0.9),
+                    0 0 26px rgba(255, 0, 0, 0.8),
+                    0 4px 10px rgba(0, 0, 0, 1);
+            }
+            50% {
+                transform: scale(1.08);
+                text-shadow:
+                    0 0 24px rgba(255, 0, 0, 1),
+                    0 0 48px rgba(255, 0, 0, 0.9),
+                    0 4px 14px rgba(0, 0, 0, 1);
+            }
+            100% {
+                transform: scale(1);
+                text-shadow:
+                    0 0 12px rgba(255, 0, 0, 0.9),
+                    0 0 26px rgba(255, 0, 0, 0.8),
+                    0 4px 10px rgba(0, 0, 0, 1);
+            }
+        }
+
+        .timer-hint {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="temperature-timer-widget" id="temperatureTimerWidget">
+        <div class="timer-labels">
+            <div class="timer-main-label">ДО ВЫКЛЮЧЕНИЯ РЕЖИМА</div>
+        </div>
+        <div class="timer-value" id="temperatureTimerValue">--:--</div>
+        <div class="timer-hint" id="temperatureTimerHint"></div>
+    </div>
+
+    <script>
+        let temperatureMode = {
+            active: false,
+            currentAmount: 0,
+            targetAmount: 10000,
+            coolingRate: 50,
+            peakRewardMinutes: 5,
+            autoOffDurationSec: 0,
+            autoOffUntilTs: 0
+        };
+
+        let ws = null;
+        let countdownInterval = null;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('✅ Temperature timer WS connected');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    switch (data.type) {
+                        case 'INIT_STATE':
+                            if (data.state && data.state.temperatureMode) {
+                                applyTemperatureState(data.state.temperatureMode);
+                            }
+                            break;
+                        case 'temperature_mode_toggle':
+                            applyTemperatureState({
+                                active: data.active,
+                                currentAmount: data.currentAmount,
+                                targetAmount: data.targetAmount,
+                                coolingRate: data.coolingRate,
+                                peakRewardMinutes: data.peakRewardMinutes,
+                                autoOffDurationSec: data.autoOffDurationSec,
+                                autoOffUntilTs: data.autoOffUntilTs
+                            });
+                            break;
+                        case 'temperature_update':
+                            applyTemperatureState({
+                                active: temperatureMode.active,
+                                currentAmount: data.currentAmount,
+                                targetAmount: data.targetAmount,
+                                coolingRate: data.coolingRate,
+                                peakRewardMinutes: data.peakRewardMinutes,
+                                autoOffDurationSec: data.autoOffDurationSec,
+                                autoOffUntilTs: data.autoOffUntilTs
+                            });
+                            break;
+                        case 'temperature_hide_all':
+                            hideTimerWidget();
+                            break;
+                    }
+                } catch (e) {
+                    console.error('Temperature timer WS parse error', e);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('❌ Temperature timer WS disconnected, retrying...');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = (err) => {
+                console.error('Temperature timer WS error', err);
+            };
+        }
+
+        function applyTemperatureState(payload) {
+            temperatureMode.active = !!payload.active;
+            if (typeof payload.currentAmount === 'number') {
+                temperatureMode.currentAmount = payload.currentAmount;
+            }
+            if (typeof payload.targetAmount === 'number') {
+                temperatureMode.targetAmount = payload.targetAmount;
+            }
+            if (typeof payload.coolingRate === 'number') {
+                temperatureMode.coolingRate = payload.coolingRate;
+            }
+            if (typeof payload.peakRewardMinutes === 'number') {
+                temperatureMode.peakRewardMinutes = payload.peakRewardMinutes;
+            }
+            if (typeof payload.autoOffDurationSec === 'number') {
+                temperatureMode.autoOffDurationSec = payload.autoOffDurationSec;
+            }
+            if (typeof payload.autoOffUntilTs === 'number') {
+                temperatureMode.autoOffUntilTs = payload.autoOffUntilTs;
+            }
+
+            updateTimerWidget();
+        }
+
+        function hideTimerWidget() {
+            const widget = document.getElementById('temperatureTimerWidget');
+            widget.classList.remove('show');
+            stopCountdown();
+        }
+
+        function startCountdown() {
+            stopCountdown();
+            countdownInterval = setInterval(updateCountdown, 250);
+            updateCountdown();
+        }
+
+        function stopCountdown() {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+        }
+
+        function formatTime(totalSeconds) {
+            totalSeconds = Math.max(0, Math.floor(totalSeconds || 0));
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            if (hours > 0) {
+                return (
+                    String(hours).padStart(2, '0') + ':' +
+                    String(minutes).padStart(2, '0') + ':' +
+                    String(seconds).padStart(2, '0')
+                );
+            }
+            return (
+                String(minutes).padStart(2, '0') + ':' +
+                String(seconds).padStart(2, '0')
+            );
+        }
+
+        function updateCountdown() {
+            const widget = document.getElementById('temperatureTimerWidget');
+            const valueEl = document.getElementById('temperatureTimerValue');
+            const hintEl = document.getElementById('temperatureTimerHint');
+
+            if (!temperatureMode.active || !temperatureMode.autoOffDurationSec || !temperatureMode.autoOffUntilTs) {
+                widget.classList.remove('show');
+                valueEl.textContent = '--:--';
+                valueEl.classList.remove('critical', 'pulse');
+                hintEl.textContent = '';
+                stopCountdown();
+                return;
+            }
+
+            const nowSec = Math.floor(Date.now() / 1000);
+            let remaining = temperatureMode.autoOffUntilTs - nowSec;
+
+            if (remaining <= 0) {
+                widget.classList.remove('show');
+                valueEl.textContent = '00:00';
+                valueEl.classList.remove('critical', 'pulse');
+                hintEl.textContent = '';
+                stopCountdown();
+                return;
+            }
+
+            widget.classList.add('show');
+            valueEl.textContent = formatTime(remaining);
+
+            // Визуальные состояния
+            valueEl.classList.remove('critical', 'pulse');
+            if (remaining <= 60) {
+                valueEl.classList.add('critical');
+            } else if (remaining <= 5 * 60) {
+                valueEl.classList.add('pulse');
+            }
+        }
+
+        function updateTimerWidget() {
+            if (temperatureMode.active && temperatureMode.autoOffDurationSec > 0 && temperatureMode.autoOffUntilTs) {
+                startCountdown();
+            } else {
+                const widget = document.getElementById('temperatureTimerWidget');
+                const valueEl = document.getElementById('temperatureTimerValue');
+                const hintEl = document.getElementById('temperatureTimerHint');
+                widget.classList.remove('show');
+                valueEl.textContent = '--:--';
+                valueEl.classList.remove('critical', 'pulse');
+                hintEl.textContent = '';
+                stopCountdown();
+            }
+        }
+
+        // Старт
+        connectWebSocket();
+    </script>
+</body>
+</html>
+
+

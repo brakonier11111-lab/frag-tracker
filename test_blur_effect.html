@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Blur Effect</title>
+    <style>
+        body {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
+            background-size: 400% 400%;
+            animation: gradientShift 8s ease infinite;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .test-widget {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, 0.9) 0%,
+                rgba(8, 8, 20, 0.8) 50%,
+                rgba(12, 12, 25, 0.75) 100%
+            );
+            border: 2px solid #ffffff;
+            border-radius: 15px;
+            padding: 25px;
+            width: 500px;
+            margin: 50px auto;
+            box-shadow: 
+                0 0 40px rgba(255, 255, 255, 0.3),
+                0 0 20px rgba(255, 255, 0, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+            position: relative;
+            backdrop-filter: blur(15px) saturate(150%);
+            -webkit-backdrop-filter: blur(15px) saturate(150%);
+            transition: all 0.5s ease-in-out;
+        }
+
+        .test-widget.blur-background {
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .test-content {
+            text-align: center;
+            color: white;
+            font-size: 1.5rem;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        .test-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .test-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-widget" id="testWidget">
+        <div class="test-content">
+            <h2>Тест эффекта размытия</h2>
+            <p>Этот виджет демонстрирует эффект жидкого стекла</p>
+            <p>Нажмите кнопку ниже, чтобы включить/выключить размытие</p>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button class="test-button" onclick="toggleBlur()">🌫️ Переключить размытие</button>
+        <button class="test-button" onclick="testAPI()">🔗 Тест API</button>
+    </div>
+
+    <div id="result" style="text-align: center; margin-top: 20px; color: white; font-size: 1.2rem;"></div>
+
+    <script>
+        let blurActive = false;
+
+        function toggleBlur() {
+            const widget = document.getElementById('testWidget');
+            blurActive = !blurActive;
+            
+            if (blurActive) {
+                widget.classList.add('blur-background');
+                document.getElementById('result').textContent = 'Размытие ВКЛЮЧЕНО';
+            } else {
+                widget.classList.remove('blur-background');
+                document.getElementById('result').textContent = 'Размытие ВЫКЛЮЧЕНО';
+            }
+        }
+
+        async function testAPI() {
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        widget_background_blur: blurActive ? 0 : 1
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').textContent = 'API Test: ' + JSON.stringify(result);
+                console.log('API Test:', result);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+

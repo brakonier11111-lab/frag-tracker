@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Input Fields</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        input {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #333;
+            background: #333;
+            color: white;
+            border-radius: 5px;
+            width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест полей ввода режима таймера</h1>
+        
+        <div class="input-group">
+            <label>Стоимость за минуту:</label>
+            <input type="number" id="costPerMinuteInput" value="50" min="1" placeholder="Цена за 1 минуту в рублях">
+            <button onclick="testUpdateCost()">Обновить стоимость</button>
+        </div>
+        
+        <div class="input-group">
+            <label>Текст алерта:</label>
+            <input type="text" id="timerAlertText" value="добавил времени" placeholder="Текст в алерте">
+            <button onclick="testUpdateAlertText()">Обновить текст</button>
+        </div>
+        
+        <div class="input-group">
+            <label>Скидка:</label>
+            <input type="number" id="timerDiscountInput" value="0" min="0" placeholder="Скидка в рублях">
+            <button onclick="testUpdateDiscount()">Применить скидку</button>
+        </div>
+        
+        <div class="input-group">
+            <label>Заголовок виджета:</label>
+            <input type="text" id="widgetTitleInput" placeholder="Заголовок виджета" value="ДО КОНЦА СТРИМА">
+            <button onclick="testUpdateTitle()">Обновить заголовок</button>
+        </div>
+        
+        <button onclick="testGetState()">📊 Получить состояние</button>
+        <button onclick="testLoadState()">🔄 Загрузить состояние</button>
+        
+        <div class="result" id="result">
+            <h3>Результат:</h3>
+            <div id="resultContent">Ожидание действий...</div>
+        </div>
+        
+        <div class="result">
+            <h3>Текущее состояние:</h3>
+            <div id="currentState">Загрузка...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentState = {};
+
+        async function testUpdateCost() {
+            const cost = parseInt(document.getElementById('costPerMinuteInput').value);
+            const alertText = document.getElementById('timerAlertText').value.trim();
+            
+            showResult(`Обновляем стоимость: ${cost}₽, текст: "${alertText}"`);
+            
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cost_per_minute: cost,
+                        timer_alert_text: alertText
+                    })
+                });
+                
+                if (response.ok) {
+                    showResult('✅ Настройки таймера сохранены!', 'success');
+                    await testGetState();
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Ошибка: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка подключения: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUpdateAlertText() {
+            await testUpdateCost(); // Используем ту же функцию
+        }
+
+        async function testUpdateDiscount() {
+            const discount = parseInt(document.getElementById('timerDiscountInput').value) || 0;
+            const durationMinutes = 5; // Тестовая длительность
+            
+            showResult(`Применяем скидку: ${discount}₽ на ${durationMinutes} мин`);
+            
+            try {
+                const response = await fetch('/api/timer-control', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'discount_start',
+                        discount_amount: discount,
+                        duration_seconds: durationMinutes * 60
+                    })
+                });
+                
+                if (response.ok) {
+                    showResult(`✅ Скидка применена: ${discount}₽ на ${durationMinutes} мин`, 'success');
+                    await testGetState();
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Ошибка: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function testUpdateTitle() {
+            const title = document.getElementById('widgetTitleInput').value.trim();
+            
+            showResult(`Обновляем заголовок: "${title}"`);
+            
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        widget_title: title
+                    })
+                });
+                
+                if (response.ok) {
+                    showResult(`✅ Заголовок обновлен: "${title}"`, 'success');
+                    await testGetState();
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Ошибка: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentState = data.state;
+                    document.getElementById('currentState').innerHTML = 
+                        `<pre>${JSON.stringify(data.state, null, 2)}</pre>`;
+                    showResult('✅ Состояние получено', 'success');
+                } else {
+                    showResult(`❌ Ошибка получения состояния: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLoadState() {
+            await testGetState();
+            
+            // Обновляем поля ввода значениями с сервера
+            if (currentState.cost_per_minute !== undefined) {
+                document.getElementById('costPerMinuteInput').value = currentState.cost_per_minute;
+            }
+            if (currentState.timer_alert_text !== undefined) {
+                document.getElementById('timerAlertText').value = currentState.timer_alert_text;
+            }
+            if (currentState.timer_discount !== undefined) {
+                document.getElementById('timerDiscountInput').value = currentState.timer_discount;
+            }
+            if (currentState.widget_title !== undefined) {
+                document.getElementById('widgetTitleInput').value = currentState.widget_title;
+            }
+            
+            showResult('✅ Поля ввода обновлены значениями с сервера', 'success');
+        }
+
+        function showResult(message, type = 'info') {
+            const resultContent = document.getElementById('resultContent');
+            const timestamp = new Date().toLocaleTimeString();
+            resultContent.innerHTML = `<div style="color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'}">[${timestamp}] ${message}</div>`;
+        }
+
+        // Загружаем начальное состояние
+        testLoadState();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

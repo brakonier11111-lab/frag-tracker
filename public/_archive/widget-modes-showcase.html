@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Режимы таймера - Описание функций</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-green: #00ff88;
+            --neon-yellow: #ffff00;
+            --neon-purple: #ff00ff;
+            --neon-red: #ff0040;
+            --neon-orange: #ff8800;
+            --bg-dark: #0a0a0a;
+            --bg-darker: #050505;
+            --text-light: #ffffff;
+            --text-dim: #cccccc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-darker) 100%);
+            color: var(--text-light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple), var(--neon-green));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+            margin-bottom: 10px;
+            animation: titleGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% { filter: brightness(1) drop-shadow(0 0 20px rgba(0, 212, 255, 0.3)); }
+            100% { filter: brightness(1.2) drop-shadow(0 0 40px rgba(0, 212, 255, 0.6)); }
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .modes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .mode-card {
+            background: linear-gradient(135deg, 
+                rgba(20, 20, 20, 0.9) 0%,
+                rgba(30, 30, 30, 0.8) 100%
+            );
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mode-card:hover::before {
+            opacity: 1;
+        }
+
+        .mode-card.normal {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+
+        .mode-card.discount {
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 20px rgba(255, 255, 0, 0.2);
+        }
+
+        .mode-card.slowdown {
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.2);
+        }
+
+        .mode-card.temperature {
+            border-color: var(--neon-red);
+            box-shadow: 0 0 20px rgba(255, 0, 64, 0.2);
+        }
+
+        .mode-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-align: center;
+            animation: iconPulse 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes iconPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        .mode-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .mode-card.normal .mode-title { color: var(--neon-blue); }
+        .mode-card.discount .mode-title { color: var(--neon-yellow); }
+        .mode-card.slowdown .mode-title { color: var(--neon-purple); }
+        .mode-card.temperature .mode-title { color: var(--neon-red); }
+
+        .mode-description {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            color: var(--text-dim);
+        }
+
+        .mode-features {
+            list-style: none;
+            margin-bottom: 20px;
+        }
+
+        .mode-features li {
+            padding: 8px 0;
+            position: relative;
+            padding-left: 25px;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .mode-features li::before {
+            content: '✨';
+            position: absolute;
+            left: 0;
+            top: 8px;
+        }
+
+        .mode-visual {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-visual::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .visual-element {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .visual-text {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .mode-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+
+        .mode-card.normal .stat-value { color: var(--neon-blue); }
+        .mode-card.discount .stat-value { color: var(--neon-yellow); }
+        .mode-card.slowdown .stat-value { color: var(--neon-purple); }
+        .mode-card.temperature .stat-value { color: var(--neon-red); }
+
+        .mode-cta {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .cta-button {
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+        }
+
+        .footer h3 {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            color: var(--neon-green);
+            margin-bottom: 15px;
+        }
+
+        .footer p {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .live-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--neon-red);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            animation: livePulse 2s infinite;
+            z-index: 1000;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+        }
+
+        @media (max-width: 768px) {
+            .modes-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .mode-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="live-indicator">LIVE</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>РЕЖИМЫ ТАЙМЕРА</h1>
+            <p>Интерактивные функции для максимального вовлечения зрителей</p>
+        </div>
+
+        <div class="modes-grid">
+            <!-- Обычный режим -->
+            <div class="mode-card normal">
+                <div class="mode-icon">⏰</div>
+                <h2 class="mode-title">ОБЫЧНЫЙ РЕЖИМ</h2>
+                <p class="mode-description">
+                    Классический таймер обратного отсчета с базовой функциональностью. 
+                    Простой и понятный интерфейс для ежедневного использования.
+                </p>
+                
+                <div class="mode-visual">
+                    <div class="visual-element">⏱️ 15:30</div>
+                    <div class="visual-text">Обратный отсчет времени</div>
+                </div>
+
+                <ul class="mode-features">
+                    <li>Обратный отсчет времени</li>
+                    <li>Пауза и возобновление</li>
+                    <li>Установка времени</li>
+                    <li>Счетчик стрима</li>
+                    <li>Отображение собранных средств</li>
+                </ul>
+
+                <div class="mode-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">100%</div>
+                        <div class="stat-label">Стабильность</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">24/7</div>
+                        <div class="stat-label">Доступность</div>
+                    </div>
+                </div>
+
+                <div class="mode-cta">
+                    <a href="/mode2-timer.html" class="cta-button">УПРАВЛЯТЬ</a>
+                </div>
+            </div>
+
+            <!-- Режим скидки -->
+            <div class="mode-card discount">
+                <div class="mode-icon">🎁</div>
+                <h2 class="mode-title">РЕЖИМ СКИДКИ</h2>
+                <p class="mode-description">
+                    Создавайте специальные предложения для зрителей! 
+                    Временно снижайте цену за минуту времени, стимулируя больше донатов.
+                </p>
+                
+                <div class="mode-visual">
+                    <div class="visual-element">💰 -50₽</div>
+                    <div class="visual-text">Скидка на каждую минуту</div>
+                </div>
+
+                <ul class="mode-features">
+                    <li>Временные скидки</li>
+                    <li>Анимированные проценты</li>
+                    <li>Теплые визуальные эффекты</li>
+                    <li>Автоматическое отключение</li>
+                    <li>Уведомления о скидках</li>
+                </ul>
+
+                <div class="mode-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">+40%</div>
+                        <div class="stat-label">Больше донатов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">5мин</div>
+                        <div class="stat-label">Макс. длительность</div>
+                    </div>
+                </div>
+
+                <div class="mode-cta">
+                    <a href="/mode2-timer.html" class="cta-button">АКТИВИРОВАТЬ</a>
+                </div>
+            </div>
+
+            <!-- Режим замедления -->
+            <div class="mode-card slowdown">
+                <div class="mode-icon">🐢</div>
+                <h2 class="mode-title">РЕЖИМ ЗАМЕДЛЕНИЯ</h2>
+                <p class="mode-description">
+                    Замедлите ход времени для создания напряжения! 
+                    Таймер будет идти в 2-10 раз медленнее, создавая драматический эффект.
+                </p>
+                
+                <div class="mode-visual">
+                    <div class="visual-element">❄️ x2.5</div>
+                    <div class="visual-text">Замедление времени</div>
+                </div>
+
+                <ul class="mode-features">
+                    <li>Настраиваемый коэффициент</li>
+                    <li>Анимированные снежинки</li>
+                    <li>Холодные визуальные эффекты</li>
+                    <li>Таймер длительности</li>
+                    <li>Автоматическое восстановление</li>
+                </ul>
+
+                <div class="mode-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">x10</div>
+                        <div class="stat-label">Макс. замедление</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">∞</div>
+                        <div class="stat-label">Длительность</div>
+                    </div>
+                </div>
+
+                <div class="mode-cta">
+                    <a href="/mode2-timer.html" class="cta-button">ЗАМЕДЛИТЬ</a>
+                </div>
+            </div>
+
+            <!-- Режим температуры -->
+            <div class="mode-card temperature">
+                <div class="mode-icon">🔥</div>
+                <h2 class="mode-title">РЕЖИМ ПЕРЕГРЕВА</h2>
+                <p class="mode-description">
+                    Инновационная система "температуры"! Чем больше донатов, 
+                    тем "горячее" становится таймер. При достижении пика - бонусное время!
+                </p>
+                
+                <div class="mode-visual">
+                    <div class="visual-element">🌡️ 85°</div>
+                    <div class="visual-text">Температура таймера</div>
+                </div>
+
+                <ul class="mode-features">
+                    <li>Система прогрева</li>
+                    <li>Автоматическое охлаждение</li>
+                    <li>Бонусное время при пике</li>
+                    <li>Визуальные индикаторы</li>
+                    <li>Настраиваемые параметры</li>
+                </ul>
+
+                <div class="mode-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">100°</div>
+                        <div class="stat-label">Макс. температура</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">+5мин</div>
+                        <div class="stat-label">Бонус при пике</div>
+                    </div>
+                </div>
+
+                <div class="mode-cta">
+                    <a href="/mode2-timer.html" class="cta-button">ПЕРЕГРЕТЬ</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <h3>🚀 ГОТОВЫ К ИСПОЛЬЗОВАНИЮ</h3>
+            <p>
+                Все режимы полностью интегрированы в систему управления таймером. 
+                Переключайтесь между ними в реальном времени, создавая уникальный опыт для ваших зрителей!
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Добавляем интерактивность
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.mode-card');
+            
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-10px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // Анимация появления карточек
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            });
+
+            cards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(30px)';
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(card);
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

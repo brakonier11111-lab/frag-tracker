@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест блока донатов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        .widget-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            margin: 20px auto;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1e3a8a, #1e40af);
+            overflow: visible;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+        .info {
+            background: #222;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .log {
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .stats-display {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffff00;
+            text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Тест блока "Собрано на стриме"</h1>
+        
+        <div class="controls">
+            <button id="addTestDonation">➕ Добавить тестовый донат</button>
+            <button id="refreshStats">🔄 Обновить статистику</button>
+            <button id="clearDonations">🗑️ Очистить донаты</button>
+            <button id="refreshWidget">🔄 Обновить виджет</button>
+        </div>
+        
+        <div class="status" id="status">
+            Готов к тестированию
+        </div>
+        
+        <div class="stats-display">
+            <div class="stat-item">
+                <div class="stat-value" id="totalAmount">0 RUB</div>
+                <div class="stat-label">Общая сумма</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Количество донатов</div>
+            </div>
+        </div>
+        
+        <div class="widget-container">
+            <iframe id="widgetFrame" src="http://localhost:3000/widget-mode2-copy.html"></iframe>
+        </div>
+        
+        <div class="info">
+            <h3>📋 Что тестируем:</h3>
+            <ul>
+                <li><strong>Новый дизайн:</strong> Блок без рамки, только надпись и красивое оформление</li>
+                <li><strong>Данные из БД:</strong> Общая сумма всех донатов из базы данных</li>
+                <li><strong>Количество донатов:</strong> Общее количество донатов</li>
+                <li><strong>Неоновая полоса:</strong> Нижняя полоса с эффектами свечения</li>
+                <li><strong>Обновление в реальном времени:</strong> При добавлении новых донатов</li>
+            </ul>
+            
+            <h3>📊 Лог операций:</h3>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/donations-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Округляем сумму до целых рублей
+                    const roundedAmount = Math.round(data.totalAmount || 0);
+                    document.getElementById('totalAmount').textContent = `${roundedAmount.toLocaleString()} RUB`;
+                    document.getElementById('totalCount').textContent = data.totalCount;
+                    log(`📊 Статистика загружена: ${roundedAmount.toLocaleString()} RUB, ${data.totalCount} донатов`);
+                } else {
+                    log('❌ Ошибка загрузки статистики: ' + data.error);
+                }
+            } catch (error) {
+                log('❌ Ошибка запроса статистики: ' + error.message);
+            }
+        }
+
+        async function addTestDonation() {
+            log('🧪 Добавляем тестовый донат...');
+            updateStatus('Добавляем тестовый донат');
+            
+            try {
+                const response = await fetch('/api/manual-donation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'Тестер',
+                        amount: Math.floor(Math.random() * 1000) + 100, // 100-1100 рублей
+                        message: 'Тестовый донат для проверки блока'
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ Тестовый донат добавлен: ${result.donation.username} - ${result.donation.amount}₽`);
+                    updateStatus('Тестовый донат добавлен');
+                    
+                    // Обновляем статистику
+                    setTimeout(() => {
+                        loadStats();
+                    }, 1000);
+                } else {
+                    log('❌ Ошибка добавления доната: ' + response.status);
+                }
+            } catch (error) {
+                log('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        async function clearDonations() {
+            log('🗑️ Очищаем все донаты...');
+            updateStatus('Очищаем донаты');
+            
+            try {
+                const response = await fetch('/api/clear-donations', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    log('✅ Все донаты очищены');
+                    updateStatus('Донаты очищены');
+                    
+                    // Обновляем статистику
+                    setTimeout(() => {
+                        loadStats();
+                    }, 1000);
+                } else {
+                    log('❌ Ошибка очистки донатов: ' + response.status);
+                }
+            } catch (error) {
+                log('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        function refreshWidget() {
+            log('🔄 Обновляем виджет...');
+            const iframe = document.getElementById('widgetFrame');
+            iframe.src = iframe.src;
+            updateStatus('Виджет обновлен');
+        }
+
+        // Event listeners
+        document.getElementById('addTestDonation').addEventListener('click', addTestDonation);
+        document.getElementById('refreshStats').addEventListener('click', loadStats);
+        document.getElementById('clearDonations').addEventListener('click', clearDonations);
+        document.getElementById('refreshWidget').addEventListener('click', refreshWidget);
+
+        // Initialize
+        window.addEventListener('load', () => {
+            log('🚀 Страница загружена, загружаем статистику...');
+            updateStatus('Загружаем статистику');
+            loadStats();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+Header:
+    version: 168
+ImportedPackages:
+- "~res:/UI/Screens3/Common/PopupMenuWithRichText.yaml"
+Prototypes:
+-   class: "UIControl"
+    name: "GunMarkAverageDamageInfoPopup"
+    input: false
+    components:
+        Anchor:
+            leftAnchorEnabled: true
+            rightAnchorEnabled: true
+            topAnchorEnabled: true
+            bottomAnchorEnabled: true
+        UIDataParamsComponent:
+            params: []
+        UIChildComponent0:
+            prototypePath: "~res:/UI/Screens3/Common/PopupMenuWithRichText.yaml"
+            args:
+                "content": "Content"
+                "masterId": "\"gunMarkAverageDamageInfoPopup\""
+                "slaveAlign": "ePositionAlign.Right"
+                "text": "localize(\"#achievementScreen:Brief/GunMarkAverageDamageInfo\")"
+                "title": "\"\""

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>РазБЛОГировка 2026 — Копилка золота</title>
+    <link rel="preload" href="/components/sidebar.html" as="fetch">
+    <link rel="preload" href="/components/header.html" as="fetch">
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        .page-title { font-family: var(--font-display); font-size: 1.75rem; color: #ffd54a; margin-bottom: 0.5rem; }
+        .page-desc { color: rgba(255,255,255,0.75); margin-bottom: 1.5rem; max-width: 720px; }
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid rgba(255, 200, 80, 0.2);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: 1.5rem;
+        }
+        .card h3 { color: #ffd54a; margin-bottom: 1rem; font-size: 1.1rem; }
+        .gold-total {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: #ffd54a;
+            text-shadow: 0 0 24px rgba(255, 200, 50, 0.4);
+            line-height: 1.1;
+        }
+        .gold-total.bump { animation: goldBump 0.5s ease; }
+        @keyframes goldBump {
+            0% { transform: scale(1); }
+            40% { transform: scale(1.05); filter: brightness(1.2); }
+            100% { transform: scale(1); }
+        }
+        .stats-row { display: flex; gap: 24px; flex-wrap: wrap; margin: 1rem 0; }
+        .stat-item { font-size: 0.95rem; color: rgba(255,255,255,0.8); }
+        .stat-item strong { color: #fff; font-size: 1.2rem; }
+        .btn {
+            padding: 10px 18px; border-radius: var(--radius-md); font-weight: 600;
+            cursor: pointer; border: 1px solid var(--glass-border); margin-right: 8px; margin-bottom: 8px;
+        }
+        .btn-gold { background: linear-gradient(135deg, #c9a227, #ffd54a); color: #1a1200; border-color: #ffd54a; }
+        .btn-secondary { background: transparent; color: var(--color-neon-blue); }
+        .btn-danger { background: transparent; color: #ff6b6b; border-color: rgba(255,107,107,0.5); }
+        .help-text { font-size: 0.85rem; color: rgba(255,255,255,0.55); margin-top: 8px; }
+        .status-pill {
+            display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+        }
+        .status-on { background: rgba(76,175,80,0.25); color: #a5d6a7; }
+        .status-off { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .history-table th { text-align: left; color: #ffd54a; padding: 8px; border-bottom: 1px solid rgba(255,200,80,0.2); }
+        .history-table td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .preview-frame { width: 100%; height: 280px; border: none; background: #0a0a14; border-radius: var(--radius-md); }
+        .obs-link { word-break: break-all; padding: 10px; background: rgba(0,0,0,0.4); border-radius: var(--radius-sm); margin-top: 8px; }
+        .obs-link a { color: var(--color-neon-blue); }
+        .last-battle-card {
+            background: rgba(0,0,0,0.35);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            margin-top: 12px;
+        }
+        .widget-settings label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: rgba(255,255,255,0.85);
+        }
+        .widget-settings input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #ffd54a;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-placeholder"></div>
+        <div id="header-placeholder"></div>
+        <main class="app-main">
+            <div class="container" style="max-width: 960px;">
+                <h1 class="page-title">РазБЛОГировка 2026 — Копилка золота</h1>
+                <p class="page-desc">
+                    Новый бой — когда в статистике вашего аккаунта Lesta вырос счётчик боёв (детали боя API не отдаёт).
+                    Состав: <strong>6 союзников + 7 противников</strong>. За бой: 250×13 участникам, 500×2 топ-дамагерам,
+                    +250 победившей стороне (6 при вашей победе / 7 при поражении),
+                    +500 за выживание (союзникам) или уничтожение блогера (врагам).
+                    С <strong>11 июня</strong>, после «Начать отслеживание». Опрос каждые 15 с.
+                </p>
+
+                <div class="card">
+                    <h3>Текущий итог</h3>
+                    <div class="gold-total" id="totalGold">0</div>
+                    <div class="stats-row">
+                        <div class="stat-item">Боёв учтено: <strong id="battlesCount">0</strong></div>
+                        <div class="stat-item">С выживанием: <strong id="survivedBattlesCount">0</strong></div>
+                        <div class="stat-item">Статус: <span class="status-pill status-off" id="trackingStatus">не запущено</span></div>
+                    </div>
+                    <div class="last-battle-card" id="lastBattleCard" style="display:none;">
+                        <div style="color:#ffd54a;font-weight:600;margin-bottom:6px;">Последний бой</div>
+                        <div id="lastBattleText">—</div>
+                    </div>
+                    <div style="margin-top:1rem;">
+                        <button type="button" class="btn btn-gold" id="startBtn">Начать отслеживание</button>
+                        <button type="button" class="btn btn-secondary" id="syncBtn">Обновить сейчас</button>
+                        <button type="button" class="btn btn-secondary" id="stopBtn">Остановить</button>
+                        <button type="button" class="btn btn-danger" id="resetBtn">Сбросить копилку</button>
+                    </div>
+                    <p class="help-text">Перед стримом нажмите «Начать отслеживание» — фиксируются battles/wins/survived_battles. Каждый новый бой определяется по приросту battles; победа и выживание — по приросту wins и survived_battles.</p>
+                </div>
+
+                <div class="card">
+                    <h3>Виджет OBS</h3>
+                    <div class="widget-settings">
+                        <label>
+                            <input type="checkbox" id="showWinRate">
+                            Показывать процент побед (по учтённым боям)
+                        </label>
+                        <label>
+                            <input type="checkbox" id="showAvgDamage">
+                            Показывать средний урон (с момента старта отслеживания)
+                        </label>
+                    </div>
+                    <p class="help-text">Показатели идут в одну строку после «Боёв». Средний урон — прирост урона Lesta с момента старта отслеживания. Если цифра была неверной, нажмите «Обновить сейчас» или перезапустите отслеживание.</p>
+                </div>
+
+                <div class="card">
+                    <h3>История боёв</h3>
+                    <table class="history-table">
+                        <thead>
+                            <tr><th>#</th><th>Золото</th><th>Исход</th><th>Выживание</th><th>Время</th></tr>
+                        </thead>
+                        <tbody id="historyBody">
+                            <tr><td colspan="5" style="color:rgba(255,255,255,0.45);">Нет данных</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Превью OBS</h3>
+                    <iframe class="preview-frame" id="previewFrame" src="/widget/razblogirovka-gold" title="Превью"></iframe>
+                    <div class="obs-link">
+                        <a href="/widget/razblogirovka-gold" target="_blank" id="obsUrl">/widget/razblogirovka-gold</a>
+                    </div>
+                    <p class="help-text">В OBS: Browser Source, прозрачный фон, ~480×360 px.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        (function() {
+            const baseUrl = window.location.origin;
+            document.getElementById('obsUrl').href = baseUrl + '/widget/razblogirovka-gold';
+            document.getElementById('obsUrl').textContent = baseUrl + '/widget/razblogirovka-gold';
+
+            let lastTotal = 0;
+
+            function formatGold(n) {
+                return Number(n || 0).toLocaleString('ru-RU');
+            }
+
+            function formatTime(ts) {
+                if (!ts) return '—';
+                return new Date(ts * 1000).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+            }
+
+            function render(data) {
+                const totalEl = document.getElementById('totalGold');
+                const newTotal = data.totalGold || 0;
+                if (newTotal !== lastTotal) {
+                    totalEl.classList.remove('bump');
+                    void totalEl.offsetWidth;
+                    totalEl.classList.add('bump');
+                }
+                lastTotal = newTotal;
+                totalEl.textContent = formatGold(newTotal);
+                document.getElementById('battlesCount').textContent = data.battlesCount || 0;
+                document.getElementById('survivedBattlesCount').textContent = data.survivedBattlesCount || 0;
+                document.getElementById('showWinRate').checked = !!data.widgetShowWinRate;
+                document.getElementById('showAvgDamage').checked = !!data.widgetShowAvgDamage;
+
+                const statusEl = document.getElementById('trackingStatus');
+                if (data.tracking) {
+                    statusEl.textContent = 'отслеживание активно';
+                    statusEl.className = 'status-pill status-on';
+                    document.getElementById('startBtn').disabled = true;
+                } else {
+                    statusEl.textContent = 'не запущено';
+                    statusEl.className = 'status-pill status-off';
+                    document.getElementById('startBtn').disabled = false;
+                }
+
+                const history = data.history || [];
+                const tbody = document.getElementById('historyBody');
+                if (!history.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="color:rgba(255,255,255,0.45);">Нет данных</td></tr>';
+                    document.getElementById('lastBattleCard').style.display = 'none';
+                    return;
+                }
+
+                const last = history[0];
+                document.getElementById('lastBattleCard').style.display = 'block';
+                document.getElementById('lastBattleText').textContent =
+                    '+' + formatGold(last.goldAmount) + ' золота · ' +
+                    (last.won ? 'Победа' : 'Поражение') + ' · ' +
+                    (last.survived ? 'Выжил' : 'Погиб');
+
+                tbody.innerHTML = history.map(function(b, i) {
+                    return '<tr>' +
+                        '<td>' + (i + 1) + '</td>' +
+                        '<td style="color:#ffd54a;font-weight:700;">+' + formatGold(b.goldAmount) + '</td>' +
+                        '<td>' + (b.won ? 'Победа' : 'Поражение') + '</td>' +
+                        '<td>' + (b.survived ? 'Выжил' : 'Погиб') + '</td>' +
+                        '<td>' + formatTime(b.playedAt) + '</td>' +
+                        '</tr>';
+                }).join('');
+            }
+
+            function load() {
+                fetch('/api/razblogirovka/gold-bank')
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) { if (data) render(data); })
+                    .catch(console.error);
+            }
+
+            function post(url) {
+                return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                    .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); });
+            }
+
+            document.getElementById('startBtn').addEventListener('click', function() {
+                post('/api/razblogirovka/start').then(function(res) {
+                    if (!res.ok) alert(res.data.error || 'Ошибка');
+                    else load();
+                });
+            });
+            document.getElementById('syncBtn').addEventListener('click', function() {
+                post('/api/razblogirovka/sync').then(function(res) {
+                    if (!res.ok) alert(res.data.error || 'Ошибка синхронизации');
+                    else load();
+                });
+            });
+            document.getElementById('stopBtn').addEventListener('click', function() {
+                post('/api/razblogirovka/stop').then(function() { load(); });
+            });
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                if (!confirm('Сбросить всю копилку и историю боёв?')) return;
+                post('/api/razblogirovka/reset').then(function() { load(); });
+            });
+
+            function saveWidgetSettings() {
+                fetch('/api/razblogirovka/widget-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        showWinRate: document.getElementById('showWinRate').checked,
+                        showAvgDamage: document.getElementById('showAvgDamage').checked
+                    })
+                }).catch(console.error);
+            }
+            document.getElementById('showWinRate').addEventListener('change', saveWidgetSettings);
+            document.getElementById('showAvgDamage').addEventListener('change', saveWidgetSettings);
+
+            load();
+            setInterval(load, 15000);
+
+            var ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws');
+            ws.onmessage = function(ev) {
+                try {
+                    var msg = JSON.parse(ev.data);
+                    if (msg.type === 'RAZBLOGIROVKA_GOLD_UPDATE' && msg.data) render(msg.data);
+                } catch (_) {}
+            };
+
+            Promise.all([
+                fetch('/components/sidebar.html').then(function(r) { return r.text(); }),
+                fetch('/components/header.html').then(function(r) { return r.text(); })
+            ]).then(function(parts) {
+                document.getElementById('sidebar-placeholder').innerHTML = parts[0];
+                document.getElementById('header-placeholder').innerHTML = parts[1];
+            });
+        })();
+    </script>
+</body>
+</html>

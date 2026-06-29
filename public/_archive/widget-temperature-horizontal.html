@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Horizontal Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff47;
+            --neon-blue: #00f0ff;
+            --neon-orange: #ff4400;
+            --neon-yellow: #ffff00;
+            --neon-purple: #ff00ff;
+            --neon-red: #ff0000;
+            --widget-bg-opacity: 0.95;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .temperature-widget {
+            position: relative;
+            width: 400px;
+            height: 100px;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.8) translateY(50px);
+            transition: all 0.5s ease-out;
+        }
+
+        .temperature-widget.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .temperature-display {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        /* Полоска прогресса */
+        .progress-container {
+            position: relative;
+            width: 100%;
+            height: 20px;
+            background: rgba(50, 50, 80, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(120, 120, 140, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: #00f0ff; /* По умолчанию синий */
+        }
+
+        .progress-fill.heating::before {
+            animation: heatPulse 0.5s ease-in-out;
+        }
+
+        .progress-fill.cooling::before {
+            animation: coolPulse 0.5s ease-in-out;
+        }
+
+        /* Шкала градусов */
+        .scale-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #cccccc;
+            text-shadow: 0 0 5px rgba(204, 204, 204, 0.5);
+            background: transparent;
+        }
+
+        /* Анимации */
+        @keyframes heatPulse {
+            0% { transform: scaleX(1); }
+            50% { transform: scaleX(1.02); }
+            100% { transform: scaleX(1); }
+        }
+
+        @keyframes coolPulse {
+            0% { transform: scaleX(1); }
+            50% { transform: scaleX(0.98); }
+            100% { transform: scaleX(1); }
+        }
+
+        @keyframes temperatureGlow {
+            0% { text-shadow: 0 0 10px currentColor; }
+            50% { text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }
+            100% { text-shadow: 0 0 10px currentColor; }
+        }
+
+        .temperature-display.heating {
+            animation: temperatureGlow 0.5s ease-in-out;
+        }
+
+        .temperature-display.cooling {
+            animation: temperatureGlow 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="temperature-widget" id="temperatureWidget">
+        <div class="temperature-display" id="temperatureDisplay">0°C</div>
+        
+        <!-- Полоска прогресса -->
+        <div class="progress-container">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <!-- Шкала градусов -->
+        <div class="scale-labels">
+            <span>0°</span>
+            <span>25°</span>
+            <span>50°</span>
+            <span>75°</span>
+            <span>100°</span>
+        </div>
+    </div>
+
+    <script>
+        let temperatureMode = {
+            active: false,
+            currentAmount: 0,
+            targetAmount: 10000,
+            coolingRate: 50,
+            peakRewardMinutes: 5
+        };
+
+        let ws = null;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            
+            console.log('🔗 Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                console.log('✅ WebSocket connected');
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 WebSocket message received:', data);
+                    
+                    switch(data.type) {
+                        case 'INIT_STATE':
+                            console.log('🔄 Initial state received:', data.state);
+                            updateTemperatureMode(data.state.temperatureMode || temperatureMode);
+                            break;
+                        case 'temperature_mode_toggle':
+                            temperatureMode.active = data.active;
+                            temperatureMode.currentAmount = data.currentAmount || 0;
+                            temperatureMode.targetAmount = data.targetAmount || 10000;
+                            temperatureMode.coolingRate = data.coolingRate || 50;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_update':
+                            temperatureMode.currentAmount = data.currentAmount;
+                            temperatureMode.targetAmount = data.targetAmount || temperatureMode.targetAmount;
+                            temperatureMode.coolingRate = data.coolingRate || temperatureMode.coolingRate;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || temperatureMode.peakRewardMinutes;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_peak':
+                            showTemperaturePeak(data);
+                            break;
+                        default:
+                            console.log('📨 Other WebSocket message type:', data.type);
+                    }
+                } catch (e) {
+                    console.error('Error parsing WebSocket message:', e);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('❌ WebSocket disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('❌ WebSocket error:', error);
+            };
+        }
+
+        function updateTemperatureMode(data) {
+            temperatureMode.active = data.active;
+            temperatureMode.currentAmount = data.currentAmount || 0;
+            temperatureMode.targetAmount = data.targetAmount || 10000;
+            temperatureMode.coolingRate = data.coolingRate || 50;
+            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+            
+            const temperatureWidgetEl = document.getElementById('temperatureWidget');
+            const temperatureDisplayEl = document.getElementById('temperatureDisplay');
+            const progressFillEl = document.getElementById('progressFill');
+            
+            if (temperatureMode.active) {
+                temperatureWidgetEl.classList.add('show');
+            } else {
+                temperatureWidgetEl.classList.remove('show');
+                return;
+            }
+            
+            // Обновляем отображение температуры (0-100 градусов)
+            const heatPercentage = (temperatureMode.currentAmount / temperatureMode.targetAmount) * 100;
+            const clampedPercentage = Math.min(100, heatPercentage);
+            const temperatureCelsius = Math.round(clampedPercentage);
+            
+            // Обновляем цвет температуры в зависимости от значения
+            const temperatureColor = getTemperatureColor(clampedPercentage);
+            temperatureDisplayEl.textContent = temperatureCelsius + '°C';
+            temperatureDisplayEl.style.color = temperatureColor;
+            temperatureDisplayEl.style.textShadow = `0 0 15px ${temperatureColor}, 0 0 30px ${temperatureColor}, 0 0 45px ${temperatureColor}`;
+            
+            // Обновляем полоску прогресса
+            progressFillEl.style.width = clampedPercentage + '%';
+            
+            // Обновляем цвет полоски прогресса
+            const progressColor = getProgressColor(clampedPercentage);
+            progressFillEl.style.background = progressColor;
+            
+            // Добавляем анимации
+            progressFillEl.classList.remove('heating', 'cooling');
+            temperatureDisplayEl.classList.remove('heating', 'cooling');
+            
+            // Определяем направление изменения (упрощенно)
+            if (clampedPercentage > 0) {
+                progressFillEl.classList.add('heating');
+                temperatureDisplayEl.classList.add('heating');
+            }
+        }
+
+        function getTemperatureColor(percentage) {
+            // Округляем до ближайших 10 градусов
+            const roundedPercentage = Math.round(percentage / 10) * 10;
+            
+            if (roundedPercentage <= 10) {
+                return '#00f0ff'; // Синий (0-10°)
+            } else if (roundedPercentage <= 20) {
+                return '#00d4ff'; // Светло-синий (10-20°)
+            } else if (roundedPercentage <= 30) {
+                return '#00b8ff'; // Голубой (20-30°)
+            } else if (roundedPercentage <= 40) {
+                return '#00a0ff'; // Сине-зеленый (30-40°)
+            } else if (roundedPercentage <= 50) {
+                return '#00ff88'; // Зеленый (40-50°)
+            } else if (roundedPercentage <= 60) {
+                return '#88ff00'; // Желто-зеленый (50-60°)
+            } else if (roundedPercentage <= 70) {
+                return '#ffff00'; // Желтый (60-70°)
+            } else if (roundedPercentage <= 80) {
+                return '#ffaa00'; // Оранжевый (70-80°)
+            } else if (roundedPercentage <= 90) {
+                return '#ff6600'; // Красно-оранжевый (80-90°)
+            } else {
+                return '#ff4400'; // Красный (90-100°)
+            }
+        }
+
+        function getProgressColor(percentage) {
+            // Округляем до ближайших 10 градусов
+            const roundedPercentage = Math.round(percentage / 10) * 10;
+            
+            if (roundedPercentage <= 10) {
+                return '#00f0ff'; // Синий (0-10°)
+            } else if (roundedPercentage <= 20) {
+                return '#00d4ff'; // Светло-синий (10-20°)
+            } else if (roundedPercentage <= 30) {
+                return '#00b8ff'; // Голубой (20-30°)
+            } else if (roundedPercentage <= 40) {
+                return '#00a0ff'; // Сине-зеленый (30-40°)
+            } else if (roundedPercentage <= 50) {
+                return '#00ff88'; // Зеленый (40-50°)
+            } else if (roundedPercentage <= 60) {
+                return '#88ff00'; // Желто-зеленый (50-60°)
+            } else if (roundedPercentage <= 70) {
+                return '#ffff00'; // Желтый (60-70°)
+            } else if (roundedPercentage <= 80) {
+                return '#ffaa00'; // Оранжевый (70-80°)
+            } else if (roundedPercentage <= 90) {
+                return '#ff6600'; // Красно-оранжевый (80-90°)
+            } else {
+                return '#ff4400'; // Красный (90-100°)
+            }
+        }
+
+        function showTemperaturePeak(data) {
+            console.log('🔥 Temperature peak reached!', data);
+            
+            const temperatureDisplayEl = document.getElementById('temperatureDisplay');
+            const progressFillEl = document.getElementById('progressFill');
+            
+            // Анимация пика
+            temperatureDisplayEl.style.color = '#ff0000';
+            temperatureDisplayEl.style.textShadow = '0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #ff0000';
+            progressFillEl.style.background = '#ff0000'; // Красный при пике
+            
+            setTimeout(() => {
+                // Возвращаем нормальный цвет
+                const percentage = (temperatureMode.currentAmount / temperatureMode.targetAmount) * 100;
+                const normalColor = getTemperatureColor(percentage);
+                temperatureDisplayEl.style.color = normalColor;
+                temperatureDisplayEl.style.textShadow = `0 0 15px ${normalColor}, 0 0 30px ${normalColor}, 0 0 45px ${normalColor}`;
+                progressFillEl.style.background = getProgressColor(percentage);
+            }, 2000);
+        }
+
+        // Подключаемся к WebSocket при загрузке страницы
+        connectWebSocket();
+    </script>
+</body>
+</html>

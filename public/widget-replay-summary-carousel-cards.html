@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replay Summary — карточки</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/replay-summary.css?v=87">
+<style>
+:root{--page-bg:#12141f;--page-muted:rgba(255,255,255,.55)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  min-height:100%;
+  font-family:'Exo 2',sans-serif;
+  color:#fff;
+  background:var(--page-bg);
+  -webkit-font-smoothing:antialiased;
+}
+.page{
+  max-width:1080px;
+  margin:0 auto;
+  padding:28px 20px 48px;
+}
+.page-head{
+  display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;
+  gap:16px 24px;margin-bottom:28px;
+  padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.08);
+}
+.page-head h1{
+  font-size:1.15rem;font-weight:800;letter-spacing:.04em;
+}
+.page-head p{
+  font-size:.78rem;color:var(--page-muted);line-height:1.5;margin-top:6px;max-width:520px;
+}
+.page-links{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+}
+.page-links a{
+  font-size:.72rem;font-weight:700;text-decoration:none;color:#37d6ff;
+  padding:7px 12px;border-radius:6px;
+  border:1px solid rgba(55,214,255,.28);background:rgba(55,214,255,.08);
+}
+.page-links a:hover{background:rgba(55,214,255,.16)}
+.page-links a.secondary{color:rgba(255,255,255,.75);border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04)}
+.page-note{
+  grid-column:1/-1;
+  font-size:.72rem;color:rgba(255,255,255,.42);line-height:1.45;
+  margin-bottom:8px;
+}
+#cardsRoot{min-height:200px}
+.rs-card-sheet-head{display:none!important}
+.waiting{
+  padding:32px;text-align:center;color:var(--page-muted);
+  font-size:.85rem;border-radius:12px;border:1px dashed rgba(255,255,255,.12);
+}
+.hidden{display:none!important}
+</style>
+<script src="/replay-summary-ui.js?v=87"></script>
+</head>
+<body>
+<div class="page">
+  <header class="page-head">
+    <div>
+      <h1>Итоги боя — все карточки</h1>
+      <p>Четыре карточки на одной странице, без карусели. Клик по карточке — правка текста в превью.</p>
+    </div>
+    <nav class="page-links">
+      <a href="/widget-replay-summary-carousel?demo=1">Карусель demo</a>
+      <a href="/widget-replay-summary?demo=1" class="secondary">Полный итог</a>
+    </nav>
+  </header>
+  <p class="page-note">Правки вёрстки — в <code>replay-summary-ui.js</code> (<code>renderBlitz*</code>).</p>
+  <div id="cardsRoot"><div class="waiting" id="waiting">Загрузка демо…</div></div>
+</div>
+<script>
+const root = document.getElementById('cardsRoot');
+const waiting = document.getElementById('waiting');
+let retries = 0;
+
+function render() {
+  if (!window.ReplaySummaryUI || !window.ReplaySummaryUI.demoSummary) {
+    if (retries++ < 40) {
+      setTimeout(render, 50);
+      return;
+    }
+    if (waiting) waiting.textContent = 'Не удалось загрузить replay-summary-ui.js';
+    return;
+  }
+
+  const summary = window.ReplaySummaryUI.demoSummary();
+  const html = window.ReplaySummaryUI.renderSummaryCarouselCardsHtml(summary, { editable: true });
+
+  if (waiting) waiting.classList.add('hidden');
+  root.innerHTML = html || '<div class="waiting">Нет данных для карточек</div>';
+  root.querySelectorAll('.rs-card-sheet-head').forEach((el) => el.remove());
+}
+
+render();
+</script>
+</body>
+</html>

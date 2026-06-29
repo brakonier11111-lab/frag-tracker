@@ -1,0 +1,2614 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Полоска сбора донатов | ФРАГ-ТРЕКЕР</title>
+    <link rel="preload" href="/components/sidebar.html" as="fetch">
+    <link rel="preload" href="/components/header.html" as="fetch">
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Cuprum:wght@400;500;600;700&display=swap');
+        /* Стили для страницы полоски сбора */
+        .page-header {
+            text-align: center;
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .page-title {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            margin-bottom: var(--spacing-md);
+            background: var(--gradient-neon);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.1rem;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Виджет превью */
+        .widget-preview {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: calc(70px + var(--spacing-lg));
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+        }
+
+        .preview-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-neon-blue);
+            margin-bottom: var(--spacing-lg);
+            text-align: center;
+        }
+
+        /* Полоска прогресса */
+        .progress-container {
+            margin: var(--spacing-xl) 0;
+            position: relative;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 56px;
+            background:
+                radial-gradient(120% 140% at 15% 10%, rgba(121, 159, 255, 0.2) 0%, transparent 45%),
+                linear-gradient(155deg, rgba(8, 12, 30, 0.95) 0%, rgba(6, 10, 22, 0.86) 52%, rgba(18, 26, 47, 0.9) 100%);
+            border-radius: 999px;
+            overflow: visible;
+            position: relative;
+            border: 2px solid rgba(196, 216, 255, 0.22);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.25),
+                inset 0 -1px 0 rgba(114, 157, 255, 0.2),
+                0 10px 28px rgba(0, 0, 0, 0.44),
+                0 0 36px rgba(79, 116, 255, 0.14);
+        }
+
+        .progress-bar-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: inherit;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(100deg, #4b8cff 0%, #7a5cff 38%, #00d7ff 100%);
+            border-radius: inherit;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                0 0 24px rgba(88, 137, 255, 0.55),
+                0 0 54px rgba(58, 112, 255, 0.32);
+            isolation: isolate;
+        }
+
+        /* Свечение у правого края заполнения - вытянутый конус */
+        .progress-fill::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -4px;
+            bottom: -2px;
+            width: 20px;
+            background: radial-gradient(ellipse 80% 100% at right center, 
+                var(--glow-color, rgba(255, 255, 255, 0.6)) 0%,
+                var(--glow-color, rgba(255, 255, 255, 0.5)) 20%,
+                var(--glow-color, rgba(255, 255, 255, 0.3)) 40%,
+                var(--glow-color, rgba(255, 255, 255, 0.15)) 60%,
+                transparent 80%);
+            border-radius: 0 var(--bar-radius, 25px) var(--bar-radius, 25px) 0;
+            filter: blur(1.5px);
+            opacity: 0.9;
+            pointer-events: none;
+            z-index: 1;
+            transform: scaleY(1.1);
+        }
+
+        /* Эффект волны при увеличении полоски */
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.4) 50%, 
+                transparent 100%);
+            transform: translateX(-100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .progress-fill.animating::after {
+            animation: fill-wave 0.6s ease-out;
+        }
+
+        @keyframes fill-wave {
+            0% {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Эффект пульсации при увеличении */
+        @keyframes fill-pulse {
+            0% {
+                transform: scaleY(1);
+            }
+            50% {
+                transform: scaleY(1.03);
+            }
+            100% {
+                transform: scaleY(1);
+            }
+        }
+
+        .progress-fill.animating {
+            animation: fill-pulse 0.4s ease-out;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding: 6px 2px 2px;
+            border-radius: 0;
+            background: transparent;
+            border: none;
+            border-top: 1px solid rgba(185, 211, 255, 0.2);
+        }
+
+        .progress-amount {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.85rem;
+            color: #eff6ff;
+            font-weight: 700;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+        }
+
+        .progress-percentage {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.82rem;
+            color: #9fffc3;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.9);
+            font-weight: 700;
+        }
+
+        .progress-fill {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 14px;
+        }
+
+        .progress-fill-inner-current {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            z-index: 4;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.86rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            color: #f7fbff;
+            white-space: nowrap;
+            pointer-events: none;
+            text-shadow:
+                0 1px 0 rgba(0, 0, 0, 0.92),
+                0 0 10px rgba(0, 0, 0, 0.45),
+                0 0 16px rgba(150, 194, 255, 0.24);
+        }
+
+        .progress-text.mode-scale {
+            margin-top: 4px;
+            padding-top: 2px;
+            border-top: none;
+        }
+
+        /* Статистика */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--color-neon-blue);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Панель управления */
+        .control-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .panel-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-neon-purple);
+            margin-bottom: var(--spacing-lg);
+            text-align: center;
+        }
+
+        .control-section {
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .control-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: var(--spacing-md);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .premium-advanced {
+            background: linear-gradient(160deg, rgba(11, 18, 36, 0.92) 0%, rgba(8, 14, 28, 0.82) 100%);
+            border: 1px solid rgba(157, 182, 235, 0.26);
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 34px rgba(0, 0, 0, 0.35);
+        }
+
+        .premium-advanced .section-title {
+            color: #e4eeff;
+            letter-spacing: 0.12em;
+            margin-bottom: 6px;
+        }
+
+        .premium-advanced-subtitle {
+            margin: 0 0 14px 0;
+            color: rgba(198, 214, 246, 0.76);
+            font-size: 0.84rem;
+            line-height: 1.45;
+        }
+
+        .premium-advanced .form-group {
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(129, 156, 210, 0.18);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0));
+        }
+
+        .premium-advanced .form-label {
+            color: #e8f0ff;
+            font-size: 0.86rem;
+            letter-spacing: 0.02em;
+        }
+
+        .color-row {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .color-row .form-input[type="color"] {
+            width: 60px;
+            padding: 4px;
+            border-radius: 8px;
+            border-color: rgba(166, 191, 245, 0.48);
+            background: rgba(8, 12, 24, 0.85);
+        }
+
+        .premium-save-btn {
+            margin-top: var(--spacing-md);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            background: linear-gradient(140deg, #2f62ff 0%, #3d86ff 45%, #5f9dff 100%);
+            border: 1px solid rgba(181, 210, 255, 0.46);
+            box-shadow: 0 10px 28px rgba(47, 98, 255, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+        }
+
+        /* История донатов */
+        .donations-history {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: var(--spacing-lg);
+        }
+
+        .donation-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-sm) var(--spacing-md);
+            margin-bottom: var(--spacing-xs);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-base);
+        }
+
+        .donation-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateX(4px);
+        }
+
+        .donation-info {
+            flex: 1;
+        }
+
+        .donation-username {
+            font-weight: 600;
+            color: var(--color-light);
+            margin-bottom: 2px;
+        }
+
+        .donation-message {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .donation-amount {
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--color-neon-green);
+        }
+
+        .donation-time {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-xl);
+            color: rgba(255, 255, 255, 0.4);
+            font-style: italic;
+        }
+
+        /* OBS ссылка */
+        .obs-link-section {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .obs-link-input {
+            width: 100%;
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            color: var(--color-light);
+            font-size: 0.9rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Анимация достижения цели */
+        .goal-reached .progress-fill {
+            background: var(--gradient-warning);
+            animation: celebration 0.5s ease-in-out;
+        }
+
+        @keyframes celebration {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Анимации для пресетов */
+        @keyframes neon-pulse {
+            0%, 100% { 
+                box-shadow: 0 0 40px rgba(0, 240, 255, 0.8), 0 0 80px rgba(179, 0, 255, 0.6);
+            }
+            50% { 
+                box-shadow: 0 0 60px rgba(0, 240, 255, 1), 0 0 120px rgba(179, 0, 255, 0.9);
+            }
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes gradient-flow {
+            0% { 
+                background: linear-gradient(90deg, var(--gradient-color1) 0%, var(--gradient-color2) 50%, var(--gradient-color1) 100%);
+                background-position: 0% 50%;
+            }
+            50% { 
+                background: linear-gradient(90deg, var(--gradient-color2) 0%, var(--gradient-color1) 50%, var(--gradient-color2) 100%);
+                background-position: 100% 50%;
+            }
+            100% { 
+                background: linear-gradient(90deg, var(--gradient-color1) 0%, var(--gradient-color2) 50%, var(--gradient-color1) 100%);
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Анимация переливающегося градиента будет создаваться динамически */
+
+        @keyframes colorful-move {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 300% 0%; }
+        }
+
+        @keyframes pulse-color {
+            0%, 100% { filter: saturate(1) brightness(1); }
+            50% { filter: saturate(1.08) brightness(1.06); }
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(102, 126, 234, 0.9);
+            }
+        }
+
+        @keyframes fire-flow {
+            0% { background-position: 46% 94%, 4% 90%; }
+            20% { background-position: 52% 68%, 34% 72%; }
+            40% { background-position: 49% 36%, 63% 38%; }
+            60% { background-position: 54% 18%, 88% 22%; }
+            80% { background-position: 50% 56%, 46% 58%; }
+            100% { background-position: 46% 94%, 4% 90%; }
+        }
+
+        @keyframes fire-flicker {
+            0%, 100% { filter: saturate(1.02) brightness(1.01); }
+            30% { filter: saturate(1.12) brightness(1.06); }
+            65% { filter: saturate(1.06) brightness(0.99); }
+        }
+
+        @keyframes champagne-flow {
+            0% { background-position: 0% 52%, 14% 96%, 64% 92%, 88% 90%, 0% 0%; }
+            25% { background-position: 36% 50%, 20% 70%, 60% 66%, 80% 64%, 0% 0%; }
+            50% { background-position: 100% 48%, 28% 44%, 52% 40%, 70% 38%, 0% 0%; }
+            75% { background-position: 62% 50%, 18% 68%, 58% 62%, 78% 58%, 0% 0%; }
+            100% { background-position: 0% 52%, 14% 96%, 64% 92%, 88% 90%, 0% 0%; }
+        }
+
+        /* Пресеты */
+        .preset-btn.active {
+            background: var(--gradient-primary);
+            border-color: var(--color-neon-purple);
+            box-shadow: var(--shadow-glow-purple);
+            transform: scale(1.05);
+        }
+
+        .widget-preview .widget-title {
+            font-family: 'Cuprum', 'Oswald', var(--font-display), sans-serif;
+            display: block;
+            max-width: calc(100% - 10px);
+            font-size: 1.26rem;
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+            margin-top: 14px;
+            margin-bottom: 4px;
+            color: #f8fcff;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.96), 0 0 12px rgba(120, 170, 255, 0.32), 0 2px 6px rgba(0, 0, 0, 0.42);
+            letter-spacing: 0.12em;
+            line-height: 1.12;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            -webkit-text-stroke: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Боковое меню -->
+        <div id="sidebar-placeholder"></div>
+        
+        <!-- Верхняя панель -->
+        <div id="header-placeholder"></div>
+        
+        <!-- Основной контент -->
+        <main class="app-main">
+            <div class="page-header">
+                <h1 class="page-title">Полоска сбора донатов</h1>
+                <p class="page-subtitle">Управление сбором и отслеживание прогресса</p>
+            </div>
+
+            <div class="content-grid">
+                <!-- Панель управления -->
+                <div class="control-panel">
+                    <h2 class="panel-title">Настройки сбора</h2>
+
+                    <!-- Основные настройки -->
+                    <div class="control-section">
+                        <div class="section-title">Основные параметры</div>
+                        <div class="form-group">
+                            <label class="form-label">Название сбора</label>
+                            <input type="text" id="goal-title" class="form-input" placeholder="Сбор на новый контент">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Целевая сумма (₽)</label>
+                            <input type="number" id="goal-target" class="form-input" placeholder="10000" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Текущая сумма (₽)</label>
+                            <input type="number" id="goal-current" class="form-input" placeholder="0" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Ручное управление -->
+                    <div class="control-section">
+                        <div class="section-title">Ручное управление</div>
+                        <div class="form-group">
+                            <label class="form-label">Добавить сумму (₽)</label>
+                            <input type="number" id="manual-amount" class="form-input" placeholder="100" min="1">
+                            <button class="btn btn-success" onclick="addManualDonation()" style="width: 100%; margin-top: var(--spacing-sm);">
+                                ➕ Добавить донат
+                            </button>
+                        </div>
+                        <div class="btn-group" style="display: flex; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+                            <button class="btn btn-primary" onclick="saveGoal()" style="flex: 1;">
+                                💾 Сохранить
+                            </button>
+                            <button class="btn btn-warning" onclick="resetGoal()" style="flex: 1;">
+                                🔄 Обнулить
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Настройки дизайна -->
+                    <div class="control-section">
+                        <div class="section-title">Настройки отображения</div>
+                        <div class="form-group">
+                            <label class="form-label" style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
+                                <input type="checkbox" id="show-title" checked style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>Показывать название сбора</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
+                                <input type="checkbox" id="show-current" checked style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>Показывать текущую сумму</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
+                                <input type="checkbox" id="show-current-inside" checked style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>Если скрыта снизу, показывать собранную сумму внутри полоски</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Режим текста</label>
+                            <select id="text-display-mode" class="form-select">
+                                <option value="default">Обычный (нижняя строка + адаптив внутри)</option>
+                                <option value="centered-scale">Режим 2: сумма внутри по центру + 0/цель снизу</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ширина полоски: <span id="bar-width-percent-value">100%</span></label>
+                            <input type="range" id="bar-width-percent" class="form-input" min="55" max="100" step="1" value="100">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
+                                <input type="checkbox" id="show-target" checked style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>Показывать целевую сумму</span>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
+                                <input type="checkbox" id="show-percentage" checked style="width: 18px; height: 18px; cursor: pointer;">
+                                <span>Показывать процент</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Пресеты дизайна -->
+                    <div class="control-section">
+                        <div class="section-title">Пресеты дизайна</div>
+                        <div class="presets-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-sm);">
+                            <button class="btn btn-ghost preset-btn" onclick="applyPreset('classic', true)" data-preset="classic">
+                                🎨 Классический
+                            </button>
+                            <button class="btn btn-ghost preset-btn" onclick="applyPreset('minimal', true)" data-preset="minimal">
+                                ✨ Минималистичный
+                            </button>
+                            <button class="btn btn-ghost preset-btn" onclick="applyPreset('neon', true)" data-preset="neon">
+                                💫 Неоновый
+                            </button>
+                            <button class="btn btn-ghost preset-btn" onclick="applyPreset('gradient', true)" data-preset="gradient">
+                                🌈 Градиентный
+                            </button>
+                            <button class="btn btn-ghost preset-btn" onclick="applyPreset('dark', true)" data-preset="dark">
+                                🌑 Темный
+                            </button>
+                            <button class="btn btn-ghost preset-btn" onclick="applyPreset('colorful', true)" data-preset="colorful">
+                                🎭 Яркий
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Расширенные настройки дизайна -->
+                    <div class="control-section premium-advanced">
+                        <div class="section-title">Расширенные настройки</div>
+                        <p class="premium-advanced-subtitle">Точная настройка строгого визуального стиля, материалов и динамики анимации.</p>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Тип заливки</label>
+                            <select id="fill-type" class="form-input" onchange="updateCustomDesign()">
+                                <option value="gradient">Градиент</option>
+                                <option value="solid">Сплошной цвет</option>
+                                <option value="animated-gradient">Анимированный градиент</option>
+                                <option value="pulse">Пульсирующий</option>
+                                <option value="shine">Переливающийся</option>
+                                <option value="fire">Огонь</option>
+                                <option value="champagne">Шампанское</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="color1-group">
+                            <label class="form-label">Цвет 1</label>
+                            <div class="color-row">
+                                <input type="color" id="color1" value="#667eea" class="form-input" onchange="updateCustomDesign()">
+                                <input type="text" id="color1-text" value="#667eea" class="form-input" onchange="updateColorFromText('color1')">
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="color2-group">
+                            <label class="form-label">Цвет 2 (для градиента)</label>
+                            <div class="color-row">
+                                <input type="color" id="color2" value="#764ba2" class="form-input" onchange="updateCustomDesign()">
+                                <input type="text" id="color2-text" value="#764ba2" class="form-input" onchange="updateColorFromText('color2')">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Высота полоски (px)</label>
+                            <input type="number" id="bar-height" value="50" min="8" max="100" class="form-input" onchange="updateCustomDesign()">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Скругление углов (px)</label>
+                            <input type="number" id="bar-radius" value="25" min="0" max="50" class="form-input" onchange="updateCustomDesign()">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Эффект свечения</label>
+                            <select id="glow-effect" class="form-input" onchange="updateCustomDesign()">
+                                <option value="none">Нет</option>
+                                <option value="soft">Мягкое</option>
+                                <option value="medium">Среднее</option>
+                                <option value="strong">Сильное</option>
+                                <option value="pulse">Пульсирующее</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Форма полоски</label>
+                            <select id="bar-shape" class="form-input" onchange="updateCustomDesign()">
+                                <option value="capsule">Капсула</option>
+                                <option value="rounded">Скруглённая</option>
+                                <option value="soft-square">Мягкий прямоугольник</option>
+                                <option value="square">Прямоугольник</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Текстура заливки</label>
+                            <select id="fill-texture" class="form-input" onchange="updateCustomDesign()">
+                                <option value="glass">Glass</option>
+                                <option value="neon">Neon</option>
+                                <option value="matte">Matte</option>
+                                <option value="striped">Striped</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Свечение снаружи</label>
+                            <select id="outer-glow-effect" class="form-input" onchange="updateCustomDesign()">
+                                <option value="none">Нет</option>
+                                <option value="soft">Мягкое</option>
+                                <option value="medium">Среднее</option>
+                                <option value="strong">Сильное</option>
+                                <option value="pulse">Пульсирующее</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Свечение внутри трека</label>
+                            <select id="inner-glow-effect" class="form-input" onchange="updateCustomDesign()">
+                                <option value="none">Нет</option>
+                                <option value="soft">Мягкое</option>
+                                <option value="medium">Среднее</option>
+                                <option value="strong">Сильное</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Свечение заполнения</label>
+                            <select id="fill-glow-effect" class="form-input" onchange="updateCustomDesign()">
+                                <option value="none">Нет</option>
+                                <option value="soft">Мягкое</option>
+                                <option value="medium">Среднее</option>
+                                <option value="strong">Сильное</option>
+                                <option value="pulse">Пульсирующее</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Цвет трека (фон полоски)</label>
+                            <div class="color-row">
+                                <input type="color" id="track-color" value="#0b1328" class="form-input" onchange="updateCustomDesign()">
+                                <input type="text" id="track-color-text" value="#0b1328" class="form-input" onchange="updateColorFromText('track-color')">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Цвет рамки</label>
+                            <div class="color-row">
+                                <input type="color" id="border-color" value="#b7cdff" class="form-input" onchange="updateCustomDesign()">
+                                <input type="text" id="border-color-text" value="#b7cdff" class="form-input" onchange="updateColorFromText('border-color')">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Толщина рамки (px)</label>
+                            <input type="number" id="border-width" value="2" min="0" max="8" class="form-input" onchange="updateCustomDesign()">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Цвет текста</label>
+                            <div class="color-row">
+                                <input type="color" id="text-color" value="#eaf2ff" class="form-input" onchange="updateCustomDesign()">
+                                <input type="text" id="text-color-text" value="#eaf2ff" class="form-input" onchange="updateColorFromText('text-color')">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Скорость анимации (0.4 - 2.5)</label>
+                            <input type="number" id="animation-speed" value="1" min="0.4" max="2.5" step="0.1" class="form-input" onchange="updateCustomDesign()">
+                        </div>
+
+                        <button class="btn premium-save-btn" onclick="saveCustomDesign()" style="width: 100%;">
+                            Сохранить кастомный дизайн
+                        </button>
+                    </div>
+
+                    <!-- Ссылка для OBS -->
+                    <div class="control-section">
+                        <div class="section-title">Виджет для OBS</div>
+                        <div class="obs-link-section">
+                            <input type="text" id="obs-url" class="obs-link-input" value="http://localhost:3000/widget/donation-goal" readonly>
+                            <button class="btn btn-primary" onclick="copyObsUrl()" style="width: 100%;">
+                                📋 Копировать ссылку
+                            </button>
+                            <p style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.5); margin-top: var(--spacing-sm); text-align: center;">
+                                Используйте эту ссылку в OBS как Browser Source
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="section-title">Медиа и эффекты</div>
+                        <div class="form-group">
+                            <label class="form-label">Фоновое медиа</label>
+                            <select id="media-type" class="form-input" onchange="onMediaSettingsChanged()">
+                                <option value="none">Нет</option>
+                                <option value="image">Изображение</option>
+                                <option value="video">Видео/WebM</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">URL медиа</label>
+                            <input type="text" id="media-url" class="form-input" placeholder="https://... или /assets/...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Прозрачность оверлея (0..1)</label>
+                            <input type="number" id="media-overlay" class="form-input" min="0" max="1" step="0.05" value="0.2" onchange="onMediaSettingsChanged()">
+                        </div>
+                        <button class="btn btn-primary" onclick="applyMediaSettings()" style="width:100%;">Применить медиа</button>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="section-title">Профили OBS</div>
+                        <div class="form-group">
+                            <label class="form-label">Название профиля</label>
+                            <input type="text" id="obs-profile-name" class="form-input" placeholder="Например: Overlay">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveObsProfile()" style="width:100%; margin-bottom:8px;">Сохранить профиль</button>
+                        <div id="obs-profiles-list" class="donations-history"><div class="empty-state">Пока нет профилей</div></div>
+                    </div>
+
+                    <div class="control-section">
+                        <div class="section-title">Импорт/Экспорт и безопасность</div>
+                        <div class="manage-row">
+                            <button class="btn btn-secondary" onclick="exportWidgetConfig()">Экспорт JSON</button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('import-config-file').click()">Импорт JSON</button>
+                            <button class="btn btn-secondary" onclick="undoSettings()">Undo</button>
+                            <button class="btn btn-secondary" onclick="redoSettings()">Redo</button>
+                        </div>
+                        <input type="file" id="import-config-file" accept="application/json" style="display:none;">
+                        <div class="manage-row">
+                            <button class="btn btn-secondary" onclick="createSnapshot()">Создать snapshot</button>
+                            <button class="btn btn-secondary" onclick="loadSnapshots()">Обновить snapshots</button>
+                        </div>
+                        <div id="snapshot-list" class="donations-history"><div class="empty-state">Snapshot-ов пока нет</div></div>
+                    </div>
+
+                    <!-- История донатов -->
+                    <div class="control-section">
+                        <div class="section-title">История донатов</div>
+                        <div class="donations-history" id="donationsHistory">
+                            <div class="empty-state">Загрузка истории...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Превью виджета -->
+                <div class="widget-preview">
+                    <h3 class="preview-title">Превью виджета</h3>
+                    
+                    <div class="progress-container">
+                        <h1 class="widget-title" id="preview-widget-title" style="display: block;">Сбор донатов</h1>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-fill" id="preview-progress" style="width: 0%"></div>
+                            <span class="progress-fill-inner-current" id="preview-current-inside">0 ₽</span>
+                        </div>
+                        <div class="progress-text">
+                            <span class="progress-amount" id="preview-current">0 ₽</span>
+                            <span class="progress-percentage" id="preview-percentage">0%</span>
+                            <span class="progress-amount" id="preview-target">0 ₽</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Глобальное состояние
+        let goalState = {
+            title: 'Сбор донатов',
+            target_amount: 10000,
+            current_amount: 0,
+            total_donations: 0,
+            avg_donation: 0,
+            settings: {
+                showTitle: true,
+                showCurrent: true,
+                showCurrentInsideBar: true,
+                textDisplayMode: 'default',
+                barWidthPercent: 100,
+                showTarget: true,
+                showPercentage: true,
+                preset: 'classic'
+            }
+        };
+
+        let ws = null;
+        let updateInterval = null;
+        let titleInputChanged = false;
+        let undoStack = [];
+        let redoStack = [];
+        let customDesignDirty = false;
+        let customDesignAutosaveTimer = null;
+        let customDesignSaveInFlight = false;
+
+        const GoalApi = {
+            async getGoal() {
+                const response = await fetch('/api/donation-goal');
+                if (!response.ok) throw new Error('goal api failed');
+                return response.json();
+            },
+            async putGoal(payload) {
+                const response = await fetch('/api/donation-goal', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error('goal save failed');
+                return response.json();
+            },
+            async exportConfig() {
+                const response = await fetch('/api/donation-goal/export');
+                if (!response.ok) throw new Error('export failed');
+                return response.json();
+            },
+            async importConfig(payload) {
+                const response = await fetch('/api/donation-goal/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error('import failed');
+                return response.json();
+            },
+            async listSnapshots() {
+                const response = await fetch('/api/donation-goal/snapshots');
+                if (!response.ok) throw new Error('snapshots failed');
+                return response.json();
+            },
+            async createSnapshot(action) {
+                const response = await fetch('/api/donation-goal/snapshots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action })
+                });
+                if (!response.ok) throw new Error('create snapshot failed');
+                return response.json();
+            },
+            async restoreSnapshot(id) {
+                const response = await fetch(`/api/donation-goal/snapshots/${id}/restore`, { method: 'POST' });
+                if (!response.ok) throw new Error('restore snapshot failed');
+                return response.json();
+            }
+        };
+
+        function normalizeClientSettings(input) {
+            const defaults = {
+                showTitle: true,
+                showCurrent: true,
+                showCurrentInsideBar: true,
+                textDisplayMode: 'default',
+                barWidthPercent: 100,
+                showTarget: true,
+                showPercentage: true,
+                preset: 'classic',
+                media: { enabled: false, type: 'none', url: '', overlayOpacity: 0.2, fit: 'cover' },
+                obsProfiles: [{ id: 'default', name: 'Default', description: 'Base profile', overrides: {} }],
+                animations: { onDonation: 'fill-wave', onGoalReach: 'celebration', loop: 'none', speed: 1 }
+            };
+            const parsed = input && typeof input === 'object' ? input : {};
+            return {
+                ...defaults,
+                ...parsed,
+                barWidthPercent: Math.max(55, Math.min(100, Number(parsed.barWidthPercent) || 100)),
+                media: { ...defaults.media, ...(parsed.media || {}) },
+                obsProfiles: Array.isArray(parsed.obsProfiles) && parsed.obsProfiles.length ? parsed.obsProfiles : defaults.obsProfiles,
+                animations: { ...defaults.animations, ...(parsed.animations || {}) }
+            };
+        }
+
+        function pushUndoState() {
+            undoStack.push(JSON.stringify(goalState));
+            if (undoStack.length > 40) undoStack.shift();
+            redoStack = [];
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadComponents().then(() => {
+                loadGoalState().then(() => {
+                    setupSettingsHandlers();
+                    connectWebSocket();
+                    startAutoUpdate();
+                    window.addEventListener('resize', () => updatePreview());
+                    renderProfiles();
+                    loadSnapshots();
+                    const importInput = document.getElementById('import-config-file');
+                    if (importInput) {
+                        importInput.addEventListener('change', handleImportFile);
+                    }
+                });
+            });
+        });
+
+        // Загрузка компонентов
+        async function loadComponents() {
+            try {
+                const [sidebar, header] = await Promise.all([
+                    fetch('/components/sidebar.html').then(r => r.text()),
+                    fetch('/components/header.html').then(r => r.text())
+                ]);
+                document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+                document.getElementById('header-placeholder').innerHTML = header;
+            } catch (error) {
+                console.error('Ошибка загрузки компонентов:', error);
+            }
+        }
+
+        // Загрузка состояния цели
+        async function loadGoalState() {
+            try {
+                const localSettingsBeforeLoad = goalState.settings;
+                const response = await fetch('/api/donation-goal');
+                if (response.ok) {
+                    const data = await response.json();
+                    goalState = {
+                        title: data.title || 'Сбор донатов',
+                        target_amount: data.targetAmount || data.target_amount || 10000,
+                        current_amount: data.currentAmount || data.current_amount || 0,
+                        total_donations: data.totalDonations || data.total_donations || 0,
+                        avg_donation: data.avgDonation || data.avg_donation || 0,
+                        settings: goalState.settings || {
+                            showTitle: true,
+                            showCurrent: true,
+                            showCurrentInsideBar: true,
+                            textDisplayMode: 'default',
+                            barWidthPercent: 100,
+                            showTarget: true,
+                            showPercentage: true,
+                            preset: 'classic'
+                        }
+                    };
+                    
+                    // Загружаем настройки если есть
+                    if (data.settings) {
+                        try {
+                            goalState.settings = typeof data.settings === 'string' 
+                                ? JSON.parse(data.settings) 
+                                : data.settings;
+                        } catch (e) {
+                            console.warn('Ошибка парсинга настроек:', e);
+                        }
+                    }
+                    if (customDesignDirty && localSettingsBeforeLoad && localSettingsBeforeLoad.customDesign) {
+                        // Не перетираем локальные изменения дизайна до их подтвержденного сохранения
+                        goalState.settings = localSettingsBeforeLoad;
+                    }
+                    goalState.settings = normalizeClientSettings(goalState.settings);
+                    
+                    updateUI();
+                    renderProfiles();
+                    syncMediaInputs();
+                } else {
+                    // Пробуем альтернативный API
+                    const altResponse = await fetch('/api/donation-bar/state');
+                    if (altResponse.ok) {
+                        const altData = await altResponse.json();
+                        if (altData.success && altData.state) {
+                            goalState = {
+                                title: altData.state.title || 'Сбор донатов',
+                                target_amount: altData.state.target_amount || 10000,
+                                current_amount: altData.state.current_amount || 0,
+                                total_donations: 0,
+                                avg_donation: 0,
+                                settings: normalizeClientSettings(goalState.settings)
+                            };
+                            updateUI();
+                            renderProfiles();
+                            syncMediaInputs();
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки состояния:', error);
+            }
+        }
+
+        // Обновление UI
+        function updateUI() {
+            // Форма - обновляем только если пользователь не редактирует
+            if (!titleInputChanged) {
+                document.getElementById('goal-title').value = goalState.title;
+            }
+            document.getElementById('goal-target').value = goalState.target_amount;
+            document.getElementById('goal-current').value = goalState.current_amount;
+
+            // Настройки отображения
+            if (goalState.settings) {
+                const showTitle = document.getElementById('show-title');
+                const showCurrent = document.getElementById('show-current');
+                const showCurrentInside = document.getElementById('show-current-inside');
+                const textDisplayMode = document.getElementById('text-display-mode');
+                const barWidthPercent = document.getElementById('bar-width-percent');
+                const barWidthPercentValue = document.getElementById('bar-width-percent-value');
+                const showTarget = document.getElementById('show-target');
+                const showPercentage = document.getElementById('show-percentage');
+                
+                if (showTitle) showTitle.checked = goalState.settings.showTitle !== false;
+                if (showCurrent) showCurrent.checked = goalState.settings.showCurrent !== false;
+                if (showCurrentInside) showCurrentInside.checked = goalState.settings.showCurrentInsideBar !== false;
+                if (textDisplayMode) textDisplayMode.value = goalState.settings.textDisplayMode || 'default';
+                if (barWidthPercent) {
+                    const widthValue = Math.max(55, Math.min(100, Number(goalState.settings.barWidthPercent) || 100));
+                    barWidthPercent.value = widthValue;
+                    if (barWidthPercentValue) barWidthPercentValue.textContent = `${widthValue}%`;
+                }
+                if (showTarget) showTarget.checked = goalState.settings.showTarget !== false;
+                if (showPercentage) showPercentage.checked = goalState.settings.showPercentage !== false;
+                
+                // Применяем пресет или кастомный дизайн
+                if ((customDesignDirty || goalState.settings.preset === 'custom') && goalState.settings.customDesign) {
+                    setTimeout(() => {
+                        applyCustomDesign(goalState.settings.customDesign);
+                    }, 100);
+                } else if (goalState.settings.preset) {
+                    setTimeout(() => {
+                        applyPreset(goalState.settings.preset, false);
+                    }, 100);
+                }
+            }
+
+            // Обновляем превью с учетом настроек
+            updatePreview();
+            applyMediaToPreview();
+
+            // Загрузка истории
+            loadDonationsHistory();
+        }
+
+        // Форматирование валюты
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ru-RU').format(Math.round(amount)) + ' ₽';
+        }
+
+        function formatNumber(amount) {
+            return new Intl.NumberFormat('ru-RU').format(Math.round(amount));
+        }
+
+        function formatRubLabel(amount) {
+            return `${formatNumber(amount)} RUB`;
+        }
+
+        function updateInsideCurrentPosition(labelEl, wrapperEl, percentage, centered = false) {
+            if (!labelEl || !wrapperEl) return;
+            const wrapperWidth = wrapperEl.clientWidth || 0;
+            const labelWidth = labelEl.offsetWidth || 0;
+            if (!wrapperWidth || !labelWidth) return;
+
+            const minLeft = 12;
+            const maxLeft = Math.max(minLeft, wrapperWidth - labelWidth - 12);
+            if (centered) {
+                const centeredLeft = Math.max(minLeft, Math.min((wrapperWidth - labelWidth) / 2, maxLeft));
+                labelEl.style.left = `${centeredLeft}px`;
+                return;
+            }
+
+            const fillRight = wrapperWidth * (Math.max(0, Math.min(100, percentage)) / 100);
+            const insideLeft = fillRight - labelWidth - 14;
+            const adaptiveLeft = Math.max(minLeft, Math.min(insideLeft, maxLeft));
+            labelEl.style.left = `${adaptiveLeft}px`;
+        }
+
+        // Обновление превью
+        function updatePreview() {
+            const percentage = goalState.target_amount > 0 
+                ? Math.min((goalState.current_amount / goalState.target_amount) * 100, 100) 
+                : 0;
+
+            const progressFill = document.getElementById('preview-progress');
+            if (progressFill) {
+                const oldPercentage = parseFloat(progressFill.style.width) || 0;
+                
+                // Добавляем класс анимации если полоска увеличивается
+                if (percentage > oldPercentage) {
+                    progressFill.classList.add('animating');
+                    setTimeout(() => {
+                        progressFill.classList.remove('animating');
+                    }, 600);
+                }
+                
+                progressFill.style.width = percentage + '%';
+                
+                // Если используется переливающийся градиент, обновляем его с учетом процента
+                const settings = goalState.settings || {};
+                if (settings.customDesign && (settings.customDesign.fillType === 'animated-gradient' || settings.customDesign.fillType === 'shine')) {
+                    createLiquidGradientAnimation(progressFill, settings.customDesign.color1, settings.customDesign.color2, 8, percentage);
+                } else if (settings.preset === 'gradient' && settings.preset) {
+                    // Для пресета "Градиентный"
+                    createLiquidGradientAnimation(progressFill, '#ff6b6b', '#ffe66d', 8, percentage);
+                }
+            }
+            
+            // Применяем настройки отображения
+            const settings = goalState.settings || {};
+            const previewTitle = document.getElementById('preview-widget-title');
+            const progressContainerEl = document.querySelector('.widget-preview .progress-container');
+            const widthPercent = Math.max(55, Math.min(100, Number(settings.barWidthPercent) || 100));
+            if (progressContainerEl) {
+                progressContainerEl.style.width = `${widthPercent}%`;
+                progressContainerEl.style.marginLeft = 'auto';
+                progressContainerEl.style.marginRight = 'auto';
+            }
+            if (previewTitle) {
+                previewTitle.style.display = settings.showTitle !== false ? 'block' : 'none';
+                if (settings.showTitle !== false) {
+                    previewTitle.textContent = goalState.title;
+                    previewTitle.style.color = '#ffffff';
+                    previewTitle.style.textShadow = '1px 1px 0 rgba(0,0,0,0.96), 0 0 12px rgba(120,170,255,0.32), 0 2px 6px rgba(0,0,0,0.42)';
+                }
+            }
+
+            const currentEl = document.getElementById('preview-current');
+            const currentInsideEl = document.getElementById('preview-current-inside');
+            const targetEl = document.getElementById('preview-target');
+            const percentageEl = document.getElementById('preview-percentage');
+            const progressTextEl = document.querySelector('.widget-preview .progress-text');
+            const progressWrapperEl = document.querySelector('.widget-preview .progress-bar-wrapper');
+            const isMode2 = settings.textDisplayMode === 'centered-scale';
+            const showCurrentBelow = isMode2 ? true : settings.showCurrent !== false;
+            const showCurrentInside = isMode2 || (!showCurrentBelow && settings.showCurrentInsideBar !== false);
+            const hasBottomText = isMode2
+                ? true
+                : (showCurrentBelow || settings.showTarget !== false || settings.showPercentage !== false);
+
+            if (currentEl) {
+                currentEl.textContent = isMode2 ? '0' : formatCurrency(goalState.current_amount);
+                currentEl.style.display = showCurrentBelow ? 'inline' : 'none';
+            }
+            if (currentInsideEl) {
+                currentInsideEl.textContent = isMode2 ? formatRubLabel(goalState.current_amount) : formatCurrency(goalState.current_amount);
+                currentInsideEl.style.display = showCurrentInside ? 'inline' : 'none';
+                if (showCurrentInside) {
+                    updateInsideCurrentPosition(currentInsideEl, progressWrapperEl, percentage, isMode2);
+                }
+            }
+            if (targetEl) {
+                targetEl.textContent = isMode2 ? formatNumber(goalState.target_amount) : formatCurrency(goalState.target_amount);
+                targetEl.style.display = (isMode2 || settings.showTarget !== false) ? 'inline' : 'none';
+            }
+            if (percentageEl) {
+                percentageEl.textContent = Math.round(percentage) + '%';
+                percentageEl.style.display = (!isMode2 && settings.showPercentage !== false) ? 'inline' : 'none';
+            }
+            if (progressTextEl) {
+                progressTextEl.style.display = hasBottomText ? 'flex' : 'none';
+                progressTextEl.classList.toggle('mode-scale', isMode2);
+            }
+
+            // Анимация достижения цели
+            const progressBar = document.getElementById('preview-progress').parentElement;
+            if (percentage >= 100) {
+                progressBar.classList.add('goal-reached');
+            } else {
+                progressBar.classList.remove('goal-reached');
+            }
+        }
+
+        // Сохранение цели
+        async function saveGoal(options = {}) {
+            const { skipUndo = false, suppressNotification = false } = options;
+            if (customDesignSaveInFlight && suppressNotification) {
+                return;
+            }
+            customDesignSaveInFlight = suppressNotification;
+            if (!skipUndo) pushUndoState();
+            goalState.title = document.getElementById('goal-title').value || goalState.title;
+            goalState.target_amount = parseFloat(document.getElementById('goal-target').value) || goalState.target_amount;
+            goalState.current_amount = parseFloat(document.getElementById('goal-current').value) || 0;
+            
+            // Сохраняем настройки - сохраняем все существующие настройки
+            goalState.settings = normalizeClientSettings(goalState.settings || {});
+            goalState.settings.showTitle = document.getElementById('show-title').checked;
+            goalState.settings.showCurrent = document.getElementById('show-current').checked;
+            goalState.settings.showCurrentInsideBar = document.getElementById('show-current-inside').checked;
+            goalState.settings.textDisplayMode = document.getElementById('text-display-mode')?.value || 'default';
+            goalState.settings.barWidthPercent = Math.max(55, Math.min(100, parseInt(document.getElementById('bar-width-percent')?.value || '100', 10)));
+            goalState.settings.showTarget = document.getElementById('show-target').checked;
+            goalState.settings.showPercentage = document.getElementById('show-percentage').checked;
+            // Сохраняем пресет если он был установлен
+            if (!goalState.settings.preset) {
+                goalState.settings.preset = 'classic';
+            }
+            
+            titleInputChanged = false;
+
+            try {
+                let data;
+                try {
+                    data = await GoalApi.putGoal({
+                        title: goalState.title,
+                        targetAmount: goalState.target_amount,
+                        currentAmount: goalState.current_amount,
+                        settings: goalState.settings
+                    });
+                } catch (e) {
+                    // Пробуем альтернативный API
+                    const response = await fetch('/api/donation-bar/state', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: goalState.title,
+                            target_amount: goalState.target_amount,
+                            current_amount: goalState.current_amount,
+                            settings: goalState.settings
+                        })
+                    });
+                    if (!response.ok) throw new Error('Ошибка сервера');
+                    data = await response.json();
+                }
+
+                if (data) {
+                    if (data.success && data.state) {
+                        goalState = { ...goalState, ...data.state };
+                    } else if (data.title) {
+                        goalState = { ...goalState, ...data };
+                        if (data.settings) {
+                            try {
+                                goalState.settings = typeof data.settings === 'string' 
+                                    ? JSON.parse(data.settings) 
+                                    : data.settings;
+                            } catch (e) {
+                                console.warn('Ошибка парсинга настроек:', e);
+                            }
+                        }
+                    }
+                    goalState.settings = normalizeClientSettings(goalState.settings);
+                    customDesignDirty = false;
+                    updateUI();
+                    renderProfiles();
+                    syncMediaInputs();
+                    if (!suppressNotification) {
+                        showNotification('✅ Настройки сохранены', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                if (!suppressNotification) {
+                    showNotification('❌ Ошибка сохранения', 'error');
+                } else {
+                    // Тихий режим: пробуем пересохранить позже, чтобы не терять дизайн
+                    setTimeout(() => {
+                        saveGoal({ skipUndo: true, suppressNotification: true });
+                    }, 1200);
+                }
+            } finally {
+                customDesignSaveInFlight = false;
+            }
+        }
+
+        // Добавление ручного доната
+        async function addManualDonation() {
+            const amount = parseFloat(document.getElementById('manual-amount').value);
+            if (!amount || amount <= 0) {
+                showNotification('❌ Введите корректную сумму', 'error');
+                return;
+            }
+
+            try {
+                // Пробуем через donation-goal API
+                let response = await fetch('/api/donation-goal/manual-donation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount })
+                });
+
+                if (!response.ok) {
+                    // Пробуем альтернативный API
+                    response = await fetch('/api/donation-bar/add', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ amount })
+                    });
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.state) {
+                        goalState.current_amount = data.state.current_amount;
+                    } else if (data.currentAmount !== undefined) {
+                        goalState.current_amount = data.currentAmount;
+                        goalState.total_donations = data.totalDonations || goalState.total_donations;
+                        goalState.avg_donation = data.avgDonation || goalState.avg_donation;
+                    }
+                    updateUI();
+                    document.getElementById('manual-amount').value = '';
+                    showNotification(`✅ Добавлен донат ${formatCurrency(amount)}`, 'success');
+                } else {
+                    throw new Error('Ошибка сервера');
+                }
+            } catch (error) {
+                console.error('Ошибка добавления доната:', error);
+                showNotification('❌ Ошибка добавления доната', 'error');
+            }
+        }
+
+        // Обнуление цели
+        async function resetGoal() {
+            if (!confirm('⚠️ Вы уверены, что хотите обнулить сбор? Это действие нельзя отменить.')) {
+                return;
+            }
+
+            try {
+                let response = await fetch('/api/donation-goal/reset', {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    // Обнуляем через обновление состояния
+                    goalState.current_amount = 0;
+                    await saveGoal();
+                    return;
+                }
+
+                if (response.ok) {
+                    const data = await response.json();
+                    goalState = {
+                        ...goalState,
+                        current_amount: 0,
+                        total_donations: data.totalDonations || 0,
+                        avg_donation: data.avgDonation || 0
+                    };
+                    updateUI();
+                    showNotification('✅ Сбор обнулен', 'success');
+                }
+            } catch (error) {
+                console.error('Ошибка обнуления:', error);
+                showNotification('❌ Ошибка обнуления', 'error');
+            }
+        }
+
+        // Загрузка истории донатов
+        async function loadDonationsHistory() {
+            try {
+                const response = await fetch('/api/donation-goal/history');
+                if (response.ok) {
+                    const donations = await response.json();
+                    displayDonationsHistory(donations);
+                } else {
+                    document.getElementById('donationsHistory').innerHTML = 
+                        '<div class="empty-state">История недоступна</div>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки истории:', error);
+                document.getElementById('donationsHistory').innerHTML = 
+                    '<div class="empty-state">Ошибка загрузки истории</div>';
+            }
+        }
+
+        // Отображение истории донатов
+        function displayDonationsHistory(donations) {
+            const container = document.getElementById('donationsHistory');
+            
+            if (!donations || donations.length === 0) {
+                container.innerHTML = '<div class="empty-state">Пока нет донатов</div>';
+                return;
+            }
+
+            container.innerHTML = donations.slice(0, 20).map(donation => `
+                <div class="donation-item">
+                    <div class="donation-info">
+                        <div class="donation-username">${donation.username || 'Аноним'}</div>
+                        ${donation.message ? `<div class="donation-message">${donation.message}</div>` : ''}
+                        <div class="donation-time">${formatTime(donation.createdAt || donation.created_at)}</div>
+                    </div>
+                    <div class="donation-amount">${formatCurrency(donation.amount)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Форматирование времени
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Копирование ссылки OBS
+        function copyObsUrl() {
+            const input = document.getElementById('obs-url');
+            input.select();
+            document.execCommand('copy');
+            showNotification('✅ Ссылка скопирована', 'success');
+        }
+
+        // WebSocket подключение
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = () => {
+                console.log('✅ WebSocket подключен');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'DONATION_BAR_UPDATE' && data.state) {
+                    goalState = { ...goalState, ...data.state };
+                    updateUI();
+                } else if (data.type === 'DONATION_GOAL_UPDATE' && data.goal) {
+                    goalState.title = data.goal.title || goalState.title;
+                    goalState.target_amount = data.goal.targetAmount || data.goal.target_amount || goalState.target_amount;
+                    goalState.current_amount = data.goal.currentAmount || data.goal.current_amount || goalState.current_amount;
+                    if (data.goal.settings && !customDesignDirty) {
+                        goalState.settings = typeof data.goal.settings === 'string'
+                            ? JSON.parse(data.goal.settings)
+                            : data.goal.settings;
+                    }
+                    updateUI();
+                } else if (data.type === 'WIDGET_SETTINGS_UPDATE' && data.scope === 'donation-goal' && data.settings && !customDesignDirty) {
+                    goalState.settings = typeof data.settings === 'string'
+                        ? JSON.parse(data.settings)
+                        : data.settings;
+                    updateUI();
+                } else if (data.type === 'donation' && data.donation) {
+                    // Автоматическое обновление при новом донате
+                    loadGoalState();
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('❌ Ошибка WebSocket:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('🔄 Переподключение WebSocket...');
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        // Автообновление
+        function startAutoUpdate() {
+            updateInterval = setInterval(() => {
+                if (customDesignDirty) return;
+                loadGoalState();
+            }, 5000); // Обновление каждые 5 секунд
+        }
+
+        // Уведомления
+        function showNotification(message, type = 'success') {
+            // Создаем уведомление
+            const notification = document.createElement('div');
+            notification.className = `notification ${type} show`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background: ${type === 'error' ? 'var(--gradient-danger)' : 'var(--gradient-success)'};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: var(--shadow-lg);
+                z-index: 10000;
+                transform: translateX(400px);
+                transition: transform 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        function applyBarVisualTheme(progressFill, progressWrapper, config, fillPercentage = null, textSelector = '#preview-current, #preview-target, #preview-percentage, #preview-current-inside') {
+            if (!progressFill || !progressWrapper || !config) return;
+
+            const rawFillType = config.fillType || 'gradient';
+            const fillType = rawFillType === 'lava' ? 'champagne' : rawFillType;
+            const color1 = config.color1 || '#667eea';
+            const color2 = config.color2 || '#764ba2';
+            const barHeight = Number(config.barHeight) || 50;
+            const barRadius = Number(config.barRadius) || 25;
+            const glowEffect = config.glowEffect || 'medium';
+            const trackColor = config.trackColor || '#0b1328';
+            const borderColor = config.borderColor || '#b7cdff';
+            const borderWidth = Number(config.borderWidth) || 2;
+            const textColor = config.textColor || '#eaf2ff';
+            const animationSpeed = Math.max(0.4, Math.min(2.5, Number(config.animationSpeed) || 1));
+            const barShape = config.barShape || 'capsule';
+            const fillTexture = config.fillTexture || 'glass';
+            const outerGlowEffect = config.outerGlowEffect || glowEffect;
+            const innerGlowEffect = config.innerGlowEffect || 'soft';
+            const fillGlowEffect = config.fillGlowEffect || glowEffect;
+
+            const shapeRadiusByType = {
+                capsule: Math.round(barHeight / 2),
+                rounded: Math.max(12, Math.round(barHeight * 0.28)),
+                'soft-square': 10,
+                square: 0
+            };
+            const finalRadius = shapeRadiusByType[barShape] != null ? shapeRadiusByType[barShape] : barRadius;
+
+            const oldGlow = progressWrapper.querySelector('.gradient-glow');
+            if (oldGlow) oldGlow.remove();
+
+            progressWrapper.style.height = `${barHeight}px`;
+            progressWrapper.style.borderRadius = `${finalRadius}px`;
+            progressWrapper.style.borderWidth = `${borderWidth}px`;
+            progressWrapper.style.borderColor = hexToRgba(borderColor, 0.65);
+            progressWrapper.style.backgroundColor = hexToRgba(trackColor, 0.78);
+            progressWrapper.style.backgroundImage = `radial-gradient(120% 140% at 15% 10%, ${hexToRgba(color1, 0.2)} 0%, transparent 45%), linear-gradient(155deg, ${hexToRgba(trackColor, 0.94)} 0%, ${hexToRgba(trackColor, 0.78)} 100%)`;
+            progressWrapper.style.overflow = 'hidden';
+            const innerGlowShadow = {
+                none: 'inset 0 0 0 rgba(0,0,0,0)',
+                soft: `inset 0 0 14px ${hexToRgba(borderColor, 0.18)}`,
+                medium: `inset 0 0 24px ${hexToRgba(borderColor, 0.24)}`,
+                strong: `inset 0 0 34px ${hexToRgba(borderColor, 0.32)}`
+            };
+            const outerGlowShadow = {
+                none: '0 8px 18px rgba(0,0,0,0.28)',
+                soft: `0 10px 24px ${hexToRgba(color2, 0.22)}`,
+                medium: `0 12px 28px ${hexToRgba(color2, 0.30)}, 0 0 26px ${hexToRgba(color2, 0.22)}`,
+                strong: `0 14px 34px ${hexToRgba(color2, 0.42)}, 0 0 36px ${hexToRgba(color2, 0.34)}`,
+                pulse: `0 12px 28px ${hexToRgba(color2, 0.3)}`
+            };
+            progressWrapper.style.boxShadow = `${innerGlowShadow[innerGlowEffect] || innerGlowShadow.soft}, ${outerGlowShadow[outerGlowEffect] || outerGlowShadow.medium}`;
+            const wrapperAnimation = outerGlowEffect === 'pulse'
+                ? `glow-pulse ${2 / animationSpeed}s ease-in-out infinite`
+                : 'none';
+            if (progressWrapper.dataset.wrapperAnimation !== wrapperAnimation) {
+                progressWrapper.style.animation = wrapperAnimation;
+                progressWrapper.dataset.wrapperAnimation = wrapperAnimation;
+            }
+
+            progressFill.style.borderRadius = `${finalRadius}px`;
+            progressFill.style.backgroundSize = '100% 100%';
+            progressFill.style.backgroundPosition = '0% 0%';
+            progressFill.style.backgroundRepeat = 'no-repeat';
+            progressFill.style.backgroundBlendMode = 'normal';
+            progressFill.style.boxShadow = 'none';
+            progressFill.style.setProperty('--glow-color', hexToRgba(color2, 0.45));
+            progressFill.style.setProperty('--bar-radius', `${finalRadius}px`);
+
+            if (fillType === 'solid') {
+                progressFill.style.background = color1;
+            } else if (fillType === 'animated-gradient' || fillType === 'shine') {
+                const percentage = fillPercentage != null
+                    ? fillPercentage
+                    : (goalState.target_amount > 0 ? Math.min((goalState.current_amount / goalState.target_amount) * 100, 100) : 0);
+                createLiquidGradientAnimation(progressFill, color1, color2, 8 / animationSpeed, percentage);
+            } else if (fillType === 'pulse') {
+                progressFill.style.background = color1;
+                const pulseAnimation = `pulse-color ${2 / animationSpeed}s ease-in-out infinite`;
+                if (progressFill.dataset.fillAnimation !== pulseAnimation) {
+                    progressFill.style.animation = pulseAnimation;
+                    progressFill.dataset.fillAnimation = pulseAnimation;
+                }
+            } else if (fillType === 'fire') {
+                progressFill.style.backgroundImage = `
+                    linear-gradient(180deg, #fff0b2 0%, #ffc96b 14%, #ff8a29 38%, #ff4d00 68%, #9e1200 100%),
+                    radial-gradient(circle at 50% 100%, ${hexToRgba(color2, 0.45)} 0%, transparent 56%)
+                `;
+                progressFill.style.backgroundSize = '160% 220%, 220% 170%';
+                const fireAnimation = `fire-flow ${1.6 / animationSpeed}s linear infinite, fire-flicker ${0.9 / animationSpeed}s ease-in-out infinite`;
+                if (progressFill.dataset.fillAnimation !== fireAnimation) {
+                    progressFill.style.animation = fireAnimation;
+                    progressFill.dataset.fillAnimation = fireAnimation;
+                }
+            } else if (fillType === 'champagne') {
+                progressFill.style.backgroundImage = `
+                    linear-gradient(108deg, ${hexToRgba(color1, 0.84)} 0%, ${hexToRgba(color2, 0.9)} 48%, ${hexToRgba('#f6ecd7', 0.85)} 100%),
+                    radial-gradient(circle at 14% 96%, ${hexToRgba('#fff4da', 0.38)} 0%, ${hexToRgba('#fff4da', 0.38)} 2.1%, transparent 6%),
+                    radial-gradient(circle at 64% 92%, ${hexToRgba('#ffe8c1', 0.3)} 0%, ${hexToRgba('#ffe8c1', 0.3)} 1.8%, transparent 5.5%),
+                    radial-gradient(circle at 88% 90%, ${hexToRgba('#fff6e5', 0.26)} 0%, ${hexToRgba('#fff6e5', 0.26)} 1.6%, transparent 5%),
+                    linear-gradient(132deg, ${hexToRgba(color2, 0.2)} 0%, ${hexToRgba('#ffffff', 0.2)} 42%, ${hexToRgba(color1, 0.18)} 100%)
+                `;
+                progressFill.style.backgroundSize = '240% 140%, 160% 240%, 170% 260%, 180% 280%, 100% 100%';
+                progressFill.style.backgroundBlendMode = 'normal, screen, screen, screen, soft-light';
+                const champagneAnimation = `champagne-flow ${38 / animationSpeed}s cubic-bezier(0.42, 0, 0.58, 1) infinite`;
+                if (progressFill.dataset.fillAnimation !== champagneAnimation) {
+                    progressFill.style.animation = champagneAnimation;
+                    progressFill.dataset.fillAnimation = champagneAnimation;
+                }
+            } else {
+                progressFill.style.background = `linear-gradient(120deg, ${color1} 0%, ${color2} 100%)`;
+                if (progressFill.dataset.fillAnimation !== 'none') {
+                    progressFill.style.animation = 'none';
+                    progressFill.dataset.fillAnimation = 'none';
+                }
+            }
+
+            progressFill.style.filter = 'none';
+            if (!['fire', 'champagne'].includes(fillType) && fillTexture === 'neon') {
+                progressFill.style.backgroundImage = `linear-gradient(120deg, ${color1} 0%, ${color2} 100%), repeating-linear-gradient(135deg, ${hexToRgba('#ffffff', 0.12)} 0 8px, transparent 8px 16px)`;
+                progressFill.style.backgroundBlendMode = 'screen';
+            } else if (!['fire', 'champagne'].includes(fillType) && fillTexture === 'matte') {
+                progressFill.style.filter = 'saturate(0.9) brightness(0.95)';
+                progressFill.style.backgroundImage = `linear-gradient(120deg, ${hexToRgba(color1, 0.9)} 0%, ${hexToRgba(color2, 0.9)} 100%)`;
+            } else if (!['fire', 'champagne'].includes(fillType) && fillTexture === 'striped') {
+                progressFill.style.backgroundImage = `linear-gradient(120deg, ${color1} 0%, ${color2} 100%), repeating-linear-gradient(120deg, ${hexToRgba('#ffffff', 0.18)} 0 7px, transparent 7px 14px)`;
+            } else {
+                progressFill.style.filter = 'none';
+                progressFill.style.backgroundImage = progressFill.style.backgroundImage || '';
+            }
+
+            const glowByEffect = {
+                none: 'none',
+                soft: `0 0 12px ${hexToRgba(color2, 0.35)}`,
+                medium: `0 0 20px ${hexToRgba(color2, 0.45)}, 0 0 40px ${hexToRgba(color2, 0.25)}`,
+                strong: `0 0 26px ${hexToRgba(color2, 0.65)}, 0 0 56px ${hexToRgba(color2, 0.35)}`,
+                pulse: `0 0 20px ${hexToRgba(color2, 0.55)}`
+            };
+            progressFill.style.boxShadow = glowByEffect[fillGlowEffect] || glowByEffect.medium;
+            const hasNativeFlowAnimation = fillType === 'animated-gradient' || fillType === 'shine' || fillType === 'fire' || fillType === 'champagne';
+            if (fillGlowEffect === 'pulse' && !hasNativeFlowAnimation) {
+                const glowPulseAnimation = `pulse-color ${1.8 / animationSpeed}s ease-in-out infinite`;
+                if (progressFill.dataset.fillAnimation !== glowPulseAnimation) {
+                    progressFill.style.animation = glowPulseAnimation;
+                    progressFill.dataset.fillAnimation = glowPulseAnimation;
+                }
+            } else if (fillType !== 'pulse' && fillType !== 'fire' && fillType !== 'champagne' && progressFill.dataset.fillAnimation !== 'none') {
+                progressFill.style.animation = 'none';
+                progressFill.dataset.fillAnimation = 'none';
+            }
+
+            const textElements = document.querySelectorAll(textSelector);
+            textElements.forEach((el) => {
+                el.style.color = textColor;
+                el.style.textShadow = `1px 1px 0 rgba(0,0,0,0.84), 0 0 10px ${hexToRgba(textColor, 0.25)}`;
+            });
+        }
+
+        // Обновление кастомного дизайна в реальном времени (для превью)
+        function updateCustomDesign() {
+            const fillTypeEl = document.getElementById('fill-type');
+            const color1El = document.getElementById('color1');
+            const color2El = document.getElementById('color2');
+            const barHeightEl = document.getElementById('bar-height');
+            const barRadiusEl = document.getElementById('bar-radius');
+            const glowEffectEl = document.getElementById('glow-effect');
+            const trackColorEl = document.getElementById('track-color');
+            const borderColorEl = document.getElementById('border-color');
+            const borderWidthEl = document.getElementById('border-width');
+            const textColorEl = document.getElementById('text-color');
+            const animationSpeedEl = document.getElementById('animation-speed');
+            const barShapeEl = document.getElementById('bar-shape');
+            const fillTextureEl = document.getElementById('fill-texture');
+            const outerGlowEffectEl = document.getElementById('outer-glow-effect');
+            const innerGlowEffectEl = document.getElementById('inner-glow-effect');
+            const fillGlowEffectEl = document.getElementById('fill-glow-effect');
+
+            // Проверяем наличие элементов формы
+            if (!fillTypeEl || !color1El || !color2El || !barHeightEl || !barRadiusEl || !glowEffectEl || !trackColorEl || !borderColorEl || !borderWidthEl || !textColorEl || !animationSpeedEl || !barShapeEl || !fillTextureEl || !outerGlowEffectEl || !innerGlowEffectEl || !fillGlowEffectEl) {
+                console.warn('Элементы формы кастомного дизайна не найдены');
+                return;
+            }
+
+            const fillType = fillTypeEl.value;
+            const color1 = color1El.value;
+            const color2 = color2El.value;
+            const barHeight = parseInt(barHeightEl.value) || 50;
+            const barRadius = parseInt(barRadiusEl.value) || 25;
+            const glowEffect = glowEffectEl.value;
+            const trackColor = trackColorEl.value;
+            const borderColor = borderColorEl.value;
+            const borderWidth = parseInt(borderWidthEl.value) || 2;
+            const textColor = textColorEl.value;
+            const animationSpeed = Math.max(0.4, Math.min(2.5, parseFloat(animationSpeedEl.value) || 1));
+            const barShape = barShapeEl.value;
+            const fillTexture = fillTextureEl.value;
+            const outerGlowEffect = outerGlowEffectEl.value;
+            const innerGlowEffect = innerGlowEffectEl.value;
+            const fillGlowEffect = fillGlowEffectEl.value;
+
+            // Обновляем текстовые поля цветов
+            const color1TextEl = document.getElementById('color1-text');
+            const color2TextEl = document.getElementById('color2-text');
+            const trackColorTextEl = document.getElementById('track-color-text');
+            const borderColorTextEl = document.getElementById('border-color-text');
+            const textColorTextEl = document.getElementById('text-color-text');
+            if (color1TextEl) color1TextEl.value = color1;
+            if (color2TextEl) color2TextEl.value = color2;
+            if (trackColorTextEl) trackColorTextEl.value = trackColor;
+            if (borderColorTextEl) borderColorTextEl.value = borderColor;
+            if (textColorTextEl) textColorTextEl.value = textColor;
+
+            const progressFill = document.getElementById('preview-progress');
+            const progressWrapper = progressFill?.parentElement;
+            if (!progressFill || !progressWrapper) {
+                console.warn('Элементы превью не найдены');
+                return;
+            }
+
+            const percentage = goalState.target_amount > 0
+                ? Math.min((goalState.current_amount / goalState.target_amount) * 100, 100)
+                : 0;
+            applyBarVisualTheme(
+                progressFill,
+                progressWrapper,
+                { fillType, color1, color2, barHeight, barRadius, glowEffect, trackColor, borderColor, borderWidth, textColor, animationSpeed, barShape, fillTexture, outerGlowEffect, innerGlowEffect, fillGlowEffect },
+                percentage
+            );
+            goalState.settings = normalizeClientSettings(goalState.settings || {});
+            goalState.settings.preset = 'custom';
+            goalState.settings.customDesign = {
+                fillType, color1, color2, barHeight, barRadius, glowEffect, trackColor, borderColor, borderWidth, textColor, animationSpeed, barShape, fillTexture, outerGlowEffect, innerGlowEffect, fillGlowEffect
+            };
+            customDesignDirty = true;
+            if (customDesignAutosaveTimer) {
+                clearTimeout(customDesignAutosaveTimer);
+            }
+            customDesignAutosaveTimer = setTimeout(() => {
+                saveGoal({ skipUndo: true, suppressNotification: true });
+            }, 450);
+
+            // Скрываем/показываем цвет 2
+            const color2Group = document.getElementById('color2-group');
+            if (color2Group) {
+                color2Group.style.display = 
+                    (fillType === 'gradient' || fillType === 'animated-gradient' || fillType === 'shine' || fillType === 'fire' || fillType === 'champagne') ? 'block' : 'none';
+            }
+        }
+
+        // Функция для смешивания цветов
+        function blendColors(color1, color2, ratio) {
+            const hex1 = color1.replace('#', '');
+            const hex2 = color2.replace('#', '');
+            const r1 = parseInt(hex1.substr(0, 2), 16);
+            const g1 = parseInt(hex1.substr(2, 2), 16);
+            const b1 = parseInt(hex1.substr(4, 2), 16);
+            const r2 = parseInt(hex2.substr(0, 2), 16);
+            const g2 = parseInt(hex2.substr(2, 2), 16);
+            const b2 = parseInt(hex2.substr(4, 2), 16);
+            const r = Math.round(r1 + (r2 - r1) * ratio);
+            const g = Math.round(g1 + (g2 - g1) * ratio);
+            const b = Math.round(b1 + (b2 - b1) * ratio);
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        // Создание плавной бесшовной анимации перелива без перезапуска на изменении процента
+        function createLiquidGradientAnimation(element, color1, color2, duration = 8, fillPercentage = 0) {
+            const animationName = `liquid-gradient-flow-${color1.replace('#', '')}-${color2.replace('#', '')}`;
+            const styleId = `liquid-gradient-animation-${animationName}`;
+            let styleEl = document.getElementById(styleId);
+            const fillPercent = Math.min(100, Math.max(0, fillPercentage));
+
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = styleId;
+                styleEl.textContent = `
+                    @keyframes ${animationName} {
+                        0% {
+                            background-position: 0% 50%;
+                            filter: saturate(1) brightness(1);
+                        }
+                        35% {
+                            background-position: 55% 50%;
+                            filter: saturate(1.05) brightness(1.03);
+                        }
+                        65% {
+                            background-position: 100% 50%;
+                            filter: saturate(1.08) brightness(1.01);
+                        }
+                        100% {
+                            background-position: 0% 50%;
+                            filter: saturate(1) brightness(1);
+                        }
+                    }
+                `;
+                document.head.appendChild(styleEl);
+            }
+
+            const normalized = fillPercent / 100;
+            const bodyColor = blendColors(color1, color2, 0.24 + normalized * 0.28);
+            const edgeColor = blendColors(color1, color2, 0.2 + normalized * 0.55);
+
+            element.style.background = `linear-gradient(110deg, ${color1} 0%, ${bodyColor} 42%, ${edgeColor} 78%, ${color2} 100%)`;
+            element.style.backgroundSize = '220% 100%';
+            element.style.backgroundPosition = '0% 50%';
+            element.style.backgroundRepeat = 'no-repeat';
+
+            const nextAnimation = `${animationName} ${duration}s cubic-bezier(0.42, 0, 0.58, 1) infinite`;
+            if (element.dataset.fillAnimation !== nextAnimation) {
+                element.style.animation = nextAnimation;
+                element.dataset.fillAnimation = nextAnimation;
+            }
+        }
+
+        // Обновление цвета из текстового поля
+        function updateColorFromText(colorId) {
+            const textInput = document.getElementById(colorId + '-text');
+            const colorInput = document.getElementById(colorId);
+            if (textInput && colorInput) {
+                const colorValue = textInput.value.trim();
+                if (/^#[0-9A-Fa-f]{6}$/.test(colorValue)) {
+                    colorInput.value = colorValue;
+                    updateCustomDesign();
+                } else {
+                    // Если формат неправильный, возвращаем значение из color picker
+                    textInput.value = colorInput.value;
+                }
+            }
+        }
+
+        // Сохранение кастомного дизайна
+        function saveCustomDesign() {
+            const fillType = document.getElementById('fill-type').value;
+            const color1 = document.getElementById('color1').value;
+            const color2 = document.getElementById('color2').value;
+            const barHeight = parseInt(document.getElementById('bar-height').value) || 50;
+            const barRadius = parseInt(document.getElementById('bar-radius').value) || 25;
+            const glowEffect = document.getElementById('glow-effect').value;
+            const trackColor = document.getElementById('track-color').value || '#0b1328';
+            const borderColor = document.getElementById('border-color').value || '#b7cdff';
+            const borderWidth = parseInt(document.getElementById('border-width').value) || 2;
+            const textColor = document.getElementById('text-color').value || '#eaf2ff';
+            const animationSpeed = Math.max(0.4, Math.min(2.5, parseFloat(document.getElementById('animation-speed').value) || 1));
+            const barShape = document.getElementById('bar-shape').value || 'capsule';
+            const fillTexture = document.getElementById('fill-texture').value || 'glass';
+            const outerGlowEffect = document.getElementById('outer-glow-effect').value || glowEffect;
+            const innerGlowEffect = document.getElementById('inner-glow-effect').value || 'soft';
+            const fillGlowEffect = document.getElementById('fill-glow-effect').value || glowEffect;
+
+            goalState.settings = goalState.settings || {};
+            goalState.settings.customDesign = {
+                fillType,
+                color1,
+                color2,
+                barHeight,
+                barRadius,
+                glowEffect,
+                trackColor,
+                borderColor,
+                borderWidth,
+                textColor,
+                animationSpeed,
+                barShape,
+                fillTexture,
+                outerGlowEffect,
+                innerGlowEffect,
+                fillGlowEffect
+            };
+            goalState.settings.preset = 'custom';
+
+            // Сбрасываем активные пресеты
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            saveGoal();
+        }
+
+        // Функция для конвертации hex в rgba
+        function hexToRgba(hex, alpha = 1) {
+            if (typeof hex !== 'string') {
+                return `rgba(255, 255, 255, ${alpha})`;
+            }
+            if (hex.startsWith('rgba(') || hex.startsWith('rgb(')) {
+                if (hex.startsWith('rgba(')) {
+                    return hex.replace(/rgba\(([^)]+)\)/, (_, inside) => {
+                        const parts = inside.split(',').map((p) => p.trim());
+                        if (parts.length >= 3) {
+                            return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+                        }
+                        return `rgba(255, 255, 255, ${alpha})`;
+                    });
+                }
+                const m = hex.match(/rgb\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/);
+                if (m) return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
+            }
+            // Убираем # если есть
+            hex = hex.replace('#', '');
+            
+            // Если короткий формат (#RGB), расширяем до #RRGGBB
+            if (hex.length === 3) {
+                hex = hex.split('').map(char => char + char).join('');
+            }
+            
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Применение кастомного дизайна (из сохраненных настроек)
+        function applyCustomDesign(customDesign) {
+            const progressFill = document.getElementById('preview-progress');
+            const progressWrapper = progressFill?.parentElement;
+
+            if (progressFill && progressWrapper && customDesign) {
+                const {
+                    fillType,
+                    color1,
+                    color2,
+                    barHeight,
+                    barRadius,
+                    glowEffect,
+                    trackColor = '#0b1328',
+                    borderColor = '#b7cdff',
+                    borderWidth = 2,
+                    textColor = '#eaf2ff',
+                    animationSpeed = 1,
+                    barShape = 'capsule',
+                    fillTexture = 'glass',
+                    outerGlowEffect = glowEffect,
+                    innerGlowEffect = 'soft',
+                    fillGlowEffect = glowEffect
+                } = customDesign;
+
+                const setValue = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = value;
+                };
+                setValue('fill-type', fillType);
+                setValue('color1', color1);
+                setValue('color1-text', color1);
+                setValue('color2', color2);
+                setValue('color2-text', color2);
+                setValue('bar-height', barHeight);
+                setValue('bar-radius', barRadius);
+                setValue('glow-effect', glowEffect);
+                setValue('track-color', trackColor);
+                setValue('track-color-text', trackColor);
+                setValue('border-color', borderColor);
+                setValue('border-color-text', borderColor);
+                setValue('border-width', borderWidth);
+                setValue('text-color', textColor);
+                setValue('text-color-text', textColor);
+                setValue('animation-speed', animationSpeed);
+                setValue('bar-shape', barShape);
+                setValue('fill-texture', fillTexture);
+                setValue('outer-glow-effect', outerGlowEffect);
+                setValue('inner-glow-effect', innerGlowEffect);
+                setValue('fill-glow-effect', fillGlowEffect);
+                
+                const percentage = goalState.target_amount > 0
+                    ? Math.min((goalState.current_amount / goalState.target_amount) * 100, 100)
+                    : 0;
+                applyBarVisualTheme(
+                    progressFill,
+                    progressWrapper,
+                    { fillType, color1, color2, barHeight, barRadius, glowEffect, trackColor, borderColor, borderWidth, textColor, animationSpeed, barShape, fillTexture, outerGlowEffect, innerGlowEffect, fillGlowEffect },
+                    percentage
+                );
+            }
+        }
+
+        // Применение пресета
+        function applyPreset(presetName, save = true) {
+            const presets = {
+                classic: {
+                    gradient: 'linear-gradient(120deg, #5b8dff 0%, #7f67ff 100%)',
+                    barHeight: '56px',
+                    borderRadius: '28px',
+                    borderWidth: '2px',
+                    textColor: '#eaf2ff',
+                    trackColor: '#0b1328',
+                    borderColor: '#b7cdff',
+                    animationSpeed: 1,
+                    barShape: 'capsule',
+                    fillTexture: 'glass',
+                    outerGlowEffect: 'soft',
+                    innerGlowEffect: 'soft',
+                    fillGlowEffect: 'medium'
+                },
+                minimal: {
+                    gradient: 'linear-gradient(120deg, #7f8aa6 0%, #b1b8ca 100%)',
+                    barHeight: '22px',
+                    borderRadius: '10px',
+                    borderWidth: '1px',
+                    textColor: '#d9e1ef',
+                    trackColor: '#151b2a',
+                    borderColor: '#8b95ab',
+                    animationSpeed: 1,
+                    barShape: 'soft-square',
+                    fillTexture: 'matte',
+                    outerGlowEffect: 'none',
+                    innerGlowEffect: 'none',
+                    fillGlowEffect: 'none'
+                },
+                neon: {
+                    gradient: 'linear-gradient(120deg, #00eaff 0%, #2d7cff 45%, #b100ff 100%)',
+                    barHeight: '64px',
+                    borderRadius: '30px',
+                    borderWidth: '3px',
+                    textColor: '#d8f9ff',
+                    trackColor: '#081326',
+                    borderColor: '#27ddff',
+                    animationSpeed: 1.2,
+                    barShape: 'capsule',
+                    fillTexture: 'neon',
+                    outerGlowEffect: 'strong',
+                    innerGlowEffect: 'medium',
+                    fillGlowEffect: 'pulse'
+                },
+                gradient: {
+                    gradient: 'linear-gradient(120deg, #ff7a66 0%, #ffcb4f 52%, #4ecdc4 100%)',
+                    barHeight: '58px',
+                    borderRadius: '24px',
+                    borderWidth: '2px',
+                    textColor: '#fff2dd',
+                    trackColor: '#21162b',
+                    borderColor: '#ffd27a',
+                    animationSpeed: 1.1,
+                    barShape: 'rounded',
+                    fillTexture: 'glass',
+                    outerGlowEffect: 'medium',
+                    innerGlowEffect: 'soft',
+                    fillGlowEffect: 'strong',
+                    fillType: 'champagne',
+                    useLiquidGradient: true,
+                    liquidColor1: '#ff7a66',
+                    liquidColor2: '#ffe66d'
+                },
+                dark: {
+                    gradient: 'linear-gradient(120deg, #2a3342 0%, #475267 100%)',
+                    barHeight: '52px',
+                    borderRadius: '14px',
+                    borderWidth: '1px',
+                    textColor: '#d2dae5',
+                    trackColor: '#0e121a',
+                    borderColor: '#6d778a',
+                    animationSpeed: 0.9,
+                    barShape: 'soft-square',
+                    fillTexture: 'matte',
+                    outerGlowEffect: 'none',
+                    innerGlowEffect: 'medium',
+                    fillGlowEffect: 'soft'
+                },
+                colorful: {
+                    gradient: 'linear-gradient(120deg, #ff5f95 0%, #ffb84d 33%, #5fe6ff 66%, #8d7dff 100%)',
+                    barHeight: '62px',
+                    borderRadius: '30px',
+                    borderWidth: '3px',
+                    textColor: '#fff7fd',
+                    trackColor: '#1a0f24',
+                    borderColor: '#ff9ad6',
+                    animationSpeed: 1.3,
+                    barShape: 'capsule',
+                    fillType: 'fire',
+                    fillTexture: 'striped',
+                    outerGlowEffect: 'strong',
+                    innerGlowEffect: 'soft',
+                    fillGlowEffect: 'strong'
+                }
+            };
+
+            const preset = presets[presetName] || presets.classic;
+            const progressFill = document.getElementById('preview-progress');
+            const progressWrapper = progressFill.parentElement;
+            const gradientColors = (preset.gradient || '').match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/g) || ['#667eea', '#764ba2'];
+            const presetColor1 = preset.liquidColor1 || gradientColors[0] || '#667eea';
+            const presetColor2 = preset.liquidColor2 || gradientColors[gradientColors.length - 1] || '#764ba2';
+
+            if (progressFill && progressWrapper) {
+                const percentage = goalState.target_amount > 0
+                    ? Math.min((goalState.current_amount / goalState.target_amount) * 100, 100)
+                    : 0;
+                applyBarVisualTheme(
+                    progressFill,
+                    progressWrapper,
+                    {
+                        fillType: preset.fillType || (preset.useLiquidGradient ? 'animated-gradient' : 'gradient'),
+                        color1: presetColor1,
+                        color2: presetColor2,
+                        barHeight: parseInt(preset.barHeight) || 50,
+                        barRadius: parseInt(preset.borderRadius) || 25,
+                        glowEffect: preset.animation && preset.animation.includes('neon-pulse') ? 'pulse' : 'medium',
+                        trackColor: '#0b1328',
+                        borderColor: '#b7cdff',
+                        borderWidth: parseInt(preset.borderWidth) || 2,
+                        textColor: preset.textColor || '#eaf2ff',
+                        animationSpeed: Number(preset.animationSpeed) || 1,
+                        barShape: preset.barShape || 'capsule',
+                        fillTexture: preset.fillTexture || 'glass',
+                        outerGlowEffect: preset.outerGlowEffect || 'medium',
+                        innerGlowEffect: preset.innerGlowEffect || 'soft',
+                        fillGlowEffect: preset.fillGlowEffect || 'medium'
+                    },
+                    percentage
+                );
+            }
+
+            // Обновляем активный пресет
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.preset === presetName) {
+                    btn.classList.add('active');
+                }
+            });
+
+            if (save) {
+                goalState.settings = goalState.settings || {};
+                goalState.settings.preset = presetName;
+                // Сбрасываем кастомный дизайн при выборе пресета
+                delete goalState.settings.customDesign;
+                // Автоматически сохраняем при выборе пресета
+                saveGoal();
+            }
+        }
+
+        // Обработка изменений настроек
+        function setupSettingsHandlers() {
+            const checkboxes = {
+                'show-title': 'showTitle',
+                'show-current': 'showCurrent',
+                'show-current-inside': 'showCurrentInsideBar',
+                'show-target': 'showTarget',
+                'show-percentage': 'showPercentage'
+            };
+            
+            Object.keys(checkboxes).forEach(id => {
+                const checkbox = document.getElementById(id);
+                if (checkbox) {
+                    // Удаляем все старые обработчики
+                    const newCheckbox = checkbox.cloneNode(true);
+                    checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+                    
+                    // Добавляем новый обработчик на новый элемент
+                    document.getElementById(id).addEventListener('change', function() {
+                        goalState.settings = goalState.settings || {};
+                        goalState.settings[checkboxes[id]] = this.checked;
+                        
+                        // Сразу обновляем превью
+                        updatePreview();
+                        
+                        // Автоматически сохраняем
+                        saveGoal();
+                    });
+                }
+            });
+
+            const modeSelect = document.getElementById('text-display-mode');
+            if (modeSelect) {
+                modeSelect.addEventListener('change', function() {
+                    goalState.settings = normalizeClientSettings(goalState.settings || {});
+                    goalState.settings.textDisplayMode = this.value || 'default';
+                    updatePreview();
+                    saveGoal();
+                });
+            }
+
+            const widthRange = document.getElementById('bar-width-percent');
+            const widthValue = document.getElementById('bar-width-percent-value');
+            if (widthRange) {
+                widthRange.addEventListener('input', function() {
+                    const next = Math.max(55, Math.min(100, parseInt(this.value || '100', 10)));
+                    if (widthValue) widthValue.textContent = `${next}%`;
+                    goalState.settings = normalizeClientSettings(goalState.settings || {});
+                    goalState.settings.barWidthPercent = next;
+                    updatePreview();
+                });
+                widthRange.addEventListener('change', function() {
+                    const next = Math.max(55, Math.min(100, parseInt(this.value || '100', 10)));
+                    goalState.settings = normalizeClientSettings(goalState.settings || {});
+                    goalState.settings.barWidthPercent = next;
+                    saveGoal();
+                });
+            }
+        }
+
+        function syncMediaInputs() {
+            const media = normalizeClientSettings(goalState.settings).media;
+            const mediaType = document.getElementById('media-type');
+            const mediaUrl = document.getElementById('media-url');
+            const mediaOverlay = document.getElementById('media-overlay');
+            if (mediaType) mediaType.value = media.type || 'none';
+            if (mediaUrl) mediaUrl.value = media.url || '';
+            if (mediaOverlay) mediaOverlay.value = media.overlayOpacity ?? 0.2;
+        }
+
+        function applyMediaSettings() {
+            goalState.settings = normalizeClientSettings(goalState.settings);
+            const mediaType = document.getElementById('media-type')?.value || 'none';
+            const mediaUrl = document.getElementById('media-url')?.value?.trim() || '';
+            const mediaOverlay = parseFloat(document.getElementById('media-overlay')?.value || '0.2');
+            goalState.settings.media = {
+                enabled: mediaType !== 'none' && !!mediaUrl,
+                type: mediaType,
+                url: mediaUrl,
+                overlayOpacity: isNaN(mediaOverlay) ? 0.2 : Math.max(0, Math.min(1, mediaOverlay)),
+                fit: 'cover'
+            };
+            applyMediaToPreview();
+            saveGoal();
+        }
+
+        function onMediaSettingsChanged() {
+            goalState.settings = normalizeClientSettings(goalState.settings);
+            const mediaType = document.getElementById('media-type')?.value || 'none';
+            goalState.settings.media.type = mediaType;
+            applyMediaToPreview();
+        }
+
+        function applyMediaToPreview() {
+            const media = normalizeClientSettings(goalState.settings).media;
+            const container = document.querySelector('.widget-preview');
+            if (!container) return;
+            container.style.backgroundImage = '';
+            container.style.backgroundSize = '';
+            container.style.backgroundColor = '';
+            const oldVideo = container.querySelector('.preview-bg-video');
+            if (oldVideo) oldVideo.remove();
+
+            if (!media.enabled || !media.url || media.type === 'none') {
+                container.style.backgroundColor = 'transparent';
+                return;
+            }
+            if (media.type === 'image') {
+                container.style.backgroundImage = `linear-gradient(rgba(0,0,0,${media.overlayOpacity}), rgba(0,0,0,${media.overlayOpacity})), url("${media.url}")`;
+                container.style.backgroundSize = 'cover';
+            } else if (media.type === 'video') {
+                const video = document.createElement('video');
+                video.className = 'preview-bg-video';
+                video.src = media.url;
+                video.autoplay = true;
+                video.muted = true;
+                video.loop = true;
+                video.playsInline = true;
+                video.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:' + (1 - media.overlayOpacity) + '; z-index:0; pointer-events:none;';
+                container.style.position = 'relative';
+                container.prepend(video);
+            }
+        }
+
+        function renderProfiles() {
+            goalState.settings = normalizeClientSettings(goalState.settings);
+            const list = document.getElementById('obs-profiles-list');
+            if (!list) return;
+            const profiles = goalState.settings.obsProfiles || [];
+            if (!profiles.length) {
+                list.innerHTML = '<div class="empty-state">Пока нет профилей</div>';
+                return;
+            }
+            list.innerHTML = profiles.map((profile) => {
+                const url = `${window.location.origin}/widget/donation-goal?profile=${encodeURIComponent(profile.id)}`;
+                return `
+                    <div class="donation-item">
+                        <div class="donation-info">
+                            <div class="donation-username">${profile.name}</div>
+                            <div class="donation-time">${profile.description || 'Без описания'}</div>
+                            <div class="donation-time">${url}</div>
+                        </div>
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-secondary" onclick="copyProfileUrl('${profile.id}')">Copy</button>
+                            <button class="btn btn-secondary" onclick="removeObsProfile('${profile.id}')">X</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function saveObsProfile() {
+            goalState.settings = normalizeClientSettings(goalState.settings);
+            const input = document.getElementById('obs-profile-name');
+            const profileName = (input?.value || '').trim();
+            if (!profileName) {
+                showNotification('❌ Введите название профиля', 'error');
+                return;
+            }
+            const profileId = profileName.toLowerCase().replace(/[^a-z0-9а-яё]+/gi, '-').replace(/^-+|-+$/g, '') || `profile-${Date.now()}`;
+            const snapshot = JSON.parse(JSON.stringify(goalState.settings));
+            goalState.settings.obsProfiles = (goalState.settings.obsProfiles || []).filter((p) => p.id !== profileId);
+            goalState.settings.obsProfiles.push({
+                id: profileId,
+                name: profileName,
+                description: 'Saved from editor',
+                overrides: {
+                    preset: snapshot.preset,
+                    customDesign: snapshot.customDesign || null,
+                    media: snapshot.media || null
+                }
+            });
+            if (input) input.value = '';
+            renderProfiles();
+            saveGoal();
+        }
+
+        function removeObsProfile(profileId) {
+            goalState.settings = normalizeClientSettings(goalState.settings);
+            goalState.settings.obsProfiles = (goalState.settings.obsProfiles || []).filter((p) => p.id !== profileId);
+            renderProfiles();
+            saveGoal();
+        }
+
+        function copyProfileUrl(profileId) {
+            const url = `${window.location.origin}/widget/donation-goal?profile=${encodeURIComponent(profileId)}`;
+            navigator.clipboard.writeText(url)
+                .then(() => showNotification('✅ URL профиля скопирован', 'success'))
+                .catch(() => showNotification('❌ Не удалось скопировать URL', 'error'));
+        }
+
+        async function exportWidgetConfig() {
+            try {
+                const payload = await GoalApi.exportConfig();
+                const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `donation-goal-config-${Date.now()}.json`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                showNotification('✅ Конфиг экспортирован', 'success');
+            } catch (e) {
+                console.error(e);
+                showNotification('❌ Ошибка экспорта', 'error');
+            }
+        }
+
+        async function handleImportFile(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const parsed = JSON.parse(text);
+                if (!parsed || typeof parsed !== 'object' || !parsed.donationGoal) {
+                    throw new Error('Некорректный формат: требуется объект с donationGoal');
+                }
+                const incomingTitle = parsed.donationGoal.title || 'без названия';
+                const dryRunOk = confirm(`Импортировать конфиг "${incomingTitle}"? Текущее состояние будет перезаписано.`);
+                if (!dryRunOk) return;
+                await GoalApi.importConfig(parsed);
+                await loadGoalState();
+                await loadSnapshots();
+                showNotification('✅ Конфиг импортирован', 'success');
+            } catch (e) {
+                console.error(e);
+                showNotification('❌ Ошибка импорта', 'error');
+            } finally {
+                event.target.value = '';
+            }
+        }
+
+        function undoSettings() {
+            if (!undoStack.length) {
+                showNotification('⚠️ Undo пуст', 'error');
+                return;
+            }
+            redoStack.push(JSON.stringify(goalState));
+            const prev = undoStack.pop();
+            goalState = JSON.parse(prev);
+            updateUI();
+            renderProfiles();
+            syncMediaInputs();
+            applyMediaToPreview();
+            saveGoal();
+        }
+
+        function redoSettings() {
+            if (!redoStack.length) {
+                showNotification('⚠️ Redo пуст', 'error');
+                return;
+            }
+            undoStack.push(JSON.stringify(goalState));
+            const next = redoStack.pop();
+            goalState = JSON.parse(next);
+            updateUI();
+            renderProfiles();
+            syncMediaInputs();
+            applyMediaToPreview();
+            saveGoal();
+        }
+
+        async function createSnapshot() {
+            try {
+                await GoalApi.createSnapshot('manual-editor');
+                await loadSnapshots();
+                showNotification('✅ Snapshot создан', 'success');
+            } catch (e) {
+                showNotification('❌ Ошибка создания snapshot', 'error');
+            }
+        }
+
+        async function loadSnapshots() {
+            const container = document.getElementById('snapshot-list');
+            if (!container) return;
+            try {
+                const snapshots = await GoalApi.listSnapshots();
+                if (!snapshots.length) {
+                    container.innerHTML = '<div class="empty-state">Snapshot-ов пока нет</div>';
+                    return;
+                }
+                container.innerHTML = snapshots.map((s) => `
+                    <div class="donation-item">
+                        <div class="donation-info">
+                            <div class="donation-username">#${s.id} · ${s.action}</div>
+                            <div class="donation-time">${formatTime(s.createdAt)}</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="restoreSnapshot(${s.id})">Restore</button>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="empty-state">Ошибка загрузки snapshots</div>';
+            }
+        }
+
+        async function restoreSnapshot(id) {
+            try {
+                await GoalApi.restoreSnapshot(id);
+                await loadGoalState();
+                showNotification('✅ Snapshot восстановлен', 'success');
+            } catch (e) {
+                showNotification('❌ Ошибка восстановления snapshot', 'error');
+            }
+        }
+
+        // Отслеживание изменений в поле названия
+        document.addEventListener('DOMContentLoaded', function() {
+            const titleInput = document.getElementById('goal-title');
+            if (titleInput) {
+                titleInput.addEventListener('input', function() {
+                    titleInputChanged = true;
+                });
+                titleInput.addEventListener('blur', function() {
+                    if (titleInputChanged) {
+                        saveGoal();
+                    }
+                });
+            }
+        });
+
+        // Обработка Enter в полях
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('goal-title')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.target.blur();
+                    saveGoal();
+                }
+            });
+            document.getElementById('goal-target')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') saveGoal();
+            });
+            document.getElementById('goal-current')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') saveGoal();
+            });
+            document.getElementById('manual-amount')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addManualDonation();
+            });
+        });
+    </script>
+</body>
+</html>

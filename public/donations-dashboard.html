@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Донаты и донатеры — ФРАГ-ТРЕКЕР</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        :root {
+            --bg-dark: #05050a;
+            --bg-card: rgba(10, 10, 20, 0.85);
+            --accent: #00f0ff;
+            --accent-2: #ff7700;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 20%, rgba(0, 240, 255, 0.2), transparent 40%), #030307;
+            color: #f5f5f5;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(3, 3, 7, 0.95);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+        }
+
+        nav .menu {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        nav .menu a {
+            color: #f5f5f5;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        nav .menu a.active {
+            background: var(--accent);
+            color: #030307;
+            border-color: var(--accent);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 40px auto 60px;
+            padding: 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .page-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-header h1 {
+            font-size: 2.1rem;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: #c4c4c4;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 16px;
+        }
+
+        .stat-card h4 {
+            margin: 0;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #c4c4c4;
+        }
+
+        .stat-card strong {
+            display: block;
+            margin-top: 10px;
+            font-size: 1.4rem;
+        }
+
+        .panel table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 0.95rem;
+        }
+
+        .panel table th,
+        .panel table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: left;
+        }
+
+        .panel table th {
+            color: #a8a8b0;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .panel table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .actions button {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .actions button.primary {
+            background: var(--accent);
+            color: #030307;
+            box-shadow: 0 6px 16px rgba(0, 240, 255, 0.3);
+        }
+
+        .actions button.delete {
+            background: var(--accent-2);
+            color: #030307;
+            box-shadow: 0 6px 16px rgba(255, 119, 0, 0.35);
+        }
+
+        .actions button:hover {
+            transform: translateY(-2px);
+        }
+
+        .top-widget-section {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .top-widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .top-widget-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .opacity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .opacity-control input[type="range"] {
+            flex: 1;
+            accent-color: var(--accent);
+            height: 6px;
+            cursor: pointer;
+        }
+
+        .opacity-control span {
+            min-width: 46px;
+            text-align: right;
+            font-size: 0.85rem;
+            color: #fff;
+        }
+        .top-widget-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        .checkbox-label {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            color: #8be2ff;
+        }
+
+        .top-widget-columns {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .top-link-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .widget-link-card {
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .link-label {
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .widget-link-card a {
+            font-size: 0.85rem;
+            color: #00f0ff;
+            text-decoration: none;
+            word-break: break-all;
+            font-weight: 600;
+        }
+
+        .widget-link-card a:hover {
+            color: #8be1ff;
+        }
+
+        .top-widget-label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.8rem;
+            color: #c4c4c4;
+            gap: 6px;
+        }
+
+        .top-widget-label input[type="datetime-local"],
+        .top-widget-label input[type="number"] {
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .top-widget-daily {
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: #8be2ff;
+        }
+
+        .top-widget-link code {
+            display: block;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(3, 3, 7, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            word-break: break-all;
+            font-size: 0.85rem;
+        }
+
+        .top-period-hint {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #c4c4c4;
+        }
+
+        .top-preview {
+            margin-top: 12px;
+        }
+
+        .top-preview-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .top-preview-entry {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .top-preview-entry .preview-icon {
+            font-size: 1.2rem;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .top-preview-entry .preview-name {
+            flex: 1;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        .top-preview-entry .preview-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: right;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .top-preview-empty {
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .top-widget-status {
+            font-size: 0.8rem;
+            color: #8be2ff;
+            opacity: 0.85;
+        }
+
+        .notification {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 12px 18px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .actions {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .actions button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="menu">
+            <a href="/index.html">🏠 Главная</a>
+            <a href="/mode2-timer.html">⏱ Таймер</a>
+            <a href="/donor-achievements.html">🏆 Достижения</a>
+            <a href="/donations-dashboard.html" class="active">📚 Донаты</a>
+        </div>
+    </nav>
+    <main>
+        <header class="page-header">
+            <div>
+                <h1>История донатов</h1>
+                <p>Все донаты и донатеры в одном окне. Обновление, очистка и сброс статистики.</p>
+            </div>
+            <div class="actions">
+                <button class="primary" id="refreshBtn">Обновить данные</button>
+                <button class="delete" id="clearHistoryBtn">Очистить историю донатов</button>
+                <button class="delete" id="resetStatsBtn" style="background: #ff5656; box-shadow: 0 6px 16px rgba(255, 86, 86, 0.35);">Обнулить всю статистику</button>
+            </div>
+        </header>
+
+        <section class="panel">
+            <h2>Текущие метрики</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Сумма донатов</h4>
+                    <strong id="statsTotalAmount">0 ₽</strong>
+                </div>
+                <div class="stat-card">
+                    <h4>Всего донатов</h4>
+                    <strong id="statsTotalCount">0</strong>
+                </div>
+                <div class="stat-card">
+                    <h4>Уникальных донатеров</h4>
+                    <strong id="statsTotalDonors">0</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>📊 Статистика донатеров (исключая топ-10)</h2>
+            <p style="margin: 0 0 16px 0; color: #c4c4c4; font-size: 0.9rem;">
+                Все донаты и время от донатеров, исключая топ-10 донатеров по сумме
+            </p>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Количество донатов</h4>
+                    <strong id="smallDonorsDonationCount">0</strong>
+                </div>
+                <div class="stat-card">
+                    <h4>Общая сумма</h4>
+                    <strong id="smallDonorsTotalAmount">0 ₽</strong>
+                </div>
+                <div class="stat-card">
+                    <h4>Время в таймере</h4>
+                    <strong id="smallDonorsTotalTime">0:00:00</strong>
+                </div>
+                <div class="stat-card">
+                    <h4>Уникальных донатеров</h4>
+                    <strong id="smallDonorsUniqueCount">0</strong>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Донатеры</h2>
+            <div style="overflow-x:auto;">
+                <table id="donorsTable">
+                    <thead>
+                        <tr>
+                            <th>Донатер</th>
+                            <th>Сумма, ₽</th>
+                            <th>Донатов</th>
+                            <th>Добавил времени</th>
+                            <th>Последний донат</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="5" style="text-align:center;">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>История донатов</h2>
+            <div style="overflow-x:auto;">
+                <table id="donationsTable">
+                    <thead>
+                        <tr>
+                            <th>Дата / Время</th>
+                            <th>Донатер</th>
+                            <th>Сумма, ₽</th>
+                            <th>Время добавлено</th>
+                            <th>Сообщение</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="5" style="text-align:center;">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="actions" style="margin-top: 0;">
+                <button class="primary" id="loadMoreBtn">Загрузить ещё</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>ТОП ДОНАТЕРЫ ДЛЯ ВИДЖЕТА</h2>
+            <div class="top-widget-section">
+                <div class="top-widget-grid">
+                    <label class="top-widget-label">
+                        Начало периода
+                        <input type="datetime-local" id="topStartInput" placeholder="2025-12-31T00:00">
+                    </label>
+                    <label class="top-widget-label">
+                        Конец периода
+                        <input type="datetime-local" id="topEndInput" placeholder="2025-12-31T23:59">
+                    </label>
+                    <label class="top-widget-label top-widget-daily">
+                        <input type="checkbox" id="topDailyToggle">
+                        Ежедневный топ (00:00 — 00:00)
+                    </label>
+                </div>
+                <div class="top-widget-grid">
+                    <label class="top-widget-label">
+                        Показывать донатеров
+                        <input type="number" id="topCountInput" min="1" max="20" step="1" value="5">
+                    </label>
+                    <label class="top-widget-label">
+                        Интервал (сек)
+                        <input type="number" id="topIntervalInput" min="3" max="60" step="1" value="5">
+                    </label>
+                    <label class="top-widget-label">
+                        Рамка виджета
+                        <div class="top-widget-checkbox">
+                            <input type="checkbox" id="topFrameToggle" checked>
+                            <span class="checkbox-label">включена</span>
+                        </div>
+                    </label>
+                    <label class="top-widget-label">
+                        Прозрачность подложки
+                        <div class="opacity-control">
+                            <input type="range" id="topOpacityInput" min="0" max="1" step="0.01" value="0.95">
+                            <span id="topOpacityLabel">95%</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="top-link-cards">
+                    <div class="widget-link-card">
+                        <div class="link-label">Общий топ</div>
+                        <a id="generalWidgetLink" target="_blank" rel="noopener">http://localhost:3000/widget-donors-top.html</a>
+                    </div>
+                    <div class="widget-link-card">
+                        <div class="link-label">Топ за сутки</div>
+                        <a id="dailyWidgetLink" target="_blank" rel="noopener">http://localhost:3000/widget-donors-top.html?daily=1</a>
+                    </div>
+                    <div class="widget-link-card">
+                        <div class="link-label">Экспериментальный виджет</div>
+                        <a id="experimentWidgetLink" target="_blank" rel="noopener">http://localhost:3000/widget-donors-top-experiment.html</a>
+                    </div>
+                    <div class="widget-link-card">
+                        <div class="link-label">Последний донат</div>
+                        <a id="lastDonationWidgetLink" target="_blank" rel="noopener">http://localhost:3000/widget-last-donation.html</a>
+                    </div>
+                </div>
+                </div>
+                <div class="actions">
+                    <button class="primary" id="refreshTopDonorsBtn">Обновить предварительный список</button>
+                </div>
+                <p class="top-period-hint" id="topPeriodHint">Период: без ограничений</p>
+                <div class="top-preview" id="topDonorsPreview">
+                    <div class="top-preview-empty">Виджет еще не настроен или донатов нет.</div>
+                </div>
+                <div class="top-widget-status" id="topWidgetStatus"></div>
+            </div>
+        </section>
+    </main>
+    <div class="notification" id="notification"></div>
+    <script>
+        const statsTotalAmountEl = document.getElementById('statsTotalAmount');
+        const statsCountEl = document.getElementById('statsTotalCount');
+        const statsDonorsEl = document.getElementById('statsTotalDonors');
+        const smallDonorsDonationCountEl = document.getElementById('smallDonorsDonationCount');
+        const smallDonorsTotalAmountEl = document.getElementById('smallDonorsTotalAmount');
+        const smallDonorsTotalTimeEl = document.getElementById('smallDonorsTotalTime');
+        const smallDonorsUniqueCountEl = document.getElementById('smallDonorsUniqueCount');
+        const donorsTableBody = document.querySelector('#donorsTable tbody');
+        const donationsTableBody = document.querySelector('#donationsTable tbody');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const notificationEl = document.getElementById('notification');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        const resetStatsBtn = document.getElementById('resetStatsBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        const donationsLimit = 200;
+        let donationsOffset = 0;
+        let donationsLoading = false;
+
+        function formatMoney(value) {
+            return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(value) + ' ₽';
+        }
+
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function showNotification(text, success = true) {
+            notificationEl.textContent = text;
+            notificationEl.style.borderColor = success ? 'rgba(0, 240, 255, 0.3)' : 'rgba(255, 86, 86, 0.5)';
+            notificationEl.style.background = success ? 'rgba(0, 0, 0, 0.9)' : 'rgba(40, 0, 0, 0.9)';
+            notificationEl.style.display = 'block';
+            setTimeout(() => {
+                notificationEl.style.display = 'none';
+            }, 3000);
+        }
+
+        const topStartInput = document.getElementById('topStartInput');
+        const topEndInput = document.getElementById('topEndInput');
+        const topDailyToggle = document.getElementById('topDailyToggle');
+        const topCountInput = document.getElementById('topCountInput');
+        const topIntervalInput = document.getElementById('topIntervalInput');
+        const topFrameToggle = document.getElementById('topFrameToggle');
+        const topOpacityInput = document.getElementById('topOpacityInput');
+        const topOpacityLabel = document.getElementById('topOpacityLabel');
+        const topPreviewEl = document.getElementById('topDonorsPreview');
+        const topPeriodHintEl = document.getElementById('topPeriodHint');
+        const refreshTopBtn = document.getElementById('refreshTopDonorsBtn');
+        const topStatusEl = document.getElementById('topWidgetStatus');
+        const generalWidgetLinkEl = document.getElementById('generalWidgetLink');
+        const dailyWidgetLinkEl = document.getElementById('dailyWidgetLink');
+        const experimentWidgetLinkEl = document.getElementById('experimentWidgetLink');
+        const lastDonationWidgetLinkEl = document.getElementById('lastDonationWidgetLink');
+        const topWidgetBaseUrl = `${window.location.origin}/widget-donors-top.html`;
+        const experimentWidgetBaseUrl = `${window.location.origin}/widget-donors-top-experiment.html`;
+        const lastDonationWidgetBaseUrl = `${window.location.origin}/widget-last-donation.html`;
+
+        function toIsoString(value) {
+            if (!value) return null;
+            const parsed = new Date(value);
+            if (isNaN(parsed.getTime())) return null;
+            return parsed.toISOString();
+        }
+
+        function persistTopSettings() {
+            localStorage?.setItem('topWidgetCount', topCountInput.value);
+            localStorage?.setItem('topWidgetInterval', topIntervalInput.value);
+            localStorage?.setItem('topWidgetStart', topStartInput.value);
+            localStorage?.setItem('topWidgetEnd', topEndInput.value);
+            localStorage?.setItem('topWidgetDaily', topDailyToggle.checked ? '1' : '0');
+            localStorage?.setItem('topWidgetFrame', topFrameToggle.checked ? '1' : '0');
+            localStorage?.setItem('topWidgetOpacity', topOpacityInput?.value || '0.95');
+        }
+
+        function loadTopSettings() {
+            const storedCount = parseInt(localStorage?.getItem('topWidgetCount') || '', 10);
+            const storedInterval = parseInt(localStorage?.getItem('topWidgetInterval') || '', 10);
+            const storedStart = localStorage?.getItem('topWidgetStart') || '';
+            const storedEnd = localStorage?.getItem('topWidgetEnd') || '';
+            const storedDaily = localStorage?.getItem('topWidgetDaily') === '1';
+            const storedFrame = localStorage?.getItem('topWidgetFrame');
+            const storedOpacity = parseFloat(localStorage?.getItem('topWidgetOpacity') || '');
+            topCountInput.value = storedCount > 0 ? storedCount : 5;
+            topIntervalInput.value = storedInterval > 0 ? storedInterval : 5;
+            topStartInput.value = storedStart;
+            topEndInput.value = storedEnd;
+            topDailyToggle.checked = storedDaily;
+            toggleTopDateInputs(storedDaily);
+            topFrameToggle.checked = storedFrame !== '0';
+            const normalizedOpacity = Number.isFinite(storedOpacity) ? Math.min(Math.max(storedOpacity, 0), 1) : 0.95;
+            if (topOpacityInput) {
+                topOpacityInput.value = normalizedOpacity.toFixed(2);
+            }
+            updateOpacityLabel();
+            updateWidgetLinks();
+        }
+
+        function toggleTopDateInputs(disabled) {
+            topStartInput.disabled = disabled;
+            topEndInput.disabled = disabled;
+        }
+
+        function getTopControlValues() {
+            const daily = topDailyToggle.checked;
+            const count = Math.min(Math.max(parseInt(topCountInput.value, 10) || 5, 1), 20);
+            const intervalSeconds = Math.min(Math.max(parseInt(topIntervalInput.value, 10) || 5, 1), 60);
+            const startIso = toIsoString(topStartInput.value);
+            const endIso = toIsoString(topEndInput.value);
+            return { daily, count, intervalSeconds, startIso, endIso };
+        }
+
+        function handleTopControlsChange() {
+            persistTopSettings();
+            toggleTopDateInputs(topDailyToggle.checked);
+            updateWidgetLinks();
+            loadTopDonorsPreview();
+        }
+
+        function updateOpacityLabel() {
+            if (!topOpacityLabel || !topOpacityInput) return;
+            const value = parseFloat(topOpacityInput.value);
+            const normalized = Number.isFinite(value) ? Math.min(Math.max(value, 0), 1) : 0.95;
+            topOpacityLabel.textContent = `${Math.round(normalized * 100)}%`;
+        }
+
+        function buildLink({ daily, count, startIso, endIso }, baseUrl = topWidgetBaseUrl) {
+            const params = new URLSearchParams();
+            if (count) params.set('count', count);
+            if (daily) {
+                params.set('daily', '1');
+            } else {
+                if (startIso) params.set('startDate', startIso);
+                if (endIso) params.set('endDate', endIso);
+            }
+            const frameValue = topFrameToggle?.checked ? '1' : '0';
+            params.set('frame', frameValue);
+            const opacityRaw = topOpacityInput ? parseFloat(topOpacityInput.value) : NaN;
+            const opacityValue = Number.isFinite(opacityRaw)
+                ? Math.min(Math.max(opacityRaw, 0.05), 1)
+                : 0.95;
+            params.set('opacity', opacityValue.toFixed(2));
+            return `${baseUrl}?${params.toString()}`;
+        }
+
+        function updateWidgetLinks() {
+            const { count, startIso, endIso } = getTopControlValues();
+            const generalLink = buildLink({ daily: false, count, startIso, endIso });
+            const dailyLink = buildLink({ daily: true, count });
+            generalWidgetLinkEl.href = generalLink;
+            generalWidgetLinkEl.textContent = generalLink;
+            dailyWidgetLinkEl.href = dailyLink;
+            dailyWidgetLinkEl.textContent = dailyLink;
+            if (experimentWidgetLinkEl) {
+                const experimentLink = buildLink({ daily: false, count, startIso, endIso }, experimentWidgetBaseUrl);
+                experimentWidgetLinkEl.href = experimentLink;
+                experimentWidgetLinkEl.textContent = experimentLink;
+            }
+            if (lastDonationWidgetLinkEl) {
+                const lastDonationParams = new URLSearchParams();
+                const frameValue = topFrameToggle?.checked ? '1' : '0';
+                lastDonationParams.set('frame', frameValue);
+                const opacityRaw = topOpacityInput ? parseFloat(topOpacityInput.value) : NaN;
+                const opacityValue = Number.isFinite(opacityRaw)
+                    ? Math.min(Math.max(opacityRaw, 0.05), 1)
+                    : 0.95;
+                lastDonationParams.set('opacity', opacityValue.toFixed(2));
+                const lastDonationLink = `${lastDonationWidgetBaseUrl}?${lastDonationParams.toString()}`;
+                lastDonationWidgetLinkEl.href = lastDonationLink;
+                lastDonationWidgetLinkEl.textContent = lastDonationLink;
+            }
+        }
+
+        function describeTopPeriod(period) {
+            if (!period) return 'Период: без ограничений';
+            if (period.type === 'daily' && period.start && period.end) {
+                const start = new Date(period.start);
+                return `Период: ${start.toLocaleDateString('ru-RU')} (с 00:00)`;
+            }
+            const parts = [];
+            if (period.start) parts.push(new Date(period.start).toLocaleString('ru-RU'));
+            else parts.push('с начала');
+            parts.push('—');
+            if (period.end) parts.push(new Date(period.end).toLocaleString('ru-RU'));
+            else parts.push('по настоящее время');
+            return `Период: ${parts.join(' ')}`;
+        }
+
+        function buildTopPreviewParams() {
+            const { daily, count, startIso, endIso } = getTopControlValues();
+            const params = new URLSearchParams();
+            params.set('limit', count);
+            if (daily) {
+                params.set('daily', '1');
+            } else {
+                if (startIso) params.set('startDate', startIso);
+                if (endIso) params.set('endDate', endIso);
+            }
+            return params;
+        }
+
+        async function loadTopDonorsPreview() {
+            const params = buildTopPreviewParams();
+            topPreviewEl.innerHTML = '<div class="top-preview-empty">Загрузка...</div>';
+            showTopWidgetStatus('Обновляем список...');
+            try {
+                const response = await fetch(`/api/top-donors?${params.toString()}`);
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Не удалось получить топ-донатеров');
+                }
+                renderTopPreview(data.donors, data.period);
+                showTopWidgetStatus('Данные обновлены');
+            } catch (error) {
+                topPreviewEl.innerHTML = '<div class="top-preview-empty">Ошибка загрузки</div>';
+                showTopWidgetStatus(error.message || 'Ошибка загрузки топ-донатеров');
+            }
+        }
+
+        function renderTopPreview(donors, period) {
+            topPeriodHintEl.textContent = describeTopPeriod(period);
+            if (!donors || donors.length === 0) {
+                topPreviewEl.innerHTML = '<div class="top-preview-empty">Нет донатеров за выбранный период.</div>';
+                return;
+            }
+            topPreviewEl.innerHTML = `
+                <div class="top-preview-list">
+                    ${donors.map((donor, index) => {
+                        const icon = donor.tier_custom_icon_url || donor.tier_icon || '🏅';
+                        const timeStr = formatTimeDuration(donor.total_time_seconds || 0);
+                        return `
+                            <div class="top-preview-entry">
+                                <div class="preview-icon">${icon}</div>
+                                <div class="preview-name">${donor.username || '—'}</div>
+                                <div class="preview-info">
+                                    <span>${formatMoney(donor.total_amount || 0)}</span>
+                                    <span>${timeStr}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function formatTimeDuration(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `+${days}д.${hours}ч.${minutes}м.${secs}с`;
+        }
+
+        function showTopWidgetStatus(message) {
+            topStatusEl.textContent = message;
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/donations-stats');
+                const data = await response.json();
+                if (!data.success) throw new Error('Не удалось получить статистику');
+                statsTotalAmountEl.textContent = formatMoney(data.totalAmount || 0);
+                statsCountEl.textContent = (data.totalCount || 0).toLocaleString('ru-RU');
+            } catch (error) {
+                showNotification('Ошибка загрузки статистики', false);
+            }
+        }
+
+        async function loadSmallDonorsStats() {
+            // Проверяем, что элементы существуют
+            if (!smallDonorsDonationCountEl || !smallDonorsTotalAmountEl || !smallDonorsTotalTimeEl || !smallDonorsUniqueCountEl) {
+                console.error('❌ Элементы для отображения статистики малых донатеров не найдены!');
+                return;
+            }
+            
+            try {
+                console.log('📊 Загрузка статистики малых донатеров...');
+                const response = await fetch('/api/donations-stats-small-donors');
+                
+                console.log('📊 Статус ответа:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ HTTP ошибка:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 100)}`);
+                }
+                
+                const data = await response.json();
+                console.log('📊 Полный ответ API:', JSON.stringify(data, null, 2));
+                
+                if (!data.success) {
+                    const errorMsg = data.error || data.details || 'Не удалось получить статистику малых донатеров';
+                    console.error('❌ Ошибка API:', errorMsg);
+                    throw new Error(errorMsg);
+                }
+                
+                // Безопасное преобразование значений
+                const donationCount = data.donation_count != null ? parseInt(data.donation_count) : 0;
+                const totalAmount = data.total_amount != null ? parseFloat(data.total_amount) : 0;
+                const totalTime = data.total_time_earned != null ? parseInt(data.total_time_earned) : 0;
+                const uniqueDonors = data.unique_donors != null ? parseInt(data.unique_donors) : 0;
+                
+                console.log(`📊 Обработанная статистика малых донатеров:`, {
+                    donation_count: donationCount,
+                    total_amount: totalAmount,
+                    total_time_earned: totalTime,
+                    unique_donors: uniqueDonors
+                });
+                
+                // Всегда показываем значения, даже если они 0
+                smallDonorsDonationCountEl.textContent = isNaN(donationCount) ? '0' : donationCount.toLocaleString('ru-RU');
+                smallDonorsTotalAmountEl.textContent = isNaN(totalAmount) ? '0 ₽' : formatMoney(totalAmount);
+                smallDonorsTotalTimeEl.textContent = isNaN(totalTime) ? '00:00:00' : formatDuration(totalTime);
+                smallDonorsUniqueCountEl.textContent = isNaN(uniqueDonors) ? '0' : uniqueDonors.toLocaleString('ru-RU');
+                
+                // Если все значения равны 0, показываем подсказку
+                if (donationCount === 0 && totalAmount === 0 && uniqueDonors === 0) {
+                    console.log('ℹ️ Все значения равны 0. Это может означать:');
+                    console.log('   1. В базе нет донатеров с общей суммой <= 2000₽');
+                    console.log('   2. Все донатеры имеют сумму > 2000₽');
+                    if (data.debug) {
+                        console.log('   Debug info:', data.debug);
+                    }
+                }
+                
+                console.log('✅ Статистика донатеров (исключая топ-10) успешно отображена');
+            } catch (error) {
+                console.error('❌ Ошибка загрузки статистики малых донатеров:', error);
+                console.error('   Stack:', error.stack);
+                const errorMsg = error.message || 'Ошибка загрузки';
+                
+                // Показываем 0 вместо "—" при ошибке, чтобы было понятно, что данные не загрузились
+                if (smallDonorsDonationCountEl) smallDonorsDonationCountEl.textContent = '0';
+                if (smallDonorsTotalAmountEl) smallDonorsTotalAmountEl.textContent = '0 ₽';
+                if (smallDonorsTotalTimeEl) smallDonorsTotalTimeEl.textContent = '00:00:00';
+                if (smallDonorsUniqueCountEl) smallDonorsUniqueCountEl.textContent = '0';
+                
+                showNotification(`Ошибка загрузки статистики малых донатеров: ${errorMsg}`, false);
+            }
+        }
+
+        async function loadDonors() {
+            try {
+                const response = await fetch('/api/donors?limit=200');
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error || 'Не удалось загрузить донатеров');
+                statsDonorsEl.textContent = (data.totalUnique || 0).toLocaleString('ru-RU');
+                donorsTableBody.innerHTML = '';
+                if (!data.donors || data.donors.length === 0) {
+                    donorsTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Донатеры не найдены</td></tr>';
+                    return;
+                }
+                data.donors.forEach(donor => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${donor.username || donor.normalized_username || '—'}</td>
+                        <td>${formatMoney(donor.total_amount || 0)}</td>
+                        <td>${donor.donations_count || 0}</td>
+                        <td>${formatDuration(donor.total_time_seconds || 0)}</td>
+                        <td>${donor.last_donation ? new Date(donor.last_donation).toLocaleString('ru-RU') : '—'}</td>
+                    `;
+                    donorsTableBody.appendChild(tr);
+                });
+            } catch (error) {
+                donorsTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Ошибка загрузки</td></tr>';
+                showNotification(error.message || 'Ошибка загрузки донатеров', false);
+            }
+        }
+
+        async function loadDonations(reset = false) {
+            if (donationsLoading) return;
+            donationsLoading = true;
+            if (reset) {
+                donationsOffset = 0;
+                donationsTableBody.innerHTML = '';
+                loadMoreBtn.disabled = false;
+            }
+
+            try {
+                const response = await fetch(`/api/donations?limit=${donationsLimit}&offset=${donationsOffset}`);
+                const data = await response.json();
+                const list = data.donations || [];
+                if (reset || donationsOffset === 0) {
+                    donationsTableBody.innerHTML = '';
+                }
+                if (list.length === 0 && donationsOffset === 0) {
+                    donationsTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Донатов пока нет</td></tr>';
+                }
+
+                list.forEach(donation => {
+                    const rows = document.createElement('tr');
+                    rows.innerHTML = `
+                        <td>${ donation.created_at ? new Date(donation.created_at).toLocaleString('ru-RU') : donation.timestamp || '—' }</td>
+                        <td>${donation.username}</td>
+                        <td>${formatMoney(Math.round(donation.amount || 0))}</td>
+                        <td>${formatDuration(donation.time_earned || 0)}</td>
+                        <td>${donation.message || '—'}</td>
+                    `;
+                    donationsTableBody.appendChild(rows);
+                });
+
+                donationsOffset += list.length;
+                if (!list.length || list.length < donationsLimit) {
+                    loadMoreBtn.disabled = true;
+                    loadMoreBtn.textContent = 'Больше донатов нет';
+                } else {
+                    loadMoreBtn.disabled = false;
+                    loadMoreBtn.textContent = 'Загрузить ещё';
+                }
+            } catch (error) {
+                showNotification('Ошибка загрузки донатов', false);
+            } finally {
+                donationsLoading = false;
+            }
+        }
+
+        async function clearHistory() {
+            if (!confirm('Очистить список донатов? Это действие нельзя отменить.')) return;
+            try {
+                const response = await fetch('/api/clear-donations', { method: 'POST' });
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error || 'Не удалось очистить историю');
+                showNotification('История донатов очищена');
+                await refreshAll();
+            } catch (error) {
+                showNotification(error.message || 'Ошибка очистки истории', false);
+            }
+        }
+
+        async function resetStats() {
+            if (!confirm('Сбросить всю статистику (режимы, суммы и таймер)?')) return;
+            try {
+                const response = await fetch('/api/reset-stats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'all' })
+                });
+                const data = await response.json();
+                if (!data.success) throw new Error(data.error || 'Не удалось сбросить статистику');
+                showNotification('Статистика обнулена');
+                await refreshAll();
+            } catch (error) {
+                showNotification(error.message || 'Ошибка сброса статистики', false);
+            }
+        }
+
+        async function refreshAll() {
+            await Promise.all([
+                loadStats(),
+                loadSmallDonorsStats(),
+                loadDonors(),
+                loadDonations(true),
+                loadTopDonorsPreview()
+            ]);
+        }
+
+        loadMoreBtn.addEventListener('click', () => loadDonations());
+        clearHistoryBtn.addEventListener('click', clearHistory);
+        resetStatsBtn.addEventListener('click', resetStats);
+        refreshBtn.addEventListener('click', refreshAll);
+        refreshTopBtn.addEventListener('click', loadTopDonorsPreview);
+        topStartInput.addEventListener('change', handleTopControlsChange);
+        topEndInput.addEventListener('change', handleTopControlsChange);
+        topDailyToggle.addEventListener('change', handleTopControlsChange);
+        topCountInput.addEventListener('change', handleTopControlsChange);
+        topIntervalInput.addEventListener('change', handleTopControlsChange);
+        topFrameToggle?.addEventListener('change', handleTopControlsChange);
+        topOpacityInput?.addEventListener('input', () => {
+            updateOpacityLabel();
+            handleTopControlsChange();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTopSettings();
+            refreshAll();
+            
+            // Дополнительная проверка: убеждаемся, что элементы найдены
+            console.log('🔍 Проверка элементов статистики малых донатеров:');
+            console.log('   smallDonorsDonationCountEl:', smallDonorsDonationCountEl ? '✅ найден' : '❌ не найден');
+            console.log('   smallDonorsTotalAmountEl:', smallDonorsTotalAmountEl ? '✅ найден' : '❌ не найден');
+            console.log('   smallDonorsTotalTimeEl:', smallDonorsTotalTimeEl ? '✅ найден' : '❌ не найден');
+            console.log('   smallDonorsUniqueCountEl:', smallDonorsUniqueCountEl ? '✅ найден' : '❌ не найден');
+        });
+    </script>
+</body>
+</html>
+

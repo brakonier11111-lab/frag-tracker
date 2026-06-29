@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 АНАЛИТИКА ДОНАТОВ | Stream Analytics</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        :root {
+            --neon-orange: #ff8800;
+            --card-bg: rgba(20, 20, 30, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 80px;
+        }
+
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .menu-logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .menu-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .menu-item.active {
+            background: rgba(179, 0, 255, 0.2);
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel h2 {
+            color: var(--neon-blue);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(10, 10, 20, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(0, 255, 71, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px rgba(0, 255, 71, 0.5);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-container {
+            background: rgba(10, 10, 20, 0.6);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            min-height: 200px;
+        }
+
+        .chart-title {
+            color: var(--neon-yellow);
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: end;
+            height: 150px;
+            gap: 5px;
+            padding: 10px 0;
+        }
+
+        .bar {
+            flex: 1;
+            background: linear-gradient(to top, var(--neon-blue), var(--neon-purple));
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.3s ease;
+            min-height: 10px;
+        }
+
+        .bar:hover {
+            background: linear-gradient(to top, var(--neon-green), var(--neon-yellow));
+            transform: scaleY(1.1);
+        }
+
+        .bar-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.7);
+            white-space: nowrap;
+        }
+
+        .bar-value {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--neon-green);
+            font-weight: 600;
+        }
+
+        .recommendations {
+            background: rgba(255, 136, 0, 0.1);
+            border: 1px solid rgba(255, 136, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .recommendations h3 {
+            color: var(--neon-orange);
+            font-size: 1rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .recommendation-item {
+            background: rgba(255, 136, 0, 0.05);
+            border-left: 3px solid var(--neon-orange);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .recommendation-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .recommendation-text {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .recommendation-impact {
+            color: var(--neon-orange);
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .table-container {
+            background: rgba(10, 10, 20, 0.6);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--neon-blue);
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.85rem;
+        }
+
+        .table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .loading {
+            text-align: center;
+            color: var(--neon-blue);
+            font-size: 1.1rem;
+            padding: 40px;
+        }
+
+        .error {
+            text-align: center;
+            color: var(--neon-red);
+            font-size: 1rem;
+            padding: 20px;
+            background: rgba(255, 0, 60, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 0, 60, 0.3);
+        }
+
+        .btn {
+            background: rgba(0, 240, 255, 0.2);
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            background: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: rgba(0, 255, 71, 0.2);
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .btn-success:hover {
+            background: rgba(0, 255, 71, 0.3);
+            box-shadow: 0 0 10px rgba(0, 255, 71, 0.3);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .insight-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .insight-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .insight-title {
+            color: var(--neon-purple);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .insight-description {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .insight-metric {
+            background: rgba(179, 0, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .insight-metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-purple);
+        }
+
+        .insight-metric-label {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Стили для списка донатов */
+        .donations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .donation-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .donation-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-blue);
+            transform: translateX(4px);
+        }
+
+        .donation-rank {
+            font-weight: bold;
+            color: var(--neon-yellow);
+            min-width: 24px;
+        }
+
+        .donation-user {
+            flex: 1;
+            font-weight: 600;
+            color: var(--neon-blue);
+        }
+
+        .donation-amount {
+            font-weight: bold;
+            color: var(--neon-green);
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .donation-mode {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            min-width: 100px;
+        }
+
+        .variation-details {
+            margin-top: 4px;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+
+        .no-data {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-style: italic;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            
+            .menu-nav {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body class="theme-neon">
+    <div class="top-menu">
+        <div class="menu-container">
+            <a href="/" class="menu-logo">
+                📊 STREAM ANALYTICS
+            </a>
+            <nav class="menu-nav">
+                <a href="/mode1-frag-tracker.html" class="menu-item">📊 Фраги</a>
+                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
+                <a href="/analytics.html" class="menu-item active">📈 Аналитика</a>
+                <a href="/stream-integrations.html" class="menu-item">🔗 Интеграции</a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Общая статистика -->
+        <div class="panel">
+            <h2>📊 Общая статистика</h2>
+            <div id="totalStats" class="loading">Загрузка...</div>
+        </div>
+
+        <!-- Временные паттерны -->
+        <div class="panel">
+            <h2>⏰ Временные паттерны</h2>
+            <div id="timePatterns" class="loading">Загрузка...</div>
+        </div>
+
+        <!-- Распределение по размерам -->
+        <div class="panel">
+            <h2>💰 Распределение донатов</h2>
+            <div id="amountDistribution" class="loading">Загрузка...</div>
+        </div>
+
+        <!-- Топ донатеры -->
+        <div class="panel">
+            <h2>🏆 Топ донатеры</h2>
+            <div id="topDonors" class="loading">Загрузка...</div>
+        </div>
+
+        <!-- Активность по дням -->
+        <div class="panel full-width">
+            <h2>📅 Активность по дням</h2>
+            <div id="dailyActivity" class="loading">Загрузка...</div>
+        </div>
+
+        <!-- Стратегические рекомендации -->
+        <div class="panel full-width">
+            <h2>🎯 Стратегические рекомендации</h2>
+            <div id="recommendations" class="loading">Анализ данных...</div>
+        </div>
+
+        <!-- Инсайты и выводы -->
+        <div class="insights-grid full-width">
+            <div class="insight-card">
+                <div class="insight-icon">🕐</div>
+                <div class="insight-title">Лучшее время для стрима</div>
+                <div class="insight-description">Анализ показывает, в какое время суток ваша аудитория наиболее активна и готова донатить.</div>
+                <div class="insight-metric">
+                    <div class="insight-metric-value" id="bestTime">-</div>
+                    <div class="insight-metric-label">Пиковое время</div>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon">💎</div>
+                <div class="insight-title">Оптимальный размер доната</div>
+                <div class="insight-description">Средний размер доната показывает, какую сумму аудитория считает комфортной для поддержки.</div>
+                <div class="insight-metric">
+                    <div class="insight-metric-value" id="avgDonation">-</div>
+                    <div class="insight-metric-label">Средний донат</div>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon">👥</div>
+                <div class="insight-title">Лояльность аудитории</div>
+                <div class="insight-description">Количество уникальных донатеров показывает размер вашей активной аудитории.</div>
+                <div class="insight-metric">
+                    <div class="insight-metric-value" id="uniqueDonors">-</div>
+                    <div class="insight-metric-label">Уникальных донатеров</div>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <div class="insight-icon">📈</div>
+                <div class="insight-title">Потенциал роста</div>
+                <div class="insight-description">Анализ показывает возможности для увеличения донатов и улучшения стратегии.</div>
+                <div class="insight-metric">
+                    <div class="insight-metric-value" id="growthPotential">-</div>
+                    <div class="insight-metric-label">Потенциал</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Аналитика режимов таймера -->
+        <div class="panel full-width">
+            <h2>🎮 Аналитика режимов таймера</h2>
+            <div id="timerTimeStats" class="loading">Загрузка статистики по времени таймера...</div>
+        </div>
+
+        <div class="panel">
+            <h2>⏰ Статистика по последнему часу</h2>
+            <div id="lastHourStats" class="loading">Загрузка статистики по последнему часу...</div>
+        </div>
+
+        <div class="panel">
+            <h2>🎯 Статистика по режимам</h2>
+            <div id="timerModesStats" class="loading">Загрузка статистики по режимам...</div>
+        </div>
+
+        <div class="panel">
+            <h2>🌡️ Режим температуры</h2>
+            <div id="temperatureStats" class="loading">Загрузка статистики по температуре...</div>
+        </div>
+
+        <div class="panel">
+            <h2>🔥 Сессии температуры</h2>
+            <div id="temperatureSessions" class="loading">Загрузка сессий температуры...</div>
+        </div>
+
+        <div class="panel">
+            <h2>💰 Статистика скидок</h2>
+            <div id="discountStats" class="loading">Загрузка статистики скидок...</div>
+        </div>
+
+        <div class="panel">
+            <h2>🐌 Статистика замедления</h2>
+            <div id="slowdownStats" class="loading">Загрузка статистики замедления...</div>
+        </div>
+
+        <div class="panel full-width">
+            <h2>🏆 Топ донатов по режимам</h2>
+            <div id="topDonationsByMode" class="loading">Загрузка топ донатов...</div>
+        </div>
+
+        <!-- Группировка донатеров по никам -->
+        <div class="panel full-width">
+            <h2>👥 Группировка донатеров по никам</h2>
+            <div id="groupingStats" class="loading">Загрузка статистики группировки...</div>
+        </div>
+
+        <div class="panel">
+            <h2>🏆 Топ донатеров (группировка)</h2>
+            <div id="topGroupedDonors" class="loading">Загрузка топ донатеров...</div>
+        </div>
+
+        <div class="panel">
+            <h2>🔄 Вариации ников</h2>
+            <div id="usernameVariations" class="loading">Загрузка вариаций ников...</div>
+        </div>
+
+        <div class="panel">
+            <h2>🎮 Донатеры по режимам</h2>
+            <div id="donorsByModes" class="loading">Загрузка донатеров по режимам...</div>
+        </div>
+    </div>
+
+    <script>
+        let analyticsData = {};
+
+        // Загрузка аналитических данных
+        async function loadAnalytics() {
+            try {
+                console.log('📊 Загрузка аналитических данных...');
+                
+                // Загружаем все аналитические данные параллельно
+                const [analytics, timerAnalysis, modeAnalysis, timerModesAnalytics, donorsGrouped] = await Promise.all([
+                    fetch('/api/donations-analytics').then(r => r.json()),
+                    fetch('/api/donations-timer-analysis').then(r => r.json()),
+                    fetch('/api/donations-mode-analysis').then(r => r.json()),
+                    fetch('/api/timer-modes-analytics').then(r => r.json()),
+                    fetch('/api/donors-grouped').then(r => r.json())
+                ]);
+
+                analyticsData = {
+                    analytics: analytics.data,
+                    timerAnalysis: timerAnalysis.data,
+                    modeAnalysis: modeAnalysis.data,
+                    timerModesAnalytics: timerModesAnalytics.data,
+                    donorsGrouped: donorsGrouped.data
+                };
+
+                console.log('✅ Аналитические данные загружены:', analyticsData);
+                
+                // Обновляем интерфейс
+                updateTotalStats();
+                updateTimePatterns();
+                updateAmountDistribution();
+                updateTopDonors();
+                updateDailyActivity();
+                updateRecommendations();
+                updateInsights();
+                updateTimerModesAnalytics();
+                updateGroupedDonors();
+
+            } catch (error) {
+                console.error('❌ Ошибка загрузки аналитики:', error);
+                showError('Ошибка загрузки аналитических данных');
+            }
+        }
+
+        // Обновление общей статистики
+        function updateTotalStats() {
+            const stats = analyticsData.analytics.totalStats[0];
+            if (!stats) return;
+
+            const totalAmount = Math.round(stats.totalAmount || 0);
+            const avgAmount = Math.round(stats.avgAmount || 0);
+
+            document.getElementById('totalStats').innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.totalCount || 0}</div>
+                        <div class="stat-label">Всего донатов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${totalAmount.toLocaleString()}₽</div>
+                        <div class="stat-label">Общая сумма</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${avgAmount}₽</div>
+                        <div class="stat-label">Средний донат</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${stats.maxAmount || 0}₽</div>
+                        <div class="stat-label">Максимальный</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Обновление временных паттернов
+        function updateTimePatterns() {
+            const timeOfDay = analyticsData.timerAnalysis.timeOfDay;
+            if (!timeOfDay || timeOfDay.length === 0) return;
+
+            const maxAmount = Math.max(...timeOfDay.map(t => t.totalAmount));
+            
+            document.getElementById('timePatterns').innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">Активность по времени суток</div>
+                    <div class="bar-chart">
+                        ${timeOfDay.map(period => {
+                            const height = (period.totalAmount / maxAmount) * 100;
+                            return `
+                                <div class="bar" style="height: ${height}%">
+                                    <div class="bar-value">${Math.round(period.totalAmount)}₽</div>
+                                    <div class="bar-label">${period.timePeriod}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Обновление распределения по размерам
+        function updateAmountDistribution() {
+            const ranges = analyticsData.analytics.amountRanges;
+            if (!ranges || ranges.length === 0) return;
+
+            const maxCount = Math.max(...ranges.map(r => r.count));
+            
+            document.getElementById('amountDistribution').innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">Распределение по размерам донатов</div>
+                    <div class="bar-chart">
+                        ${ranges.map(range => {
+                            const height = (range.count / maxCount) * 100;
+                            return `
+                                <div class="bar" style="height: ${height}%">
+                                    <div class="bar-value">${range.count}</div>
+                                    <div class="bar-label">${range.range}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Обновление топ донатеров
+        function updateTopDonors() {
+            const topDonors = analyticsData.timerAnalysis.topDonors;
+            if (!topDonors || topDonors.length === 0) return;
+
+            document.getElementById('topDonors').innerHTML = `
+                <div class="table-container">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Донатер</th>
+                                <th>Донатов</th>
+                                <th>Сумма</th>
+                                <th>Средний</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${topDonors.slice(0, 10).map(donor => `
+                                <tr>
+                                    <td>${donor.username}</td>
+                                    <td>${donor.donationCount}</td>
+                                    <td>${Math.round(donor.totalDonated).toLocaleString()}₽</td>
+                                    <td>${Math.round(donor.avgDonation)}₽</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        // Обновление активности по дням
+        function updateDailyActivity() {
+            const dailyActivity = analyticsData.modeAnalysis.dailyActivity;
+            if (!dailyActivity || dailyActivity.length === 0) return;
+
+            const maxAmount = Math.max(...dailyActivity.map(d => d.totalAmount));
+            
+            document.getElementById('dailyActivity').innerHTML = `
+                <div class="chart-container">
+                    <div class="chart-title">Активность по дням (последние 30 дней)</div>
+                    <div class="bar-chart">
+                        ${dailyActivity.slice(0, 14).map(day => {
+                            const height = (day.totalAmount / maxAmount) * 100;
+                            const date = new Date(day.date).toLocaleDateString('ru-RU', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                            });
+                            return `
+                                <div class="bar" style="height: ${height}%">
+                                    <div class="bar-value">${Math.round(day.totalAmount)}₽</div>
+                                    <div class="bar-label">${date}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Обновление рекомендаций
+        function updateRecommendations() {
+            const analytics = analyticsData.analytics;
+            const timerAnalysis = analyticsData.timerAnalysis;
+            
+            if (!analytics || !timerAnalysis) return;
+
+            const stats = analytics.totalStats[0];
+            const timeOfDay = timerAnalysis.timeOfDay;
+            const ranges = analytics.amountRanges;
+
+            // Анализируем данные и генерируем рекомендации
+            const recommendations = [];
+
+            // Рекомендация по времени
+            if (timeOfDay && timeOfDay.length > 0) {
+                const bestPeriod = timeOfDay.reduce((max, period) => 
+                    period.totalAmount > max.totalAmount ? period : max
+                );
+                recommendations.push({
+                    text: `Планируйте стримы в ${bestPeriod.timePeriod.toLowerCase()} - в это время донаты наиболее активны`,
+                    impact: `Потенциал увеличения донатов на ${Math.round((bestPeriod.totalAmount / stats.totalAmount) * 100)}%`
+                });
+            }
+
+            // Рекомендация по размерам донатов
+            if (ranges && ranges.length > 0) {
+                const mostPopularRange = ranges.reduce((max, range) => 
+                    range.count > max.count ? range : max
+                );
+                recommendations.push({
+                    text: `Большинство донатов (${mostPopularRange.count}) в диапазоне ${mostPopularRange.range}`,
+                    impact: `Фокусируйтесь на этом диапазоне для максимальной конверсии`
+                });
+            }
+
+            // Рекомендация по частоте
+            const avgDonation = Math.round(stats.avgAmount || 0);
+            if (avgDonation > 0) {
+                recommendations.push({
+                    text: `Средний размер доната ${avgDonation}₽ - это хороший показатель лояльности аудитории`,
+                    impact: `Рассмотрите создание специальных предложений для донатов от ${avgDonation}₽`
+                });
+            }
+
+            // Рекомендация по активности
+            const totalCount = stats.totalCount || 0;
+            if (totalCount > 0) {
+                recommendations.push({
+                    text: `Зафиксировано ${totalCount} донатов - отличная активность сообщества`,
+                    impact: `Продолжайте развивать взаимодействие с аудиторией`
+                });
+            }
+
+            document.getElementById('recommendations').innerHTML = `
+                <div class="recommendations">
+                    <h3>💡 Стратегические рекомендации</h3>
+                    ${recommendations.map(rec => `
+                        <div class="recommendation-item">
+                            <div class="recommendation-text">${rec.text}</div>
+                            <div class="recommendation-impact">${rec.impact}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Обновление инсайтов
+        function updateInsights() {
+            const stats = analyticsData.analytics.totalStats[0];
+            const timeOfDay = analyticsData.timerAnalysis.timeOfDay;
+            
+            if (!stats || !timeOfDay) return;
+
+            // Лучшее время
+            const bestPeriod = timeOfDay.reduce((max, period) => 
+                period.totalAmount > max.totalAmount ? period : max
+            );
+            document.getElementById('bestTime').textContent = bestPeriod.timePeriod;
+
+            // Средний донат
+            document.getElementById('avgDonation').textContent = `${Math.round(stats.avgAmount || 0)}₽`;
+
+            // Уникальные донатеры
+            document.getElementById('uniqueDonors').textContent = stats.totalCount || 0;
+
+            // Потенциал роста
+            const growthPotential = stats.totalCount > 50 ? 'Высокий' : 
+                                  stats.totalCount > 20 ? 'Средний' : 'Низкий';
+            document.getElementById('growthPotential').textContent = growthPotential;
+        }
+
+        // Обновление аналитики режимов таймера
+        function updateTimerModesAnalytics() {
+            const data = analyticsData.timerModesAnalytics;
+            if (!data) return;
+
+            // Статистика по времени таймера
+            updateTimerTimeStats(data.timerTimeStats);
+            
+            // Статистика по последнему часу
+            updateLastHourStats(data.lastHourStats);
+            
+            // Статистика по режимам таймера
+            updateTimerModesStats(data.timerModesStats);
+            
+            // Статистика по режиму температуры
+            updateTemperatureStats(data.temperatureStats);
+            
+            // Сессии режима температуры
+            updateTemperatureSessions(data.temperatureSessions);
+            
+            // Топ донатов по режимам
+            updateTopDonationsByMode(data.topDonationsByMode);
+            
+            // Статистика по скидкам
+            updateDiscountStats(data.discountStats);
+            
+            // Статистика по замедлению
+            updateSlowdownStats(data.slowdownStats);
+        }
+
+        // Статистика по времени таймера
+        function updateTimerTimeStats(data) {
+            if (!data || data.length === 0) return;
+            
+            const container = document.getElementById('timerTimeStats');
+            if (!container) return;
+            
+            let html = '<h3>⏰ Статистика по времени таймера</h3>';
+            html += '<div class="stats-grid">';
+            
+            data.forEach(item => {
+                const totalAmount = Math.round(item.totalAmount || 0);
+                const avgAmount = Math.round(item.avgAmount || 0);
+                
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-value">${item.timeRange}</div>
+                        <div class="stat-label">Временной диапазон</div>
+                        <div class="stat-value">${item.donationCount}</div>
+                        <div class="stat-label">Донатов</div>
+                        <div class="stat-value">${totalAmount.toLocaleString()}₽</div>
+                        <div class="stat-label">Сумма</div>
+                        <div class="stat-value">${avgAmount}₽</div>
+                        <div class="stat-label">Средний чек</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Статистика по последнему часу
+        function updateLastHourStats(data) {
+            if (!data || data.length === 0) return;
+            
+            const container = document.getElementById('lastHourStats');
+            if (!container) return;
+            
+            let html = '<h3>⏰ Статистика по последнему часу (интервалы 10 минут)</h3>';
+            html += '<div class="stats-grid">';
+            
+            data.forEach(item => {
+                const totalAmount = Math.round(item.totalAmount || 0);
+                const avgAmount = Math.round(item.avgAmount || 0);
+                
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-value">${item.timeRange}</div>
+                        <div class="stat-label">Временной интервал</div>
+                        <div class="stat-value">${item.donationCount}</div>
+                        <div class="stat-label">Донатов</div>
+                        <div class="stat-value">${totalAmount.toLocaleString()}₽</div>
+                        <div class="stat-label">Сумма</div>
+                        <div class="stat-value">${avgAmount}₽</div>
+                        <div class="stat-label">Средний чек</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Статистика по режимам таймера
+        function updateTimerModesStats(data) {
+            if (!data || data.length === 0) return;
+            
+            const container = document.getElementById('timerModesStats');
+            if (!container) return;
+            
+            let html = '<h3>🎮 Статистика по режимам таймера</h3>';
+            html += '<div class="stats-grid">';
+            
+            data.forEach(item => {
+                const totalAmount = Math.round(item.totalAmount || 0);
+                const avgAmount = Math.round(item.avgAmount || 0);
+                
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-value">${item.modeName || item.timer_mode}</div>
+                        <div class="stat-label">Режим</div>
+                        <div class="stat-value">${item.donationCount}</div>
+                        <div class="stat-label">Донатов</div>
+                        <div class="stat-value">${totalAmount.toLocaleString()}₽</div>
+                        <div class="stat-label">Сумма</div>
+                        <div class="stat-value">${avgAmount}₽</div>
+                        <div class="stat-label">Средний чек</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Статистика по режиму температуры
+        function updateTemperatureStats(data) {
+            if (!data || data.length === 0) {
+                const container = document.getElementById('temperatureStats');
+                if (container) {
+                    container.innerHTML = '<h3>🌡️ Статистика по режиму температуры</h3><div class="no-data">Нет данных о режиме температуры</div>';
+                }
+                return;
+            }
+            
+            const container = document.getElementById('temperatureStats');
+            if (!container) return;
+            
+            let html = '<h3>🌡️ Статистика по режиму температуры</h3>';
+            html += '<div class="stats-grid">';
+            
+            data.forEach(item => {
+                const totalAmount = Math.round(item.totalAmount || 0);
+                const avgAmount = Math.round(item.avgAmount || 0);
+                const avgTemperature = Math.round(item.avgTemperature || 0);
+                
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-value">${item.temperatureRange}</div>
+                        <div class="stat-label">Диапазон температуры</div>
+                        <div class="stat-value">${item.donationCount}</div>
+                        <div class="stat-label">Донатов</div>
+                        <div class="stat-value">${totalAmount.toLocaleString()}₽</div>
+                        <div class="stat-label">Сумма</div>
+                        <div class="stat-value">${avgTemperature}%</div>
+                        <div class="stat-label">Средняя температура</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Сессии режима температуры
+        function updateTemperatureSessions(data) {
+            if (!data || data.length === 0) {
+                const container = document.getElementById('temperatureSessions');
+                if (container) {
+                    container.innerHTML = '<h3>🌡️ Сессии режима температуры</h3><div class="no-data">Нет данных о сессиях температуры</div>';
+                }
+                return;
+            }
+            
+            const container = document.getElementById('temperatureSessions');
+            if (!container) return;
+            
+            const session = data[0];
+            if (!session) return;
+            
+            const totalSessions = session.totalSessions || 0;
+            const overheatedSessions = session.overheatedSessions || 0;
+            const incompleteSessions = session.incompleteSessions || 0;
+            const avgDonatedPerSession = Math.round(session.avgDonatedPerSession || 0);
+            const avgMaxTemperature = Math.round(session.avgMaxTemperature || 0);
+            const totalRewardMinutes = session.totalRewardMinutes || 0;
+            
+            let html = '<h3>🔥 Сессии режима температуры</h3>';
+            html += '<div class="stats-grid">';
+            
+            html += `
+                <div class="stat-card">
+                    <div class="stat-value">${totalSessions}</div>
+                    <div class="stat-label">Всего сессий</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${overheatedSessions}</div>
+                    <div class="stat-label">Достигнут перегрев</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${incompleteSessions}</div>
+                    <div class="stat-label">Неполные сессии</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${avgDonatedPerSession.toLocaleString()}₽</div>
+                    <div class="stat-label">Средняя сумма за сессию</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${avgMaxTemperature}%</div>
+                    <div class="stat-label">Средняя максимальная температура</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalRewardMinutes}</div>
+                    <div class="stat-label">Всего минут награды</div>
+                </div>
+            `;
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Топ донатов по режимам
+        function updateTopDonationsByMode(data) {
+            if (!data || data.length === 0) {
+                const container = document.getElementById('topDonationsByMode');
+                if (container) {
+                    container.innerHTML = '<h3>🏆 Топ донатов по режимам</h3><div class="no-data">Нет данных о донатах по режимам</div>';
+                }
+                return;
+            }
+            
+            const container = document.getElementById('topDonationsByMode');
+            if (!container) return;
+            
+            let html = '<h3>🏆 Топ донатов по режимам</h3>';
+            html += '<div class="donations-list">';
+            
+            data.slice(0, 20).forEach((donation, index) => {
+                const amount = Math.round(donation.amount || 0);
+                const modes = [];
+                
+                if (donation.discount_active) modes.push('Скидка');
+                if (donation.slowdown_active) modes.push('Замедление');
+                if (donation.temperature_active) modes.push('Температура');
+                
+                const modesText = modes.length > 0 ? ` (${modes.join(', ')})` : '';
+                
+                html += `
+                    <div class="donation-item">
+                        <span class="donation-rank">${index + 1}</span>
+                        <span class="donation-user">${donation.username}</span>
+                        <span class="donation-amount">${amount.toLocaleString()}₽</span>
+                        <span class="donation-mode">${donation.timer_mode}${modesText}</span>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Статистика по скидкам
+        function updateDiscountStats(data) {
+            if (!data || data.length === 0) {
+                const container = document.getElementById('discountStats');
+                if (container) {
+                    container.innerHTML = '<h3>💰 Статистика по скидкам</h3><div class="no-data">Нет данных о скидках</div>';
+                }
+                return;
+            }
+            
+            const container = document.getElementById('discountStats');
+            if (!container) return;
+            
+            let html = '<h3>💰 Статистика по скидкам</h3>';
+            html += '<div class="stats-grid">';
+            
+            data.forEach(item => {
+                const totalAmount = Math.round(item.totalAmount || 0);
+                const avgAmount = Math.round(item.avgAmount || 0);
+                
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-value">${item.discount_percentage}%</div>
+                        <div class="stat-label">Размер скидки</div>
+                        <div class="stat-value">${item.donationCount}</div>
+                        <div class="stat-label">Донатов</div>
+                        <div class="stat-value">${totalAmount.toLocaleString()}₽</div>
+                        <div class="stat-label">Сумма</div>
+                        <div class="stat-value">${avgAmount}₽</div>
+                        <div class="stat-label">Средний чек</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Статистика по замедлению
+        function updateSlowdownStats(data) {
+            if (!data || data.length === 0) {
+                const container = document.getElementById('slowdownStats');
+                if (container) {
+                    container.innerHTML = '<h3>🐌 Статистика по замедлению</h3><div class="no-data">Нет данных о замедлении</div>';
+                }
+                return;
+            }
+            
+            const container = document.getElementById('slowdownStats');
+            if (!container) return;
+            
+            let html = '<h3>🐌 Статистика по замедлению</h3>';
+            html += '<div class="stats-grid">';
+            
+            data.forEach(item => {
+                const totalAmount = Math.round(item.totalAmount || 0);
+                const avgAmount = Math.round(item.avgAmount || 0);
+                
+                html += `
+                    <div class="stat-card">
+                        <div class="stat-value">${item.slowdown_factor}x</div>
+                        <div class="stat-label">Фактор замедления</div>
+                        <div class="stat-value">${item.donationCount}</div>
+                        <div class="stat-label">Донатов</div>
+                        <div class="stat-value">${totalAmount.toLocaleString()}₽</div>
+                        <div class="stat-label">Сумма</div>
+                        <div class="stat-value">${avgAmount}₽</div>
+                        <div class="stat-label">Средний чек</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Обновление группированных донатеров
+        function updateGroupedDonors() {
+            const data = analyticsData.donorsGrouped;
+            if (!data) return;
+
+            // Статистика группировки
+            updateGroupingStats(data.groupingStats);
+            
+            // Топ группированных донатеров
+            updateTopGroupedDonors(data.topGroupedDonors);
+            
+            // Вариации ников
+            updateUsernameVariations(data.usernameVariations);
+            
+            // Донатеры по режимам
+            updateDonorsByModes(data.donorsByModes);
+        }
+
+        // Статистика группировки
+        function updateGroupingStats(data) {
+            if (!data || data.length === 0) return;
+            
+            const container = document.getElementById('groupingStats');
+            if (!container) return;
+            
+            const stats = data[0];
+            if (!stats) return;
+            
+            const uniqueOriginal = stats.uniqueOriginalUsernames || 0;
+            const uniqueNormalized = stats.uniqueNormalizedUsernames || 0;
+            const totalDonations = stats.totalDonations || 0;
+            const totalAmount = Math.round(stats.totalAmount || 0);
+            const groupingEfficiency = uniqueOriginal > 0 ? Math.round((1 - uniqueNormalized / uniqueOriginal) * 100) : 0;
+            
+            let html = '<h3>👥 Статистика группировки донатеров</h3>';
+            html += '<div class="stats-grid">';
+            
+            html += `
+                <div class="stat-card">
+                    <div class="stat-value">${uniqueOriginal}</div>
+                    <div class="stat-label">Уникальных ников (оригинал)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${uniqueNormalized}</div>
+                    <div class="stat-label">Уникальных ников (группировка)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${groupingEfficiency}%</div>
+                    <div class="stat-label">Эффективность группировки</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalDonations}</div>
+                    <div class="stat-label">Всего донатов</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${totalAmount.toLocaleString()}₽</div>
+                    <div class="stat-label">Общая сумма</div>
+                </div>
+            `;
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Топ группированных донатеров
+        function updateTopGroupedDonors(data) {
+            if (!data || data.length === 0) return;
+            
+            const container = document.getElementById('topGroupedDonors');
+            if (!container) return;
+            
+            let html = '<h3>🏆 Топ донатеров (группировка)</h3>';
+            html += '<div class="donations-list">';
+            
+            data.slice(0, 30).forEach((donor, index) => {
+                const totalAmount = Math.round(donor.totalAmount || 0);
+                const avgAmount = Math.round(donor.avgAmount || 0);
+                const maxDonation = Math.round(donor.maxDonation || 0);
+                
+                // Парсим оригинальные ники
+                const originalUsernames = donor.originalUsernames ? donor.originalUsernames.split(',') : [];
+                const variationsText = originalUsernames.length > 1 ? 
+                    ` (${originalUsernames.length} вариантов: ${originalUsernames.slice(0, 3).join(', ')}${originalUsernames.length > 3 ? '...' : ''})` : '';
+                
+                html += `
+                    <div class="donation-item">
+                        <span class="donation-rank">${index + 1}</span>
+                        <span class="donation-user">${donor.normalized_username}${variationsText}</span>
+                        <span class="donation-amount">${totalAmount.toLocaleString()}₽</span>
+                        <span class="donation-mode">${donor.donationCount} донатов</span>
+                        <span class="donation-mode">${avgAmount}₽ средний</span>
+                        <span class="donation-mode">${maxDonation}₽ макс</span>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Вариации ников
+        function updateUsernameVariations(data) {
+            if (!data || data.length === 0) return;
+            
+            const container = document.getElementById('usernameVariations');
+            if (!container) return;
+            
+            let html = '<h3>🔄 Вариации ников</h3>';
+            html += '<div class="donations-list">';
+            
+            data.slice(0, 20).forEach((variation, index) => {
+                const totalAmount = Math.round(variation.totalAmount || 0);
+                const variations = variation.variations ? variation.variations.split(',') : [];
+                
+                html += `
+                    <div class="donation-item">
+                        <span class="donation-rank">${index + 1}</span>
+                        <span class="donation-user">${variation.normalized_username}</span>
+                        <span class="donation-amount">${totalAmount.toLocaleString()}₽</span>
+                        <span class="donation-mode">${variation.variationCount} вариантов</span>
+                        <div class="variation-details">
+                            <small>Варианты: ${variations.join(', ')}</small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Донатеры по режимам
+        function updateDonorsByModes(data) {
+            if (!data || data.length === 0) return;
+            
+            const container = document.getElementById('donorsByModes');
+            if (!container) return;
+            
+            let html = '<h3>🎮 Донатеры по режимам (группировка)</h3>';
+            html += '<div class="donations-list">';
+            
+            data.slice(0, 30).forEach((donor, index) => {
+                const totalAmount = Math.round(donor.totalAmount || 0);
+                const avgAmount = Math.round(donor.avgAmount || 0);
+                
+                html += `
+                    <div class="donation-item">
+                        <span class="donation-rank">${index + 1}</span>
+                        <span class="donation-user">${donor.normalized_username}</span>
+                        <span class="donation-amount">${totalAmount.toLocaleString()}₽</span>
+                        <span class="donation-mode">${donor.timer_mode}</span>
+                        <span class="donation-mode">${donor.donationCount} донатов</span>
+                        <span class="donation-mode">${avgAmount}₽ средний</span>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Показать ошибку
+        function showError(message) {
+            document.querySelectorAll('.loading').forEach(el => {
+                el.innerHTML = `<div class="error">${message}</div>`;
+            });
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAnalytics();
+        });
+    </script>
+</body>
+</html>

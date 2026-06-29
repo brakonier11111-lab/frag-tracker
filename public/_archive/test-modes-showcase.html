@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест виджета режимов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+        }
+        
+        .widget-frame {
+            width: 100%;
+            height: 800px;
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            margin-bottom: 20px;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .info {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .info h2 {
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+        
+        .info ul {
+            margin-left: 20px;
+        }
+        
+        .info li {
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+        
+        .status {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .status.success { border-left: 4px solid #00ff88; }
+        .status.error { border-left: 4px solid #ff4444; }
+        
+        .buttons {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #ff0040;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+        
+        button:hover { background: #ff0066; }
+        
+        .copy-btn {
+            background: #00d4ff;
+        }
+        
+        .copy-btn:hover { background: #00a8cc; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎯 Тест виджета режимов таймера</h1>
+        
+        <div class="status success">
+            <h3>✅ Статус: Виджет доступен</h3>
+            <p>URL: <code>http://localhost:3000/widget-modes-showcase.html</code></p>
+            <p>Содержит описание всех режимов таймера с красивым дизайном</p>
+        </div>
+        
+        <div class="buttons">
+            <button onclick="refreshWidget()">🔄 Обновить виджет</button>
+            <button class="copy-btn" onclick="copyUrl()">📋 Копировать URL</button>
+            <button onclick="openInNewTab()">🔗 Открыть в новой вкладке</button>
+        </div>
+        
+        <div class="widget-frame">
+            <iframe id="widgetFrame" src="/widget-modes-showcase.html"></iframe>
+        </div>
+        
+        <div class="info">
+            <h2>📋 Описание виджета</h2>
+            <ul>
+                <li><strong>Обычный режим</strong> - Классический таймер обратного отсчета</li>
+                <li><strong>Режим скидки</strong> - Временные скидки на цену за минуту</li>
+                <li><strong>Режим замедления</strong> - Замедление времени в 2-10 раз</li>
+                <li><strong>Режим перегрева</strong> - Система температуры с бонусами</li>
+            </ul>
+            
+            <h3>🎨 Особенности дизайна:</h3>
+            <ul>
+                <li>Неоновые эффекты и анимации</li>
+                <li>Цветовая схема для каждого режима</li>
+                <li>Интерактивные карточки с hover-эффектами</li>
+                <li>Статистика и призывы к действию</li>
+                <li>Адаптивный дизайн</li>
+            </ul>
+            
+            <h3>🔗 Ссылки:</h3>
+            <ul>
+                <li>Все карточки ведут на <code>/mode2-timer.html</code></li>
+                <li>Интегрированы в панель управления таймером</li>
+                <li>Доступны через ссылки в различных секциях</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function refreshWidget() {
+            const iframe = document.getElementById('widgetFrame');
+            const src = iframe.src;
+            iframe.src = '';
+            setTimeout(() => {
+                iframe.src = src;
+            }, 100);
+        }
+        
+        function copyUrl() {
+            const url = 'http://localhost:3000/widget-modes-showcase.html';
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL скопирован в буфер обмена!');
+            }).catch(err => {
+                console.error('Ошибка копирования:', err);
+                prompt('Скопируйте URL вручную:', url);
+            });
+        }
+        
+        function openInNewTab() {
+            window.open('/widget-modes-showcase.html', '_blank');
+        }
+        
+        // Автоматическое обновление каждые 30 секунд
+        setInterval(refreshWidget, 30000);
+        
+        // Проверка загрузки виджета
+        document.getElementById('widgetFrame').onload = function() {
+            console.log('✅ Виджет режимов загружен успешно');
+        };
+        
+        document.getElementById('widgetFrame').onerror = function() {
+            console.error('❌ Ошибка загрузки виджета');
+        };
+    </script>
+</body>
+</html>

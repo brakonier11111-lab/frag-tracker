@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Replay Алертов - Frag Tracker</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { font-family: 'Inter', sans-serif; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .header {
+            padding: 20px 30px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 { margin-bottom: 10px; }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-btn.active {
+            background: var(--neon-blue);
+            color: #061017;
+            border-color: var(--neon-blue);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .donations-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .donation-card,
+        .alert-item {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .donation-info h3 {
+            margin-bottom: 5px;
+        }
+
+        .donation-info p {
+            font-size: 14px;
+            color: rgba(245, 245, 245, 0.8);
+        }
+
+        .donation-meta {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        /* Badges используют стили из global.css */
+
+        /* Кнопки используют стили из global.css */
+
+        .queue-status {
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .status-item h4 {
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: var(--text-secondary);
+        }
+
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .alert-item {
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .alert-item.pending {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .alert-item.playing {
+            border-left: 4px solid #10b981;
+        }
+
+        .alert-item.completed {
+            border-left: 4px solid #6366f1;
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Empty state использует стили из global.css */
+    </style>
+</head>
+<body class="theme-neon">
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Replay Алертов</h1>
+            <p>Повторно воспроизводите пропущенные алерты донатов</p>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('donations')">Все донаты</button>
+                <button class="tab-btn" onclick="switchTab('queue')">Очередь алертов</button>
+                <button class="tab-btn" onclick="switchTab('history')">История</button>
+            </div>
+        </div>
+
+        <!-- Статус очереди -->
+        <div class="queue-status">
+            <div class="status-grid">
+                <div class="status-item">
+                    <h4>В очереди</h4>
+                    <div class="status-value" id="pending-count">-</div>
+                </div>
+                <div class="status-item">
+                    <h4>Воспроизводится</h4>
+                    <div class="status-value" id="playing-count">-</div>
+                </div>
+                <div class="status-item">
+                    <h4>Завершено</h4>
+                    <div class="status-value" id="completed-count">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Все донаты -->
+        <div class="tab-content active" id="tab-donations">
+            <div class="donations-grid" id="donations-list">
+                <div class="empty-state">
+                    <h3>Донаты не найдены</h3>
+                    <p>Донаты появятся после первых пожертвований</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Очередь -->
+        <div class="tab-content" id="tab-queue">
+            <div id="queue-list">
+                <div class="empty-state">
+                    <h3>Очередь пуста</h3>
+                    <p>Добавьте алерты для воспроизведения</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка: История -->
+        <div class="tab-content" id="tab-history">
+            <div id="history-list">
+                <div class="empty-state">
+                    <h3>История пуста</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'donations';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Обновляем кнопки
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Обновляем контент
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            
+            loadCurrentTab();
+        }
+
+        async function loadCurrentTab() {
+            if (currentTab === 'donations') {
+                await loadDonations();
+            } else if (currentTab === 'queue') {
+                await loadQueue();
+            } else if (currentTab === 'history') {
+                await loadHistory();
+            }
+        }
+
+        async function loadDonations() {
+            try {
+                const response = await fetch('/api/donations/recent?limit=50');
+                const data = await response.json();
+                
+                if (data.success && data.data.length > 0) {
+                    renderDonations(data.data);
+                }
+            } catch (error) {
+                console.error('Error loading donations:', error);
+            }
+        }
+
+        function renderDonations(donations) {
+            const list = document.getElementById('donations-list');
+            
+            if (donations.length === 0) {
+                list.innerHTML = '<div class="empty-state"><h3>Донаты не найдены</h3></div>';
+                return;
+            }
+
+            list.innerHTML = donations.map(donation => `
+                <div class="donation-card">
+                    <div class="donation-info">
+                        <h3>${donation.username}</h3>
+                        <p>${donation.message || 'Без сообщения'}</p>
+                        <div class="donation-meta">
+                            <span class="badge badge-amount">${donation.amount} ₽</span>
+                            <span class="badge badge-mode">
+                                ${donation.frags_earned > 0 ? 'Режим 1' : donation.time_earned > 0 ? 'Режим 2' : 'Режим 3'}
+                            </span>
+                            <span class="badge">${new Date(donation.created_at).toLocaleString('ru-RU')}</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-success" onclick="replayDonation('${donation.id}')">
+                        🔄 Повторить
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function replayDonation(donationId) {
+            try {
+                const response = await fetch(`/api/alerts/replay/${donationId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ priority: 5 })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Алерт добавлен в очередь для повтора!');
+                    loadStats();
+                }
+            } catch (error) {
+                console.error('Error replaying donation:', error);
+                alert('Ошибка добавления в очередь');
+            }
+        }
+
+        async function loadQueue() {
+            try {
+                const response = await fetch('/api/alerts/pending');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderQueue(data.data);
+                }
+            } catch (error) {
+                console.error('Error loading queue:', error);
+            }
+        }
+
+        function renderQueue(alerts) {
+            const list = document.getElementById('queue-list');
+            
+            if (alerts.length === 0) {
+                list.innerHTML = '<div class="empty-state"><h3>Очередь пуста</h3></div>';
+                return;
+            }
+
+            list.innerHTML = alerts.map(alert => `
+                <div class="alert-item ${alert.status}">
+                    <div>
+                        <strong>Донат ID: ${alert.donation_id}</strong>
+                        <p>Режим: ${alert.mode}, Приоритет: ${alert.priority}</p>
+                        <p>Статус: ${alert.status}</p>
+                    </div>
+                    <div class="alert-actions">
+                        <button class="btn btn-sm btn-success" onclick="skipAlert(${alert.id})">
+                            Пропустить
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function skipAlert(alertId) {
+            try {
+                const response = await fetch(`/api/alerts/${alertId}/skip`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadQueue();
+                    loadStats();
+                }
+            } catch (error) {
+                console.error('Error skipping alert:', error);
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/alerts/history?limit=50');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderHistory(data.data);
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+
+        function renderHistory(history) {
+            const list = document.getElementById('history-list');
+            
+            if (history.length === 0) {
+                list.innerHTML = '<div class="empty-state"><h3>История пуста</h3></div>';
+                return;
+            }
+
+            list.innerHTML = history.map(item => `
+                <div class="alert-item completed">
+                    <div>
+                        <strong>Донат ID: ${item.donation_id}</strong>
+                        <p>Режим: ${item.mode}, Источник: ${item.source}</p>
+                        <p>Воспроизведено: ${new Date(item.created_at).toLocaleString('ru-RU')}</p>
+                        ${item.duration_ms ? `<p>Длительность: ${item.duration_ms}ms</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/alerts/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('pending-count').textContent = data.data.total_pending || 0;
+                    // Остальные статистики можно добавить позже
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Загружаем при старте
+        loadDonations();
+        loadStats();
+
+        // Автообновление
+        setInterval(() => {
+            loadCurrentTab();
+            loadStats();
+        }, 5000);
+    </script>
+</body>
+</html>
+
+
+
+

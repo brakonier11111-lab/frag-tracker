@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donation Widget - Mode 1</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            /* Use existing customizable vars */
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --widget-bg-opacity: 0.95;
+            --widget-stats-value-size: 2.2rem;
+            --widget-progress-text-size: 0.9rem;
+            --widget-cost-font-size: 1.4rem;
+            --strip-color: var(--neon-blue);
+        }
+
+        body {
+            background: transparent;
+            color: white;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .widget-container {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, var(--widget-bg-opacity)) 0%,
+                rgba(8, 8, 20, calc(var(--widget-bg-opacity) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--widget-bg-opacity) * 0.85)) 100%
+            );
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+            backdrop-filter: blur(15px);
+            border-radius: 12px;
+            max-width: 450px;
+            margin: 0 auto;
+            overflow: visible;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(0, 240, 255, 0.1);
+        }
+
+        .widget-container::before,
+        .widget-container::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background:
+                radial-gradient(12px 2px at left center, var(--strip-color), rgba(0,0,0,0) 70%),
+                linear-gradient(90deg, var(--strip-color), var(--strip-color)),
+                radial-gradient(12px 2px at right center, var(--strip-color), rgba(0,0,0,0) 70%);
+            background-repeat: no-repeat;
+            background-size: 12px 100%, calc(100% - 24px) 100%, 12px 100%;
+            background-position: left center, center, right center;
+        }
+        .widget-container::before { top: 6px; }
+        .widget-container::after { bottom: 6px; }
+
+
+        .widget-stat {
+            text-align: center;
+        }
+
+        .widget-stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: var(--widget-stats-value-size);
+            font-weight: 900;
+            color: var(--neon-blue);
+            text-shadow: 0 0 25px var(--neon-blue), 0 0 50px var(--neon-blue);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--neon-blue);
+            min-width: 80px;
+            letter-spacing: 1px;
+            text-stroke: 0.5px var(--neon-blue);
+            -webkit-text-stroke: 0.5px var(--neon-blue);
+        }
+
+        .widget-stat-done {
+            color: var(--neon-green);
+            text-shadow: 0 0 25px var(--neon-green), 0 0 50px var(--neon-green);
+            background: transparent;
+            text-stroke: 0.5px var(--neon-green);
+            -webkit-text-stroke: 0.5px var(--neon-green);
+            border: 1px solid var(--neon-green);
+        }
+
+        .widget-stat-label {
+            font-size: 0.8rem;
+            color: #cccccc;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+
+        .widget-progress {
+            height: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .widget-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: rgba(0,255,71,0.45);
+            box-shadow: 0 0 8px rgba(0,255,71,0.35), 0 0 4px rgba(0,255,71,0.45) inset;
+            transition: width 0.5s ease-out;
+            position: relative;
+        }
+
+        .widget-progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: var(--widget-progress-text-size);
+            font-weight: 600;
+            line-height: 20px;
+            color: #fff;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+            letter-spacing: 1px;
+            z-index: 2;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .cost-info {
+            color: var(--neon-green);
+            font-weight: 700;
+            font-size: var(--widget-cost-font-size);
+            text-shadow: 0 0 15px rgba(0, 255, 157, 0.5);
+            margin-top: 12px;
+            letter-spacing: 1px;
+        }
+
+        /* Stream timer */
+        .stream-timer {
+            display: grid;
+            gap: 4px;
+            margin-bottom: 14px;
+        }
+        .stream-timer-title {
+            color: var(--neon-blue);
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        .stream-timer-value {
+            font-family: 'Orbitron', monospace;
+            font-weight: 800;
+            font-size: 2.2rem;
+            letter-spacing: 2px;
+            text-align: center;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 20px rgba(255, 255, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 6px 10px;
+            background: rgba(0,0,0,0.25);
+        }
+
+        /* Top donors (by added frags) */
+        .top-donors {
+            margin-top: 10px;
+            display: grid;
+            gap: 6px;
+        }
+        .top-donors-title {
+            color: var(--neon-purple);
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+        
+        .top-donor-text {
+            text-align: center;
+            font-family: 'Orbitron', monospace;
+            font-weight: 800;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            color: var(--neon-green);
+            text-shadow: 0 0 14px rgba(0,255,157,0.5);
+            min-height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Красивая анимация смены текста */
+        @keyframes textFadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
+            }
+        }
+        
+        @keyframes textFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .top-donor-text.fade-out {
+            animation: textFadeOut 0.6s ease-out forwards;
+        }
+        
+        .top-donor-text.fade-in {
+            animation: textFadeIn 0.6s ease-out forwards;
+        }
+
+        .number-changing {
+            animation: numberPulse 1s ease;
+        }
+
+        .number-changing-red {
+            animation: numberPulseRed 1s ease;
+        }
+
+        .number-changing-green {
+            animation: numberPulseGreen 1s ease;
+        }
+
+        @keyframes numberPulse {
+            0% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+            }
+            50% { 
+                transform: scale(1.2); 
+                filter: brightness(1.3);
+                text-shadow: 0 0 20px currentColor;
+            }
+            100% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+            }
+        }
+
+        @keyframes numberPulseRed {
+            0% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+                color: inherit;
+            }
+            30% { 
+                transform: scale(1.3); 
+                filter: brightness(1.5);
+                text-shadow: 0 0 30px var(--neon-red), 0 0 60px var(--neon-red);
+                color: var(--neon-red);
+            }
+            60% { 
+                transform: scale(1.1); 
+                filter: brightness(1.2);
+                text-shadow: 0 0 20px var(--neon-red);
+                color: var(--neon-red);
+            }
+            100% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+                color: inherit;
+            }
+        }
+
+        @keyframes numberPulseGreen {
+            0% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+                color: inherit;
+            }
+            30% { 
+                transform: scale(1.3); 
+                filter: brightness(1.5);
+                text-shadow: 0 0 30px var(--neon-green), 0 0 60px var(--neon-green);
+                color: var(--neon-green);
+            }
+            60% { 
+                transform: scale(1.1); 
+                filter: brightness(1.2);
+                text-shadow: 0 0 20px var(--neon-green);
+                color: var(--neon-green);
+            }
+            100% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+                color: inherit;
+            }
+        }
+
+        /* Floating change indicators (optional, used when SHOW_ALERT arrives) */
+        .frag-change-indicator {
+            position: absolute;
+            font-weight: 800;
+            font-size: 16px;
+            text-shadow: 0 0 12px currentColor;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0;
+            font-family: 'Orbitron', monospace;
+            animation: fragFloat 2s ease-out forwards;
+        }
+        .frag-change-positive { color: var(--neon-green); text-shadow: 0 0 15px var(--neon-green); }
+        .frag-change-negative { color: var(--neon-red); text-shadow: 0 0 15px var(--neon-red); }
+        @keyframes fragFloat {
+            0% { transform: translateY(0) translateX(0) scale(0.8); opacity: 0; }
+            15% { opacity: 1; }
+            100% { transform: translateY(-100px) translateX(var(--random-x)) scale(1.2); opacity: 0; }
+        }
+
+        /* Анимация изменения фрагов - цифры появляются из самих окон */
+        .frag-change-animation {
+            position: absolute;
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 2.5rem;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0;
+            text-shadow: 
+                0 0 15px currentColor,
+                0 0 30px currentColor,
+                0 0 60px currentColor;
+            letter-spacing: 2px;
+            text-stroke: 1.5px currentColor;
+            -webkit-text-stroke: 1.5px currentColor;
+            will-change: transform, opacity;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+        }
+
+        /* Анимация для уменьшения остатка фрагов (красная) */
+        .frag-change-left {
+            color: var(--neon-red);
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            animation: 
+                fragDecreaseAnimation 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        /* Анимация для увеличения сделанных фрагов (зеленая) */
+        .frag-change-right {
+            color: var(--neon-green);
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            animation: 
+                fragIncreaseAnimation 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        /* Анимация уменьшения фрагов - цифра появляется из центра и уходит вверх */
+        @keyframes fragDecreaseAnimation {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+                text-shadow: 0 0 5px var(--neon-red);
+            }
+            20% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+                text-shadow: 0 0 20px var(--neon-red);
+            }
+            40% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+                text-shadow: 0 0 30px var(--neon-red);
+            }
+            60% {
+                opacity: 0.8;
+                transform: translate(-50%, -80%) scale(0.9);
+                text-shadow: 0 0 25px var(--neon-red);
+            }
+            80% {
+                opacity: 0.4;
+                transform: translate(-50%, -120%) scale(0.7);
+                text-shadow: 0 0 15px var(--neon-red);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -160%) scale(0.3);
+                text-shadow: 0 0 5px var(--neon-red);
+            }
+        }
+
+        /* Анимация увеличения фрагов - цифра появляется из центра и уходит вниз */
+        @keyframes fragIncreaseAnimation {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.5);
+                text-shadow: 0 0 5px var(--neon-green);
+            }
+            20% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+                text-shadow: 0 0 20px var(--neon-green);
+            }
+            40% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+                text-shadow: 0 0 30px var(--neon-green);
+            }
+            60% {
+                opacity: 0.8;
+                transform: translate(-50%, -20%) scale(0.9);
+                text-shadow: 0 0 25px var(--neon-green);
+            }
+            80% {
+                opacity: 0.4;
+                transform: translate(-50%, 20%) scale(0.7);
+                text-shadow: 0 0 15px var(--neon-green);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, 60%) scale(0.3);
+                text-shadow: 0 0 5px var(--neon-green);
+            }
+        }
+
+        /* Плавные эффекты пульсации */
+        @keyframes pulseRedSmooth {
+            0%, 100% {
+                text-shadow: 
+                    0 0 15px var(--neon-red),
+                    0 0 30px var(--neon-red),
+                    0 0 60px var(--neon-red);
+                filter: brightness(1);
+            }
+            25% {
+                text-shadow: 
+                    0 0 18px var(--neon-red),
+                    0 0 36px var(--neon-red),
+                    0 0 72px var(--neon-red);
+                filter: brightness(1.1);
+            }
+            50% {
+                text-shadow: 
+                    0 0 20px var(--neon-red),
+                    0 0 40px var(--neon-red),
+                    0 0 80px var(--neon-red);
+                filter: brightness(1.2);
+            }
+            75% {
+                text-shadow: 
+                    0 0 18px var(--neon-red),
+                    0 0 36px var(--neon-red),
+                    0 0 72px var(--neon-red);
+                filter: brightness(1.1);
+            }
+        }
+
+        @keyframes pulseGreenSmooth {
+            0%, 100% {
+                text-shadow: 
+                    0 0 15px var(--neon-green),
+                    0 0 30px var(--neon-green),
+                    0 0 60px var(--neon-green);
+                filter: brightness(1);
+            }
+            25% {
+                text-shadow: 
+                    0 0 18px var(--neon-green),
+                    0 0 36px var(--neon-green),
+                    0 0 72px var(--neon-green);
+                filter: brightness(1.1);
+            }
+            50% {
+                text-shadow: 
+                    0 0 20px var(--neon-green),
+                    0 0 40px var(--neon-green),
+                    0 0 80px var(--neon-green);
+                filter: brightness(1.2);
+            }
+            75% {
+                text-shadow: 
+                    0 0 18px var(--neon-green),
+                    0 0 36px var(--neon-green),
+                    0 0 72px var(--neon-green);
+                filter: brightness(1.1);
+            }
+        }
+
+        /* Контейнер для анимаций */
+        .widget-stats {
+            position: relative;
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        /* Settings button visual refresh */
+        #widgetSettingsToggle {
+            background: rgba(15, 15, 25, 0.9);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            position: fixed;
+            left: 12px;
+            bottom: 12px;
+            z-index: 9999;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        #widgetSettingsToggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="widget-container">
+        <div class="stream-timer" id="streamTimer">
+            <div class="stream-timer-title">Делаю Фраги</div>
+            <div class="stream-timer-value" id="streamTimerValue">00:00:00</div>
+        </div>
+        <div class="widget-stats">
+            <div class="widget-stat">
+                <div class="widget-stat-value" id="widgetFragsNeeded">10</div>
+                <div class="widget-stat-label" id="widgetFragsNeededLabel">ОСТАЛОСЬ</div>
+            </div>
+            <div class="widget-stat">
+                <div class="widget-stat-value widget-stat-done" id="widgetFragsDone">0</div>
+                <div class="widget-stat-label" id="widgetFragsDoneLabel">СДЕЛАНО</div>
+            </div>
+        </div>
+        
+        <div class="widget-progress">
+            <div class="widget-progress-bar" id="widgetProgressBar">
+                <div class="widget-progress-text" id="widgetProgressText">0₽ из 50₽</div>
+            </div>
+        </div>
+        
+        <div class="cost-info" id="costInfo">
+            1 фраг = 50₽
+        </div>
+        <div class="top-donors">
+            <div class="top-donors-title">ТОП ДОБАВИВШИХ ФРАГИ</div>
+            <div class="top-donor-text" id="topDonorText">—</div>
+        </div>
+    </div>
+
+    <!-- Settings Panel Toggle -->
+    <button id="widgetSettingsToggle" style="position: fixed; left: 12px; bottom: 12px; z-index: 9999; background: rgba(20,20,30,0.9); color: #fff; border: 1px solid var(--neon-blue); border-radius: 6px; padding: 8px 10px; cursor: pointer;">⚙ Настройки</button>
+
+    <!-- Collapsible Settings Panel -->
+    <div id="widgetSettingsPanel" style="position: fixed; left: 12px; bottom: 54px; z-index: 9999; background: rgba(10,10,20,0.95); color: #fff; border: 1px solid var(--neon-blue); border-radius: 8px; padding: 12px; width: 280px; display: none; box-shadow: 0 6px 24px rgba(0,0,0,0.4);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-weight:700; color: var(--neon-blue);">Настройки виджета</div>
+            <button id="widgetSettingsClose" style="background: transparent; color:#fff; border: 1px solid #555; border-radius: 4px; padding:2px 6px; cursor:pointer;">✕</button>
+        </div>
+        <div style="font-size: 0.8rem; color:#bbb; margin-bottom:8px;">Размеры (rem)</div>
+        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px; align-items:center; margin-bottom:8px;">
+            <label>Значения</label>
+            <input type="number" step="0.1" min="0.6" id="sizeStatsValue" class="input" style="width:70px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="1.8">
+            <label>Прогресс</label>
+            <input type="number" step="0.1" min="0.6" id="sizeProgressText" class="input" style="width:70px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="0.9">
+            <label>Стоимость</label>
+            <input type="number" step="0.1" min="0.6" id="sizeCostInfo" class="input" style="width:70px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="1.4">
+        </div>
+        <div style="font-size: 0.8rem; color:#bbb; margin:8px 0 6px;">Цвета</div>
+        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px; align-items:center;">
+            <label>Красный</label>
+            <input type="color" id="colorRed" value="#ff003c" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Синий</label>
+            <input type="color" id="colorBlue" value="#00f0ff" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Фиолетовый</label>
+            <input type="color" id="colorPurple" value="#b300ff" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Зеленый</label>
+            <input type="color" id="colorGreen" value="#00ff47" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Желтый</label>
+            <input type="color" id="colorYellow" value="#ffff00" style="width:48px; height:28px; border:none; background:transparent;">
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="saveWidgetSettings" style="flex:1; background: rgba(0,255,71,0.15); color:#0f0; border:1px solid #0f0; border-radius:4px; padding:6px; cursor:pointer;">Сохранить</button>
+            <button id="resetWidgetSettings" style="flex:1; background: rgba(255,0,60,0.15); color:#f55; border:1px solid #f55; border-radius:4px; padding:6px; cursor:pointer;">Сброс</button>
+        </div>
+    </div>
+    <script>
+        let ws = null;
+        let currentState = {
+            frags_needed: 10,
+            frags_done: 0,
+            current_balance: 0,
+            frag_cost: 50,
+            frag_amount: 1,
+            frag_name: "фраг",
+            widget_left_label: "ОСТАЛОСЬ",
+            widget_right_label: "СДЕЛАНО"
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 Виджет режима 1 инициализирован');
+            connectWebSocket();
+            loadInitialState();
+            initWidgetSettingsUI();
+            initStreamTimer();
+            initTopDonorsRotator();
+        });
+
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+                
+                console.log('🔌 Widget Mode 1: Подключение к WebSocket:', wsUrl);
+                
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ Widget Mode 1: Connected to server');
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        console.log('📨 Widget Mode 1: Получено сообщение:', message.type);
+                        
+                        if (message.type === 'INIT_STATE') {
+                            currentState = { ...currentState, ...message.state };
+                            updateWidget(currentState);
+                        } else if (message.type === 'STATE_UPDATE') {
+                            currentState = { ...currentState, ...message.state };
+                            updateWidgetWithAnimation(currentState);
+                        } else if (message.type === 'SET_WIDGET_OPACITY') {
+                            if (message.target === 'background') {
+                                // Меняем только прозрачность фона
+                                document.documentElement.style.setProperty('--widget-bg-opacity', message.opacity);
+                                console.log('🎨 Background opacity set to:', message.opacity);
+                            } else {
+                                // Всегда меняем только фон
+                                document.documentElement.style.setProperty('--widget-bg-opacity', message.opacity);
+                            }
+                        } else if (message.type === 'SHOW_ALERT' && message.donation && message.donation.amount) {
+                            const amount = message.donation.amount || 0;
+                            if (amount > 0) showFloatingFrags(`+${amount}₽`);
+                        }
+                    } catch (error) {
+                        console.error('❌ Widget Mode 1: Message error:', error);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    console.log('🔌 Widget Mode 1: Disconnected');
+                    setTimeout(connectWebSocket, 5000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('❌ Widget Mode 1: Connection error:', error);
+                };
+                
+            } catch (error) {
+                console.error('❌ Widget Mode 1: WebSocket error:', error);
+            }
+        }
+
+        async function loadInitialState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentState = { ...currentState, ...data.state };
+                    updateWidget(currentState);
+                }
+            } catch (error) {
+                console.error('❌ Widget Mode 1: Error loading initial state:', error);
+            }
+        }
+
+        function updateWidgetWithAnimation(state) {
+            animateNumberChange('widgetFragsNeeded', state.frags_needed);
+            animateNumberChange('widgetFragsDone', state.frags_done);
+            updateWidget(state);
+        }
+
+        function updateWidget(state) {
+            if (!state) return;
+
+            const costPerUnit = state.frag_cost / state.frag_amount;
+            const progressPercent = Math.min(100, (state.current_balance / costPerUnit) * 100);
+            // Применяем стартовую прозрачность из состояния, если есть
+            if (typeof state.widget_bg_opacity === 'number') {
+                document.documentElement.style.setProperty('--widget-bg-opacity', state.widget_bg_opacity);
+            }
+            // Применяем размер шрифта строки стоимости (rem)
+            if (typeof state.widget_cost_font_size === 'number') {
+                document.documentElement.style.setProperty('--widget-cost-font-size', state.widget_cost_font_size + 'rem');
+            }
+            // Применяем тему, если пришла из сервера
+            applyThemeFromState(state, 'mode1');
+            
+            // Обновляем значения
+            document.getElementById('widgetFragsNeeded').textContent = state.frags_needed;
+            document.getElementById('widgetFragsDone').textContent = state.frags_done;
+            
+            // Обновляем подписи
+            document.getElementById('widgetFragsNeededLabel').textContent = 
+                state.widget_left_label || 'ОСТАЛОСЬ';
+            document.getElementById('widgetFragsDoneLabel').textContent = 
+                state.widget_right_label || 'СДЕЛАНО';
+            
+            // Обновляем прогресс
+            document.getElementById('widgetProgressBar').style.width = progressPercent + '%';
+            document.getElementById('widgetProgressText').textContent = 
+                `${Math.floor(state.current_balance)}₽ из ${costPerUnit.toFixed(0)}₽`;
+            
+            // Обновляем стоимость
+            const costInfoElement = document.getElementById('costInfo');
+            if (state.frag_amount === 1) {
+                costInfoElement.textContent = `1 ${state.frag_name} = ${costPerUnit.toFixed(0)}₽`;
+            } else {
+                costInfoElement.textContent = `${state.frag_amount} ${getUnitWord(state.frag_amount, state.frag_name)} = ${state.frag_cost}₽`;
+            }
+
+            // Обновляем ротатор топ-донатеров по добавленным фрагам
+            updateTopDonorsLine();
+
+            // Плавающая анимация суммы доната теперь обрабатывается в SHOW_ALERT
+        }
+
+        function animateNumberChange(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            if (element && element.textContent != newValue) {
+                const oldValue = parseInt(element.textContent) || 0;
+                const change = newValue - oldValue;
+                
+                // Определяем тип изменения по ID элемента
+                const isFragsNeeded = elementId === 'widgetFragsNeeded';
+                const isFragsDone = elementId === 'widgetFragsDone';
+                
+                // Добавляем анимацию изменения числа с цветом
+                if (isFragsNeeded && change < 0) {
+                    // Уменьшение остатка - красная анимация
+                    element.classList.add('number-changing-red');
+                } else if (isFragsDone && change > 0) {
+                    // Увеличение сделанных - зеленая анимация
+                    element.classList.add('number-changing-green');
+                } else {
+                    // Обычная анимация для других случаев
+                    element.classList.add('number-changing');
+                }
+                
+                setTimeout(() => {
+                    element.textContent = newValue;
+                    setTimeout(() => {
+                        element.classList.remove('number-changing', 'number-changing-red', 'number-changing-green');
+                    }, 800);
+                }, 200);
+            }
+        }
+
+
+        function getUnitWord(count, unitName) {
+            const specialCases = {
+                'фраг': ['фраг', 'фрага', 'фрагов'],
+                'монета': ['монета', 'монеты', 'монет'],
+                'очко': ['очко', 'очка', 'очков']
+            };
+            
+            if (specialCases[unitName]) {
+                const cases = specialCases[unitName];
+                return getRussianPlural(count, cases);
+            }
+            
+            return getUniversalPlural(count, unitName);
+        }
+
+        function getRussianPlural(count, cases) {
+            const lastDigit = count % 10;
+            const lastTwoDigits = count % 100;
+            
+            if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+                return cases[2];
+            }
+            
+            if (lastDigit === 1) {
+                return cases[0];
+            }
+            
+            if (lastDigit >= 2 && lastDigit <= 4) {
+                return cases[1];
+            }
+            
+            return cases[2];
+        }
+
+        function getUniversalPlural(count, word) {
+            return word;
+        }
+
+        // Fallback update every 5 seconds
+        setInterval(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                loadInitialState();
+            }
+        }, 5000);
+
+        // ================= Settings (Local) =================
+        const SETTINGS_KEY = 'widget_mode1_settings_v1';
+        function initWidgetSettingsUI() {
+            const toggle = document.getElementById('widgetSettingsToggle');
+            const panel = document.getElementById('widgetSettingsPanel');
+            const closeBtn = document.getElementById('widgetSettingsClose');
+            const saveBtn = document.getElementById('saveWidgetSettings');
+            const resetBtn = document.getElementById('resetWidgetSettings');
+
+            toggle.addEventListener('click', () => panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none');
+            closeBtn.addEventListener('click', () => panel.style.display = 'none');
+            saveBtn.addEventListener('click', saveWidgetSettings);
+            resetBtn.addEventListener('click', resetWidgetSettings);
+
+            // Load existing
+            const saved = loadWidgetSettings();
+            if (saved) {
+                document.getElementById('sizeStatsValue').value = saved.sizeStatsValue ?? 1.8;
+                document.getElementById('sizeProgressText').value = saved.sizeProgressText ?? 0.9;
+                document.getElementById('sizeCostInfo').value = saved.sizeCostInfo ?? 1.4;
+                document.getElementById('colorRed').value = saved.colorRed ?? '#ff003c';
+                document.getElementById('colorBlue').value = saved.colorBlue ?? '#00f0ff';
+                document.getElementById('colorPurple').value = saved.colorPurple ?? '#b300ff';
+                document.getElementById('colorGreen').value = saved.colorGreen ?? '#00ff47';
+                document.getElementById('colorYellow').value = saved.colorYellow ?? '#ffff00';
+            }
+            applySavedWidgetSettings();
+        }
+
+        function loadWidgetSettings() {
+            try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); } catch { return null; }
+        }
+
+        function saveWidgetSettings() {
+            const settings = {
+                sizeStatsValue: parseFloat(document.getElementById('sizeStatsValue').value) || 1.8,
+                sizeProgressText: parseFloat(document.getElementById('sizeProgressText').value) || 0.9,
+                sizeCostInfo: parseFloat(document.getElementById('sizeCostInfo').value) || 1.4,
+                colorRed: document.getElementById('colorRed').value,
+                colorBlue: document.getElementById('colorBlue').value,
+                colorPurple: document.getElementById('colorPurple').value,
+                colorGreen: document.getElementById('colorGreen').value,
+                colorYellow: document.getElementById('colorYellow').value
+            };
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            applySavedWidgetSettings();
+        }
+
+        function resetWidgetSettings() {
+            localStorage.removeItem(SETTINGS_KEY);
+            applySavedWidgetSettings();
+        }
+
+        function applySavedWidgetSettings() {
+            const saved = loadWidgetSettings();
+            const root = document.documentElement;
+            root.style.setProperty('--widget-stats-value-size', ((saved && saved.sizeStatsValue) ? saved.sizeStatsValue : 1.8) + 'rem');
+            root.style.setProperty('--widget-progress-text-size', ((saved && saved.sizeProgressText) ? saved.sizeProgressText : 0.9) + 'rem');
+            root.style.setProperty('--widget-cost-font-size', ((saved && saved.sizeCostInfo) ? saved.sizeCostInfo : 1.4) + 'rem');
+            // colors
+            root.style.setProperty('--neon-red', saved?.colorRed || '#ff003c');
+            root.style.setProperty('--neon-blue', saved?.colorBlue || '#00f0ff');
+            root.style.setProperty('--neon-purple', saved?.colorPurple || '#b300ff');
+            root.style.setProperty('--neon-green', saved?.colorGreen || '#00ff47');
+            root.style.setProperty('--neon-yellow', saved?.colorYellow || '#ffff00');
+        }
+
+        // ================= Theme from Server =================
+        function applyThemeFromState(state, modeKey) {
+            try {
+                const themeKey = modeKey === 'mode1' ? 'theme_mode1' : modeKey === 'mode2' ? 'theme_mode2' : 'theme_mode3';
+                const themeJson = state && state[themeKey];
+                if (!themeJson) return;
+                const theme = typeof themeJson === 'string' ? JSON.parse(themeJson) : themeJson;
+                if (theme && theme.cssVars) {
+                    const root = document.documentElement;
+                    Object.keys(theme.cssVars).forEach(k => {
+                        root.style.setProperty(k, theme.cssVars[k]);
+                    });
+                }
+            } catch (e) {
+                console.warn('Theme apply error:', e);
+            }
+        }
+
+        function showFloatingFrags(text) {
+            // Создаем анимацию для суммы доната из центра виджета
+            const widgetContainer = document.querySelector('.widget-container');
+            if (!widgetContainer) return;
+
+            const containerRect = widgetContainer.getBoundingClientRect();
+            
+            const animationElement = document.createElement('div');
+            animationElement.className = 'frag-change-animation frag-change-right';
+            animationElement.textContent = text;
+            
+            // Позиционируем в центре виджета
+            animationElement.style.left = (containerRect.width / 2) + 'px';
+            animationElement.style.top = (containerRect.height / 2) + 'px';
+
+            widgetContainer.appendChild(animationElement);
+
+            // Удаляем элемент после завершения анимации
+            setTimeout(() => {
+                if (animationElement.parentNode) {
+                    animationElement.parentNode.removeChild(animationElement);
+                }
+            }, 2000);
+        }
+
+        // ================= Stream Timer =================
+        function initStreamTimer() {
+            try {
+                const KEY = 'stream_timer_start_ms';
+                let startMs = parseInt(localStorage.getItem(KEY) || '0');
+                if (!Number.isFinite(startMs) || startMs <= 0) {
+                    // используем серверное стартовое смещение, если доступно
+                    const initialSec = Number(currentState.stream_timer_initial_elapsed_sec || 0) || 0;
+                    startMs = Date.now() - initialSec * 1000;
+                    localStorage.setItem(KEY, String(startMs));
+                }
+
+                const el = document.getElementById('streamTimerValue');
+                if (!el) return;
+
+                function formatHHMMSS(totalSec) {
+                    const h = Math.floor(totalSec / 3600);
+                    const m = Math.floor((totalSec % 3600) / 60);
+                    const s = Math.floor(totalSec % 60);
+                    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                }
+
+                function tick() {
+                    const elapsedSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+                    el.textContent = formatHHMMSS(elapsedSec);
+                }
+
+                tick();
+                setInterval(tick, 1000);
+
+                // Клик по таймеру позволяет задать стартовое время (в формате HH:MM:SS или секунды)
+                el.addEventListener('click', async () => {
+                    try {
+                        const input = prompt('Введите стартовое значение таймера (HH:MM:SS или секунды):');
+                        if (!input) return;
+                        let sec = 0;
+                        if (/^\d{1,2}:\d{2}:\d{2}$/.test(input)) {
+                            const [h, m, s] = input.split(':').map(n => parseInt(n));
+                            sec = (h * 3600) + (m * 60) + s;
+                        } else {
+                            sec = parseInt(input);
+                        }
+                        if (!Number.isFinite(sec) || sec < 0) return;
+                        startMs = Date.now() - sec * 1000;
+                        localStorage.setItem(KEY, String(startMs));
+                        // Передаем на сервер, чтобы новые клиенты получили корректное смещение
+                        try {
+                            await fetch('/api/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ stream_timer_initial_elapsed_sec: sec }) });
+                        } catch {}
+                        tick();
+                    } catch {}
+                });
+            } catch (e) {
+                console.warn('Stream timer init error:', e);
+            }
+        }
+
+        // ================= Top Donors Rotator (by frags added) =================
+        const TOP_DONORS_KEY = 'widget_mode1_top_donors_cache';
+        let topDonors = [];
+        let currentDonorIndex = 0;
+        let donorRotationTimer = null;
+        let isAnimating = false;
+
+        function initTopDonorsRotator() {
+            try {
+                // Пытаемся загрузить кэш
+                const cached = JSON.parse(localStorage.getItem(TOP_DONORS_KEY) || 'null');
+                if (Array.isArray(cached)) topDonors = cached;
+            } catch {}
+            
+            // Загружаем данные и запускаем ротацию
+            loadTopDonors();
+            
+            // Обновляем данные каждые 30 секунд (не влияет на ротацию)
+            setInterval(loadTopDonors, 30000);
+            
+            // Запускаем ротатор
+            startDonorRotation();
+        }
+
+        async function loadTopDonors() {
+            try {
+                const res = await fetch('/api/donations');
+                const data = await res.json();
+                if (!data || !Array.isArray(data.donations)) return;
+                
+                // Суммируем по username добавленные фраги
+                const map = new Map();
+                for (const d of data.donations) {
+                    const user = d.username || 'Аноним';
+                    const amount = Number(d.amount || 0) || 0;
+                    if (!map.has(user)) map.set(user, 0);
+                    map.set(user, map.get(user) + amount);
+                }
+                
+                // Превращаем в массив и сортируем
+                const arr = Array.from(map.entries())
+                    .map(([username, amount]) => ({ username, amount }))
+                    .filter(x => x.amount > 0)
+                    .sort((a, b) => b.amount - a.amount)
+                    .slice(0, 3);
+                
+                // Обновляем список только если он изменился
+                const hasChanged = JSON.stringify(topDonors) !== JSON.stringify(arr);
+                topDonors = arr;
+                localStorage.setItem(TOP_DONORS_KEY, JSON.stringify(topDonors));
+                
+                // Если это первая загрузка, показываем первого донатера
+                if (hasChanged && currentDonorIndex === 0) {
+                    showCurrentDonor();
+                }
+            } catch (e) {
+                console.warn('Ошибка загрузки топ донатеров:', e);
+            }
+        }
+
+        function startDonorRotation() {
+            if (donorRotationTimer) clearInterval(donorRotationTimer);
+            
+            // Показываем первого донатера сразу
+            showCurrentDonor();
+            
+            // Ротация каждые 25 секунд
+            donorRotationTimer = setInterval(() => {
+                if (isAnimating) return; // Не переключаем во время анимации
+                
+                if (!topDonors || topDonors.length === 0) {
+                    showText('—');
+                    return;
+                }
+                
+                // Переходим к следующему донатеру
+                currentDonorIndex = (currentDonorIndex + 1) % topDonors.length;
+                showCurrentDonor();
+            }, 25000);
+        }
+
+        function showCurrentDonor() {
+            if (!topDonors || topDonors.length === 0) {
+                showText('—');
+                return;
+            }
+            
+            const donor = topDonors[currentDonorIndex];
+            const text = `${donor.username}: ${donor.amount}₽`;
+            showText(text);
+        }
+
+        function showText(text) {
+            const textEl = document.getElementById('topDonorText');
+            if (!textEl) return;
+            
+            // Если текст не изменился, не делаем анимацию
+            if (textEl.textContent === text) return;
+            
+            isAnimating = true;
+            
+            // Анимация исчезновения
+            textEl.classList.add('fade-out');
+            
+            setTimeout(() => {
+                // Обновляем текст
+                textEl.textContent = text;
+                
+                // Анимация появления
+                textEl.classList.remove('fade-out');
+                textEl.classList.add('fade-in');
+                
+                setTimeout(() => {
+                    textEl.classList.remove('fade-in');
+                    isAnimating = false;
+                }, 600);
+            }, 600);
+        }
+    </script>
+</body>
+</html>

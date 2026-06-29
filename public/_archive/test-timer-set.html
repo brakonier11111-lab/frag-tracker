@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        input {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #333;
+            background: #333;
+            color: white;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🕐 Тест установки времени таймера</h1>
+        
+        <div class="input-group">
+            <label>Часы:</label>
+            <input type="number" id="hoursInput" value="0" min="0">
+        </div>
+        
+        <div class="input-group">
+            <label>Минуты:</label>
+            <input type="number" id="minutesInput" value="0" min="0" max="59">
+        </div>
+        
+        <div class="input-group">
+            <label>Секунды:</label>
+            <input type="number" id="secondsInput" value="30" min="0" max="59">
+        </div>
+        
+        <button onclick="testSetTime()">🕐 УСТАНОВИТЬ ВРЕМЯ</button>
+        <button onclick="testGetState()">📊 ПОЛУЧИТЬ СОСТОЯНИЕ</button>
+        <button onclick="testStartTimer()">▶️ ЗАПУСТИТЬ ТАЙМЕР</button>
+        <button onclick="testPauseTimer()">⏸️ ПАУЗА</button>
+        <button onclick="testResetTimer()">🔄 СБРОС</button>
+        
+        <div class="result" id="result">
+            <h3>Результат:</h3>
+            <div id="resultContent">Ожидание действий...</div>
+        </div>
+        
+        <div class="result">
+            <h3>Текущее состояние:</h3>
+            <div id="currentState">Загрузка...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentState = {};
+
+        async function testSetTime() {
+            const hours = parseInt(document.getElementById('hoursInput').value) || 0;
+            const minutes = parseInt(document.getElementById('minutesInput').value) || 0;
+            const seconds = parseInt(document.getElementById('secondsInput').value) || 0;
+            
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            
+            showResult(`Устанавливаем время: ${hours}ч ${minutes}м ${seconds}с (${totalSeconds} сек)`);
+            
+            try {
+                const response = await fetch('/api/timer-control', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'set',
+                        seconds: totalSeconds
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showResult(`✅ Время установлено успешно!`, 'success');
+                    await testGetState();
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Ошибка: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка подключения: ${error.message}`, 'error');
+            }
+        }
+
+        async function testGetState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentState = data.state;
+                    document.getElementById('currentState').innerHTML = 
+                        `<pre>${JSON.stringify(data.state, null, 2)}</pre>`;
+                    showResult('✅ Состояние получено', 'success');
+                } else {
+                    showResult(`❌ Ошибка получения состояния: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function testStartTimer() {
+            await controlTimer('start');
+        }
+
+        async function testPauseTimer() {
+            await controlTimer('pause');
+        }
+
+        async function testResetTimer() {
+            await controlTimer('reset');
+        }
+
+        async function controlTimer(action) {
+            try {
+                const response = await fetch('/api/timer-control', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showResult(`✅ Таймер: ${action}`, 'success');
+                    await testGetState();
+                } else {
+                    const errorText = await response.text();
+                    showResult(`❌ Ошибка: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        function showResult(message, type = 'info') {
+            const resultContent = document.getElementById('resultContent');
+            const timestamp = new Date().toLocaleTimeString();
+            resultContent.innerHTML = `<div style="color: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#17a2b8'}">[${timestamp}] ${message}</div>`;
+        }
+
+        // Загружаем начальное состояние
+        testGetState();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

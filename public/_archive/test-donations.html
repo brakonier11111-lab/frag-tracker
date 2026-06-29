@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тестовые донаты</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        button {
+            background: #4c6ef5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #364fc7;
+        }
+        input, select {
+            background: #1a1a1a;
+            color: white;
+            border: 1px solid #333;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        .result {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .success {
+            color: #51cf66;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тестовые донаты для аналитики</h1>
+    
+    <div class="test-section">
+        <h2>📊 Добавить тестовые донаты</h2>
+        <p>Эта страница поможет добавить тестовые донаты с разными режимами для проверки аналитики.</p>
+        
+        <div>
+            <label>Имя донатера:</label>
+            <input type="text" id="username" value="TestUser" placeholder="Имя донатера">
+        </div>
+        
+        <div>
+            <label>Сумма (₽):</label>
+            <input type="number" id="amount" value="100" placeholder="Сумма">
+        </div>
+        
+        <div>
+            <label>Режим таймера:</label>
+            <select id="timerMode">
+                <option value="mode1">Фраг-трекер</option>
+                <option value="mode2">Таймер</option>
+                <option value="mode3">Кастомный трекер</option>
+                <option value="normal">Обычный режим</option>
+            </select>
+        </div>
+        
+        <div>
+            <label>Время таймера (секунды):</label>
+            <input type="number" id="timerSeconds" value="1800" placeholder="Время таймера">
+        </div>
+        
+        <div>
+            <label>Активна скидка:</label>
+            <input type="checkbox" id="discountActive">
+            <label>Процент скидки:</label>
+            <input type="number" id="discountPercentage" value="20" placeholder="Процент скидки">
+        </div>
+        
+        <div>
+            <label>Активно замедление:</label>
+            <input type="checkbox" id="slowdownActive">
+            <label>Фактор замедления:</label>
+            <input type="number" id="slowdownFactor" value="2.0" step="0.1" placeholder="Фактор замедления">
+        </div>
+        
+        <div>
+            <label>Активен режим температуры:</label>
+            <input type="checkbox" id="temperatureActive">
+            <label>Текущая температура:</label>
+            <input type="number" id="temperatureAmount" value="75" placeholder="Текущая температура">
+            <label>Целевая температура:</label>
+            <input type="number" id="temperatureTarget" value="100" placeholder="Целевая температура">
+        </div>
+        
+        <button onclick="addTestDonation()">➕ Добавить тестовый донат</button>
+        <button onclick="addMultipleTestDonations()">📦 Добавить несколько тестовых донатов</button>
+        <button onclick="clearTestData()">🗑️ Очистить тестовые данные</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔍 Проверить аналитику</h2>
+        <button onclick="checkAnalytics()">📊 Проверить аналитику</button>
+        <div id="analyticsResult" class="result"></div>
+    </div>
+
+    <script>
+        async function addTestDonation() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Добавление тестового доната...';
+            
+            try {
+                const donation = {
+                    id: Date.now().toString(),
+                    username: document.getElementById('username').value,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    message: 'Тестовый донат',
+                    currency: 'RUB',
+                    isRealtime: false,
+                    fragsEarned: 0,
+                    timeEarned: 0,
+                    customUnitsEarned: 0
+                };
+                
+                const response = await fetch('/api/donations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(donation)
+                });
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<span class="success">✅ Тестовый донат добавлен успешно!</span>';
+                } else {
+                    const error = await response.text();
+                    resultDiv.innerHTML = `<span class="error">❌ Ошибка: ${error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Ошибка: ${error.message}</span>`;
+            }
+        }
+
+        async function addMultipleTestDonations() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Добавление нескольких тестовых донатов...';
+            
+            const testDonations = [
+                { username: 'User1', amount: 100, timerMode: 'mode2', discountActive: true, discountPercentage: 20 },
+                { username: 'User2', amount: 200, timerMode: 'mode2', slowdownActive: true, slowdownFactor: 2.0 },
+                { username: 'User3', amount: 150, timerMode: 'mode2', temperatureActive: true, temperatureAmount: 75 },
+                { username: 'User4', amount: 300, timerMode: 'mode1', discountActive: true, discountPercentage: 30 },
+                { username: 'User5', amount: 250, timerMode: 'mode3', temperatureActive: true, temperatureAmount: 90 },
+                { username: 'User6', amount: 180, timerMode: 'mode2', slowdownActive: true, slowdownFactor: 1.5 },
+                { username: 'User7', amount: 120, timerMode: 'mode2', temperatureActive: true, temperatureAmount: 100, temperatureOverheated: true },
+                { username: 'User8', amount: 400, timerMode: 'mode1', discountActive: true, discountPercentage: 25 },
+                { username: 'User9', amount: 350, timerMode: 'mode2', temperatureActive: true, temperatureAmount: 60 },
+                { username: 'User10', amount: 220, timerMode: 'mode3', slowdownActive: true, slowdownFactor: 3.0 }
+            ];
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (const testData of testDonations) {
+                try {
+                    const donation = {
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                        username: testData.username,
+                        amount: testData.amount,
+                        message: 'Тестовый донат',
+                        currency: 'RUB',
+                        isRealtime: false,
+                        fragsEarned: 0,
+                        timeEarned: 0,
+                        customUnitsEarned: 0
+                    };
+                    
+                    const response = await fetch('/api/donations', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(donation)
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    errorCount++;
+                }
+            }
+            
+            resultDiv.innerHTML = `<span class="success">✅ Добавлено ${successCount} тестовых донатов</span>${errorCount > 0 ? `<br><span class="error">❌ Ошибок: ${errorCount}</span>` : ''}`;
+        }
+
+        async function clearTestData() {
+            if (!confirm('Вы уверены, что хотите очистить все тестовые данные?')) {
+                return;
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Очистка тестовых данных...';
+            
+            try {
+                const response = await fetch('/api/reset-donations-count', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<span class="success">✅ Тестовые данные очищены</span>';
+                } else {
+                    resultDiv.innerHTML = '<span class="error">❌ Ошибка очистки данных</span>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Ошибка: ${error.message}</span>`;
+            }
+        }
+
+        async function checkAnalytics() {
+            const resultDiv = document.getElementById('analyticsResult');
+            resultDiv.innerHTML = 'Проверка аналитики...';
+            
+            try {
+                const response = await fetch('/api/timer-modes-analytics');
+                const data = await response.json();
+                
+                if (data.success) {
+                    let result = '📊 Результаты аналитики:\n\n';
+                    
+                    const analytics = data.data;
+                    
+                    result += `⏰ Статистика по времени: ${analytics.timerTimeStats ? analytics.timerTimeStats.length : 0} записей\n`;
+                    result += `🎮 Статистика по режимам: ${analytics.timerModesStats ? analytics.timerModesStats.length : 0} записей\n`;
+                    result += `🌡️ Статистика по температуре: ${analytics.temperatureStats ? analytics.temperatureStats.length : 0} записей\n`;
+                    result += `🔥 Сессии температуры: ${analytics.temperatureSessions ? analytics.temperatureSessions.length : 0} записей\n`;
+                    result += `💰 Статистика скидок: ${analytics.discountStats ? analytics.discountStats.length : 0} записей\n`;
+                    result += `🐌 Статистика замедления: ${analytics.slowdownStats ? analytics.slowdownStats.length : 0} записей\n`;
+                    
+                    if (analytics.temperatureStats && analytics.temperatureStats.length > 0) {
+                        result += '\n🌡️ Детали по температуре:\n';
+                        analytics.temperatureStats.forEach(item => {
+                            result += `- ${item.temperatureRange}: ${item.donationCount} донатов, ${item.totalAmount}₽\n`;
+                        });
+                    }
+                    
+                    if (analytics.discountStats && analytics.discountStats.length > 0) {
+                        result += '\n💰 Детали по скидкам:\n';
+                        analytics.discountStats.forEach(item => {
+                            result += `- ${item.discount_percentage}%: ${item.donationCount} донатов, ${item.totalAmount}₽\n`;
+                        });
+                    }
+                    
+                    resultDiv.innerHTML = result;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Ошибка аналитики: ${data.error}</span>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Ошибка: ${error.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

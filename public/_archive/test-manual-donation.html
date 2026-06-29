@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест ручных донатов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            border: 1px solid #444;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #666;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+        }
+        button {
+            background: #007bff;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #4a1a1a;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #1a4a1a;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест ручных донатов</h1>
+    
+    <div class="test-section">
+        <h2>📤 Отправить ручной донат</h2>
+        <input type="text" id="username" placeholder="Имя донатера" value="Тестовый Донатер">
+        <input type="number" id="amount" placeholder="Сумма" value="100">
+        <input type="text" id="message" placeholder="Сообщение" value="Тестовый донат">
+        <button onclick="sendManualDonation()">💥 Отправить донат</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Проверить состояние</h2>
+        <button onclick="checkState()">🔄 Обновить состояние</button>
+        <div id="stateResult" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📺 Проверить счетчик стрима</h2>
+        <button onclick="checkStreamCounter()">📺 Проверить счетчик</button>
+        <div id="streamResult" class="result"></div>
+    </div>
+
+    <script>
+        async function sendManualDonation() {
+            const username = document.getElementById('username').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const message = document.getElementById('message').value;
+            
+            if (!username || !amount) {
+                showResult('stateResult', '❌ Заполните имя и сумму', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/manual-donation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        amount: amount,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showResult('stateResult', `✅ Донат отправлен: ${username} - ${amount}₽`, 'success');
+                    // Автоматически обновляем состояние
+                    setTimeout(checkState, 1000);
+                } else {
+                    showResult('stateResult', `❌ Ошибка: ${data.error || 'Неизвестная ошибка'}`, 'error');
+                }
+            } catch (error) {
+                showResult('stateResult', `❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const state = data.state;
+                    const result = `
+                        <strong>📊 Состояние приложения:</strong><br>
+                        💰 Всего донатов: ${state.total_donated || 0}₽<br>
+                        ⏰ Таймер: ${state.timer_seconds || 0} сек<br>
+                        📺 Время стрима: ${state.stream_timer_initial_elapsed_sec || 0} сек<br>
+                        🎯 Режим: ${state.current_mode || 'не установлен'}
+                    `;
+                    showResult('stateResult', result, 'success');
+                } else {
+                    showResult('stateResult', '❌ Ошибка получения состояния', 'error');
+                }
+            } catch (error) {
+                showResult('stateResult', `❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkStreamCounter() {
+            try {
+                const response = await fetch('/api/stream-counter/status');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const totalSeconds = data.totalSeconds || 0;
+                    const hours = Math.floor(totalSeconds / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+                    
+                    const result = `
+                        <strong>📺 Счетчик стрима:</strong><br>
+                        ⏱️ Общее время: ${totalSeconds} сек<br>
+                        🕐 Форматированное: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}
+                    `;
+                    showResult('streamResult', result, 'success');
+                } else {
+                    showResult('streamResult', '❌ Ошибка получения счетчика стрима', 'error');
+                }
+            } catch (error) {
+                showResult('streamResult', `❌ Ошибка сети: ${error.message}`, 'error');
+            }
+        }
+        
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = message;
+            element.className = `result ${type}`;
+        }
+        
+        // Автоматически загружаем состояние при загрузке страницы
+        window.onload = function() {
+            checkState();
+            checkStreamCounter();
+        };
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

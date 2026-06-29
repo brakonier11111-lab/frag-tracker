@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: #333;
+        }
+        .connected { background: #28a745; }
+        .disconnected { background: #dc3545; }
+        .connecting { background: #ffc107; color: black; }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .log {
+            background: #222;
+            padding: 10px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .log-info { background: #1e3a8a; }
+        .log-success { background: #166534; }
+        .log-error { background: #991b1b; }
+        .log-warning { background: #92400e; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Тест WebSocket соединения</h1>
+        
+        <div id="status" class="status disconnected">
+            ❌ Отключено
+        </div>
+        
+        <div>
+            <button onclick="connect()">🔗 Подключиться</button>
+            <button onclick="disconnect()">🔌 Отключиться</button>
+            <button onclick="testTimerSet()">⏰ Тест установки времени</button>
+            <button onclick="testStateUpdate()">📊 Тест обновления состояния</button>
+            <button onclick="clearLog()">🗑️ Очистить лог</button>
+        </div>
+        
+        <h3>📋 Лог сообщений:</h3>
+        <div id="log" class="log"></div>
+        
+        <h3>📊 Текущее состояние:</h3>
+        <div id="currentState" class="log">Ожидание данных...</div>
+    </div>
+
+    <script>
+        let ws = null;
+        let reconnectInterval = null;
+        let currentState = {};
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(status, message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${status}`;
+            statusDiv.textContent = message;
+        }
+
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                log('Уже подключен', 'warning');
+                return;
+            }
+
+            updateStatus('connecting', '🔄 Подключение...');
+            log('Попытка подключения к WebSocket...', 'info');
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                updateStatus('connected', '✅ Подключено');
+                log('WebSocket подключен успешно', 'success');
+                clearInterval(reconnectInterval);
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    log(`📨 Получено сообщение: ${data.type}`, 'info');
+                    
+                    if (data.type === 'INIT_STATE' || data.type === 'STATE_UPDATE') {
+                        currentState = data.state;
+                        updateCurrentStateDisplay();
+                        log(`📊 Состояние обновлено: ${JSON.stringify(data.state, null, 2)}`, 'success');
+                    } else {
+                        log(`📨 Другие данные: ${JSON.stringify(data, null, 2)}`, 'info');
+                    }
+                } catch (e) {
+                    log(`❌ Ошибка парсинга сообщения: ${e.message}`, 'error');
+                }
+            };
+            
+            ws.onclose = function(event) {
+                updateStatus('disconnected', '❌ Отключено');
+                log(`WebSocket отключен: код ${event.code}, причина: ${event.reason}`, 'warning');
+                
+                // Автоматическое переподключение
+                if (!reconnectInterval) {
+                    log('Попытка переподключения через 3 секунды...', 'info');
+                    reconnectInterval = setInterval(() => {
+                        if (!ws || ws.readyState === WebSocket.CLOSED) {
+                            connect();
+                        }
+                    }, 3000);
+                }
+            };
+            
+            ws.onerror = function(error) {
+                log(`❌ Ошибка WebSocket: ${error}`, 'error');
+            };
+        }
+
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            clearInterval(reconnectInterval);
+            reconnectInterval = null;
+            updateStatus('disconnected', '❌ Отключено');
+            log('WebSocket отключен вручную', 'info');
+        }
+
+        async function testTimerSet() {
+            log('🧪 Тест установки времени...', 'info');
+            try {
+                const response = await fetch('/api/timer-control', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'set',
+                        seconds: 300 // 5 минут
+                    })
+                });
+                
+                if (response.ok) {
+                    log('✅ Время установлено успешно', 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Ошибка установки времени: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        async function testStateUpdate() {
+            log('🧪 Тест обновления состояния...', 'info');
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cost_per_minute: Math.floor(Math.random() * 100) + 50,
+                        timer_alert_text: 'тестовый алерт'
+                    })
+                });
+                
+                if (response.ok) {
+                    log('✅ Состояние обновлено успешно', 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Ошибка обновления состояния: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка: ${error.message}`, 'error');
+            }
+        }
+
+        function updateCurrentStateDisplay() {
+            const stateDiv = document.getElementById('currentState');
+            stateDiv.textContent = JSON.stringify(currentState, null, 2);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Автоматическое подключение при загрузке
+        window.addEventListener('load', () => {
+            log('Страница загружена, подключаемся...', 'info');
+            connect();
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статистика Фрагов - Frag Tracker</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --card-bg: rgba(20, 20, 30, 0.9);
+            --shadow: 0 0 20px rgba(0, 255, 71, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+            padding-top: 80px;
+        }
+
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .menu-logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .menu-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .menu-item.active {
+            background: var(--neon-purple);
+            color: var(--dark);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+        }
+
+        .title {
+            font-size: 2.5rem;
+            color: var(--neon-green);
+            font-weight: 700;
+            text-shadow: 0 0 20px var(--neon-green);
+        }
+
+        .subtitle {
+            color: var(--light);
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        .navigation {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(0, 255, 71, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: var(--neon-green);
+            color: var(--dark);
+            border-color: var(--neon-green);
+            box-shadow: 0 0 20px rgba(0, 255, 71, 0.5);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .stat-card h3 {
+            color: var(--neon-blue);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--neon-green);
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px var(--neon-green);
+        }
+
+        .stat-label {
+            color: var(--light);
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .period-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .period-btn {
+            padding: 8px 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .period-btn:hover {
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+        }
+
+        .period-btn.active {
+            background: var(--neon-purple);
+            color: var(--dark);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .auto-refresh-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .refresh-btn, .toggle-btn {
+            padding: 8px 16px;
+            background: var(--neon-cyan);
+            color: var(--dark);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover, .toggle-btn:hover {
+            background: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .auto-refresh-indicator {
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .auto-refresh-indicator.active {
+            background: rgba(0, 240, 255, 0.2);
+            color: var(--neon-cyan);
+            border: 1px solid var(--neon-cyan);
+        }
+
+        .auto-refresh-indicator.inactive {
+            background: rgba(255, 0, 60, 0.2);
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+        }
+
+        .last-update-time {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .reset-btn {
+            background: var(--neon-red);
+            color: var(--dark);
+            border: 1px solid var(--neon-red);
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .reset-btn:hover {
+            background: var(--dark);
+            color: var(--neon-red);
+            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
+        }
+
+        .chart-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-title {
+            color: var(--neon-yellow);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            text-shadow: 0 0 10px var(--neon-yellow);
+        }
+
+        .chart {
+            width: 100%;
+            height: 300px;
+            background: var(--darker);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        .battle-chart-container {
+            width: 100%;
+            height: 500px;
+            background: var(--darker);
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+
+        .hour-chart {
+            display: flex;
+            align-items: end;
+            height: 100%;
+            gap: 2px;
+        }
+
+        .hour-bar {
+            flex: 1;
+            background: linear-gradient(to top, var(--neon-green), var(--neon-blue));
+            border-radius: 3px 3px 0 0;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 2px;
+        }
+
+        .hour-bar:hover {
+            background: linear-gradient(to top, var(--neon-yellow), var(--neon-red));
+            box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+        }
+
+        .hour-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--light);
+            opacity: 0.7;
+        }
+
+        .battle-chart-wrapper {
+            display: flex;
+            height: 100%;
+            gap: 10px;
+        }
+
+        .frag-scale {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            width: 40px;
+            padding: 20px 0;
+            height: 100%;
+        }
+
+        .scale-label {
+            color: var(--light);
+            font-size: 0.9rem;
+            font-weight: 600;
+            opacity: 0.8;
+            position: relative;
+            z-index: 2;
+        }
+
+
+        .battle-chart {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            height: 100%;
+            gap: 1px;
+            overflow-x: auto;
+            padding-bottom: 30px;
+            position: relative;
+        }
+
+        .battle-chart-wrapper {
+            position: relative;
+            height: 100%;
+        }
+
+        .grid-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .grid-row {
+            display: flex;
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .grid-row:last-child {
+            border-bottom: none;
+        }
+
+        .grid-cell {
+            flex: 1;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            min-height: 60px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .grid-cell:last-child {
+            border-right: none;
+        }
+
+        .grid-cell.filled {
+            background: linear-gradient(to top, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        }
+
+        .grid-cell-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.7rem;
+            font-weight: 500;
+            pointer-events: none;
+        }
+
+        .frag-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .grid-cell:hover .frag-indicator {
+            opacity: 1;
+        }
+
+
+        .loading {
+            text-align: center;
+            color: var(--light);
+            font-style: italic;
+            padding: 40px;
+            opacity: 0.7;
+        }
+
+        .error {
+            text-align: center;
+            color: var(--neon-red);
+            padding: 40px;
+            font-weight: 500;
+        }
+
+        .chart-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 15px;
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .zoom-btn {
+            padding: 5px 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--light);
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .zoom-btn:hover {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 5px rgba(0, 255, 71, 0.3);
+        }
+
+        .zoom-level {
+            color: var(--light);
+            font-size: 0.9rem;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--light);
+            opacity: 0.8;
+        }
+
+        .legend-color {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .navigation {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .period-selector {
+                flex-wrap: wrap;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="theme-neon">
+    <!-- Верхнее меню -->
+    <nav class="top-menu">
+        <div class="menu-container">
+            <a href="/index.html" class="menu-logo">
+                🎯 ФРАГ-ТРЕКЕР
+            </a>
+            <div class="menu-nav">
+                <a href="/index.html" class="menu-item">🏠 Главная</a>
+                <a href="/mode1-frag-tracker.html" class="menu-item">🎯 Фраг-трекер</a>
+                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
+                <a href="/mode3-custom.html" class="menu-item">⚙️ Кастом</a>
+                <a href="/frag-stats.html" class="menu-item active">📊 Статистика</a>
+                <a href="/lesta-stats.html" class="menu-item">🏆 Lesta Games</a>
+                <a href="/admin.html" class="menu-item">🔧 Админ</a>
+                <a href="/analytics.html" class="menu-item">📈 Аналитика</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="title">📊 СТАТИСТИКА ФРАГОВ</div>
+                <div class="subtitle">Детальная аналитика ваших боев и фрагов</div>
+            </div>
+        </div>
+
+        <div class="navigation">
+            <a href="/mode1-frag-tracker.html" class="nav-btn">🎯 Режим Фрагов</a>
+            <a href="/frag-stats.html" class="nav-btn active">📊 Статистика</a>
+            <a href="/lesta-stats.html" class="nav-btn">🏆 Lesta Games</a>
+        </div>
+
+        <div class="period-selector">
+            <button class="period-btn active" data-period="day">День</button>
+            <button class="period-btn" data-period="week">Неделя</button>
+            <button class="period-btn" data-period="month">Месяц</button>
+            <button class="reset-btn" onclick="resetStats()" title="Сбросить всю статистику фрагов">🗑️ СБРОС</button>
+        </div>
+        
+        <div class="auto-refresh-controls">
+            <button class="refresh-btn" onclick="forceRefresh()">🔄 Обновить</button>
+            <button class="toggle-btn" onclick="toggleAutoRefresh()">⏸️ Остановить автообновление</button>
+            <div id="autoRefreshIndicator" class="auto-refresh-indicator active">🔄 Автообновление активно</div>
+            <div id="lastUpdateTime" class="last-update-time">Последнее обновление: —</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>🎯 Общие Фраги</h3>
+                <div class="stat-value" id="totalFrags">—</div>
+                <div class="stat-label">За выбранный период</div>
+            </div>
+            <div class="stat-card">
+                <h3>⚔️ Всего Боев</h3>
+                <div class="stat-value" id="totalBattles">—</div>
+                <div class="stat-label">За выбранный период</div>
+            </div>
+            <div class="stat-card">
+                <h3>✅ Бои с Фрагами</h3>
+                <div class="stat-value" id="battlesWithFrags">—</div>
+                <div class="stat-label">За выбранный период</div>
+            </div>
+            <div class="stat-card">
+                <h3>❌ Бои без Фрагов</h3>
+                <div class="stat-value" id="battlesWithoutFrags">—</div>
+                <div class="stat-label">За выбранный период</div>
+            </div>
+            <div class="stat-card">
+                <h3>🏆 Лучший Час</h3>
+                <div class="stat-value" id="bestHour">—</div>
+                <div class="stat-label">Максимум фрагов за час</div>
+            </div>
+            <div class="stat-card">
+                <h3>📈 Среднее за Бой</h3>
+                <div class="stat-value" id="avgFragsPerBattle">—</div>
+                <div class="stat-label">Фрагов за бой</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3 class="chart-title">📊 Фраги по Часам</h3>
+            <div class="chart">
+                <div class="hour-chart" id="hourChart">
+                    <div class="loading">Загрузка данных...</div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="chart-container">
+            <h3 class="chart-title">⚔️ Статистика по Боям</h3>
+            <div class="chart-controls">
+                <div class="zoom-controls">
+                    <button class="zoom-btn" onclick="changeZoom(-1)">🔍-</button>
+                    <span class="zoom-level" id="zoomLevel">100%</span>
+                    <button class="zoom-btn" onclick="changeZoom(1)">🔍+</button>
+                </div>
+            </div>
+            <div class="battle-chart-container">
+                <div class="battle-chart-wrapper">
+                    <div class="frag-scale">
+                        <div class="scale-label">7</div>
+                        <div class="scale-label">6</div>
+                        <div class="scale-label">5</div>
+                        <div class="scale-label">4</div>
+                        <div class="scale-label">3</div>
+                        <div class="scale-label">2</div>
+                        <div class="scale-label">1</div>
+                        <div class="scale-label">0</div>
+                    </div>
+                    <div class="battle-chart" id="battleChart">
+                        <div class="loading">Загрузка данных...</div>
+                    </div>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: rgba(255, 255, 255, 0.3);"></div>
+                    <span>0 фрагов</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff0000;"></div>
+                    <span>1 фраг</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6600;"></div>
+                    <span>2 фрага</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ff00;"></div>
+                    <span>3 фрага</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ffff;"></div>
+                    <span>4 фрага</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #0066ff;"></div>
+                    <span>5 фрагов</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #6600ff;"></div>
+                    <span>6 фрагов</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff00ff;"></div>
+                    <span>7 фрагов</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3 class="chart-title">📅 Фраги по Дням</h3>
+            <div class="chart">
+                <div class="loading" id="dayChartLoading">Загрузка данных...</div>
+                <canvas id="dayChart" width="800" height="300" style="display: none;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPeriod = 'day';
+        let fragStatsData = null;
+        let zoomLevel = 1;
+        let maxZoomLevel = 5;
+        let minZoomLevel = 0.2;
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePeriodButtons();
+            loadFragStats();
+            startAutoRefresh();
+        });
+
+        function initializePeriodButtons() {
+            const periodButtons = document.querySelectorAll('.period-btn');
+            periodButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Убираем активный класс со всех кнопок
+                    periodButtons.forEach(b => b.classList.remove('active'));
+                    // Добавляем активный класс к выбранной кнопке
+                    this.classList.add('active');
+                    // Обновляем период
+                    currentPeriod = this.dataset.period;
+                    loadFragStats();
+                });
+            });
+        }
+
+        async function loadFragStats(silent = false) {
+            try {
+                if (!silent) {
+                    console.log('📊 Загрузка статистики фрагов для периода:', currentPeriod);
+                    showLoading();
+                }
+                
+                // Загружаем данные статистики фрагов
+                const response = await fetch(`/api/frag-stats?period=${currentPeriod}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    fragStatsData = data.data;
+                    updateStatsDisplay();
+                    updateCharts();
+                    
+                    // Обновляем время последнего обновления
+                    lastUpdateTime = new Date();
+                    updateLastUpdateTime();
+                    
+                    if (!silent) {
+                        console.log('✅ Статистика фрагов обновлена');
+                    }
+                } else {
+                    if (!silent) {
+                        showError(data.message || 'Ошибка загрузки статистики');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки статистики фрагов:', error);
+                if (!silent) {
+                    showError('Ошибка подключения к серверу');
+                }
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('totalFrags').textContent = '—';
+            document.getElementById('totalBattles').textContent = '—';
+            document.getElementById('battlesWithFrags').textContent = '—';
+            document.getElementById('battlesWithoutFrags').textContent = '—';
+            document.getElementById('bestHour').textContent = '—';
+            document.getElementById('avgFragsPerBattle').textContent = '—';
+            
+            document.getElementById('hourChart').innerHTML = '<div class="loading">Загрузка данных...</div>';
+            document.getElementById('dayChartLoading').textContent = 'Загрузка данных...';
+            document.getElementById('dayChart').style.display = 'none';
+            document.getElementById('battleChart').innerHTML = '<div class="loading">Загрузка данных...</div>';
+        }
+
+        function showError(message) {
+            document.getElementById('hourChart').innerHTML = `<div class="error">${message}</div>`;
+            document.getElementById('dayChartLoading').textContent = message;
+            document.getElementById('battleChart').innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // Автообновление статистики
+        let autoRefreshInterval = null;
+        let lastUpdateTime = null;
+
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            console.log('🔄 Запуск автообновления статистики каждые 30 секунд');
+            autoRefreshInterval = setInterval(() => {
+                console.log('🔄 Автообновление статистики...');
+                loadFragStats(true); // true = тихое обновление
+            }, 30000); // 30 секунд
+            
+            // Показываем индикатор автообновления
+            updateAutoRefreshIndicator();
+        }
+
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                console.log('⏹️ Автообновление статистики остановлено');
+            }
+            updateAutoRefreshIndicator();
+        }
+
+        function updateAutoRefreshIndicator() {
+            const indicator = document.getElementById('autoRefreshIndicator');
+            if (indicator) {
+                if (autoRefreshInterval) {
+                    indicator.textContent = '🔄 Автообновление активно';
+                    indicator.className = 'auto-refresh-indicator active';
+                } else {
+                    indicator.textContent = '⏹️ Автообновление остановлено';
+                    indicator.className = 'auto-refresh-indicator inactive';
+                }
+            }
+        }
+
+        function toggleAutoRefresh() {
+            if (autoRefreshInterval) {
+                stopAutoRefresh();
+            } else {
+                startAutoRefresh();
+            }
+        }
+
+        function forceRefresh() {
+            console.log('🔄 Принудительное обновление статистики...');
+            loadFragStats(false); // false = обычное обновление с индикатором
+        }
+
+        function updateLastUpdateTime() {
+            const timeElement = document.getElementById('lastUpdateTime');
+            if (timeElement && lastUpdateTime) {
+                timeElement.textContent = `Последнее обновление: ${lastUpdateTime.toLocaleTimeString()}`;
+            }
+        }
+
+        function changeZoom(direction) {
+            const step = 0.2;
+            if (direction > 0 && zoomLevel < maxZoomLevel) {
+                zoomLevel = Math.min(maxZoomLevel, zoomLevel + step);
+            } else if (direction < 0 && zoomLevel > minZoomLevel) {
+                zoomLevel = Math.max(minZoomLevel, zoomLevel - step);
+            }
+            
+            document.getElementById('zoomLevel').textContent = Math.round(zoomLevel * 100) + '%';
+            updateBattleChart();
+        }
+
+        async function resetStats() {
+            if (!confirm('Вы уверены, что хотите сбросить всю статистику фрагов? Это действие нельзя отменить!')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/frag-stats', {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Статистика фрагов успешно сброшена!');
+                    loadFragStats(); // Перезагружаем статистику
+                } else {
+                    alert('Ошибка при сбросе статистики: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Ошибка сброса статистики:', error);
+                alert('Ошибка при сбросе статистики');
+            }
+        }
+
+        function updateStatsDisplay() {
+            if (!fragStatsData) return;
+
+            // Получаем информацию о периоде
+            const periodText = getPeriodText(currentPeriod);
+            
+            // Обновляем основные статистики с информацией о периоде
+            document.getElementById('totalFrags').textContent = fragStatsData.totalFrags || 0;
+            document.getElementById('totalBattles').textContent = fragStatsData.totalBattles || 0;
+            document.getElementById('bestHour').textContent = formatBestHour(fragStatsData.bestHour, currentPeriod);
+            document.getElementById('avgFragsPerBattle').textContent = fragStatsData.avgFragsPerBattle || '0.00';
+            
+            // Обновляем дополнительную статистику если есть данные
+            if (fragStatsData.battlesWithFrags !== undefined) {
+                const battlesWithFragsEl = document.getElementById('battlesWithFrags');
+                const battlesWithoutFragsEl = document.getElementById('battlesWithoutFrags');
+                
+                if (battlesWithFragsEl) {
+                    battlesWithFragsEl.textContent = fragStatsData.battlesWithFrags || 0;
+                }
+                if (battlesWithoutFragsEl) {
+                    battlesWithoutFragsEl.textContent = fragStatsData.battlesWithoutFrags || 0;
+                }
+            }
+            
+            // Обновляем подписи с периодом
+            document.querySelector('#totalFrags').nextElementSibling.textContent = `За ${periodText}`;
+            document.querySelector('#totalBattles').nextElementSibling.textContent = `За ${periodText}`;
+            document.querySelector('#avgFragsPerBattle').nextElementSibling.textContent = `Фрагов за бой за ${periodText}`;
+        }
+
+        function getPeriodText(period) {
+            switch(period) {
+                case 'day': return 'день';
+                case 'week': return 'неделю';
+                case 'month': return 'месяц';
+                default: return 'период';
+            }
+        }
+
+        function formatBestHour(bestHour, period) {
+            if (!bestHour || bestHour === '—') return '—';
+            
+            // Если выбран день, показываем только время
+            if (period === 'day') {
+                return bestHour;
+            }
+            
+            // Для недели и месяца добавляем информацию о дне
+            if (period === 'week' || period === 'month') {
+                // Находим день с максимальным количеством фрагов
+                const dailyStats = fragStatsData.dailyStats || [];
+                if (dailyStats.length > 0) {
+                    const bestDay = dailyStats.reduce((max, current) => 
+                        current.frags > max.frags ? current : max
+                    );
+                    if (bestDay.frags > 0) {
+                        const date = new Date(bestDay.date);
+                        const dayName = date.toLocaleDateString('ru-RU', { weekday: 'long' });
+                        return `${bestHour} (${dayName})`;
+                    }
+                }
+            }
+            
+            return bestHour;
+        }
+
+        function updateCharts() {
+            if (!fragStatsData) return;
+
+            updateHourChart();
+            updateDayChart();
+            updateBattleChart();
+        }
+
+        function updateHourChart() {
+            const hourChart = document.getElementById('hourChart');
+            const hourData = fragStatsData.hourlyStats || [];
+            
+            if (hourData.length === 0) {
+                hourChart.innerHTML = '<div class="error">Нет данных по часам</div>';
+                return;
+            }
+
+            const maxFrags = Math.max(...hourData.map(h => h.frags));
+            
+            let html = '';
+            for (let hour = 0; hour < 24; hour++) {
+                const hourStat = hourData.find(h => h.hour === hour) || { hour, frags: 0 };
+                const height = maxFrags > 0 ? (hourStat.frags / maxFrags) * 100 : 0;
+                
+                html += `
+                    <div class="hour-bar" style="height: ${height}%;" title="Час ${hour}: ${hourStat.frags} фрагов">
+                        <div class="hour-label">${hour}</div>
+                    </div>
+                `;
+            }
+            
+            hourChart.innerHTML = html;
+        }
+
+        function updateDayChart() {
+            const dayChartLoading = document.getElementById('dayChartLoading');
+            const dayChart = document.getElementById('dayChart');
+            const dayData = fragStatsData.dailyStats || [];
+            
+            if (dayData.length === 0) {
+                dayChartLoading.textContent = 'Нет данных по дням';
+                return;
+            }
+
+            // Скрываем индикатор загрузки и показываем canvas
+            dayChartLoading.style.display = 'none';
+            dayChart.style.display = 'block';
+            
+            // Здесь будет код для отображения диаграммы по дням
+            // Пока что просто показываем сообщение
+            const ctx = dayChart.getContext('2d');
+            ctx.fillStyle = '#00ff88';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Диаграмма по дням будет реализована', dayChart.width / 2, dayChart.height / 2);
+        }
+
+        function updateBattleChart() {
+            const battleChart = document.getElementById('battleChart');
+            const battleData = fragStatsData.battleStats || [];
+            
+            if (battleData.length === 0) {
+                battleChart.innerHTML = '<div class="error">Нет данных по боям</div>';
+                return;
+            }
+
+            // Создаем сетку 7xN (7 строк по количеству фрагов, N столбцов по количеству боёв)
+            let gridHtml = '<div class="grid-container">';
+            
+            // Создаем 7 строк (от 7 фрагов до 1 фрага)
+            for (let fragLevel = 7; fragLevel >= 1; fragLevel--) {
+                gridHtml += '<div class="grid-row">';
+                
+                // Создаем ячейки для каждого боя
+                battleData.forEach((battle, battleIndex) => {
+                    const isFilled = battle.frags >= fragLevel;
+                    const cellClass = isFilled ? 'grid-cell filled' : 'grid-cell';
+                    
+                    // Определяем цвет в зависимости от количества фрагов
+                    let cellColor = '';
+                    if (battle.frags === 0) {
+                        cellColor = 'rgba(255, 255, 255, 0.3)';
+                    } else if (battle.frags === 1) {
+                        cellColor = '#ff0000';
+                    } else if (battle.frags === 2) {
+                        cellColor = '#ff6600';
+                    } else if (battle.frags === 3) {
+                        cellColor = '#00ff00';
+                    } else if (battle.frags === 4) {
+                        cellColor = '#00ffff';
+                    } else if (battle.frags === 5) {
+                        cellColor = '#0066ff';
+                    } else if (battle.frags === 6) {
+                        cellColor = '#6600ff';
+                    } else if (battle.frags === 7) {
+                        cellColor = '#ff00ff';
+                    } else {
+                        cellColor = '#ff00ff'; // Для фрагов больше 7
+                    }
+                    
+                    const cellStyle = isFilled ? `background: ${cellColor};` : '';
+                    
+                    gridHtml += `
+                        <div class="${cellClass}" style="${cellStyle}" title="Бой ${battleIndex + 1}: ${battle.frags} фрагов (${battle.time})">
+                            <div class="frag-indicator"></div>
+                            ${isFilled ? `<div class="grid-cell-label">${battle.frags}</div>` : ''}
+                        </div>
+                    `;
+                });
+                
+                gridHtml += '</div>';
+            }
+            
+            gridHtml += '</div>';
+            
+            battleChart.innerHTML = gridHtml;
+            
+            // Применяем масштабирование к контейнеру
+            battleChart.style.transform = `scaleX(${zoomLevel})`;
+            battleChart.style.transformOrigin = 'left bottom';
+            
+            // Включаем горизонтальную прокрутку при масштабировании
+            if (zoomLevel > 1) {
+                battleChart.style.overflowX = 'auto';
+            } else {
+                battleChart.style.overflowX = 'visible';
+            }
+        }
+    </script>
+</body>
+</html>

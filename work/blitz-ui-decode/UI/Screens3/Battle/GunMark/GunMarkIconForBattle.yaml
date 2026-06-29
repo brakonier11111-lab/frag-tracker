@@ -1,0 +1,32 @@
+Header:
+    version: 165
+Prototypes:
+-   class: "UIControl"
+    name: "GunMarksWrapper"
+    size: [24.000000, 24.000000]
+    input: false
+    classes: "gun-marks gun-marks-level=minor"
+    components:
+        Anchor: {}
+        SizePolicy:
+            horizontalPolicy: "PercentOfFirstChild"
+            verticalPolicy: "PercentOfFirstChild"
+        StyleSheet:
+            styles: "~res:/UI/Screens3/Battle/GunMark/GunMarkIconForBattle.style"
+    children:
+    -   class: "UIControl"
+        name: "Icon"
+        input: false
+        components:
+            Background:
+                drawType: "DRAW_SCALE_TO_RECT"
+            UIDynamicAtlasImageComponent:
+                drawType: "ScaleToRect"
+            Anchor:
+                hCenterAnchorEnabled: true
+                vCenterAnchorEnabled: true
+            SizePolicy:
+                horizontalPolicy: "FixedSize"
+                horizontalValue: 24.000000
+                verticalPolicy: "FixedSize"
+                verticalValue: 24.000000

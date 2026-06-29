@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФРАГ-ТРЕКЕР | ВЫБОР РЕЖИМА</title>
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <style>
+        /* Дополнительные стили для главной страницы */
+        .hero {
+            text-align: center;
+            padding: var(--spacing-2xl) var(--spacing-lg);
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .hero-title {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            margin-bottom: var(--spacing-md);
+            background: var(--gradient-neon);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(255, 0, 60, 0.5);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: var(--color-neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--spacing-xl);
+            margin-top: var(--spacing-2xl);
+        }
+
+        .mode-card {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.1), 
+                transparent
+            );
+            transition: left 0.5s;
+        }
+
+        .mode-card:hover::before {
+            left: 100%;
+        }
+
+        .mode-icon {
+            font-size: 4rem;
+            margin-bottom: var(--spacing-md);
+            filter: drop-shadow(0 0 20px currentColor);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .mode-card:nth-child(1) .mode-icon { animation-delay: 0s; }
+        .mode-card:nth-child(2) .mode-icon { animation-delay: 0.5s; }
+        .mode-card:nth-child(3) .mode-icon { animation-delay: 1s; }
+        .mode-card:nth-child(4) .mode-icon { animation-delay: 1.5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .mode-title {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .mode-card.mode1 .mode-title { color: var(--color-neon-red); }
+        .mode-card.mode2 .mode-title { color: var(--color-neon-blue); }
+        .mode-card.mode3 .mode-title { color: var(--color-neon-green); }
+        .mode-card.mode4 .mode-title { color: var(--color-neon-yellow); }
+
+        .mode-description {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: var(--spacing-md);
+            line-height: 1.6;
+        }
+
+        .mode-features {
+            list-style: none;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .mode-features li {
+            padding: var(--spacing-xs) 0;
+            padding-left: var(--spacing-lg);
+            position: relative;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .mode-features li::before {
+            content: '▶';
+            position: absolute;
+            left: 0;
+            color: var(--color-neon-blue);
+            font-size: 0.8rem;
+        }
+
+        .mode-card.mode1 {
+            border-color: rgba(255, 0, 60, 0.3);
+        }
+
+        .mode-card.mode1:hover {
+            border-color: var(--color-neon-red);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-red);
+        }
+
+        .mode-card.mode2 {
+            border-color: rgba(0, 240, 255, 0.3);
+        }
+
+        .mode-card.mode2:hover {
+            border-color: var(--color-neon-blue);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-blue);
+        }
+
+        .mode-card.mode3 {
+            border-color: rgba(0, 255, 71, 0.3);
+        }
+
+        .mode-card.mode3:hover {
+            border-color: var(--color-neon-green);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-green);
+        }
+
+        .mode-card.mode4 {
+            border-color: rgba(255, 255, 0, 0.3);
+        }
+
+        .mode-card.mode4:hover {
+            border-color: var(--color-neon-yellow);
+            box-shadow: var(--shadow-xl), 0 0 20px rgba(255, 255, 0, 0.3);
+        }
+
+        .stats-banner {
+            margin-top: var(--spacing-2xl);
+            padding: var(--spacing-xl);
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: var(--spacing-md);
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Навигация -->
+    <div id="navbar-placeholder"></div>
+    <script>
+        fetch('/components/navbar.html')
+            .then(r => r.text())
+            .then(html => {
+                document.getElementById('navbar-placeholder').innerHTML = html;
+            });
+    </script>
+
+    <!-- Основной контент -->
+    <div class="container">
+        <!-- Hero секция -->
+        <div class="hero">
+            <h1 class="hero-title">ФРАГ-ТРЕКЕР</h1>
+            <p class="hero-subtitle">Выберите режим работы</p>
+        </div>
+
+        <!-- Сетка режимов -->
+        <div class="mode-grid">
+            <!-- Режим 1: Фраг-трекер -->
+            <div class="card mode-card mode1" onclick="window.location.href='/mode1-frag-tracker.html'">
+                <div class="mode-icon">🎯</div>
+                <h3 class="mode-title">ФРАГ-ТРЕКЕР</h3>
+                <p class="mode-description">
+                    Отслеживание фрагов с донатами и автоматическим списанием
+                </p>
+                <ul class="mode-features">
+                    <li>Интеграция с DonationAlerts</li>
+                    <li>Поддержка DonatePay</li>
+                    <li>Автосписание фрагов из Lesta Games</li>
+                    <li>Real-time обновления</li>
+                </ul>
+                <button class="btn btn-primary">НАЧАТЬ ТРЕКИНГ</button>
+            </div>
+
+            <!-- Режим 2: Таймер -->
+            <div class="card mode-card mode2" onclick="window.location.href='/mode2-timer.html'">
+                <div class="mode-icon">⏱️</div>
+                <h3 class="mode-title">ТАЙМЕР</h3>
+                <p class="mode-description">
+                    Обратный отсчет времени с возможностью доната
+                </p>
+                <ul class="mode-features">
+                    <li>Настраиваемые интервалы</li>
+                    <li>Донаты для продления</li>
+                    <li>Визуальные эффекты</li>
+                    <li>Гибкие настройки</li>
+                </ul>
+                <button class="btn btn-primary">ЗАПУСТИТЬ ТАЙМЕР</button>
+            </div>
+
+            <!-- Режим 3: Кастомный трекер -->
+            <div class="card mode-card mode3" onclick="window.location.href='/mode3-custom.html'">
+                <div class="mode-icon">⚙️</div>
+                <h3 class="mode-title">КАСТОМНЫЙ</h3>
+                <p class="mode-description">
+                    Создайте свой собственный трекер с любыми параметрами
+                </p>
+                <ul class="mode-features">
+                    <li>Полная кастомизация</li>
+                    <li>Собственные метрики</li>
+                    <li>Гибкие настройки</li>
+                    <li>Уникальный дизайн</li>
+                </ul>
+                <button class="btn btn-primary">СОЗДАТЬ ТРЕКЕР</button>
+            </div>
+
+            <!-- Очередь танков -->
+            <div class="card mode-card mode1" onclick="window.location.href='/tank-queue.html'">
+                <div class="mode-icon">🚗</div>
+                <h3 class="mode-title">ОЧЕРЕДЬ ТАНКОВ</h3>
+                <p class="mode-description">
+                    Управление очередью заказанных танков с ранжированием по цене
+                </p>
+                <ul class="mode-features">
+                    <li>Ранжирование по стоимости</li>
+                    <li>Отслеживание текущего боя</li>
+                    <li>Дополнительные условия заказа</li>
+                    <li>Красивые анимации</li>
+                </ul>
+                <button class="btn btn-primary">ОТКРЫТЬ ОЧЕРЕДЬ</button>
+            </div>
+
+            <!-- Управление донатами -->
+            <div class="card mode-card mode4" onclick="window.location.href='/donation-management.html'">
+                <div class="mode-icon">💰</div>
+                <h3 class="mode-title">УПРАВЛЕНИЕ ДОНАТАМИ</h3>
+                <p class="mode-description">
+                    Единый центр управления донатами с кастомизацией полосок
+                </p>
+                <ul class="mode-features">
+                    <li>12 готовых тем и форм полосок</li>
+                    <li>Кастомные изображения и фигуры</li>
+                    <li>Настройка сбора и статистика</li>
+                    <li>Превью в реальном времени</li>
+                </ul>
+                <button class="btn btn-primary">ОТКРЫТЬ УПРАВЛЕНИЕ</button>
+            </div>
+
+            <!-- Интеграции стримов -->
+            <div class="card mode-card mode2" onclick="window.location.href='/stream-integrations.html'">
+                <div class="mode-icon">📡</div>
+                <h3 class="mode-title">ИНТЕГРАЦИИ СТРИМОВ</h3>
+                <p class="mode-description">
+                    Авторизация и сбор метрик с YouTube и VK Play Live
+                </p>
+                <ul class="mode-features">
+                    <li>Авторизация OAuth</li>
+                    <li>Онлайн и лайки</li>
+                    <li>Чат в реальном времени</li>
+                    <li>Проверка подключения</li>
+                </ul>
+                <button class="btn btn-primary">ОТКРЫТЬ ИНТЕГРАЦИИ</button>
+            </div>
+        </div>
+
+        <!-- Статистика (опционально) -->
+        <div class="stats-banner" id="statsBanner" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-value" id="totalDonations">0</div>
+                <div class="stat-label">Всего донатов</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalFrags">0</div>
+                <div class="stat-label">Всего фрагов</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalBattles">0</div>
+                <div class="stat-label">Всего боев</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Загрузка статистики (опционально)
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.totalDonations || data.totalFrags || data.totalBattles) {
+                        document.getElementById('statsBanner').style.display = 'grid';
+                        if (data.totalDonations) {
+                            document.getElementById('totalDonations').textContent = data.totalDonations;
+                        }
+                        if (data.totalFrags) {
+                            document.getElementById('totalFrags').textContent = data.totalFrags;
+                        }
+                        if (data.totalBattles) {
+                            document.getElementById('totalBattles').textContent = data.totalBattles;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
+
+        // Загружаем статистику при загрузке страницы
+        document.addEventListener('DOMContentLoaded', loadStats);
+    </script>
+</body>
+</html>

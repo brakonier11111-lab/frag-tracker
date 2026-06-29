@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Progress Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff47;
+            --neon-blue: #00f0ff;
+            --neon-orange: #ff4400;
+            --neon-yellow: #ffff00;
+            --neon-purple: #ff00ff;
+            --neon-red: #ff0000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        .temperature-widget {
+            position: relative;
+            width: auto;
+            height: auto;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.5s ease-out;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .temperature-widget.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Заголовок */
+        .widget-title {
+            color: #ff4400;
+            font-size: 2.2rem;
+            font-weight: 900;
+            text-align: center;
+            text-shadow: 
+                0 0 25px rgba(255, 68, 0, 1),
+                0 0 50px rgba(255, 68, 0, 0.8),
+                0 0 75px rgba(255, 68, 0, 0.6),
+                0 3px 6px rgba(0, 0, 0, 1);
+            letter-spacing: 2px;
+            font-family: 'Orbitron', monospace;
+        }
+
+        /* Контейнер для данных */
+        .data-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+
+        /* Элемент данных */
+        .data-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Метка данных */
+        .data-label {
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-shadow: 
+                0 0 15px rgba(255, 255, 255, 0.8),
+                0 0 30px rgba(255, 255, 255, 0.4),
+                0 2px 4px rgba(0, 0, 0, 0.9);
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        /* Специальная метка для "ДО ПЕРЕГРЕВА" */
+        .data-item.target-amount .data-label {
+            color: #ff4400;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-shadow: 
+                0 0 15px rgba(255, 68, 0, 1),
+                0 0 30px rgba(255, 68, 0, 0.8),
+                0 0 45px rgba(255, 68, 0, 0.6),
+                0 2px 4px rgba(0, 0, 0, 0.9);
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        /* Значение данных */
+        .data-value {
+            color: #ffaa00;
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-shadow: 
+                0 0 4px rgba(255, 170, 0, 0.6),
+                0 0 8px rgba(255, 170, 0, 0.4),
+                0 0 12px rgba(255, 170, 0, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+            letter-spacing: 1px;
+            font-family: 'Orbitron', monospace;
+            text-align: center;
+        }
+
+        /* Специальные стили для разных типов данных */
+        .data-item.current-amount .data-value {
+            color: #ff6600;
+            text-shadow: 
+                0 0 4px rgba(255, 102, 0, 0.6),
+                0 0 8px rgba(255, 102, 0, 0.4),
+                0 0 12px rgba(255, 102, 0, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .data-item.target-amount .data-value {
+            color: #ffaa44;
+            text-shadow: 
+                0 0 6px rgba(255, 170, 68, 0.8),
+                0 0 12px rgba(255, 170, 68, 0.6),
+                0 0 18px rgba(255, 170, 68, 0.4),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+            font-weight: 900;
+        }
+
+        .data-item.cooling-rate .data-value {
+            color: #00f0ff;
+            text-shadow: 
+                0 0 4px rgba(0, 240, 255, 0.6),
+                0 0 8px rgba(0, 240, 255, 0.4),
+                0 0 12px rgba(0, 240, 255, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .data-item.reward .data-value {
+            color: #00ff47;
+            text-shadow: 
+                0 0 4px rgba(0, 255, 71, 0.6),
+                0 0 8px rgba(0, 255, 71, 0.4),
+                0 0 12px rgba(0, 255, 71, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+            animation: rewardGlow 2s ease-in-out infinite alternate;
+        }
+
+        /* Анимация для награды */
+        @keyframes rewardGlow {
+            0% {
+                transform: scale(1);
+                text-shadow: 
+                    0 0 4px rgba(0, 255, 71, 0.6),
+                    0 0 8px rgba(0, 255, 71, 0.4),
+                    0 0 12px rgba(0, 255, 71, 0.3),
+                    0 2px 4px rgba(0, 0, 0, 0.8);
+            }
+            100% {
+                transform: scale(1.05);
+                text-shadow: 
+                    0 0 6px rgba(0, 255, 71, 0.8),
+                    0 0 12px rgba(0, 255, 71, 0.6),
+                    0 0 18px rgba(0, 255, 71, 0.4),
+                    0 2px 4px rgba(0, 0, 0, 0.8);
+            }
+        }
+
+        /* Анимация появления */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .data-item {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .data-item:nth-child(1) { animation-delay: 0.1s; }
+        .data-item:nth-child(2) { animation-delay: 0.2s; }
+        .data-item:nth-child(3) { animation-delay: 0.3s; }
+        .data-item:nth-child(4) { animation-delay: 0.4s; }
+    </style>
+</head>
+<body>
+    <div class="temperature-widget" id="temperatureWidget">
+        <!-- Заголовок -->
+        <div class="widget-title">ПЕРЕГРЕВ ТАЙМЕРА</div>
+        
+        <!-- Контейнер данных -->
+        <div class="data-container">
+            <!-- Текущая сумма -->
+            <div class="data-item current-amount">
+                <div class="data-label">ТЕКУЩАЯ СУММА</div>
+                <div class="data-value" id="currentAmount">0₽</div>
+            </div>
+            
+            <!-- Целевая сумма -->
+            <div class="data-item target-amount">
+                <div class="data-label">ДО ПЕРЕГРЕВА</div>
+                <div class="data-value" id="targetAmount">10000₽</div>
+            </div>
+            
+            <!-- Скорость охлаждения -->
+            <div class="data-item cooling-rate">
+                <div class="data-label">СКОРОСТЬ ОХЛАЖДЕНИЯ</div>
+                <div class="data-value" id="coolingRate">50₽/сек</div>
+            </div>
+            
+            <!-- Награда при перегреве -->
+            <div class="data-item reward">
+                <div class="data-label">НАГРАДА ПРИ ПЕРЕГРЕВЕ</div>
+                <div class="data-value" id="rewardAmount">+5 МИНУТ</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let temperatureMode = {
+            active: false,
+            currentAmount: 0,
+            targetAmount: 10000,
+            coolingRate: 50,
+            peakRewardMinutes: 5
+        };
+
+        let ws = null;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            
+            console.log('🔗 Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                console.log('✅ WebSocket connected');
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 WebSocket message received:', data);
+                    
+                    switch(data.type) {
+                        case 'INIT_STATE':
+                            console.log('🔄 Initial state received:', data.state);
+                            updateTemperatureMode(data.state.temperatureMode || temperatureMode);
+                            break;
+                        case 'temperature_mode_toggle':
+                            temperatureMode.active = data.active;
+                            temperatureMode.currentAmount = data.currentAmount || 0;
+                            temperatureMode.targetAmount = data.targetAmount || 10000;
+                            temperatureMode.coolingRate = data.coolingRate || 50;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_update':
+                            temperatureMode.currentAmount = data.currentAmount;
+                            temperatureMode.targetAmount = data.targetAmount || temperatureMode.targetAmount;
+                            temperatureMode.coolingRate = data.coolingRate || temperatureMode.coolingRate;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || temperatureMode.peakRewardMinutes;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_peak':
+                            showTemperaturePeak(data);
+                            break;
+                        case 'temperature_hide_all':
+                            console.log('👁️ Скрытие виджета температуры');
+                            document.getElementById('temperatureWidget').classList.remove('show');
+                            break;
+                        default:
+                            console.log('📨 Other WebSocket message type:', data.type);
+                    }
+                } catch (e) {
+                    console.error('Error parsing WebSocket message:', e);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('❌ WebSocket disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('❌ WebSocket error:', error);
+            };
+        }
+
+        function updateTemperatureMode(data) {
+            temperatureMode.active = data.active;
+            temperatureMode.currentAmount = data.currentAmount || 0;
+            temperatureMode.targetAmount = data.targetAmount || 10000;
+            temperatureMode.coolingRate = data.coolingRate || 50;
+            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+            
+            const temperatureWidgetEl = document.getElementById('temperatureWidget');
+            
+            if (temperatureMode.active) {
+                // Показываем виджет при включении режима температуры
+                temperatureWidgetEl.classList.add('show');
+                console.log('🌡️ Temperature widget activated');
+                
+                // Обновляем данные
+                updateTemperatureData();
+            } else {
+                // Скрываем виджет при выключении режима температуры
+                temperatureWidgetEl.classList.remove('show');
+                console.log('🌡️ Temperature widget deactivated');
+            }
+        }
+
+        function updateTemperatureData() {
+            // Обновляем текущую сумму
+            document.getElementById('currentAmount').textContent = Math.round(temperatureMode.currentAmount) + '₽';
+            
+            // Обновляем оставшуюся сумму до перегрева
+            const remainingAmount = Math.max(0, temperatureMode.targetAmount - temperatureMode.currentAmount);
+            document.getElementById('targetAmount').textContent = Math.round(remainingAmount) + '₽';
+            
+            // Обновляем скорость охлаждения
+            document.getElementById('coolingRate').textContent = Math.round(temperatureMode.coolingRate) + '₽/сек';
+            
+            // Обновляем награду
+            document.getElementById('rewardAmount').textContent = '+' + Math.round(temperatureMode.peakRewardMinutes) + ' МИНУТ';
+        }
+
+        function showTemperaturePeak(data) {
+            console.log('🔥 Temperature peak reached!', data);
+            
+            const rewardElement = document.getElementById('rewardAmount');
+            const originalText = rewardElement.textContent;
+            
+            // Анимация пика
+            rewardElement.textContent = '🎉 ПОЛУЧЕНО! +' + (data.rewardMinutes || temperatureMode.peakRewardMinutes) + ' МИНУТ';
+            rewardElement.style.color = '#ffaa00';
+            rewardElement.style.textShadow = '0 0 6px rgba(255, 170, 0, 0.8), 0 0 12px rgba(255, 170, 0, 0.6), 0 0 18px rgba(255, 170, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.8)';
+            rewardElement.style.fontSize = '2.8rem';
+            
+            setTimeout(() => {
+                // Возвращаем нормальный вид
+                rewardElement.textContent = originalText;
+                rewardElement.style.color = '#00ff47';
+                rewardElement.style.textShadow = '0 0 4px rgba(0, 255, 71, 0.6), 0 0 8px rgba(0, 255, 71, 0.4), 0 0 12px rgba(0, 255, 71, 0.3), 0 2px 4px rgba(0, 0, 0, 0.8)';
+                rewardElement.style.fontSize = '2.5rem';
+            }, 4000);
+        }
+
+        // Подключаемся к WebSocket при загрузке страницы
+        connectWebSocket();
+    </script>
+</body>
+</html>

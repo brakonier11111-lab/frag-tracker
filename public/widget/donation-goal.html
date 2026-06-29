@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Полоска сбора донатов - Виджет</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Cuprum:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            -webkit-font-smoothing: auto;
+            -moz-osx-font-smoothing: auto;
+            text-rendering: auto;
+            image-rendering: auto;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            min-height: 100vh;
+            min-width: 100vw;
+            overflow: hidden;
+        }
+
+        :root {
+            --color-neon-blue: #00f0ff;
+            --color-neon-purple: #b300ff;
+            --color-neon-green: #00ff47;
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        body {
+            font-family: 'Exo 2', 'Inter', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            padding: 0;
+            -webkit-font-smoothing: auto;
+            text-rendering: auto;
+            -webkit-text-size-adjust: 100%;
+            overflow: hidden;
+        }
+
+        .widget-container {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            padding: 28px 24px 0;
+        }
+
+        .widget-title {
+            font-family: 'Cuprum', 'Oswald', 'Orbitron', monospace;
+            display: block;
+            max-width: calc(100% - 10px);
+            font-size: 1.26rem;
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+            margin-top: 6px;
+            margin-bottom: 3px;
+            color: #f8fcff;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.98);
+            letter-spacing: 0.12em;
+            line-height: 1.12;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            -webkit-text-stroke: 0;
+        }
+
+        .progress-container {
+            position: relative;
+            margin: 6px 0 20px;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 56px;
+            background:
+                linear-gradient(155deg, rgba(8, 12, 30, 0.95) 0%, rgba(6, 10, 22, 0.86) 52%, rgba(18, 26, 47, 0.9) 100%);
+            border-radius: 999px;
+            overflow: visible;
+            position: relative;
+            border: 2px solid rgba(196, 216, 255, 0.38);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-bar-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            border-radius: inherit;
+            background: none;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(100deg, #4b8cff 0%, #7a5cff 38%, #00d7ff 100%);
+            border-radius: inherit;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 14px;
+            overflow: hidden;
+            box-shadow: none;
+            isolation: isolate;
+        }
+
+        /* Отключено: эффект на правом кончике заполнения */
+        .progress-fill::before {
+            content: none;
+        }
+
+        /* Отключено: белая "сканирующая" волна внутри полоски */
+        .progress-fill::after {
+            content: none;
+        }
+
+        .progress-fill.animating::after {
+            animation: none;
+        }
+
+        @keyframes fill-wave {
+            0% {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Эффект пульсации при увеличении */
+        @keyframes fill-pulse {
+            0% {
+                transform: scaleY(1);
+            }
+            50% {
+                transform: scaleY(1.03);
+            }
+            100% {
+                transform: scaleY(1);
+            }
+        }
+
+        .progress-fill.animating {
+            animation: fill-pulse 0.4s ease-out;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding: 6px 2px 2px;
+            border-radius: 0;
+            background: transparent;
+            border: none;
+            border-top: 1px solid rgba(185, 211, 255, 0.2);
+        }
+
+        .progress-amount {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.85rem;
+            color: #eff6ff;
+            font-weight: 700;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.95);
+        }
+
+        .progress-percentage {
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.82rem;
+            color: #9fffc3;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.95);
+            font-weight: 700;
+        }
+
+        .progress-fill-inner-current {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            z-index: 4;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.86rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            color: #f7fbff;
+            white-space: nowrap;
+            pointer-events: none;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.96);
+        }
+
+        .progress-text.mode-scale {
+            margin-top: 4px;
+            padding-top: 2px;
+            border-top: none;
+        }
+
+        .goal-reached .progress-fill {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            animation: celebration 0.5s ease-in-out;
+        }
+
+        @keyframes celebration {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes neon-pulse {
+            0%, 100% { 
+                box-shadow: 0 0 40px rgba(0, 240, 255, 0.8), 0 0 80px rgba(179, 0, 255, 0.6);
+            }
+            50% { 
+                box-shadow: 0 0 60px rgba(0, 240, 255, 1), 0 0 120px rgba(179, 0, 255, 0.9);
+            }
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes liquid-gradient {
+            0% {
+                background: linear-gradient(90deg, 
+                    var(--liquid-color1) 0%, 
+                    var(--liquid-color1) 25%,
+                    var(--liquid-color2) 50%,
+                    var(--liquid-color1) 75%,
+                    var(--liquid-color1) 100%);
+                background-size: 200% 100%;
+                background-position: 0% 50%;
+            }
+            50% {
+                background: linear-gradient(90deg, 
+                    var(--liquid-color2) 0%, 
+                    var(--liquid-color2) 25%,
+                    var(--liquid-color1) 50%,
+                    var(--liquid-color2) 75%,
+                    var(--liquid-color2) 100%);
+                background-size: 200% 100%;
+                background-position: 100% 50%;
+            }
+            100% {
+                background: linear-gradient(90deg, 
+                    var(--liquid-color1) 0%, 
+                    var(--liquid-color1) 25%,
+                    var(--liquid-color2) 50%,
+                    var(--liquid-color1) 75%,
+                    var(--liquid-color1) 100%);
+                background-size: 200% 100%;
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes liquid-gradient {
+            0% {
+                background: linear-gradient(90deg, 
+                    var(--liquid-color1) 0%, 
+                    var(--liquid-color1) 25%,
+                    var(--liquid-color2) 50%,
+                    var(--liquid-color1) 75%,
+                    var(--liquid-color1) 100%);
+                background-size: 200% 100%;
+                background-position: 0% 50%;
+            }
+            50% {
+                background: linear-gradient(90deg, 
+                    var(--liquid-color2) 0%, 
+                    var(--liquid-color2) 25%,
+                    var(--liquid-color1) 50%,
+                    var(--liquid-color2) 75%,
+                    var(--liquid-color2) 100%);
+                background-size: 200% 100%;
+                background-position: 100% 50%;
+            }
+            100% {
+                background: linear-gradient(90deg, 
+                    var(--liquid-color1) 0%, 
+                    var(--liquid-color1) 25%,
+                    var(--liquid-color2) 50%,
+                    var(--liquid-color1) 75%,
+                    var(--liquid-color1) 100%);
+                background-size: 200% 100%;
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes colorful-move {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 300% 0%; }
+        }
+
+        @keyframes pulse-color {
+            0%, 100% { filter: saturate(1) brightness(1); }
+            50% { filter: saturate(1.08) brightness(1.06); }
+        }
+
+        @keyframes fire-flow {
+            0% { background-position: 46% 94%, 4% 90%; }
+            20% { background-position: 52% 68%, 34% 72%; }
+            40% { background-position: 49% 36%, 63% 38%; }
+            60% { background-position: 54% 18%, 88% 22%; }
+            80% { background-position: 50% 56%, 46% 58%; }
+            100% { background-position: 46% 94%, 4% 90%; }
+        }
+
+        @keyframes fire-flicker {
+            0%, 100% { filter: saturate(1.02) brightness(1.01); }
+            30% { filter: saturate(1.12) brightness(1.06); }
+            65% { filter: saturate(1.06) brightness(0.99); }
+        }
+
+        @keyframes champagne-flow {
+            0% { background-position: 0% 52%, 14% 96%, 64% 92%, 88% 90%, 0% 0%; }
+            25% { background-position: 36% 50%, 20% 70%, 60% 66%, 80% 64%, 0% 0%; }
+            50% { background-position: 100% 48%, 28% 44%, 52% 40%, 70% 38%, 0% 0%; }
+            75% { background-position: 62% 50%, 18% 68%, 58% 62%, 78% 58%, 0% 0%; }
+            100% { background-position: 0% 52%, 14% 96%, 64% 92%, 88% 90%, 0% 0%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <h1 class="widget-title" id="widget-title">Сбор донатов</h1>
+        
+        <div class="progress-container">
+            <div class="progress-bar-wrapper" id="progress-wrapper">
+                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                <span class="progress-fill-inner-current" id="current-amount-inside">0 ₽</span>
+            </div>
+            <div class="progress-text">
+                <span class="progress-amount" id="current-amount">0 ₽</span>
+                <span class="progress-percentage" id="percentage">0%</span>
+                <span class="progress-amount" id="target-amount">0 ₽</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let goalState = {
+            title: 'Сбор донатов',
+            target_amount: 10000,
+            current_amount: 0,
+            settings: {
+                showTitle: true,
+                showCurrent: true,
+                showCurrentInsideBar: true,
+                textDisplayMode: 'default',
+                barWidthPercent: 100,
+                showTarget: true,
+                showPercentage: true,
+                preset: 'classic'
+            }
+        };
+
+        let ws = null;
+        const requestedProfileId = new URLSearchParams(window.location.search).get('profile');
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadGoalState();
+            connectWebSocket();
+            startAutoUpdate();
+            window.addEventListener('resize', () => updateDisplay());
+        });
+
+        // Загрузка состояния
+        async function loadGoalState() {
+            try {
+                // Пробуем donation-goal API
+                let response = await fetch('/api/donation-goal');
+                if (response.ok) {
+                    const data = await response.json();
+                    goalState = {
+                        title: data.title || 'Сбор донатов',
+                        target_amount: data.targetAmount || data.target_amount || 10000,
+                        current_amount: data.currentAmount || data.current_amount || 0,
+                        settings: goalState.settings || {
+                            showTitle: true,
+                            showCurrent: true,
+                            showCurrentInsideBar: true,
+                            textDisplayMode: 'default',
+                            barWidthPercent: 100,
+                            showTarget: true,
+                            showPercentage: true,
+                            preset: 'classic'
+                        }
+                    };
+                    
+                    // Загружаем настройки если есть
+                    if (data.settings) {
+                        try {
+                            goalState.settings = typeof data.settings === 'string' 
+                                ? JSON.parse(data.settings) 
+                                : data.settings;
+                        } catch (e) {
+                            console.warn('Ошибка парсинга настроек:', e);
+                        }
+                    }
+                } else {
+                    // Пробуем альтернативный API
+                    response = await fetch('/api/donation-bar/state');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.state) {
+                            goalState = {
+                                title: data.state.title || 'Сбор донатов',
+                                target_amount: data.state.target_amount || 10000,
+                                current_amount: data.state.current_amount || 0,
+                                settings: goalState.settings || {
+                                    showTitle: true,
+                                    showCurrent: true,
+                                    showCurrentInsideBar: true,
+                                    textDisplayMode: 'default',
+                                    barWidthPercent: 100,
+                                    showTarget: true,
+                                    showPercentage: true,
+                                    preset: 'classic'
+                                }
+                            };
+                        }
+                    }
+                }
+                updateDisplay();
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+            }
+        }
+
+        function applyProfileOverridesFromSettings() {
+            if (!requestedProfileId || !goalState.settings || !Array.isArray(goalState.settings.obsProfiles)) return;
+            const profile = goalState.settings.obsProfiles.find((p) => p && p.id === requestedProfileId);
+            if (!profile || !profile.overrides) return;
+            const overrides = profile.overrides;
+            if (overrides.preset) {
+                goalState.settings.preset = overrides.preset;
+            }
+            if (overrides.customDesign) {
+                goalState.settings.customDesign = overrides.customDesign;
+            }
+            if (overrides.media) {
+                goalState.settings.media = overrides.media;
+            }
+        }
+
+        // Обновление отображения
+        function updateDisplay() {
+            applyProfileOverridesFromSettings();
+            const settings = goalState.settings || {};
+            const progressContainerEl = document.querySelector('.progress-container');
+            const widthPercent = Math.max(55, Math.min(100, Number(settings.barWidthPercent) || 100));
+            if (progressContainerEl) {
+                progressContainerEl.style.width = `${widthPercent}%`;
+                progressContainerEl.style.marginLeft = 'auto';
+                progressContainerEl.style.marginRight = 'auto';
+            }
+            
+            // Название
+            const titleEl = document.getElementById('widget-title');
+            if (titleEl) {
+                titleEl.textContent = goalState.title;
+                titleEl.style.display = settings.showTitle !== false ? 'block' : 'none';
+                titleEl.style.color = '#ffffff';
+                titleEl.style.textShadow = '1px 1px 0 rgba(0,0,0,0.98)';
+            }
+            
+            const percentage = goalState.target_amount > 0 
+                ? Math.min((goalState.current_amount / goalState.target_amount) * 100, 100) 
+                : 0;
+
+            const progressFill = document.getElementById('progress-fill');
+            if (progressFill) {
+                const oldPercentage = parseFloat(progressFill.style.width) || 0;
+                const hasProgress = goalState.current_amount > 0 && percentage > 0;
+                
+                // Добавляем класс анимации если полоска увеличивается
+                if (hasProgress && percentage > oldPercentage) {
+                    progressFill.classList.add('animating');
+                    setTimeout(() => {
+                        progressFill.classList.remove('animating');
+                    }, 600);
+                }
+
+                if (!hasProgress) {
+                    // При нулевой сумме скрываем заливку полностью
+                    progressFill.style.width = '0%';
+                    progressFill.style.opacity = '0';
+                    progressFill.style.visibility = 'hidden';
+                } else {
+                    progressFill.style.visibility = 'visible';
+                    progressFill.style.opacity = '1';
+                    progressFill.style.width = percentage + '%';
+                }
+            }
+            
+            // Текущая сумма
+            const currentEl = document.getElementById('current-amount');
+            const currentInsideEl = document.getElementById('current-amount-inside');
+            const progressTextEl = document.querySelector('.progress-text');
+            const progressWrapperEl = document.getElementById('progress-wrapper');
+            const isMode2 = settings.textDisplayMode === 'centered-scale';
+            const showCurrentBelow = isMode2 ? true : settings.showCurrent !== false;
+            const showCurrentInside = isMode2 || (!showCurrentBelow && settings.showCurrentInsideBar !== false);
+            const hasBottomText = isMode2
+                ? true
+                : (showCurrentBelow || settings.showTarget !== false || settings.showPercentage !== false);
+            if (currentEl) {
+                currentEl.textContent = isMode2 ? '0' : formatCurrency(goalState.current_amount);
+                currentEl.style.display = showCurrentBelow ? 'inline' : 'none';
+            }
+            if (currentInsideEl) {
+                currentInsideEl.textContent = isMode2 ? formatRubLabel(goalState.current_amount) : formatCurrency(goalState.current_amount);
+                currentInsideEl.style.display = showCurrentInside ? 'inline' : 'none';
+                if (showCurrentInside) {
+                    updateInsideCurrentPosition(currentInsideEl, progressWrapperEl, percentage, isMode2);
+                }
+            }
+            
+            // Целевая сумма
+            const targetEl = document.getElementById('target-amount');
+            if (targetEl) {
+                targetEl.textContent = isMode2 ? formatNumber(goalState.target_amount) : formatCurrency(goalState.target_amount);
+                targetEl.style.display = (isMode2 || settings.showTarget !== false) ? 'inline' : 'none';
+            }
+            
+            // Процент
+            const percentageEl = document.getElementById('percentage');
+            if (percentageEl) {
+                percentageEl.textContent = Math.round(percentage) + '%';
+                percentageEl.style.display = (!isMode2 && settings.showPercentage !== false) ? 'inline' : 'none';
+            }
+            if (progressTextEl) {
+                progressTextEl.style.display = hasBottomText ? 'flex' : 'none';
+                progressTextEl.classList.toggle('mode-scale', isMode2);
+            }
+
+            // Применяем дизайн (пресет или кастомный)
+            if (progressFill) {
+                if (settings.preset === 'custom' && settings.customDesign) {
+                    applyCustomDesign(settings.customDesign, percentage);
+                } else if (settings.preset) {
+                    applyPreset(settings.preset, percentage);
+                } else {
+                    // Применяем классический пресет по умолчанию
+                    applyPreset('classic', percentage);
+                }
+            }
+
+            // Анимация достижения цели
+            const wrapper = document.getElementById('progress-wrapper');
+            if (percentage >= 100) {
+                wrapper.classList.add('goal-reached');
+            } else {
+                wrapper.classList.remove('goal-reached');
+            }
+
+            applyWidgetMedia(settings);
+        }
+
+        function applyWidgetMedia(settings) {
+            const media = settings?.media;
+            const container = document.querySelector('.widget-container');
+            if (!container) return;
+            const oldVideo = container.querySelector('.widget-bg-video');
+            if (oldVideo) oldVideo.remove();
+            container.style.backgroundImage = '';
+            container.style.backgroundColor = 'transparent';
+
+            if (!media || !media.enabled || !media.url || media.type === 'none') return;
+
+            if (media.type === 'image') {
+                container.style.backgroundImage = `linear-gradient(rgba(0,0,0,${media.overlayOpacity || 0.2}), rgba(0,0,0,${media.overlayOpacity || 0.2})), url("${media.url}")`;
+                container.style.backgroundSize = 'cover';
+                container.style.backgroundPosition = 'center';
+            } else if (media.type === 'video') {
+                const video = document.createElement('video');
+                video.className = 'widget-bg-video';
+                video.src = media.url;
+                video.autoplay = true;
+                video.muted = true;
+                video.loop = true;
+                video.playsInline = true;
+                video.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:' + (1 - (media.overlayOpacity || 0.2)) + ';z-index:-1;pointer-events:none;';
+                container.style.position = 'relative';
+                container.prepend(video);
+            }
+        }
+
+        function applyBarVisualThemeWidget(progressFill, progressWrapper, config, fillPercentage = 0) {
+            if (!progressFill || !progressWrapper || !config) return;
+            const rawFillType = config.fillType || 'gradient';
+            const fillType = rawFillType === 'lava' ? 'champagne' : rawFillType;
+            const color1 = config.color1 || '#667eea';
+            const color2 = config.color2 || '#764ba2';
+            const barHeight = Number(config.barHeight) || 50;
+            const barRadius = Number(config.barRadius) || 25;
+            const glowEffect = config.glowEffect || 'medium';
+            const trackColor = config.trackColor || '#0b1328';
+            const borderColor = config.borderColor || '#b7cdff';
+            const borderWidth = Number(config.borderWidth) || 2;
+            const textColor = config.textColor || '#eaf2ff';
+            const animationSpeed = Math.max(0.4, Math.min(2.5, Number(config.animationSpeed) || 1));
+            const barShape = config.barShape || 'capsule';
+            const fillTexture = config.fillTexture || 'glass';
+            const outerGlowEffect = config.outerGlowEffect || glowEffect;
+            const innerGlowEffect = config.innerGlowEffect || 'soft';
+            const fillGlowEffect = config.fillGlowEffect || glowEffect;
+
+            const shapeRadiusByType = {
+                capsule: Math.round(barHeight / 2),
+                rounded: Math.max(12, Math.round(barHeight * 0.28)),
+                'soft-square': 10,
+                square: 0
+            };
+            const finalRadius = shapeRadiusByType[barShape] != null ? shapeRadiusByType[barShape] : barRadius;
+
+            const oldGlow = progressWrapper.querySelector('.gradient-glow');
+            if (oldGlow) oldGlow.remove();
+
+            progressWrapper.style.height = `${barHeight}px`;
+            progressWrapper.style.borderRadius = `${finalRadius}px`;
+            progressWrapper.style.borderWidth = `${borderWidth}px`;
+            progressWrapper.style.borderColor = hexToRgba(borderColor, 0.65);
+            progressWrapper.style.backgroundColor = hexToRgba(trackColor, 0.78);
+            progressWrapper.style.backgroundImage = `radial-gradient(120% 140% at 15% 10%, ${hexToRgba(color1, 0.2)} 0%, transparent 45%), linear-gradient(155deg, ${hexToRgba(trackColor, 0.94)} 0%, ${hexToRgba(trackColor, 0.78)} 100%)`;
+            progressWrapper.style.overflow = 'hidden';
+            const innerGlowShadow = {
+                none: 'inset 0 0 0 rgba(0,0,0,0)',
+                soft: `inset 0 0 14px ${hexToRgba(borderColor, 0.18)}`,
+                medium: `inset 0 0 24px ${hexToRgba(borderColor, 0.24)}`,
+                strong: `inset 0 0 34px ${hexToRgba(borderColor, 0.32)}`
+            };
+            const outerGlowShadow = {
+                none: '0 8px 18px rgba(0,0,0,0.28)',
+                soft: `0 10px 24px ${hexToRgba(color2, 0.22)}`,
+                medium: `0 12px 28px ${hexToRgba(color2, 0.30)}, 0 0 26px ${hexToRgba(color2, 0.22)}`,
+                strong: `0 14px 34px ${hexToRgba(color2, 0.42)}, 0 0 36px ${hexToRgba(color2, 0.34)}`,
+                pulse: `0 12px 28px ${hexToRgba(color2, 0.3)}`
+            };
+            progressWrapper.style.boxShadow = `${innerGlowShadow[innerGlowEffect] || innerGlowShadow.soft}, ${outerGlowShadow[outerGlowEffect] || outerGlowShadow.medium}`;
+            const wrapperAnimation = outerGlowEffect === 'pulse'
+                ? `glow-pulse ${2 / animationSpeed}s ease-in-out infinite`
+                : 'none';
+            if (progressWrapper.dataset.wrapperAnimation !== wrapperAnimation) {
+                progressWrapper.style.animation = wrapperAnimation;
+                progressWrapper.dataset.wrapperAnimation = wrapperAnimation;
+            }
+
+            progressFill.style.borderRadius = `${finalRadius}px`;
+            progressFill.style.backgroundSize = '100% 100%';
+            progressFill.style.backgroundPosition = '0% 0%';
+            progressFill.style.backgroundRepeat = 'no-repeat';
+            progressFill.style.backgroundBlendMode = 'normal';
+            progressFill.style.boxShadow = 'none';
+            progressFill.style.setProperty('--glow-color', hexToRgba(color2, 0.45));
+            progressFill.style.setProperty('--bar-radius', `${finalRadius}px`);
+
+            if (fillType === 'solid') {
+                progressFill.style.background = color1;
+            } else if (fillType === 'animated-gradient' || fillType === 'shine') {
+                createLiquidGradientAnimation(progressFill, color1, color2, 8 / animationSpeed, fillPercentage);
+            } else if (fillType === 'pulse') {
+                progressFill.style.background = color1;
+                const pulseAnimation = `pulse-color ${2 / animationSpeed}s ease-in-out infinite`;
+                if (progressFill.dataset.fillAnimation !== pulseAnimation) {
+                    progressFill.style.animation = pulseAnimation;
+                    progressFill.dataset.fillAnimation = pulseAnimation;
+                }
+            } else if (fillType === 'fire') {
+                progressFill.style.backgroundImage = `
+                    linear-gradient(180deg, #fff0b2 0%, #ffc96b 14%, #ff8a29 38%, #ff4d00 68%, #9e1200 100%),
+                    radial-gradient(circle at 50% 100%, ${hexToRgba(color2, 0.45)} 0%, transparent 56%)
+                `;
+                progressFill.style.backgroundSize = '160% 220%, 220% 170%';
+                const fireAnimation = `fire-flow ${1.6 / animationSpeed}s linear infinite, fire-flicker ${0.9 / animationSpeed}s ease-in-out infinite`;
+                if (progressFill.dataset.fillAnimation !== fireAnimation) {
+                    progressFill.style.animation = fireAnimation;
+                    progressFill.dataset.fillAnimation = fireAnimation;
+                }
+            } else if (fillType === 'champagne') {
+                progressFill.style.backgroundImage = `
+                    linear-gradient(108deg, ${hexToRgba(color1, 0.84)} 0%, ${hexToRgba(color2, 0.9)} 48%, ${hexToRgba('#f6ecd7', 0.85)} 100%),
+                    radial-gradient(circle at 14% 96%, ${hexToRgba('#fff4da', 0.38)} 0%, ${hexToRgba('#fff4da', 0.38)} 2.1%, transparent 6%),
+                    radial-gradient(circle at 64% 92%, ${hexToRgba('#ffe8c1', 0.3)} 0%, ${hexToRgba('#ffe8c1', 0.3)} 1.8%, transparent 5.5%),
+                    radial-gradient(circle at 88% 90%, ${hexToRgba('#fff6e5', 0.26)} 0%, ${hexToRgba('#fff6e5', 0.26)} 1.6%, transparent 5%),
+                    linear-gradient(132deg, ${hexToRgba(color2, 0.2)} 0%, ${hexToRgba('#ffffff', 0.2)} 42%, ${hexToRgba(color1, 0.18)} 100%)
+                `;
+                progressFill.style.backgroundSize = '240% 140%, 160% 240%, 170% 260%, 180% 280%, 100% 100%';
+                progressFill.style.backgroundBlendMode = 'normal, screen, screen, screen, soft-light';
+                const champagneAnimation = `champagne-flow ${38 / animationSpeed}s cubic-bezier(0.42, 0, 0.58, 1) infinite`;
+                if (progressFill.dataset.fillAnimation !== champagneAnimation) {
+                    progressFill.style.animation = champagneAnimation;
+                    progressFill.dataset.fillAnimation = champagneAnimation;
+                }
+            } else {
+                progressFill.style.background = `linear-gradient(120deg, ${color1} 0%, ${color2} 100%)`;
+                if (progressFill.dataset.fillAnimation !== 'none') {
+                    progressFill.style.animation = 'none';
+                    progressFill.dataset.fillAnimation = 'none';
+                }
+            }
+
+            progressFill.style.filter = 'none';
+            const supportsTextureOverlay = !['fire', 'champagne', 'animated-gradient', 'shine'].includes(fillType);
+            if (supportsTextureOverlay && fillTexture === 'neon') {
+                progressFill.style.backgroundImage = `linear-gradient(120deg, ${color1} 0%, ${color2} 100%), repeating-linear-gradient(135deg, ${hexToRgba('#ffffff', 0.12)} 0 8px, transparent 8px 16px)`;
+                progressFill.style.backgroundBlendMode = 'screen';
+            } else if (supportsTextureOverlay && fillTexture === 'matte') {
+                progressFill.style.filter = 'saturate(0.9) brightness(0.95)';
+                progressFill.style.backgroundImage = `linear-gradient(120deg, ${hexToRgba(color1, 0.9)} 0%, ${hexToRgba(color2, 0.9)} 100%)`;
+            } else if (supportsTextureOverlay && fillTexture === 'striped') {
+                progressFill.style.backgroundImage = `linear-gradient(120deg, ${color1} 0%, ${color2} 100%), repeating-linear-gradient(120deg, ${hexToRgba('#ffffff', 0.18)} 0 7px, transparent 7px 14px)`;
+            } else {
+                progressFill.style.backgroundImage = progressFill.style.backgroundImage || '';
+            }
+
+            const glowByEffect = {
+                none: 'none',
+                soft: `0 0 12px ${hexToRgba(color2, 0.35)}`,
+                medium: `0 0 20px ${hexToRgba(color2, 0.45)}, 0 0 40px ${hexToRgba(color2, 0.25)}`,
+                strong: `0 0 26px ${hexToRgba(color2, 0.65)}, 0 0 56px ${hexToRgba(color2, 0.35)}`,
+                pulse: `0 0 20px ${hexToRgba(color2, 0.55)}`
+            };
+            progressFill.style.boxShadow = glowByEffect[fillGlowEffect] || glowByEffect.medium;
+            const hasNativeFlowAnimation = fillType === 'animated-gradient' || fillType === 'shine' || fillType === 'fire' || fillType === 'champagne';
+            if (fillGlowEffect === 'pulse' && !hasNativeFlowAnimation) {
+                const glowPulseAnimation = `pulse-color ${1.8 / animationSpeed}s ease-in-out infinite`;
+                if (progressFill.dataset.fillAnimation !== glowPulseAnimation) {
+                    progressFill.style.animation = glowPulseAnimation;
+                    progressFill.dataset.fillAnimation = glowPulseAnimation;
+                }
+            } else if (fillType !== 'pulse' && fillType !== 'fire' && fillType !== 'champagne' && progressFill.dataset.fillAnimation !== 'none') {
+                progressFill.style.animation = 'none';
+                progressFill.dataset.fillAnimation = 'none';
+            }
+
+            const textElements = document.querySelectorAll('#current-amount, #target-amount, #percentage, #current-amount-inside');
+            textElements.forEach((el) => {
+                el.style.color = textColor;
+                el.style.textShadow = '1px 1px 0 rgba(0,0,0,0.96)';
+            });
+        }
+
+        // Применение пресета
+        function applyPreset(presetName, fillPercentage = 0) {
+            const presets = {
+                classic: {
+                    gradient: 'linear-gradient(120deg, #5b8dff 0%, #7f67ff 100%)',
+                    barHeight: '56px',
+                    borderRadius: '28px',
+                    borderWidth: '2px',
+                    textColor: '#eaf2ff',
+                    trackColor: '#0b1328',
+                    borderColor: '#b7cdff',
+                    animationSpeed: 1,
+                    barShape: 'capsule',
+                    fillTexture: 'glass',
+                    outerGlowEffect: 'soft',
+                    innerGlowEffect: 'soft',
+                    fillGlowEffect: 'medium'
+                },
+                minimal: {
+                    gradient: 'linear-gradient(120deg, #7f8aa6 0%, #b1b8ca 100%)',
+                    barHeight: '22px',
+                    borderRadius: '10px',
+                    borderWidth: '1px',
+                    textColor: '#d9e1ef',
+                    trackColor: '#151b2a',
+                    borderColor: '#8b95ab',
+                    animationSpeed: 1,
+                    barShape: 'soft-square',
+                    fillTexture: 'matte',
+                    outerGlowEffect: 'none',
+                    innerGlowEffect: 'none',
+                    fillGlowEffect: 'none'
+                },
+                neon: {
+                    gradient: 'linear-gradient(120deg, #00eaff 0%, #2d7cff 45%, #b100ff 100%)',
+                    barHeight: '64px',
+                    borderRadius: '30px',
+                    borderWidth: '3px',
+                    textColor: '#d8f9ff',
+                    trackColor: '#081326',
+                    borderColor: '#27ddff',
+                    animationSpeed: 1.2,
+                    barShape: 'capsule',
+                    fillTexture: 'neon',
+                    outerGlowEffect: 'strong',
+                    innerGlowEffect: 'medium',
+                    fillGlowEffect: 'pulse'
+                },
+                gradient: {
+                    gradient: 'linear-gradient(120deg, #ff7a66 0%, #ffcb4f 52%, #4ecdc4 100%)',
+                    barHeight: '58px',
+                    borderRadius: '24px',
+                    borderWidth: '2px',
+                    textColor: '#fff2dd',
+                    trackColor: '#21162b',
+                    borderColor: '#ffd27a',
+                    animationSpeed: 1.1,
+                    barShape: 'rounded',
+                    fillTexture: 'glass',
+                    outerGlowEffect: 'medium',
+                    innerGlowEffect: 'soft',
+                    fillGlowEffect: 'strong',
+                    fillType: 'champagne',
+                    useLiquidGradient: true,
+                    liquidColor1: '#ff7a66',
+                    liquidColor2: '#ffe66d'
+                },
+                dark: {
+                    gradient: 'linear-gradient(120deg, #2a3342 0%, #475267 100%)',
+                    barHeight: '52px',
+                    borderRadius: '14px',
+                    borderWidth: '1px',
+                    textColor: '#d2dae5',
+                    trackColor: '#0e121a',
+                    borderColor: '#6d778a',
+                    animationSpeed: 0.9,
+                    barShape: 'soft-square',
+                    fillTexture: 'matte',
+                    outerGlowEffect: 'none',
+                    innerGlowEffect: 'medium',
+                    fillGlowEffect: 'soft'
+                },
+                colorful: {
+                    gradient: 'linear-gradient(120deg, #ff5f95 0%, #ffb84d 33%, #5fe6ff 66%, #8d7dff 100%)',
+                    barHeight: '62px',
+                    borderRadius: '30px',
+                    borderWidth: '3px',
+                    textColor: '#fff7fd',
+                    trackColor: '#1a0f24',
+                    borderColor: '#ff9ad6',
+                    animationSpeed: 1.3,
+                    barShape: 'capsule',
+                    fillType: 'fire',
+                    fillTexture: 'striped',
+                    outerGlowEffect: 'strong',
+                    innerGlowEffect: 'soft',
+                    fillGlowEffect: 'strong'
+                }
+            };
+
+            const preset = presets[presetName] || presets.classic;
+            const progressFill = document.getElementById('progress-fill');
+            const progressWrapper = document.getElementById('progress-wrapper');
+            const gradientColors = (preset.gradient || '').match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/g) || ['#667eea', '#764ba2'];
+            const presetColor1 = preset.liquidColor1 || gradientColors[0] || '#667eea';
+            const presetColor2 = preset.liquidColor2 || gradientColors[gradientColors.length - 1] || '#764ba2';
+
+            if (progressFill && progressWrapper) {
+                applyBarVisualThemeWidget(
+                    progressFill,
+                    progressWrapper,
+                    {
+                        fillType: preset.fillType || (preset.useLiquidGradient ? 'animated-gradient' : 'gradient'),
+                        color1: presetColor1,
+                        color2: presetColor2,
+                        barHeight: parseInt(preset.barHeight) || 50,
+                        barRadius: parseInt(preset.borderRadius) || 25,
+                        glowEffect: preset.animation && preset.animation.includes('neon-pulse') ? 'pulse' : 'medium',
+                        trackColor: '#0b1328',
+                        borderColor: '#b7cdff',
+                        borderWidth: parseInt(preset.borderWidth) || 2,
+                        textColor: preset.textColor || '#eaf2ff',
+                        animationSpeed: Number(preset.animationSpeed) || 1,
+                        barShape: preset.barShape || 'capsule',
+                        fillTexture: preset.fillTexture || 'glass',
+                        outerGlowEffect: preset.outerGlowEffect || 'medium',
+                        innerGlowEffect: preset.innerGlowEffect || 'soft',
+                        fillGlowEffect: preset.fillGlowEffect || 'medium'
+                    },
+                    fillPercentage
+                );
+            }
+        }
+
+        // Функция для конвертации hex в rgba
+        function hexToRgba(hex, alpha = 1) {
+            if (typeof hex !== 'string') {
+                return `rgba(255, 255, 255, ${alpha})`;
+            }
+            if (hex.startsWith('rgba(') || hex.startsWith('rgb(')) {
+                if (hex.startsWith('rgba(')) {
+                    return hex.replace(/rgba\(([^)]+)\)/, (_, inside) => {
+                        const parts = inside.split(',').map((p) => p.trim());
+                        if (parts.length >= 3) {
+                            return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+                        }
+                        return `rgba(255, 255, 255, ${alpha})`;
+                    });
+                }
+                const m = hex.match(/rgb\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/);
+                if (m) return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
+            }
+            // Убираем # если есть
+            hex = hex.replace('#', '');
+            
+            // Если короткий формат (#RGB), расширяем до #RRGGBB
+            if (hex.length === 3) {
+                hex = hex.split('').map(char => char + char).join('');
+            }
+            
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Функция для смешивания цветов
+        function blendColors(color1, color2, ratio) {
+            const hex1 = color1.replace('#', '');
+            const hex2 = color2.replace('#', '');
+            const r1 = parseInt(hex1.substr(0, 2), 16);
+            const g1 = parseInt(hex1.substr(2, 2), 16);
+            const b1 = parseInt(hex1.substr(4, 2), 16);
+            const r2 = parseInt(hex2.substr(0, 2), 16);
+            const g2 = parseInt(hex2.substr(2, 2), 16);
+            const b2 = parseInt(hex2.substr(4, 2), 16);
+            const r = Math.round(r1 + (r2 - r1) * ratio);
+            const g = Math.round(g1 + (g2 - g1) * ratio);
+            const b = Math.round(b1 + (b2 - b1) * ratio);
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        // Создание плавной бесшовной анимации перелива без перезапуска на изменении процента
+        function createLiquidGradientAnimation(element, color1, color2, duration = 8, fillPercentage = 0) {
+            const sanitizeColorForId = (value) => String(value || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '')
+                .slice(0, 24);
+            const animationName = `liquid-gradient-flow-${sanitizeColorForId(color1)}-${sanitizeColorForId(color2)}`;
+            const styleId = `liquid-gradient-animation-widget-${animationName}`;
+            let styleEl = document.getElementById(styleId);
+
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = styleId;
+                styleEl.textContent = `
+                    @keyframes ${animationName} {
+                        0% {
+                            background-position: 0% 50%;
+                        }
+                        50% {
+                            background-position: 100% 50%;
+                        }
+                        100% {
+                            background-position: 0% 50%;
+                        }
+                    }
+                `;
+                document.head.appendChild(styleEl);
+            }
+
+            element.style.filter = 'none';
+            // Только 2 пользовательских цвета без промежуточных "осветляющих" тонов.
+            element.style.background = `linear-gradient(110deg, ${color1} 0%, ${color1} 42%, ${color2} 58%, ${color2} 100%)`;
+            element.style.backgroundSize = '220% 100%';
+            element.style.backgroundPosition = '0% 50%';
+            element.style.backgroundRepeat = 'no-repeat';
+
+            const nextAnimation = `${animationName} ${duration}s cubic-bezier(0.42, 0, 0.58, 1) infinite`;
+            if (element.dataset.fillAnimation !== nextAnimation) {
+                element.style.animation = nextAnimation;
+                element.dataset.fillAnimation = nextAnimation;
+            }
+        }
+
+        // Форматирование валюты
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ru-RU').format(Math.round(amount)) + ' ₽';
+        }
+
+        function formatNumber(amount) {
+            return new Intl.NumberFormat('ru-RU').format(Math.round(amount));
+        }
+
+        function formatRubLabel(amount) {
+            return `${formatNumber(amount)} RUB`;
+        }
+
+        function updateInsideCurrentPosition(labelEl, wrapperEl, percentage, centered = false) {
+            if (!labelEl || !wrapperEl) return;
+            const wrapperWidth = wrapperEl.clientWidth || 0;
+            const labelWidth = labelEl.offsetWidth || 0;
+            if (!wrapperWidth || !labelWidth) return;
+
+            const minLeft = 12;
+            const maxLeft = Math.max(minLeft, wrapperWidth - labelWidth - 12);
+            if (centered) {
+                const centeredLeft = Math.max(minLeft, Math.min((wrapperWidth - labelWidth) / 2, maxLeft));
+                labelEl.style.left = `${centeredLeft}px`;
+                return;
+            }
+
+            const fillRight = wrapperWidth * (Math.max(0, Math.min(100, percentage)) / 100);
+            const insideLeft = fillRight - labelWidth - 14;
+            const adaptiveLeft = Math.max(minLeft, Math.min(insideLeft, maxLeft));
+            labelEl.style.left = `${adaptiveLeft}px`;
+        }
+
+        // WebSocket подключение
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+
+            ws.onopen = () => {
+                console.log('✅ WebSocket подключен');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'DONATION_BAR_UPDATE' && data.state) {
+                        goalState = { ...goalState, ...data.state };
+                        updateDisplay();
+                    } else if (data.type === 'DONATION_GOAL_UPDATE' && data.goal) {
+                        goalState.title = data.goal.title || goalState.title;
+                        goalState.target_amount = data.goal.targetAmount || data.goal.target_amount || goalState.target_amount;
+                        goalState.current_amount = data.goal.currentAmount || data.goal.current_amount || goalState.current_amount;
+                        if (data.goal.settings) {
+                            goalState.settings = typeof data.goal.settings === 'string'
+                                ? JSON.parse(data.goal.settings)
+                                : data.goal.settings;
+                        }
+                        updateDisplay();
+                    } else if (data.type === 'WIDGET_SETTINGS_UPDATE' && data.scope === 'donation-goal' && data.settings) {
+                        goalState.settings = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
+                        updateDisplay();
+                    } else if (data.type === 'donation' && data.donation) {
+                        loadGoalState();
+                    }
+                } catch (e) {
+                    console.warn('Ошибка обработки WS сообщения donation-goal widget:', e);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('❌ Ошибка WebSocket:', error);
+            };
+
+            ws.onclose = () => {
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        // Применение кастомного дизайна
+        function applyCustomDesign(customDesign, fillPercentage = 0) {
+            const progressFill = document.getElementById('progress-fill');
+            const progressWrapper = document.getElementById('progress-wrapper');
+
+            if (progressFill && progressWrapper && customDesign) {
+                const {
+                    fillType,
+                    color1,
+                    color2,
+                    barHeight,
+                    barRadius,
+                    glowEffect,
+                    trackColor = '#0b1328',
+                    borderColor = '#b7cdff',
+                    borderWidth = 2,
+                    textColor = '#eaf2ff',
+                    animationSpeed = 1,
+                    barShape = 'capsule',
+                    fillTexture = 'glass',
+                    outerGlowEffect = glowEffect,
+                    innerGlowEffect = 'soft',
+                    fillGlowEffect = glowEffect
+                } = customDesign;
+                
+                applyBarVisualThemeWidget(
+                    progressFill,
+                    progressWrapper,
+                    { fillType, color1, color2, barHeight, barRadius, glowEffect, trackColor, borderColor, borderWidth, textColor, animationSpeed, barShape, fillTexture, outerGlowEffect, innerGlowEffect, fillGlowEffect },
+                    fillPercentage
+                );
+            }
+        }
+
+        // Автообновление
+        function startAutoUpdate() {
+            setInterval(() => {
+                loadGoalState();
+            }, 3000); // Обновление каждые 3 секунды
+        }
+    </script>
+</body>
+</html>

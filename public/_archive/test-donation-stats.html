@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест загрузки статистики донатов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .result {
+            background: #444;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .success { color: #00ff88; }
+        .error { color: #ff4444; }
+        .info { color: #00d4ff; }
+        button {
+            background: #ff0040;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #ff0066; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Тест загрузки статистики донатов</h1>
+        
+        <button onclick="testAPI()">🔄 Тестировать API</button>
+        <button onclick="testWidget()">🎯 Тестировать виджет</button>
+        <button onclick="clearResults()">🗑️ Очистить</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        async function testAPI() {
+            log('🔄 Тестируем API /api/donations-stats...', 'info');
+            
+            try {
+                const response = await fetch('/api/donations-stats');
+                log(`📡 Статус ответа: ${response.status}`, response.ok ? 'success' : 'error');
+                
+                const data = await response.json();
+                log(`📊 Данные: ${JSON.stringify(data)}`, 'info');
+                
+                if (data.success) {
+                    log(`✅ Успех! Сумма: ${data.totalAmount.toLocaleString()} RUB`, 'success');
+                    log(`✅ Количество: ${data.totalCount} донатов`, 'success');
+                } else {
+                    log(`❌ Ошибка API: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка запроса: ${error.message}`, 'error');
+            }
+        }
+
+        async function testWidget() {
+            log('🎯 Тестируем загрузку в виджете...', 'info');
+            
+            try {
+                // Симулируем функцию loadDonationStats из виджета
+                const response = await fetch('/api/donations-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const roundedAmount = Math.round(data.totalAmount || 0);
+                    log(`✅ Виджет должен показать: ${roundedAmount.toLocaleString()} RUB`, 'success');
+                    log(`✅ Количество донатов: ${data.totalCount}`, 'success');
+                    
+                    // Проверяем, есть ли элементы в виджете
+                    const widgetFrame = document.createElement('iframe');
+                    widgetFrame.src = '/widget-mode2-copy.html';
+                    widgetFrame.style.width = '100%';
+                    widgetFrame.style.height = '200px';
+                    widgetFrame.style.border = '1px solid #666';
+                    widgetFrame.style.marginTop = '10px';
+                    
+                    widgetFrame.onload = () => {
+                        log('📱 Виджет загружен, проверьте содержимое', 'info');
+                    };
+                    
+                    document.getElementById('results').appendChild(widgetFrame);
+                } else {
+                    log(`❌ Ошибка загрузки: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Ошибка тестирования виджета: ${error.message}`, 'error');
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Автоматический тест при загрузке
+        window.addEventListener('load', () => {
+            log('🚀 Страница загружена, начинаем тестирование...', 'info');
+            setTimeout(testAPI, 1000);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

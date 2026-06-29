@@ -1,0 +1,35 @@
+<!-- Современный компонент навигации -->
+<nav class="navbar">
+    <div class="navbar-container">
+        <a href="/index.html" class="navbar-brand">
+            <span>🎯</span>
+            <span>ФРАГ-ТРЕКЕР</span>
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="/index.html" class="navbar-link" data-page="home">🏠 Главная</a></li>
+            <li><a href="/mode1-frag-tracker.html" class="navbar-link" data-page="mode1">🎯 Фраг-трекер</a></li>
+            <li><a href="/mode2-timer.html" class="navbar-link" data-page="mode2">⏰ Таймер</a></li>
+            <li><a href="/mode3-custom.html" class="navbar-link" data-page="mode3">⚙️ Кастом</a></li>
+            <li><a href="/donation-management.html" class="navbar-link" data-page="donation-management">💰 Донаты</a></li>
+            <li><a href="/frag-stats.html" class="navbar-link" data-page="stats">📊 Статистика</a></li>
+            <li><a href="/lesta-stats.html" class="navbar-link" data-page="lesta">🏆 Lesta</a></li>
+            <li><a href="/admin.html" class="navbar-link" data-page="admin">🔧 Админ</a></li>
+            <li><a href="/analytics.html" class="navbar-link" data-page="analytics">📈 Аналитика</a></li>
+        </ul>
+    </div>
+</nav>
+
+<script>
+// Автоматическое выделение активной страницы
+document.addEventListener('DOMContentLoaded', function() {
+    const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+    const links = document.querySelectorAll('.navbar-link[data-page]');
+    
+    links.forEach(link => {
+        const page = link.getAttribute('data-page');
+        if (page === currentPage || (currentPage === 'index' && page === 'home')) {
+            link.classList.add('active');
+        }
+    });
+});
+</script>

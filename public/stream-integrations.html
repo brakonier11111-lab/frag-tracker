@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Интеграции стримов — YouTube и VK Play</title>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			--bg: #0b0f17;
+			--card: rgba(255,255,255,0.06);
+			--card-border: rgba(255,255,255,0.12);
+			--accent: #6ea8fe;
+			--accent-2: #9b59ff;
+			--ok: #32d296;
+			--error: #ff6b6b;
+			--text: #e8eef7;
+			--muted: rgba(232,238,247,0.7);
+		}
+
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+		.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+		.h1 { font-size: 28px; font-weight: 800; letter-spacing: .2px; margin: 86px 0 16px; }
+		.sub { color: var(--muted); margin-bottom: 24px; }
+
+		.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+		.card { background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; backdrop-filter: blur(10px); }
+		.card h2 { font-size: 18px; margin-bottom: 4px; }
+		.card p { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+
+		.kv { display: grid; grid-template-columns: 160px 1fr; gap: 10px; align-items: center; font-size: 14px; }
+		.kv div { color: var(--muted); }
+		.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.04); }
+		.badge.ok { border-color: rgba(50,210,150,.25); background: rgba(50,210,150,.08); color: var(--ok); }
+		.badge.err { border-color: rgba(255,107,107,.25); background: rgba(255,107,107,.08); color: var(--error); }
+
+		.row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+		.btn { appearance: none; border: 0; outline: 0; cursor: pointer; padding: 10px 14px; border-radius: 10px; color: #0b0f17; font-weight: 700; font-size: 14px; }
+		.btn.yt { background: linear-gradient(135deg, #ff4757, #ffa502); }
+		.btn.vk { background: linear-gradient(135deg, #6ea8fe, #9b59ff); }
+		.btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--card-border); }
+		.btn:disabled { opacity: .6; cursor: default; }
+
+		.small { font-size: 12px; color: var(--muted); margin-top: 10px; }
+		.hr { height: 1px; background: var(--card-border); margin: 14px 0; }
+
+		.list { display: grid; gap: 8px; }
+		.item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(255,255,255,.04); border: 1px solid var(--card-border); border-radius: 10px; }
+		.item label { color: var(--muted); font-size: 13px; }
+		.value { font-weight: 700; }
+		
+		/* Стили чата */
+		.chat-section {
+			background: var(--card);
+			border: 1px solid var(--card-border);
+			border-radius: 14px;
+			padding: 18px;
+			margin-top: 16px;
+			backdrop-filter: blur(10px);
+			width: 100%;
+			max-width: 800px; /* Ширина как у VK Play Live */
+		}
+		
+		.chat-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 12px;
+		}
+		
+		.chat-header h3 {
+			font-size: 18px;
+			margin: 0;
+			color: var(--text);
+		}
+		
+		.chat-messages {
+			height: 400px; /* Выше для лучшего просмотра */
+			overflow-y: auto;
+			border: 1px solid var(--card-border);
+			border-radius: 10px;
+			padding: 12px;
+			background: rgba(0,0,0,0.2);
+			margin-bottom: 12px;
+			width: 100%;
+		}
+		
+		.chat-message {
+			margin-bottom: 8px;
+			padding: 8px;
+			border-radius: 8px;
+			background: rgba(255,255,255,0.04);
+		}
+		
+		.chat-message-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 4px;
+		}
+		
+		.chat-username {
+			font-weight: 600;
+			font-size: 13px;
+		}
+		
+		.chat-username.owner {
+			color: #ff6b6b;
+		}
+		
+		.chat-username.moderator {
+			color: #32d296;
+		}
+		
+		.chat-time {
+			font-size: 11px;
+			color: var(--muted);
+		}
+		
+		.chat-message-text {
+			font-size: 14px;
+			color: var(--text);
+			line-height: 1.4;
+		}
+		
+		.chat-footer {
+			text-align: center;
+		}
+		
+		.chat-info {
+			font-size: 12px;
+			color: var(--muted);
+		}
+	</style>
+</head>
+<body>
+	<div id="menu-container"></div>
+	<div class="page">
+		<div class="h1">Интеграции стримов</div>
+		<div class="sub">Авторизуйтесь в YouTube и VK Play, чтобы собирать: онлайн, лайки, сообщения чата в реальном времени.</div>
+
+		<div class="grid">
+			<div class="card" id="card-youtube">
+				<h2>YouTube Live</h2>
+				<p>Подключение к YouTube Data API v3 + LiveChat. Отслеживание онлайна, лайков и чата.</p>
+				<div class="kv"><div>Статус</div><span id="yt-status" class="badge err">Не подключено</span></div>
+				<div class="kv"><div>Канал</div><div id="yt-channel" class="value">—</div></div>
+				<div class="kv"><div>Текущий стрим</div><div id="yt-live" class="value">—</div></div>
+				<div class="kv"><div>Онлайн</div><div id="yt-viewers" class="value">—</div></div>
+				<div class="kv"><div>Лайки</div><div id="yt-likes" class="value">—</div></div>
+				<div class="hr"></div>
+				<div class="row">
+					<button class="btn yt" id="btn-yt-auth">Войти в YouTube</button>
+					<button class="btn ghost" id="btn-yt-logout" disabled>Выйти</button>
+					<button class="btn ghost" id="btn-yt-test">Проверить подключение</button>
+					<button class="btn ghost" id="btn-yt-chat" onclick="toggleYTChat()" style="display:none;">Показать чат</button>
+				</div>
+				<div class="small">
+					Текущий стрим выбирается один раз: либо по кнопке поиска, либо по ссылке. 
+					<button class="btn ghost" id="btn-yt-find-live" style="margin-top:6px; padding:6px 10px; font-size:11px;">Найти стрим автоматически</button>
+					<button class="btn ghost" id="btn-yt-set-video" style="margin-top:6px; padding:6px 10px; font-size:11px;">Указать стрим по ссылке</button>
+				</div>
+				<div class="small" style="margin-top:6px;">
+					Частота обновления YouTube:
+					<select id="yt-poll-interval" style="margin-left:6px; padding:4px 8px; border-radius:6px; background:rgba(0,0,0,0.3); color:var(--text); border:1px solid var(--card-border); font-size:11px;">
+						<option value="30">Каждые 30 сек</option>
+						<option value="60" selected>Каждую минуту (рекомендуется)</option>
+						<option value="120">Каждые 2 мин</option>
+					</select>
+				</div>
+				<div class="small" id="yt-poll-hint" style="margin-top:4px; font-size:11px; color:var(--muted);"></div>
+				<div class="small">После входа приложение сможет получать онлайн, лайки и чат в реальном времени.</div>
+
+				<!-- Окно чата YouTube -->
+				<div class="chat-section" id="yt-chat-section" style="display: none;">
+					<div class="chat-header">
+						<h3>💬 Чат YouTube</h3>
+						<button class="btn ghost" onclick="toggleYTChat()">Скрыть чат</button>
+					</div>
+					<div class="chat-messages" id="yt-chat-messages"></div>
+					<div class="chat-footer">
+						<span class="chat-info">Сообщения обновляются каждые 7 секунд</span>
+					</div>
+				</div>
+			</div>
+
+			<div class="card" id="card-vk">
+				<h2>VK Play Live</h2>
+				<p>Подключение к VK Play API для стримов и чата.</p>
+				<div class="kv"><div>Статус</div><span id="vk-status" class="badge err">Не подключено</span></div>
+				<div class="kv"><div>Канал</div><div id="vk-channel" class="value">—</div></div>
+				<div class="kv"><div>Текущий стрим</div><div id="vk-live" class="value">—</div></div>
+				<div class="kv"><div>Лайки</div><div id="vk-likes" class="value">—</div></div>
+				<div class="hr"></div>
+				<div class="row">
+					<button class="btn vk" id="btn-vk-auth">Войти в VK Play</button>
+					<button class="btn ghost" id="btn-vk-logout" disabled>Выйти</button>
+					<button class="btn ghost" id="btn-vk-test">Проверить подключение</button>
+					<button class="btn ghost" id="btn-vk-refresh" onclick="forceRefreshVK()">Обновить данные</button>
+					<button class="btn ghost" id="btn-vk-chat" onclick="toggleChat()" style="display: none;">Показать чат</button>
+					<button class="btn ghost" id="btn-vk-rewards" onclick="window.location.href='/vkplay-rewards.html'" style="display: none;">🎁 Управление наградами</button>
+				</div>
+				<div class="small">После входа приложение сможет получать онлайн, лайки и чат в реальном времени.</div>
+			</div>
+
+			<!-- VK Play Bot -->
+			<div class="card" id="card-vkplay-bot">
+				<h2>🤖 VK Play Bot</h2>
+				<p>Отдельный аккаунт для чат-бота, который оповещает о выдаче ролей.</p>
+				<div class="kv"><div>Статус</div><span id="vkplay-bot-status" class="badge err">Не подключено</span></div>
+				<div class="kv"><div>Бот</div><span id="vkplay-bot-nick">—</span></div>
+				<div class="hr"></div>
+				<div class="row">
+					<button class="btn vk" id="btn-vk-bot-auth">Авторизовать бота</button>
+					<button class="btn ghost" id="btn-vk-bot-logout" style="display: none;">Выйти</button>
+				</div>
+				<div class="small">Создайте отдельное приложение VK Play для бота и укажите VKPLAY_BOT_CLIENT_ID и VKPLAY_BOT_CLIENT_SECRET в config.env</div>
+			</div>
+				
+				<!-- Окно чата -->
+				<div class="chat-section" id="chat-section" style="display: none;">
+					<div class="chat-header">
+						<h3>💬 Чат VK Play</h3>
+						<button class="btn ghost" onclick="toggleChat()">Скрыть чат</button>
+					</div>
+					<div class="chat-messages" id="chat-messages"></div>
+					<div class="chat-footer">
+						<span class="chat-info">Сообщения обновляются каждые 5 секунд</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Rutony Chat -->
+			<div class="card" id="card-rutony">
+				<h2>Rutony Chat</h2>
+				<p>Подключение к локальному чату Rutony через WebSocket ws://localhost:8383.</p>
+				<div class="kv"><div>Статус</div><span id="rutony-status" class="badge err">Не подключено</span></div>
+				<div class="hr"></div>
+				<div class="row">
+					<a class="btn ghost" href="http://localhost:8383/themes/default-by-ywnklme/template.html?sm=false&aic=false" target="_blank">Открыть шаблон чата</a>
+					<button class="btn ghost" id="btn-rutony-chat" onclick="toggleRutonyChat()" style="display:none;">Показать чат</button>
+				</div>
+				<div class="small">Если Rutony запущен, чат будет подключён автоматически и сообщения попадут в общий лог.</div>
+				<div class="chat-section" id="rutony-chat-section" style="display:none;">
+					<div class="chat-header">
+						<h3>💬 Чат Rutony</h3>
+						<button class="btn ghost" onclick="toggleRutonyChat()">Скрыть чат</button>
+					</div>
+					<div class="chat-messages" id="rutony-chat-messages"></div>
+					<div class="chat-footer">
+						<span class="chat-info">Сообщения подтягиваются из общей БД чата</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- DonationAlerts -->
+			<div class="card" id="card-da">
+				<h2>DonationAlerts</h2>
+				<p>OAuth авторизация и сбор донатов через официальное API.</p>
+				<div class="kv"><div>Статус</div><span id="da-status" class="badge err">Не подключено</span></div>
+				<div class="hr"></div>
+				<div class="row">
+					<button class="btn yt" id="btn-da-auth">Авторизоваться в DA</button>
+					<button class="btn ghost" id="btn-da-status">Статус</button>
+					<button class="btn ghost" id="btn-da-test">Тест API</button>
+					<button class="btn ghost" id="btn-da-poll">Проверить донаты</button>
+				</div>
+				<div class="small">Требуется Client ID/Secret в config.env и завершённый OAuth. Диагностика доступна в админке.</div>
+			</div>
+
+			<!-- DonatePay -->
+			<div class="card" id="card-dp">
+				<h2>DonatePay</h2>
+				<p>Интеграция через API-ключ и (опционально) вебхуки.</p>
+				<div class="kv"><div>Статус</div><span id="dp-status" class="badge err">Не подключено</span></div>
+				<div class="hr"></div>
+				<div class="row">
+					<button class="btn vk" id="btn-dp-setup">Настроить ключ</button>
+					<button class="btn ghost" id="btn-dp-test">Тест API</button>
+					<button class="btn ghost" id="btn-dp-notification">Тест уведомления</button>
+				</div>
+				<div class="small">Webhook URL: <code>/webhook/donatepay</code>. Статус и тест доступны кнопками сверху.</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		async function loadMenu() {
+			try {
+				const res = await fetch('/menu.html');
+				document.getElementById('menu-container').innerHTML = await res.text();
+			} catch(e) { console.warn('menu load fail', e); }
+		}
+		loadMenu();
+
+		// Helpers
+		function setBadge(id, ok, extra = {}) {
+			const el = document.getElementById(id);
+			el.textContent = ok ? 'Подключено' : 'Не подключено';
+			el.className = 'badge ' + (ok ? 'ok' : 'err');
+			if (extra.channel) document.getElementById(id.split('-')[0] + '-channel').textContent = extra.channel;
+			if (extra.live) document.getElementById(id.split('-')[0] + '-live').textContent = extra.live;
+			if (extra.viewers != null) {
+				const viewersEl = document.getElementById(id.split('-')[0] + '-viewers');
+				if (viewersEl) viewersEl.textContent = String(extra.viewers);
+			}
+		}
+
+		// Stubs for API calls
+		async function api(path, opts) {
+			try {
+				const r = await fetch(path, opts);
+				return await r.json();
+			} catch(e) { return { error: String(e) }; }
+		}
+
+		document.getElementById('btn-yt-auth').onclick = () => {
+			window.location.href = '/oauth/youtube/start';
+		};
+		document.getElementById('btn-yt-logout').onclick = async () => {
+			await api('/oauth/youtube/logout', { method: 'POST' });
+			refreshStatus();
+		};
+		document.getElementById('btn-yt-test').onclick = async () => {
+			const res = await api('/integrations/youtube/status');
+			alert(JSON.stringify(res, null, 2));
+		};
+
+		function updateYtPollHint(sec) {
+			const el = document.getElementById('yt-poll-hint');
+			if (!el || !sec) return;
+			const intervalSec = Number(sec);
+			const quotaPerCycle = 6; // videos.list (1) + liveChat (5) при включенном чате
+			const dailyUsage = Math.round((86400 / intervalSec) * quotaPerCycle);
+			const limit = 10000;
+			const secondsTillLimit = Math.floor((limit / quotaPerCycle) * intervalSec);
+			const hours = Math.floor(secondsTillLimit / 3600);
+			const minutes = Math.round((secondsTillLimit % 3600) / 60);
+
+			let duration;
+			if (hours <= 0) {
+				duration = `${minutes} мин`;
+			} else if (hours < 3) {
+				duration = `${hours} ч ${minutes} мин`;
+			} else {
+				duration = `${hours} ч`;
+			}
+
+			el.textContent = `При включенном чате: ~${dailyUsage.toLocaleString('ru-RU')} ед/день, квоты 10 000 хватит примерно на ${duration} непрерывного стрима.`;
+		}
+
+		const ytPollSelect = document.getElementById('yt-poll-interval');
+		if (ytPollSelect) {
+			ytPollSelect.onchange = async () => {
+				const val = parseInt(ytPollSelect.value, 10);
+				updateYtPollHint(val);
+				try {
+					const res = await api('/integrations/youtube/poll-interval', { 
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ intervalSec: val })
+					});
+					if (!res || !res.ok) {
+						alert('Не удалось сохранить частоту запросов: ' + JSON.stringify(res));
+					}
+				} catch (e) {
+					alert('Ошибка при сохранении частоты запросов: ' + e);
+				}
+			};
+			// Инициализируем подсказку по умолчанию
+			updateYtPollHint(ytPollSelect.value);
+		}
+
+		document.getElementById('btn-yt-find-live').onclick = async () => {
+			const btn = document.getElementById('btn-yt-find-live');
+			btn.disabled = true;
+			try {
+				const res = await api('/integrations/youtube/find-live', { method: 'POST' });
+				if (res && res.ok) {
+					alert('Найден live-стрим YouTube:\n' + (res.liveTitle || 'без названия') + '\n\nvideoId: ' + res.videoId);
+					refreshStatus();
+				} else {
+					alert('Не удалось найти активный стрим: ' + JSON.stringify(res));
+				}
+			} catch (e) {
+				alert('Ошибка при поиске стрима: ' + e);
+			} finally {
+				btn.disabled = false;
+			}
+		};
+
+		document.getElementById('btn-yt-set-video').onclick = async () => {
+			const input = prompt('Вставьте ссылку на текущий стрим YouTube или videoId:', '');
+			if (!input) return;
+			try {
+				const params = new URLSearchParams();
+				params.set('videoId', input);
+				const res = await api('/integrations/youtube/video-id?' + params.toString(), { method: 'POST' });
+				if (res && res.ok) {
+					alert('Текущий стрим YouTube обновлён. Данные онлайна, лайков и чата будут привязаны к нему.');
+					refreshStatus();
+				} else {
+					alert('Не удалось обновить стрим: ' + JSON.stringify(res));
+				}
+			} catch (e) {
+				alert('Ошибка при установке стрима: ' + e);
+			}
+		};
+
+		document.getElementById('btn-vk-auth').onclick = () => {
+			window.location.href = '/oauth/vkplay/start';
+		};
+		document.getElementById('btn-vk-logout').onclick = async () => {
+			await api('/oauth/vkplay/logout', { method: 'POST' });
+			refreshStatus();
+		};
+		document.getElementById('btn-vk-bot-auth').onclick = () => {
+			window.location.href = '/oauth/vkplay-bot/start';
+		};
+		document.getElementById('btn-vk-bot-logout').onclick = async () => {
+			await api('/oauth/vkplay-bot/logout', { method: 'POST' });
+			refreshStatus();
+		};
+		document.getElementById('btn-vk-test').onclick = async () => {
+			const res = await api('/integrations/vkplay/status');
+			alert(JSON.stringify(res, null, 2));
+		};
+
+		// DonationAlerts handlers
+		document.getElementById('btn-da-auth').onclick = () => {
+			window.open('/auth/donationalerts', 'DA Auth', 'width=600,height=700');
+		};
+		document.getElementById('btn-da-status').onclick = async () => {
+			const res = await api('/api/da-status');
+			alert(JSON.stringify(res, null, 2));
+		};
+		document.getElementById('btn-da-test').onclick = async () => {
+			const res = await api('/api/da-api-test');
+			alert(JSON.stringify(res, null, 2));
+		};
+		document.getElementById('btn-da-poll').onclick = async () => {
+			const res = await api('/api/force-check-donations', { method: 'POST' });
+			alert(JSON.stringify(res, null, 2));
+		};
+
+		// DonatePay handlers
+		document.getElementById('btn-dp-setup').onclick = async () => {
+			const apiKey = prompt('Введите API ключ DonatePay');
+			if (!apiKey) return;
+			const res = await api('/api/donatepay-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey }) });
+			alert(JSON.stringify(res, null, 2));
+			refreshStatus();
+		};
+		document.getElementById('btn-dp-test').onclick = async () => {
+			const res = await api('/api/donatepay-test');
+			alert(JSON.stringify(res, null, 2));
+		};
+		document.getElementById('btn-dp-notification').onclick = async () => {
+			const name = prompt('Введите имя отправителя:', 'Тестовый донатер');
+			if (!name) return;
+			const sum = prompt('Введите сумму доната (RUB):', '100');
+			if (!sum) return;
+			const comment = prompt('Введите комментарий (необязательно):', 'Тестовый донат');
+			
+			const res = await api('/api/donatepay-notification', { 
+				method: 'POST', 
+				headers: { 'Content-Type': 'application/json' }, 
+				body: JSON.stringify({ 
+					name: name, 
+					sum: parseFloat(sum) || 100,
+					comment: comment || '',
+					notification: '1'
+				}) 
+			});
+			alert(JSON.stringify(res, null, 2));
+		};
+
+		async function refreshStatus() {
+			const yt = await api('/integrations/youtube/status');
+			setBadge('yt-status', yt && yt.connected, { channel: yt.channel || '—', live: yt.liveTitle || '—', viewers: yt.viewers || 0 });
+			const vk = await api('/integrations/vkplay/status');
+			setBadge('vk-status', vk && vk.connected, { channel: vk.channel || '—', live: vk.liveTitle || '—' });
+
+			// Обновляем лайки YouTube и VK Play (если доступны)
+			try {
+				if (yt && typeof yt.likes !== 'undefined') {
+					const el = document.getElementById('yt-likes');
+					if (el) el.textContent = String(yt.likes);
+				}
+				if (yt && typeof yt.pollIntervalSec !== 'undefined') {
+					const select = document.getElementById('yt-poll-interval');
+					if (select) {
+						const val = String(yt.pollIntervalSec || 60);
+						if ([...select.options].some(o => o.value === val)) {
+							select.value = val;
+							updateYtPollHint(val);
+						}
+					}
+				}
+			} catch (_) {}
+
+			try {
+				if (vk && typeof vk.likes !== 'undefined') {
+					const el = document.getElementById('vk-likes');
+					if (el) el.textContent = String(vk.likes);
+				}
+			} catch (_) {}
+			// Кнопки в зависимости от состояния
+			document.getElementById('btn-yt-logout').disabled = !(yt && yt.connected);
+			document.getElementById('btn-vk-logout').disabled = !(vk && vk.connected);
+			
+			// Статус бота
+			try {
+				const vkBot = await api('/integrations/vkplay-bot/status');
+				setBadge('vkplay-bot-status', vkBot && vkBot.connected);
+				document.getElementById('btn-vk-bot-logout').style.display = (vkBot && vkBot.connected) ? 'inline-block' : 'none';
+				document.getElementById('btn-vk-bot-auth').style.display = (vkBot && vkBot.connected) ? 'none' : 'inline-block';
+				document.getElementById('vkplay-bot-nick').textContent = (vkBot && vkBot.userNick) ? vkBot.userNick : '—';
+			} catch (e) {
+				console.warn('Ошибка получения статуса бота:', e);
+			}
+			
+			// Показываем кнопку чата если VK Play подключен
+			const chatBtn = document.getElementById('btn-vk-chat');
+			const rewardsBtn = document.getElementById('btn-vk-rewards');
+			if (vk && vk.connected) {
+				chatBtn.style.display = vk.chatEnabled ? 'inline-block' : 'none';
+				rewardsBtn.style.display = 'inline-block';
+				if (vk.chatEnabled) loadChatMessages();
+			} else {
+				chatBtn.style.display = 'none';
+				rewardsBtn.style.display = 'none';
+				document.getElementById('chat-section').style.display = 'none';
+			}
+
+			// YouTube чат доступен только если chatEnabled
+			const ytChatBtn = document.getElementById('btn-yt-chat');
+			if (yt && yt.connected && yt.chatEnabled) {
+				ytChatBtn.style.display = 'inline-block';
+				loadYTChatMessages();
+			} else {
+				ytChatBtn.style.display = 'none';
+				document.getElementById('yt-chat-section').style.display = 'none';
+			}
+
+			// DonationAlerts status
+			try {
+				const da = await api('/api/da-status');
+				setBadge('da-status', !!(da && (da.hasToken || da.token || da.connected)));
+			} catch (e) {}
+
+			// DonatePay status
+			try {
+				const dp = await api('/api/donatepay-test');
+				setBadge('dp-status', !!(dp && dp.success));
+			} catch (e) {}
+
+			// Rutony status
+			try {
+				const rt = await api('/integrations/rutony/status');
+				setBadge('rutony-status', !!(rt && rt.connected));
+				const btn = document.getElementById('btn-rutony-chat');
+				btn.style.display = rt && rt.connected ? 'inline-block' : 'none';
+				if (rt && rt.connected) loadRutonyChatMessages();
+			} catch (e) {}
+		}
+		
+		// Переключение видимости чата
+		function toggleChat() {
+			const chatSection = document.getElementById('chat-section');
+			const chatBtn = document.getElementById('btn-vk-chat');
+			
+			if (chatSection.style.display === 'none') {
+				chatSection.style.display = 'block';
+				chatBtn.textContent = 'Скрыть чат';
+				loadChatMessages();
+			} else {
+				chatSection.style.display = 'none';
+				chatBtn.textContent = 'Показать чат';
+			}
+		}
+		
+		// Принудительное обновление данных VK Play
+		async function forceRefreshVK() {
+			try {
+				console.log('🔄 Принудительное обновление VK Play...');
+				await fetch('/integrations/vkplay/status');
+				await refreshStatus();
+				console.log('✅ Данные VK Play обновлены');
+			} catch (error) {
+				console.warn('Ошибка принудительного обновления:', error);
+			}
+		}
+		
+		// Загрузка сообщений чата
+		async function loadChatMessages() {
+			try {
+				const response = await api('/api/chat/messages?platform=vkplay&limit=20');
+				if (response && response.messages) {
+					const chatContainer = document.getElementById('chat-messages');
+					chatContainer.innerHTML = '';
+					
+					response.messages.reverse().forEach(msg => {
+						const messageDiv = document.createElement('div');
+						messageDiv.className = 'chat-message';
+						
+						const time = new Date(msg.created_at).toLocaleTimeString();
+						const username = msg.username || 'Аноним';
+						const isModerator = msg.is_moderator;
+						const isOwner = msg.is_owner;
+						
+						let usernameClass = '';
+						if (isOwner) usernameClass = 'owner';
+						else if (isModerator) usernameClass = 'moderator';
+						
+						messageDiv.innerHTML = `
+							<div class="chat-message-header">
+								<span class="chat-username ${usernameClass}">${username}</span>
+								<span class="chat-time">${time}</span>
+							</div>
+							<div class="chat-message-text">${msg.message || ''}</div>
+						`;
+						
+						chatContainer.appendChild(messageDiv);
+					});
+					
+					// Прокручиваем вниз
+					chatContainer.scrollTop = chatContainer.scrollHeight;
+				}
+			} catch (error) {
+				console.warn('Ошибка загрузки чата:', error);
+			}
+		}
+
+		function toggleYTChat() {
+			const chatSection = document.getElementById('yt-chat-section');
+			const chatBtn = document.getElementById('btn-yt-chat');
+			if (chatSection.style.display === 'none') {
+				chatSection.style.display = 'block';
+				chatBtn.textContent = 'Скрыть чат';
+				loadYTChatMessages();
+			} else {
+				chatSection.style.display = 'none';
+				chatBtn.textContent = 'Показать чат';
+			}
+		}
+
+		async function loadYTChatMessages() {
+			try {
+				const response = await api('/api/chat/messages?platform=youtube&limit=50');
+				if (response && response.messages) {
+					const chatContainer = document.getElementById('yt-chat-messages');
+					chatContainer.innerHTML = '';
+					response.messages.reverse().forEach(msg => {
+						const messageDiv = document.createElement('div');
+						messageDiv.className = 'chat-message';
+						const time = new Date(msg.created_at).toLocaleTimeString();
+						const username = msg.username || 'Аноним';
+						const isModerator = msg.is_moderator;
+						const isOwner = msg.is_owner;
+						let usernameClass = '';
+						if (isOwner) usernameClass = 'owner';
+						else if (isModerator) usernameClass = 'moderator';
+						messageDiv.innerHTML = `
+							<div class="chat-message-header">
+								<span class="chat-username ${usernameClass}">${username}</span>
+								<span class="chat-time">${time}</span>
+							</div>
+							<div class="chat-message-text">${msg.message || ''}</div>
+						`;
+						chatContainer.appendChild(messageDiv);
+					});
+					chatContainer.scrollTop = chatContainer.scrollHeight;
+				}
+			} catch (e) {
+				console.warn('Ошибка загрузки чата YouTube:', e);
+			}
+		}
+
+		function toggleRutonyChat() {
+			const chatSection = document.getElementById('rutony-chat-section');
+			const chatBtn = document.getElementById('btn-rutony-chat');
+			if (chatSection.style.display === 'none') {
+				chatSection.style.display = 'block';
+				chatBtn.textContent = 'Скрыть чат';
+				loadRutonyChatMessages();
+			} else {
+				chatSection.style.display = 'none';
+				chatBtn.textContent = 'Показать чат';
+			}
+		}
+
+		async function loadRutonyChatMessages() {
+			try {
+				const response = await api('/api/chat/messages?platform=rutony&limit=50');
+				if (response && response.messages) {
+					const chatContainer = document.getElementById('rutony-chat-messages');
+					chatContainer.innerHTML = '';
+					response.messages.reverse().forEach(msg => {
+						const messageDiv = document.createElement('div');
+						messageDiv.className = 'chat-message';
+						const time = new Date(msg.created_at).toLocaleTimeString();
+						const username = msg.username || 'Аноним';
+						const isModerator = msg.is_moderator;
+						const isOwner = msg.is_owner;
+						let usernameClass = '';
+						if (isOwner) usernameClass = 'owner';
+						else if (isModerator) usernameClass = 'moderator';
+						messageDiv.innerHTML = `
+							<div class="chat-message-header">
+								<span class="chat-username ${usernameClass}">${username}</span>
+								<span class="chat-time">${time}</span>
+							</div>
+							<div class="chat-message-text">${msg.message || ''}</div>
+						`;
+						chatContainer.appendChild(messageDiv);
+					});
+					chatContainer.scrollTop = chatContainer.scrollHeight;
+				}
+			} catch (e) {
+				console.warn('Ошибка загрузки чата Rutony:', e);
+			}
+		}
+
+		refreshStatus();
+		
+		// Принудительное обновление данных VK Play при загрузке
+		setTimeout(async () => {
+			try {
+				await fetch('/integrations/vkplay/status');
+				console.log('🔄 Принудительное обновление данных VK Play');
+			} catch (e) {
+				console.warn('Ошибка принудительного обновления:', e);
+			}
+		}, 1000);
+		
+		// Автообновление статуса и чата каждые 5 секунд
+		setInterval(refreshStatus, 5000);
+	</script>
+</body>
+</html>
+
+

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест округления сумм</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 10px 0;
+            background: #444;
+            border-radius: 5px;
+        }
+        .test-label {
+            font-weight: bold;
+            color: #007bff;
+        }
+        .test-value {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: #ffff00;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        .widget-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            margin: 20px auto;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1e3a8a, #1e40af);
+            overflow: visible;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        .log {
+            background: #111;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔢 Тест округления сумм</h1>
+        
+        <div class="test-section">
+            <h2>📊 Текущая статистика из БД</h2>
+            <div class="test-item">
+                <span class="test-label">Общая сумма (округленная):</span>
+                <span class="test-value" id="dbTotalAmount">Загрузка...</span>
+            </div>
+            <div class="test-item">
+                <span class="test-label">Количество донатов:</span>
+                <span class="test-value" id="dbTotalCount">Загрузка...</span>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 Тестовые суммы</h2>
+            <div class="test-item">
+                <span class="test-label">1234.56 RUB (должно быть 1235):</span>
+                <span class="test-value" id="test1">1235 RUB</span>
+            </div>
+            <div class="test-item">
+                <span class="test-label">999.99 RUB (должно быть 1000):</span>
+                <span class="test-value" id="test2">1000 RUB</span>
+            </div>
+            <div class="test-item">
+                <span class="test-label">0.1 RUB (должно быть 0):</span>
+                <span class="test-value" id="test3">0 RUB</span>
+            </div>
+            <div class="test-item">
+                <span class="test-label">null/undefined (должно быть 0):</span>
+                <span class="test-value" id="test4">0 RUB</span>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎮 Виджет</h2>
+            <button id="addTestDonation">➕ Добавить тестовый донат</button>
+            <button id="refreshStats">🔄 Обновить статистику</button>
+            <button id="refreshWidget">🔄 Обновить виджет</button>
+            
+            <div class="widget-container">
+                <iframe id="widgetFrame" src="http://localhost:3000/widget-mode2-copy.html"></iframe>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 Лог операций</h2>
+            <div id="log" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${time}] ${message}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // Тестируем округление
+        function testRounding() {
+            const test1 = Math.round(1234.56);
+            const test2 = Math.round(999.99);
+            const test3 = Math.round(0.1);
+            const test4 = Math.round(null || undefined || 0);
+            
+            document.getElementById('test1').textContent = `${test1} RUB`;
+            document.getElementById('test2').textContent = `${test2} RUB`;
+            document.getElementById('test3').textContent = `${test3} RUB`;
+            document.getElementById('test4').textContent = `${test4} RUB`;
+            
+            log(`🧪 Тесты округления: ${test1}, ${test2}, ${test3}, ${test4}`);
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/donations-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const roundedAmount = Math.round(data.totalAmount || 0);
+                    document.getElementById('dbTotalAmount').textContent = `${roundedAmount.toLocaleString()} RUB`;
+                    document.getElementById('dbTotalCount').textContent = data.totalCount;
+                    log(`📊 Статистика из БД: ${roundedAmount.toLocaleString()} RUB, ${data.totalCount} донатов`);
+                } else {
+                    log('❌ Ошибка загрузки статистики: ' + data.error);
+                }
+            } catch (error) {
+                log('❌ Ошибка запроса статистики: ' + error.message);
+            }
+        }
+
+        async function addTestDonation() {
+            log('🧪 Добавляем тестовый донат с дробной суммой...');
+            
+            try {
+                const response = await fetch('/api/manual-donation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'Тестер',
+                        amount: 123.45, // Дробная сумма для теста округления
+                        message: 'Тест округления сумм'
+                    })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    log(`✅ Тестовый донат добавлен: ${result.donation.username} - ${result.donation.amount}₽`);
+                    
+                    // Обновляем статистику
+                    setTimeout(() => {
+                        loadStats();
+                    }, 1000);
+                } else {
+                    log('❌ Ошибка добавления доната: ' + response.status);
+                }
+            } catch (error) {
+                log('❌ Ошибка: ' + error.message);
+            }
+        }
+
+        function refreshWidget() {
+            log('🔄 Обновляем виджет...');
+            const iframe = document.getElementById('widgetFrame');
+            iframe.src = iframe.src;
+        }
+
+        // Event listeners
+        document.getElementById('addTestDonation').addEventListener('click', addTestDonation);
+        document.getElementById('refreshStats').addEventListener('click', loadStats);
+        document.getElementById('refreshWidget').addEventListener('click', refreshWidget);
+
+        // Initialize
+        window.addEventListener('load', () => {
+            log('🚀 Страница загружена');
+            testRounding();
+            loadStats();
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alert - Mode 1</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            /* align with widget palette vars */
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --alert-opacity: 0.95;
+            --strip-color: var(--neon-blue);
+        }
+
+        body {
+            background: transparent;
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .alert-container {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%) translateX(400px);
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .alert-visible {
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .alert-card {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, var(--alert-opacity)) 0%,
+                rgba(8, 8, 20, calc(var(--alert-opacity) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--alert-opacity) * 0.85)) 100%
+            );
+            border: 1px solid rgba(0, 255, 71, 0.4);
+            border-radius: 12px;
+            padding: 25px 25px;
+            min-width: 320px;
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: visible;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 25px rgba(0, 255, 71, 0.2);
+        }
+
+        /* Top/bottom tapered, color-customizable strips (no glow) */
+        .alert-card::before,
+        .alert-card::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            /* Center solid with tapered/faded ends */
+            background:
+                radial-gradient(12px 2px at left center, var(--strip-color), rgba(0,0,0,0) 70%),
+                linear-gradient(90deg, var(--strip-color), var(--strip-color)),
+                radial-gradient(12px 2px at right center, var(--strip-color), rgba(0,0,0,0) 70%);
+            background-repeat: no-repeat;
+            background-size: 12px 100%, calc(100% - 24px) 100%, 12px 100%;
+            background-position: left center, center, right center;
+        }
+        .alert-card::before { top: 6px; }
+        .alert-card::after { bottom: 6px; }
+
+
+        .alert-header {
+            color: var(--neon-green);
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .donor-name {
+            color: var(--neon-blue);
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px var(--neon-blue);
+            font-family: 'Orbitron', monospace;
+        }
+
+        .donation-amount {
+            color: #ffffff;
+            font-size: 2rem;
+            font-weight: 800;
+            text-align: center;
+            margin: 15px 0;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+            font-family: 'Orbitron', monospace;
+        }
+
+        .frags-container {
+            background: rgba(0, 255, 71, 0.1);
+            border: 1px solid rgba(0, 255, 71, 0.3);
+            border-radius: 6px;
+            padding: 15px 20px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .frags-earned {
+            color: var(--neon-green);
+            font-size: 1.6rem;
+            font-weight: 800;
+            text-shadow: 0 0 20px var(--neon-green);
+            font-family: 'Orbitron', monospace;
+        }
+
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(0, 255, 234, 0.3), 
+                transparent);
+            margin: 10px 0;
+        }
+
+        .alert-hide {
+            animation: slideOut 0.5s ease-in-out forwards;
+        }
+
+        @keyframes slideOut {
+            to {
+                transform: translateY(-50%) translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .pulse {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { 
+                box-shadow: 0 0 30px rgba(0, 255, 234, 0.2);
+            }
+            50% { 
+                box-shadow: 0 0 50px rgba(0, 255, 234, 0.4);
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="alert-container" id="alertContainer">
+        <div class="alert-card" id="alertCard">
+            <div class="alert-header">ДОБАВИЛ ФРАГИ</div>
+            <div class="donor-name" id="donorName">ИМЯ ДОНАТЕРА</div>
+            <div class="donation-amount" id="donationAmount">100₽</div>
+            <div class="divider"></div>
+            <div class="frags-container">
+                <div class="frags-earned" id="fragsEarned">+2 фрага</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAlert = null;
+        let alertTimeout = null;
+        let alertOpacity = 0.95;
+        let ws = null;
+
+        // WebSocket connection for real-time alerts
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws?type=alert`;
+                
+                console.log('🔌 Alert Mode 1: Подключение к WebSocket:', wsUrl);
+                
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ Alert Mode 1: WebSocket подключен для алертов');
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        console.log('🚨 ALERT CLIENT RECEIVED:', message.type, message);
+                        
+                        if (message.type === 'SET_ALERT_OPACITY') {
+                            setAlertOpacity(message.opacity);
+                        } else if (message.type === 'SHOW_ALERT' && message.donation) {
+                            if (message.donation.alertMode && message.donation.alertMode !== 'mode1') return;
+                            console.log('🎯 SHOW_ALERT triggered:', message.donation);
+                            showAlert(message.donation);
+                        }
+                    } catch (error) {
+                        console.error('❌ Alert Mode 1: Ошибка обработки сообщения:', error);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    console.log('🔌 Alert Mode 1: WebSocket отключен');
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('❌ Alert Mode 1: WebSocket ошибка:', error);
+                };
+                
+            } catch (error) {
+                console.error('❌ Alert Mode 1: Ошибка подключения WebSocket:', error);
+            }
+        }
+
+        function setAlertOpacity(opacity) {
+            alertOpacity = opacity;
+            document.documentElement.style.setProperty('--alert-opacity', opacity);
+        }
+
+        function showAlert(donation) {
+            // Clear any existing alert
+            if (currentAlert) {
+                hideCurrentAlert();
+            }
+
+            console.log('🎯 Alert Mode 1: Обновление алерта:', donation);
+
+            // Update alert content
+            document.getElementById('donorName').textContent = donation.username || 'Аноним';
+            document.getElementById('donationAmount').textContent = (donation.amount || 0) + '₽';
+            
+            // Update frags earned with bright colors (no time fallback in frag alert)
+            const frags = (donation.fragsEarned != null ? donation.fragsEarned : 0) || 0;
+            const fragName = donation.fragUnitName || 'фрагов';
+            const fragDisplayType = donation.fragDisplayType || 'frags';
+            
+            if (frags > 0) {
+                // Если донат закрывает полоску до фрага - показываем количество фрагов
+                document.getElementById('fragsEarned').textContent = `+${frags} ${fragName}`;
+                document.getElementById('fragsEarned').style.display = 'block';
+            } else if (fragDisplayType === 'amount') {
+                // Если донат не закрывает полоску - показываем "Добавил до +1 фрага"
+                document.getElementById('fragsEarned').textContent = `Добавил до +1 ${fragName}`;
+                document.getElementById('fragsEarned').style.display = 'block';
+            } else {
+                document.getElementById('fragsEarned').style.display = 'none';
+            }
+
+            // Show alert with animation
+            const alertContainer = document.getElementById('alertContainer');
+            const alertCard = document.getElementById('alertCard');
+            
+            alertContainer.classList.remove('alert-hide');
+            alertContainer.classList.add('alert-visible');
+            alertCard.classList.add('pulse');
+
+            currentAlert = donation;
+
+            // Auto hide after 10 seconds
+            alertTimeout = setTimeout(() => {
+                hideCurrentAlert();
+            }, 10000);
+        }
+
+
+        function hideCurrentAlert() {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertCard = document.getElementById('alertCard');
+            
+            alertCard.classList.remove('pulse');
+            alertContainer.classList.remove('alert-visible');
+            alertContainer.classList.add('alert-hide');
+            
+            if (alertTimeout) {
+                clearTimeout(alertTimeout);
+                alertTimeout = null;
+            }
+            
+            currentAlert = null;
+        }
+
+        // Test function for preview
+        function testAlert() {
+            showAlert({
+                username: 'Тестовый Донатер',
+                amount: 150,
+                message: 'Это тестовый донат! 🎉',
+                fragsEarned: 3,
+                unitName: 'фрага',
+                fragDisplayType: 'frags'
+            });
+        }
+
+        // Test function for amount display
+        function testAmountAlert() {
+            showAlert({
+                username: 'Тестовый Донатер 2',
+                amount: 50,
+                message: 'Донат не закрывает полоску!',
+                fragsEarned: 0,
+                fragUnitName: 'фрага',
+                fragDisplayType: 'amount'
+            });
+        }
+
+        // Initialize WebSocket connection
+        connectWebSocket();
+
+        // Auto-test on load for preview
+        setTimeout(testAlert, 1000);
+        setTimeout(testAmountAlert, 4000);
+    </script>
+</body>
+</html>

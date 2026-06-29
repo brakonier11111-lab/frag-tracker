@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест топа дня</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .section {
+            background: #333;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        button {
+            background: #44ff44;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        pre {
+            background: #222;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        .error {
+            color: #ff4444;
+        }
+        .success {
+            color: #44ff44;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Тест топа дня</h1>
+    
+    <div class="section">
+        <h2>1. Добавить тестовый донат</h2>
+        <label>Пользователь: <input type="text" id="testUsername" value="СВОшник" style="padding: 8px; margin: 5px;"></label>
+        <label>Сумма: <input type="number" id="testAmount" value="9200" style="padding: 8px; margin: 5px;">₽</label>
+        <button onclick="addTestDonation()">➕ Добавить донат</button>
+        <div id="addResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Проверить топ дня</h2>
+        <button onclick="checkTopDaily()">🔄 Проверить /api/top-donors?daily=1</button>
+        <button onclick="checkTopToday()">🔄 Проверить /api/donors/top/today</button>
+        <div id="topResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Проверить все донаты пользователя за сегодня</h2>
+        <label>Пользователь: <input type="text" id="checkUsername" value="СВОшник" style="padding: 8px; margin: 5px;"></label>
+        <button onclick="checkUserDonations()">🔍 Проверить донаты</button>
+        <div id="userResult"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Текущее время и границы дня</h2>
+        <button onclick="showTimeInfo()">🕐 Показать информацию о времени</button>
+        <div id="timeResult"></div>
+    </div>
+
+    <script>
+        async function addTestDonation() {
+            const username = document.getElementById('testUsername').value.trim();
+            const amount = parseFloat(document.getElementById('testAmount').value) || 0;
+            const resultDiv = document.getElementById('addResult');
+            
+            if (!username || !amount) {
+                resultDiv.innerHTML = '<div class="error">Введите пользователя и сумму</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div>Добавление доната...</div>';
+            
+            try {
+                const response = await fetch('/api/donations/add-for-top', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, amount })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ Донат добавлен!<br>
+                            ID: ${data.donationId}<br>
+                            Дата создания: ${data.createdAt}
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+        
+        async function checkTopDaily() {
+            const resultDiv = document.getElementById('topResult');
+            resultDiv.innerHTML = '<div>Загрузка...</div>';
+            
+            try {
+                const response = await fetch('/api/top-donors?daily=1&limit=10');
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>Найдено донатеров: ${data.donors.length}</h3>
+                            <pre>${JSON.stringify(data.donors, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+        
+        async function checkTopToday() {
+            const resultDiv = document.getElementById('topResult');
+            resultDiv.innerHTML = '<div>Загрузка...</div>';
+            
+            try {
+                const response = await fetch('/api/donors/top/today?limit=10');
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>Найдено донатеров: ${data.donors.length}</h3>
+                            <pre>${JSON.stringify(data.donors, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+        
+        async function checkUserDonations() {
+            const username = document.getElementById('checkUsername').value.trim();
+            const resultDiv = document.getElementById('userResult');
+            
+            if (!username) {
+                resultDiv.innerHTML = '<div class="error">Введите имя пользователя</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div>Проверка...</div>';
+            
+            try {
+                // Получаем текущую дату
+                const now = new Date();
+                const todayStart = new Date(now);
+                todayStart.setHours(0, 0, 0, 0);
+                const todayEnd = new Date(todayStart.getTime() + 86400000);
+                
+                const formatSqlDate = (date) => date.toISOString().replace('T', ' ').split('.')[0];
+                const startStr = formatSqlDate(todayStart);
+                const endStr = formatSqlDate(todayEnd);
+                
+                resultDiv.innerHTML = `
+                    <div>
+                        <p>Проверяем донаты пользователя "${username}"</p>
+                        <p>Период: ${startStr} - ${endStr}</p>
+                        <p>Загрузка...</p>
+                    </div>
+                `;
+                
+                // Получаем все донаты
+                const response = await fetch('/api/donations');
+                const data = await response.json();
+                
+                if (data.success && data.donations) {
+                    const userDonations = data.donations.filter(d => {
+                        const dUsername = d.username || '';
+                        const dNormalized = d.normalized_username || '';
+                        return dUsername.toLowerCase().includes(username.toLowerCase()) || 
+                               dNormalized.toLowerCase().includes(username.toLowerCase());
+                    });
+                    
+                    const todayDonations = userDonations.filter(d => {
+                        if (!d.created_at) return false;
+                        const dDate = new Date(d.created_at);
+                        return dDate >= todayStart && dDate < todayEnd;
+                    });
+                    
+                    const totalToday = todayDonations.reduce((sum, d) => sum + (d.amount || 0), 0);
+                    
+                    resultDiv.innerHTML = `
+                        <div>
+                            <h3>Всего донатов пользователя: ${userDonations.length}</h3>
+                            <h3>Донатов за сегодня: ${todayDonations.length}, сумма: ${totalToday}₽</h3>
+                            <h4>Донаты за сегодня:</h4>
+                            <pre>${JSON.stringify(todayDonations.map(d => ({
+                                id: d.id,
+                                amount: d.amount,
+                                created_at: d.created_at,
+                                username: d.username,
+                                normalized_username: d.normalized_username
+                            })), null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Ошибка получения донатов</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Ошибка: ${error.message}</div>`;
+            }
+        }
+        
+        function showTimeInfo() {
+            const resultDiv = document.getElementById('timeResult');
+            const now = new Date();
+            const todayStart = new Date(now);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(todayStart.getTime() + 86400000);
+            
+            const formatSqlDate = (date) => date.toISOString().replace('T', ' ').split('.')[0];
+            
+            resultDiv.innerHTML = `
+                <div>
+                    <h3>Информация о времени:</h3>
+                    <p><strong>Текущее время:</strong> ${now.toISOString()}</p>
+                    <p><strong>Текущее время (локальное):</strong> ${now.toString()}</p>
+                    <p><strong>Начало дня (UTC):</strong> ${todayStart.toISOString()}</p>
+                    <p><strong>Начало дня (SQL формат):</strong> ${formatSqlDate(todayStart)}</p>
+                    <p><strong>Конец дня (UTC):</strong> ${todayEnd.toISOString()}</p>
+                    <p><strong>Конец дня (SQL формат):</strong> ${formatSqlDate(todayEnd)}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
+
+
+

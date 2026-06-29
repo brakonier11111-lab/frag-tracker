@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donation Widget - Mode 3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --widget-bg-opacity: 0.9;
+            --widget-stats-value-size: 1.8rem;
+            --widget-progress-text-size: 0.9rem;
+            --widget-cost-size: 0.9rem;
+        }
+
+        body {
+            background: transparent;
+            color: white;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .widget-container {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, var(--widget-bg-opacity, 0.95)) 0%,
+                rgba(8, 8, 20, calc(var(--widget-bg-opacity, 0.9) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--widget-bg-opacity, 0.85) * 0.85)) 100%
+            );
+            border: 1px solid rgba(0, 255, 71, 0.4);
+            padding: 15px;
+            text-align: center;
+            border-radius: 12px;
+            opacity: 1;
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(0, 255, 71, 0.2);
+        }
+
+        .widget-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+
+        .widget-stat {
+            text-align: center;
+        }
+
+        .widget-stat-value {
+            font-size: var(--widget-stats-value-size, 1.8rem);
+            font-weight: bold;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px rgba(0, 255, 71, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .widget-stat-done {
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+
+        .widget-stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .widget-progress {
+            background: rgba(20, 20, 30, 0.8);
+            height: 25px;
+            margin: 15px 0;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .widget-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-purple));
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 12px;
+        }
+
+        .widget-progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            font-size: var(--widget-progress-text-size, 0.9rem);
+            line-height: 25px;
+            text-shadow: 0 0 5px #000;
+        }
+
+        .cost-info {
+            color: var(--neon-green);
+            font-weight: bold;
+            font-size: var(--widget-cost-size, 0.9rem);
+            margin: 8px 0 0 0;
+            text-shadow: 0 0 5px rgba(0, 255, 71, 0.5);
+        }
+
+        .number-changing {
+            animation: numberPulse 0.5s ease;
+        }
+
+        @keyframes numberPulse {
+            0% { transform: scale(1); color: var(--neon-yellow); }
+            50% { transform: scale(1.2); color: var(--neon-green); }
+            100% { transform: scale(1); color: inherit; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="widget-container">
+        <div class="widget-stats">
+            <div class="widget-stat">
+                <div class="widget-stat-value" id="widgetUnitsNeeded">10</div>
+                <div class="widget-stat-label" id="widgetUnitsNeededLabel">ОСТАЛОСЬ</div>
+            </div>
+            <div class="widget-stat">
+                <div class="widget-stat-value widget-stat-done" id="widgetUnitsDone">0</div>
+                <div class="widget-stat-label" id="widgetUnitsDoneLabel">СДЕЛАНО</div>
+            </div>
+        </div>
+        
+        <div class="widget-progress">
+            <div class="widget-progress-bar" id="widgetProgressBar">
+                <div class="widget-progress-text" id="widgetProgressText">0₽ из 50₽</div>
+            </div>
+        </div>
+        
+        <div class="cost-info" id="costInfo">
+            1 единица = 50₽
+        </div>
+    </div>
+
+    <!-- Settings Panel Toggle -->
+    <button id="widgetSettingsToggle" style="position: fixed; left: 12px; bottom: 12px; z-index: 9999; background: rgba(20,20,30,0.9); color: #fff; border: 1px solid var(--neon-blue); border-radius: 6px; padding: 8px 10px; cursor: pointer;">⚙ Настройки</button>
+
+    <!-- Collapsible Settings Panel -->
+    <div id="widgetSettingsPanel" style="position: fixed; left: 12px; bottom: 54px; z-index: 9999; background: rgba(10,10,20,0.95); color: #fff; border: 1px solid var(--neon-blue); border-radius: 8px; padding: 12px; width: 280px; display: none; box-shadow: 0 6px 24px rgba(0,0,0,0.4);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-weight:700; color: var(--neon-blue);">Настройки виджета</div>
+            <button id="widgetSettingsClose" style="background: transparent; color:#fff; border: 1px solid #555; border-radius: 4px; padding:2px 6px; cursor:pointer;">✕</button>
+        </div>
+        <div style="font-size: 0.8rem; color:#bbb; margin-bottom:8px;">Размеры (rem)</div>
+        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px; align-items:center; margin-bottom:8px;">
+            <label>Значения</label>
+            <input type="number" step="0.1" min="0.6" id="sizeStatsValue" style="width:70px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="1.8">
+            <label>Прогресс</label>
+            <input type="number" step="0.1" min="0.6" id="sizeProgressText" style="width:70px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="0.9">
+            <label>Стоимость</label>
+            <input type="number" step="0.1" min="0.6" id="sizeCost" style="width:70px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="0.9">
+        </div>
+        <div style="font-size: 0.8rem; color:#bbb; margin:8px 0 6px;">Цвета</div>
+        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px; align-items:center;">
+            <label>Красный</label>
+            <input type="color" id="colorRed" value="#ff003c" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Синий</label>
+            <input type="color" id="colorBlue" value="#00f0ff" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Фиолетовый</label>
+            <input type="color" id="colorPurple" value="#b300ff" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Зеленый</label>
+            <input type="color" id="colorGreen" value="#00ff47" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Желтый</label>
+            <input type="color" id="colorYellow" value="#ffff00" style="width:48px; height:28px; border:none; background:transparent;">
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="saveWidgetSettings" style="flex:1; background: rgba(0,255,71,0.15); color:#0f0; border:1px solid #0f0; border-radius:4px; padding:6px; cursor:pointer;">Сохранить</button>
+            <button id="resetWidgetSettings" style="flex:1; background: rgba(255,0,60,0.15); color:#f55; border:1px solid #f55; border-radius:4px; padding:6px; cursor:pointer;">Сброс</button>
+        </div>
+    </div>
+    <script>
+        let ws = null;
+        let currentState = {
+            custom_units_needed: 10,
+            custom_units_done: 0,
+            custom_current_balance: 0,
+            custom_unit_cost: 50,
+            custom_unit_amount: 1,
+            custom_goal_name: "единица",
+            custom_widget_left_label: "ОСТАЛОСЬ",
+            custom_widget_right_label: "СДЕЛАНО"
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎨 Виджет режима 3 инициализирован');
+            connectWebSocket();
+            loadInitialState();
+            initWidgetSettingsUI();
+        });
+
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+                
+                console.log('🔌 Widget Mode 3: Подключение к WebSocket:', wsUrl);
+                
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ Widget Mode 3: Connected to server');
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        console.log('📨 Widget Mode 3: Получено сообщение:', message.type);
+                        
+                        if (message.type === 'INIT_STATE') {
+                            currentState = { ...currentState, ...message.state };
+                            updateWidget(currentState);
+                        } else if (message.type === 'STATE_UPDATE') {
+                            currentState = { ...currentState, ...message.state };
+                            updateWidgetWithAnimation(currentState);
+                        } else if (message.type === 'SET_WIDGET_OPACITY') {
+                            if (message.target === 'background') {
+                                document.documentElement.style.setProperty('--widget-bg-opacity', message.opacity);
+                                console.log('🎨 Background opacity set to:', message.opacity);
+                            } else {
+                                document.documentElement.style.setProperty('--widget-opacity', message.opacity);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ Widget Mode 3: Message error:', error);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    console.log('🔌 Widget Mode 3: Disconnected');
+                    setTimeout(connectWebSocket, 5000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('❌ Widget Mode 3: Connection error:', error);
+                };
+                
+            } catch (error) {
+                console.error('❌ Widget Mode 3: WebSocket error:', error);
+            }
+        }
+
+        async function loadInitialState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentState = { ...currentState, ...data.state };
+                    updateWidget(currentState);
+                }
+            } catch (error) {
+                console.error('❌ Widget Mode 3: Error loading initial state:', error);
+            }
+        }
+
+        function updateWidgetWithAnimation(state) {
+            animateNumberChange('widgetUnitsNeeded', state.custom_units_needed);
+            animateNumberChange('widgetUnitsDone', state.custom_units_done);
+            updateWidget(state);
+        }
+
+        function updateWidget(state) {
+            if (!state) return;
+
+            const costPerUnit = state.custom_unit_cost / state.custom_unit_amount;
+            const progressPercent = Math.min(100, (state.custom_current_balance / costPerUnit) * 100);
+            
+            // Обновляем значения
+            document.getElementById('widgetUnitsNeeded').textContent = state.custom_units_needed;
+            document.getElementById('widgetUnitsDone').textContent = state.custom_units_done;
+            
+            // Обновляем подписи
+            document.getElementById('widgetUnitsNeededLabel').textContent = 
+                state.custom_widget_left_label || 'ОСТАЛОСЬ';
+            document.getElementById('widgetUnitsDoneLabel').textContent = 
+                state.custom_widget_right_label || 'СДЕЛАНО';
+            
+            // Обновляем прогресс
+            document.getElementById('widgetProgressBar').style.width = progressPercent + '%';
+            document.getElementById('widgetProgressText').textContent = 
+                `${Math.floor(state.custom_current_balance)}₽ из ${costPerUnit.toFixed(0)}₽`;
+            
+            // Обновляем стоимость
+            const costInfoElement = document.getElementById('costInfo');
+            if (state.custom_unit_amount === 1) {
+                costInfoElement.textContent = `1 ${state.custom_goal_name} = ${costPerUnit.toFixed(0)}₽`;
+            } else {
+                costInfoElement.textContent = `${state.custom_unit_amount} ${getUnitWord(state.custom_unit_amount, state.custom_goal_name)} = ${state.custom_unit_cost}₽`;
+            }
+            // Применяем тему, если пришла из сервера
+            applyThemeFromState(state, 'mode3');
+        }
+
+        function animateNumberChange(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            if (element && element.textContent != newValue) {
+                element.classList.add('number-changing');
+                setTimeout(() => {
+                    element.textContent = newValue;
+                    setTimeout(() => {
+                        element.classList.remove('number-changing');
+                    }, 500);
+                }, 150);
+            }
+        }
+
+        function getUnitWord(count, unitName) {
+            const specialCases = {
+                'единица': ['единица', 'единицы', 'единиц'],
+                'уровень': ['уровень', 'уровня', 'уровней'],
+                'предмет': ['предмет', 'предмета', 'предметов']
+            };
+            
+            if (specialCases[unitName]) {
+                const cases = specialCases[unitName];
+                return getRussianPlural(count, cases);
+            }
+            
+            return getUniversalPlural(count, unitName);
+        }
+
+        function getRussianPlural(count, cases) {
+            const lastDigit = count % 10;
+            const lastTwoDigits = count % 100;
+            
+            if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+                return cases[2];
+            }
+            
+            if (lastDigit === 1) {
+                return cases[0];
+            }
+            
+            if (lastDigit >= 2 && lastDigit <= 4) {
+                return cases[1];
+            }
+            
+            return cases[2];
+        }
+
+        function getUniversalPlural(count, word) {
+            return word;
+        }
+
+        // Fallback update every 5 seconds
+        setInterval(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                loadInitialState();
+            }
+        }, 5000);
+
+        // ================= Settings (Local) =================
+        const SETTINGS_KEY = 'widget_mode3_settings_v1';
+        function initWidgetSettingsUI() {
+            const toggle = document.getElementById('widgetSettingsToggle');
+            const panel = document.getElementById('widgetSettingsPanel');
+            const closeBtn = document.getElementById('widgetSettingsClose');
+            const saveBtn = document.getElementById('saveWidgetSettings');
+            const resetBtn = document.getElementById('resetWidgetSettings');
+
+            toggle.addEventListener('click', () => panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none');
+            closeBtn.addEventListener('click', () => panel.style.display = 'none');
+            saveBtn.addEventListener('click', saveWidgetSettings);
+            resetBtn.addEventListener('click', resetWidgetSettings);
+
+            const saved = loadWidgetSettings();
+            if (saved) {
+                document.getElementById('sizeStatsValue').value = saved.sizeStatsValue ?? 1.8;
+                document.getElementById('sizeProgressText').value = saved.sizeProgressText ?? 0.9;
+                document.getElementById('sizeCost').value = saved.sizeCost ?? 0.9;
+                document.getElementById('colorRed').value = saved.colorRed ?? '#ff003c';
+                document.getElementById('colorBlue').value = saved.colorBlue ?? '#00f0ff';
+                document.getElementById('colorPurple').value = saved.colorPurple ?? '#b300ff';
+                document.getElementById('colorGreen').value = saved.colorGreen ?? '#00ff47';
+                document.getElementById('colorYellow').value = saved.colorYellow ?? '#ffff00';
+            }
+            applySavedWidgetSettings();
+        }
+
+        function loadWidgetSettings() {
+            try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); } catch { return null; }
+        }
+
+        function saveWidgetSettings() {
+            const settings = {
+                sizeStatsValue: parseFloat(document.getElementById('sizeStatsValue').value) || 1.8,
+                sizeProgressText: parseFloat(document.getElementById('sizeProgressText').value) || 0.9,
+                sizeCost: parseFloat(document.getElementById('sizeCost').value) || 0.9,
+                colorRed: document.getElementById('colorRed').value,
+                colorBlue: document.getElementById('colorBlue').value,
+                colorPurple: document.getElementById('colorPurple').value,
+                colorGreen: document.getElementById('colorGreen').value,
+                colorYellow: document.getElementById('colorYellow').value
+            };
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+            applySavedWidgetSettings();
+        }
+
+        function resetWidgetSettings() {
+            localStorage.removeItem(SETTINGS_KEY);
+            applySavedWidgetSettings();
+        }
+
+        function applySavedWidgetSettings() {
+            const saved = loadWidgetSettings();
+            const root = document.documentElement;
+            root.style.setProperty('--widget-stats-value-size', ((saved && saved.sizeStatsValue) ? saved.sizeStatsValue : 1.8) + 'rem');
+            root.style.setProperty('--widget-progress-text-size', ((saved && saved.sizeProgressText) ? saved.sizeProgressText : 0.9) + 'rem');
+            root.style.setProperty('--widget-cost-size', ((saved && saved.sizeCost) ? saved.sizeCost : 0.9) + 'rem');
+            // colors
+            root.style.setProperty('--neon-red', saved?.colorRed || '#ff003c');
+            root.style.setProperty('--neon-blue', saved?.colorBlue || '#00f0ff');
+            root.style.setProperty('--neon-purple', saved?.colorPurple || '#b300ff');
+            root.style.setProperty('--neon-green', saved?.colorGreen || '#00ff47');
+            root.style.setProperty('--neon-yellow', saved?.colorYellow || '#ffff00');
+        }
+
+        // ================= Theme from Server =================
+        function applyThemeFromState(state, modeKey) {
+            try {
+                const themeKey = modeKey === 'mode1' ? 'theme_mode1' : modeKey === 'mode2' ? 'theme_mode2' : 'theme_mode3';
+                const themeJson = state && state[themeKey];
+                if (!themeJson) return;
+                const theme = typeof themeJson === 'string' ? JSON.parse(themeJson) : themeJson;
+                if (theme && theme.cssVars) {
+                    const root = document.documentElement;
+                    Object.keys(theme.cssVars).forEach(k => {
+                        root.style.setProperty(k, theme.cssVars[k]);
+                    });
+                }
+            } catch (e) {
+                console.warn('Theme apply error:', e);
+            }
+        }
+    </script>
+</body>
+</html>

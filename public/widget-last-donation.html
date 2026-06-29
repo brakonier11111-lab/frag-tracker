@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Last Donation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: rgba(8, 8, 15, 0.95);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --accent-pink: #ff6b9d;
+            --accent-purple: #b388ff;
+            --text-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: transparent;
+            min-height: 100vh;
+            font-family: 'Rajdhani', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .last-title {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 800;
+            text-shadow: 0 0 18px rgba(0, 0, 0, 0.95);
+            white-space: nowrap;
+        }
+
+        .last-widget {
+            width: 100%;
+            background: var(--bg-color);
+            border-radius: 20px;
+            padding: 10px 12px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .last-widget.no-frame {
+            border: none;
+        }
+
+        .last-widget::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, var(--accent-pink), var(--accent-purple));
+            pointer-events: none;
+        }
+
+        .last-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+
+        .donor-name {
+            flex: 1 1 auto;
+            min-width: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            color: var(--text-color);
+            text-transform: uppercase;
+            cursor: default;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            padding-left: 8px;
+        }
+
+        .donor-name span {
+            display: inline-block;
+            white-space: nowrap;
+            line-height: 1;
+        }
+
+        .donor-metrics {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+            font-size: 1.35rem;
+            flex-shrink: 0;
+            width: 140px;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .donor-amount {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-pink);
+            white-space: nowrap;
+        }
+
+        .donor-time {
+            font-size: 1.1rem;
+            color: var(--accent-purple);
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        .no-data {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.65);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div style="position:relative; width:100%; max-width:640px;">
+        <div class="last-title">ПОСЛЕДНИЙ ДОНАТ</div>
+        <div class="last-widget" id="lastWidget">
+            <div class="last-row" id="lastEntry">
+                <div class="donor-name" id="donorName">
+                    <span id="donorNameInner">—</span>
+                </div>
+                <div class="donor-metrics">
+                    <span class="donor-amount" id="donorAmount">0 ₽</span>
+                    <span class="donor-time" id="donorTime">+0с</span>
+                </div>
+            </div>
+            <div class="no-data" id="noDonation">Нет донатов.</div>
+        </div>
+    </div>
+    <script src="/widget-last-donation.js?v=1" defer></script>
+</body>
+</html>
+

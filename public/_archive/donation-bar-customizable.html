@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настраиваемая полоска донатов</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bar-bg-color: rgba(0, 0, 0, 0.9);
+            --bar-fill-color: #4a5568;
+            --bar-border-color: rgba(74, 85, 104, 0.4);
+            --bar-glow-color: rgba(102, 126, 234, 0.2);
+            --text-color: #ffffff;
+            --text-shadow-color: rgba(0, 0, 0, 0.8);
+            --bar-height: 35px;
+            --bar-width: 100%;
+            --border-radius: 30px;
+            --font-family: 'Inter', sans-serif;
+            --animation-speed: 1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: transparent;
+            color: var(--text-color);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Общие стили для всех ориентаций */
+        .donation-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* ========== ГОРИЗОНТАЛЬНАЯ ОРИЕНТАЦИЯ ========== */
+        .horizontal-bar {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .horizontal-bar .bar-title {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 3px 6px var(--text-shadow-color);
+            animation: textGlow calc(3s / var(--animation-speed)) ease-in-out infinite;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .horizontal-bar .progress-container {
+            position: relative;
+            padding: 10px 0;
+        }
+
+        .horizontal-bar .progress-bar {
+            width: var(--bar-width);
+            height: var(--bar-height);
+            background: var(--bar-bg-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            position: relative;
+            box-shadow: 
+                inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(0, 0, 0, 0.5),
+                0 0 60px var(--bar-glow-color);
+            border: 3px solid var(--bar-border-color);
+            animation: progressBarGlow calc(6s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .horizontal-bar .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, 
+                var(--bar-fill-color) 0%, 
+                color-mix(in srgb, var(--bar-fill-color) 80%, black) 50%,
+                var(--bar-fill-color) 100%
+            );
+            background-size: 300% 300%;
+            border-radius: var(--border-radius);
+            position: relative;
+            transition: width 4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
+            box-shadow: 
+                0 0 20px color-mix(in srgb, var(--bar-fill-color) 60%, transparent),
+                inset 0 3px 6px rgba(255, 255, 255, 0.2);
+            animation: gradientShift calc(12s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        /* ========== ВЕРТИКАЛЬНАЯ ОРИЕНТАЦИЯ ========== */
+        .vertical-bar {
+            height: 100%;
+            max-height: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .vertical-bar .bar-title {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 3px 6px var(--text-shadow-color);
+            animation: textGlow calc(3s / var(--animation-speed)) ease-in-out infinite;
+            writing-mode: horizontal-tb;
+        }
+
+        .vertical-bar .progress-container {
+            position: relative;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .vertical-bar .progress-bar {
+            width: var(--bar-height);
+            height: 400px;
+            background: var(--bar-bg-color);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            position: relative;
+            box-shadow: 
+                inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(0, 0, 0, 0.5),
+                0 0 60px var(--bar-glow-color);
+            border: 3px solid var(--bar-border-color);
+            animation: progressBarGlow calc(6s / var(--animation-speed)) ease-in-out infinite;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        .vertical-bar .progress-fill {
+            width: 100%;
+            background: linear-gradient(0deg, 
+                var(--bar-fill-color) 0%, 
+                color-mix(in srgb, var(--bar-fill-color) 80%, black) 50%,
+                var(--bar-fill-color) 100%
+            );
+            background-size: 300% 300%;
+            border-radius: var(--border-radius);
+            position: relative;
+            transition: height 4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
+            box-shadow: 
+                0 0 20px color-mix(in srgb, var(--bar-fill-color) 60%, transparent),
+                inset 0 3px 6px rgba(255, 255, 255, 0.2);
+            animation: gradientShift calc(12s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .vertical-bar .progress-text {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+            align-items: center;
+        }
+
+        /* ========== КРУГОВАЯ ОРИЕНТАЦИЯ ========== */
+        .circular-bar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .circular-bar .bar-title {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            text-shadow: 
+                0 0 20px rgba(255, 255, 255, 0.8),
+                0 3px 6px var(--text-shadow-color);
+            animation: textGlow calc(3s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .circular-progress {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+
+        .circular-progress svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        .circular-progress circle {
+            fill: none;
+            stroke-width: 15;
+        }
+
+        .circular-progress .progress-bg {
+            stroke: var(--bar-bg-color);
+            opacity: 0.3;
+        }
+
+        .circular-progress .progress-ring {
+            stroke: var(--bar-fill-color);
+            stroke-linecap: round;
+            transition: stroke-dashoffset 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            filter: drop-shadow(0 0 10px var(--bar-fill-color));
+            animation: ringGlow calc(3s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .circular-progress .progress-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .circular-progress .current-amount {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-shadow: 0 0 10px var(--text-shadow-color);
+        }
+
+        .circular-progress .percentage {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        /* ========== УГЛОВЫЕ ПОЗИЦИИ ========== */
+        .corner-bar {
+            position: fixed;
+            padding: 15px;
+        }
+
+        .corner-bar.top-left {
+            top: 0;
+            left: 0;
+        }
+
+        .corner-bar.top-right {
+            top: 0;
+            right: 0;
+        }
+
+        .corner-bar.bottom-left {
+            bottom: 0;
+            left: 0;
+        }
+
+        .corner-bar.bottom-right {
+            bottom: 0;
+            right: 0;
+        }
+
+        .corner-bar .progress-bar {
+            width: 300px;
+        }
+
+        /* ========== ОБЩИЕ ЭЛЕМЕНТЫ ========== */
+        .progress-amount-inside {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+            text-shadow: 
+                0 0 10px var(--text-shadow-color),
+                0 0 20px var(--text-shadow-color);
+            z-index: 10;
+            pointer-events: none;
+            animation: amountGlow calc(2s / var(--animation-speed)) ease-in-out infinite;
+            white-space: nowrap;
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            width: 100%;
+        }
+
+        .progress-text span {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 6px 12px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 2px 8px rgba(0, 0, 0, 0.3),
+                inset 0 1px 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .progress-percentage {
+            position: absolute;
+            top: 50%;
+            right: 10%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-color);
+            text-shadow: 0 0 10px var(--text-shadow-color);
+            z-index: 10;
+        }
+
+        /* ========== ЧАСТИЦЫ ========== */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--bar-glow-color);
+            border-radius: 50%;
+            animation: float calc(6s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 1s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 2s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 3s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 4s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 5s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 1.5s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 2.5s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 3.5s; }
+
+        /* ========== АНИМАЦИИ ========== */
+        @keyframes progressBarGlow {
+            0%, 100% { 
+                border-color: var(--bar-border-color);
+                box-shadow: 
+                    inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                    0 0 30px rgba(0, 0, 0, 0.5),
+                    0 0 60px var(--bar-glow-color);
+            }
+            50% { 
+                border-color: color-mix(in srgb, var(--bar-border-color) 70%, white);
+                box-shadow: 
+                    inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                    0 0 40px rgba(0, 0, 0, 0.6),
+                    0 0 80px color-mix(in srgb, var(--bar-glow-color) 200%, white);
+            }
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes textGlow {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 20px rgba(255, 255, 255, 0.8),
+                    0 3px 6px var(--text-shadow-color);
+            }
+            50% { 
+                text-shadow: 
+                    0 0 30px rgba(255, 255, 255, 1),
+                    0 4px 8px var(--text-shadow-color);
+            }
+        }
+
+        @keyframes amountGlow {
+            0%, 100% { 
+                text-shadow: 
+                    0 0 10px var(--text-shadow-color),
+                    0 0 20px var(--text-shadow-color);
+            }
+            50% { 
+                text-shadow: 
+                    0 0 15px rgba(0, 0, 0, 1),
+                    0 0 30px rgba(0, 0, 0, 0.8);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(100px) scale(0); 
+                opacity: 0; 
+            }
+            10% { 
+                opacity: 1; 
+                transform: translateY(90px) scale(1); 
+            }
+            90% { 
+                opacity: 1; 
+                transform: translateY(-10px) scale(1); 
+            }
+        }
+
+        @keyframes ringGlow {
+            0%, 100% { 
+                filter: drop-shadow(0 0 10px var(--bar-fill-color));
+            }
+            50% { 
+                filter: drop-shadow(0 0 20px var(--bar-fill-color));
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Скрытие элементов */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Панель настроек */
+        .settings-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            max-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-panel h3 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: #fff;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setting-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .setting-group input[type="color"],
+        .setting-group input[type="number"],
+        .setting-group input[type="range"],
+        .setting-group select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .setting-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-settings {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 1001;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-settings:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Вертикальные частицы для вертикального бара */
+        .vertical-bar .particle {
+            animation: floatVertical calc(6s / var(--animation-speed)) ease-in-out infinite;
+        }
+
+        @keyframes floatVertical {
+            0%, 100% { 
+                transform: translateX(100px) scale(0); 
+                opacity: 0; 
+            }
+            10% { 
+                opacity: 1; 
+                transform: translateX(90px) scale(1); 
+            }
+            90% { 
+                opacity: 1; 
+                transform: translateX(-10px) scale(1); 
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="toggle-settings" onclick="toggleSettings()">⚙️ Настройки</button>
+
+    <div class="settings-panel hidden" id="settings-panel">
+        <h3>🎨 Настройки полоски</h3>
+        
+        <div class="setting-group">
+            <label>Ориентация:</label>
+            <select id="orientation" onchange="changeOrientation()">
+                <option value="horizontal">Горизонтальная</option>
+                <option value="vertical">Вертикальная</option>
+                <option value="circular">Круговая</option>
+                <option value="corner-tl">Угол (Верх-Лево)</option>
+                <option value="corner-tr">Угол (Верх-Право)</option>
+                <option value="corner-bl">Угол (Низ-Лево)</option>
+                <option value="corner-br">Угол (Низ-Право)</option>
+            </select>
+        </div>
+
+        <div class="setting-group">
+            <label>Цвет фона полоски:</label>
+            <input type="color" id="barBgColor" value="#000000" onchange="updateColors()">
+        </div>
+
+        <div class="setting-group">
+            <label>Цвет заполнения:</label>
+            <input type="color" id="barFillColor" value="#4a5568" onchange="updateColors()">
+        </div>
+
+        <div class="setting-group">
+            <label>Цвет границы:</label>
+            <input type="color" id="barBorderColor" value="#4a5568" onchange="updateColors()">
+        </div>
+
+        <div class="setting-group">
+            <label>Цвет свечения:</label>
+            <input type="color" id="barGlowColor" value="#667eea" onchange="updateColors()">
+        </div>
+
+        <div class="setting-group">
+            <label>Высота/Толщина полоски (px):</label>
+            <input type="range" id="barHeight" min="20" max="100" value="35" oninput="updateSize()">
+            <span id="barHeightValue">35px</span>
+        </div>
+
+        <div class="setting-group">
+            <label>Скругление углов (px):</label>
+            <input type="range" id="borderRadius" min="0" max="50" value="30" oninput="updateBorderRadius()">
+            <span id="borderRadiusValue">30px</span>
+        </div>
+
+        <div class="setting-group">
+            <label>Скорость анимации:</label>
+            <input type="range" id="animSpeed" min="0.1" max="3" step="0.1" value="1" oninput="updateAnimSpeed()">
+            <span id="animSpeedValue">1x</span>
+        </div>
+
+        <div class="setting-group">
+            <label>Шрифт:</label>
+            <select id="fontFamily" onchange="updateFont()">
+                <option value="'Inter', sans-serif">Inter</option>
+                <option value="'Roboto', sans-serif">Roboto</option>
+                <option value="'Montserrat', sans-serif">Montserrat</option>
+                <option value="Arial, sans-serif">Arial</option>
+                <option value="'Courier New', monospace">Courier New</option>
+            </select>
+        </div>
+
+        <h3>👁️ Отображение элементов</h3>
+
+        <div class="setting-group checkbox-group">
+            <input type="checkbox" id="showTitle" checked onchange="toggleElement('title')">
+            <label for="showTitle">Показать название</label>
+        </div>
+
+        <div class="setting-group checkbox-group">
+            <input type="checkbox" id="showAmount" checked onchange="toggleElement('amount')">
+            <label for="showAmount">Показать сумму внутри</label>
+        </div>
+
+        <div class="setting-group checkbox-group">
+            <input type="checkbox" id="showStartEnd" checked onchange="toggleElement('startEnd')">
+            <label for="showStartEnd">Показать начало/конец</label>
+        </div>
+
+        <div class="setting-group checkbox-group">
+            <input type="checkbox" id="showPercentage" onchange="toggleElement('percentage')">
+            <label for="showPercentage">Показать процент</label>
+        </div>
+
+        <div class="setting-group checkbox-group">
+            <input type="checkbox" id="showParticles" checked onchange="toggleElement('particles')">
+            <label for="showParticles">Показать частицы</label>
+        </div>
+
+        <h3>💾 Управление</h3>
+        <button onclick="saveSettings()" style="width: 100%; padding: 10px; background: #4CAF50; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; margin-bottom: 10px;">Сохранить настройки</button>
+        <button onclick="loadSettings()" style="width: 100%; padding: 10px; background: #2196F3; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; margin-bottom: 10px;">Загрузить настройки</button>
+        <button onclick="resetSettings()" style="width: 100%; padding: 10px; background: #f44336; border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer;">Сбросить настройки</button>
+    </div>
+
+    <div class="donation-container" id="donation-container">
+        <!-- Контент будет динамически генерироваться -->
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let donationGoal = {
+            title: 'Сбор на новый контент',
+            targetAmount: 10000,
+            currentAmount: 0
+        };
+
+        let currentOrientation = 'horizontal';
+        let updateInterval = null;
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            loadGoalData();
+            renderBar();
+            startAutoUpdate();
+        });
+
+        // Загрузка данных с сервера
+        async function loadGoalData() {
+            try {
+                const response = await fetch('/api/donation-goal');
+                if (response.ok) {
+                    const data = await response.json();
+                    donationGoal = { ...donationGoal, ...data };
+                    updateDisplay();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                updateDisplay(); // Показываем с дефолтными данными
+            }
+        }
+
+        // Рендеринг полоски в зависимости от ориентации
+        function renderBar() {
+            const container = document.getElementById('donation-container');
+            
+            switch(currentOrientation) {
+                case 'horizontal':
+                    container.innerHTML = createHorizontalBar();
+                    container.className = 'donation-container';
+                    break;
+                case 'vertical':
+                    container.innerHTML = createVerticalBar();
+                    container.className = 'donation-container';
+                    break;
+                case 'circular':
+                    container.innerHTML = createCircularBar();
+                    container.className = 'donation-container';
+                    break;
+                case 'corner-tl':
+                case 'corner-tr':
+                case 'corner-bl':
+                case 'corner-br':
+                    container.innerHTML = createCornerBar();
+                    container.className = 'donation-container';
+                    break;
+            }
+            
+            updateDisplay();
+            applyVisibilitySettings();
+        }
+
+        // Создание горизонтальной полоски
+        function createHorizontalBar() {
+            return `
+                <div class="horizontal-bar">
+                    <div class="bar-title" id="bar-title">${donationGoal.title}</div>
+                    <div class="progress-container">
+                        <div class="particles" id="particles">
+                            ${createParticles()}
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                            <div class="progress-amount-inside" id="progress-amount">0 ₽</div>
+                            <div class="progress-percentage hidden" id="progress-percentage">0%</div>
+                        </div>
+                        <div class="progress-text" id="progress-text">
+                            <span class="start-amount">0 ₽</span>
+                            <span id="target-amount">10,000 ₽</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Создание вертикальной полоски
+        function createVerticalBar() {
+            return `
+                <div class="vertical-bar">
+                    <div class="bar-title" id="bar-title">${donationGoal.title}</div>
+                    <div class="progress-container">
+                        <div class="particles" id="particles">
+                            ${createParticles()}
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="height: 0%"></div>
+                            <div class="progress-amount-inside" id="progress-amount">0 ₽</div>
+                        </div>
+                        <div class="progress-text" id="progress-text">
+                            <span id="target-amount">10,000 ₽</span>
+                            <span class="start-amount">0 ₽</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Создание круговой полоски
+        function createCircularBar() {
+            return `
+                <div class="circular-bar">
+                    <div class="bar-title" id="bar-title">${donationGoal.title}</div>
+                    <div class="circular-progress">
+                        <svg>
+                            <circle class="progress-bg" cx="125" cy="125" r="110"></circle>
+                            <circle class="progress-ring" id="progress-ring" cx="125" cy="125" r="110"
+                                stroke-dasharray="691" stroke-dashoffset="691"></circle>
+                        </svg>
+                        <div class="progress-center">
+                            <div class="current-amount" id="progress-amount">0 ₽</div>
+                            <div class="percentage" id="progress-percentage">0%</div>
+                        </div>
+                    </div>
+                    <div class="progress-text" id="progress-text">
+                        <span class="start-amount">0 ₽</span>
+                        <span id="target-amount">10,000 ₽</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Создание угловой полоски
+        function createCornerBar() {
+            const cornerClass = {
+                'corner-tl': 'top-left',
+                'corner-tr': 'top-right',
+                'corner-bl': 'bottom-left',
+                'corner-br': 'bottom-right'
+            }[currentOrientation];
+
+            return `
+                <div class="corner-bar ${cornerClass}">
+                    <div class="bar-title" id="bar-title">${donationGoal.title}</div>
+                    <div class="progress-container">
+                        <div class="particles" id="particles">
+                            ${createParticles()}
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                            <div class="progress-amount-inside" id="progress-amount">0 ₽</div>
+                        </div>
+                        <div class="progress-text" id="progress-text">
+                            <span class="start-amount">0 ₽</span>
+                            <span id="target-amount">10,000 ₽</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Создание частиц
+        function createParticles() {
+            return Array.from({length: 9}, () => '<div class="particle"></div>').join('');
+        }
+
+        // Обновление отображения
+        function updateDisplay() {
+            const titleEl = document.getElementById('bar-title');
+            const targetEl = document.getElementById('target-amount');
+            const amountEl = document.getElementById('progress-amount');
+            
+            if (titleEl) titleEl.textContent = donationGoal.title;
+            if (targetEl) targetEl.textContent = formatCurrency(donationGoal.targetAmount);
+            if (amountEl) amountEl.textContent = formatCurrency(donationGoal.currentAmount);
+            
+            const percentage = donationGoal.targetAmount > 0 ? 
+                Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100) : 0;
+            
+            if (currentOrientation === 'circular') {
+                const ring = document.getElementById('progress-ring');
+                if (ring) {
+                    const circumference = 691; // 2 * π * 110
+                    const offset = circumference - (percentage / 100) * circumference;
+                    ring.style.strokeDashoffset = offset;
+                }
+                const percentEl = document.getElementById('progress-percentage');
+                if (percentEl) percentEl.textContent = Math.round(percentage) + '%';
+            } else if (currentOrientation === 'vertical') {
+                const fill = document.getElementById('progress-fill');
+                if (fill) fill.style.height = percentage + '%';
+            } else {
+                const fill = document.getElementById('progress-fill');
+                if (fill) fill.style.width = percentage + '%';
+            }
+            
+            const percentEl = document.getElementById('progress-percentage');
+            if (percentEl && currentOrientation !== 'circular') {
+                percentEl.textContent = Math.round(percentage) + '%';
+            }
+        }
+
+        // Форматирование валюты
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ru-RU').format(Math.round(amount)) + ' ₽';
+        }
+
+        // Переключение настроек
+        function toggleSettings() {
+            document.getElementById('settings-panel').classList.toggle('hidden');
+        }
+
+        // Изменение ориентации
+        function changeOrientation() {
+            currentOrientation = document.getElementById('orientation').value;
+            renderBar();
+        }
+
+        // Обновление цветов
+        function updateColors() {
+            const bgColor = document.getElementById('barBgColor').value;
+            const fillColor = document.getElementById('barFillColor').value;
+            const borderColor = document.getElementById('barBorderColor').value;
+            const glowColor = document.getElementById('barGlowColor').value;
+            
+            const bgOpacity = '0.9';
+            const root = document.documentElement;
+            root.style.setProperty('--bar-bg-color', hexToRgba(bgColor, bgOpacity));
+            root.style.setProperty('--bar-fill-color', fillColor);
+            root.style.setProperty('--bar-border-color', hexToRgba(borderColor, 0.4));
+            root.style.setProperty('--bar-glow-color', hexToRgba(glowColor, 0.2));
+        }
+
+        // Конвертация HEX в RGBA
+        function hexToRgba(hex, alpha) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Обновление размера
+        function updateSize() {
+            const height = document.getElementById('barHeight').value;
+            document.getElementById('barHeightValue').textContent = height + 'px';
+            document.documentElement.style.setProperty('--bar-height', height + 'px');
+        }
+
+        // Обновление скругления
+        function updateBorderRadius() {
+            const radius = document.getElementById('borderRadius').value;
+            document.getElementById('borderRadiusValue').textContent = radius + 'px';
+            document.documentElement.style.setProperty('--border-radius', radius + 'px');
+        }
+
+        // Обновление скорости анимации
+        function updateAnimSpeed() {
+            const speed = document.getElementById('animSpeed').value;
+            document.getElementById('animSpeedValue').textContent = speed + 'x';
+            document.documentElement.style.setProperty('--animation-speed', speed);
+        }
+
+        // Обновление шрифта
+        function updateFont() {
+            const font = document.getElementById('fontFamily').value;
+            document.documentElement.style.setProperty('--font-family', font);
+        }
+
+        // Переключение видимости элементов
+        function toggleElement(element) {
+            const isChecked = document.getElementById('show' + element.charAt(0).toUpperCase() + element.slice(1)).checked;
+            
+            switch(element) {
+                case 'title':
+                    const title = document.getElementById('bar-title');
+                    if (title) title.classList.toggle('hidden', !isChecked);
+                    break;
+                case 'amount':
+                    const amount = document.getElementById('progress-amount');
+                    if (amount) amount.classList.toggle('hidden', !isChecked);
+                    break;
+                case 'startEnd':
+                    const text = document.getElementById('progress-text');
+                    if (text) text.classList.toggle('hidden', !isChecked);
+                    break;
+                case 'percentage':
+                    const percent = document.getElementById('progress-percentage');
+                    if (percent) percent.classList.toggle('hidden', !isChecked);
+                    break;
+                case 'particles':
+                    const particles = document.getElementById('particles');
+                    if (particles) particles.classList.toggle('hidden', !isChecked);
+                    break;
+            }
+        }
+
+        // Применение настроек видимости после рендеринга
+        function applyVisibilitySettings() {
+            toggleElement('title');
+            toggleElement('amount');
+            toggleElement('startEnd');
+            toggleElement('percentage');
+            toggleElement('particles');
+        }
+
+        // Сохранение настроек
+        function saveSettings() {
+            const settings = {
+                orientation: currentOrientation,
+                barBgColor: document.getElementById('barBgColor').value,
+                barFillColor: document.getElementById('barFillColor').value,
+                barBorderColor: document.getElementById('barBorderColor').value,
+                barGlowColor: document.getElementById('barGlowColor').value,
+                barHeight: document.getElementById('barHeight').value,
+                borderRadius: document.getElementById('borderRadius').value,
+                animSpeed: document.getElementById('animSpeed').value,
+                fontFamily: document.getElementById('fontFamily').value,
+                showTitle: document.getElementById('showTitle').checked,
+                showAmount: document.getElementById('showAmount').checked,
+                showStartEnd: document.getElementById('showStartEnd').checked,
+                showPercentage: document.getElementById('showPercentage').checked,
+                showParticles: document.getElementById('showParticles').checked
+            };
+            
+            localStorage.setItem('donationBarSettings', JSON.stringify(settings));
+            alert('Настройки сохранены!');
+        }
+
+        // Загрузка настроек
+        function loadSettings() {
+            const saved = localStorage.getItem('donationBarSettings');
+            if (!saved) return;
+            
+            const settings = JSON.parse(saved);
+            
+            currentOrientation = settings.orientation || 'horizontal';
+            document.getElementById('orientation').value = currentOrientation;
+            document.getElementById('barBgColor').value = settings.barBgColor || '#000000';
+            document.getElementById('barFillColor').value = settings.barFillColor || '#4a5568';
+            document.getElementById('barBorderColor').value = settings.barBorderColor || '#4a5568';
+            document.getElementById('barGlowColor').value = settings.barGlowColor || '#667eea';
+            document.getElementById('barHeight').value = settings.barHeight || 35;
+            document.getElementById('borderRadius').value = settings.borderRadius || 30;
+            document.getElementById('animSpeed').value = settings.animSpeed || 1;
+            document.getElementById('fontFamily').value = settings.fontFamily || "'Inter', sans-serif";
+            document.getElementById('showTitle').checked = settings.showTitle !== false;
+            document.getElementById('showAmount').checked = settings.showAmount !== false;
+            document.getElementById('showStartEnd').checked = settings.showStartEnd !== false;
+            document.getElementById('showPercentage').checked = settings.showPercentage || false;
+            document.getElementById('showParticles').checked = settings.showParticles !== false;
+            
+            updateColors();
+            updateSize();
+            updateBorderRadius();
+            updateAnimSpeed();
+            updateFont();
+        }
+
+        // Сброс настроек
+        function resetSettings() {
+            if (confirm('Вы уверены, что хотите сбросить все настройки?')) {
+                localStorage.removeItem('donationBarSettings');
+                location.reload();
+            }
+        }
+
+        // Автообновление данных
+        function startAutoUpdate() {
+            updateInterval = setInterval(() => {
+                loadGoalData();
+            }, 5000); // Обновление каждые 5 секунд
+        }
+
+        // Очистка при закрытии
+        window.addEventListener('beforeunload', () => {
+            if (updateInterval) clearInterval(updateInterval);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+

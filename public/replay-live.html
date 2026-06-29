@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replay Live — настройки</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0f18;--card:#121826;--line:rgba(255,255,255,.08);--accent:#37d6ff;--gold:#ffce46;--text:#e8eef8;--muted:#8ea0bf;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Exo 2',sans-serif;background:radial-gradient(circle at 20% 0%,#152038,var(--bg));color:var(--text);min-height:100vh;padding:28px}
+.wrap{max-width:980px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+h1{font-size:1.8rem;font-weight:800;letter-spacing:.04em}
+.sub{color:var(--muted);margin-top:6px;font-size:.95rem}
+a.btn,button.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:1px solid rgba(55,214,255,.45);background:rgba(55,214,255,.08);color:var(--accent);text-decoration:none;font-weight:700;cursor:pointer}
+button.btn.primary{background:linear-gradient(90deg,#1aa9d6,#37d6ff);color:#041018;border:none}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.card h2{font-size:1.05rem;margin-bottom:14px;color:var(--gold)}
+label{display:block;font-size:.82rem;color:var(--muted);margin:12px 0 6px}
+input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#0a101b;color:var(--text);font:inherit}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.status{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-size:.82rem;font-weight:800;text-transform:uppercase}
+.status.idle{background:rgba(142,160,191,.15);color:var(--muted)}
+.status.recording{background:rgba(255,42,69,.15);color:#ff6b7d}
+.status.playback{background:rgba(55,214,255,.12);color:var(--accent)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.status.recording .dot{animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.kv{display:grid;grid-template-columns:1fr auto;gap:8px 16px;margin-top:8px;font-size:.95rem}
+.kv .k{color:var(--muted)}
+.kv .v{font-weight:800}
+.players{margin-top:12px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto}
+.player{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--line);font-size:.88rem}
+.status.processing{background:rgba(255,206,70,.12);color:var(--gold)}
+.player .dmg{font-weight:800;color:var(--gold);font-family:'Orbitron',sans-serif}
+.player .meta{font-size:.72rem;color:var(--muted)}
+.player .team{font-weight:800;color:var(--accent)}
+.note{margin-top:14px;padding:12px;border-radius:10px;background:rgba(55,214,255,.06);border:1px solid rgba(55,214,255,.18);color:#b9d6ea;font-size:.88rem;line-height:1.45}
+code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:6px}
+.obs-list{display:flex;flex-direction:column;gap:12px}
+.obs-link{
+  display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;
+  padding:12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid var(--line);
+}
+.obs-title{font-weight:800;color:var(--text)}
+.obs-meta{font-size:.78rem;color:var(--muted);margin-top:3px}
+.obs-url{font-family:Consolas,monospace;font-size:.84rem;color:#bfefff;margin-top:7px;word-break:break-all}
+.copy-ok{color:#62ff8e!important;border-color:rgba(98,255,142,.45)!important;background:rgba(98,255,142,.08)!important}
+@media(max-width:760px){.obs-link{grid-template-columns:1fr}.obs-link .btn{justify-content:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Replay Live</h1>
+      <p class="sub">Live-урон из <code>data.replay</code> · точные значения из <code>battle_results.dat</code> · режим просмотра реплея</p>
+    </div>
+    <div class="row">
+      <a class="btn" href="/">← Главная</a>
+      <a class="btn" href="/widget-replay-live?v=87" target="_blank">OBS-виджет</a>
+      <button class="btn primary" id="saveBtn">Сохранить</button>
+      <button class="btn" id="resetTrackerBtn" type="button">Сброс детекта</button>
+      <button class="btn" id="rewindPlaybackBtn" type="button">С начала реплея</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Настройки</h2>
+      <label>Папка реплеев (Documents — для game cache)</label>
+      <input id="replaysDir" placeholder="C:\Users\...\Documents\TanksBlitz\replays">
+      <label>Папка игры (tanksblitz.exe — только справочно)</label>
+      <input id="gameInstallDir" placeholder="E:\Games\Tanks_Blitz">
+      <label>Доп. папки с реплеями (по одной на строку)</label>
+      <textarea id="extraReplaysDirs" rows="2" placeholder="C:\Users\ixacy\Downloads\31241245124"></textarea>
+      <label>Ник в игре (для recording_NICK.tbreplay)</label>
+      <input id="playerName" placeholder="Xasya">
+      <label>Интервал опроса (мс)</label>
+      <input id="pollIntervalMs" type="number" min="500" step="100" value="1000">
+      <label>Python (для battle_results из .tbreplay)</label>
+      <input id="pythonPath" placeholder="python">
+      <label>Путь к .tbreplay для просмотра (playback)</label>
+      <input id="playbackReplayPath" placeholder="C:\Users\...\replays\20260624_....tbreplay">
+      <label>Скачанные / доп. реплеи — выбрать вручную</label>
+      <div class="note" style="margin-top:0">Если авто-детект путает файлы, нажмите нужный реплей — путь подставится и сохранится. Реплеи <strong>2024 года и старше</strong> (внутри <code>data.wotreplay</code>) live-виджет не поддерживает — выбирайте файлы <strong>2025–2026</strong> с <code>data.replay</code>.</div>
+      <div class="players" id="replayPickList" style="max-height:220px;overflow:auto;margin-top:8px"></div>
+      <label>Минут «активности» .tbreplay (atime — какой файл читает игра)</label>
+      <input id="playbackAccessMinutes" type="number" min="1" step="1" value="5">
+      <label>Минут «свежести» кэша (0 = выкл. fallback)</label>
+      <input id="autoPlaybackMinutes" type="number" min="0" step="1" value="0">
+      <label>Скорость «времени боя» при просмотре реплея (1 = 1×)</label>
+      <input id="playbackSpeed" type="number" min="0.25" max="16" step="0.25" value="1">
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
+        <input id="watchReplayCache" type="checkbox" checked style="width:auto">
+        Авто-детект реплея из кэша игры + atime .tbreplay
+      </label>
+      <div class="note">Игра: <code>E:\Games\Tanks_Blitz</code> · кэш просмотра читается из <code>Documents\TanksBlitz\cache</code> · стрим-реплеи кладите в <code>Downloads\31241245124</code> и открывайте оттуда в игре. Путь в <code>E:\Games</code> на детект не влияет — там нет replay cache.</div>
+    </div>
+
+    <div class="card">
+      <h2>Текущий статус</h2>
+      <div id="statusBadge" class="status idle"><span class="dot"></span><span id="statusText">idle</span></div>
+      <div class="kv" id="liveKv"></div>
+      <div class="players" id="players"></div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h2>Ссылки для OBS</h2>
+      <div class="obs-list">
+        <div class="obs-link">
+          <div>
+            <div class="obs-title">Replay Live — полный виджет</div>
+            <div class="obs-meta">Browser Source · прозрачный фон · размер: 1170×520 px без растягивания</div>
+            <div class="obs-url" id="obsReplayLiveUrl">—</div>
+          </div>
+          <a class="btn" id="openReplayLiveWidget" target="_blank" href="/widget-replay-live?v=87">Открыть</a>
+          <button class="btn" type="button" data-copy-target="obsReplayLiveUrl">Копировать</button>
+        </div>
+        <div class="obs-link">
+          <div>
+            <div class="obs-title">Replay Live — Sharp 2×</div>
+            <div class="obs-meta">Резкий режим для OBS · Browser Source: 2340×1040 px, затем уменьшить в сцене до нужного размера</div>
+            <div class="obs-url" id="obsReplayLiveSharpUrl">—</div>
+          </div>
+          <a class="btn" id="openReplayLiveSharpWidget" target="_blank" href="/widget-replay-live?scale=2&v=87">Открыть</a>
+          <button class="btn" type="button" data-copy-target="obsReplayLiveSharpUrl">Копировать</button>
+        </div>
+        <div class="obs-link">
+          <div>
+            <div class="obs-title">Replay Summary — итоги после реплея</div>
+            <div class="obs-meta">Browser Source · 2× sharp по умолчанию · ~1960×1100 px · авто-подгонка</div>
+            <div class="obs-url" id="obsReplaySummaryUrl">—</div>
+          </div>
+          <a class="btn" id="openReplaySummaryWidget" target="_blank" href="/widget-replay-summary">Открыть</a>
+          <a class="btn" id="openReplaySummaryDemo" target="_blank" href="/widget-replay-summary?demo=1">Демо</a>
+          <button class="btn" type="button" data-copy-target="obsReplaySummaryUrl">Копировать</button>
+        </div>
+        <div class="obs-link">
+          <div>
+            <div class="obs-title">Replay Summary — карусель (10 сек)</div>
+            <div class="obs-meta">Browser Source · карусель 2× sharp · ~816×1450 px · авто-подгонка</div>
+            <div class="obs-url" id="obsReplaySummaryCarouselUrl">—</div>
+          </div>
+          <a class="btn" id="openReplaySummaryCarouselWidget" target="_blank" href="/widget-replay-summary-carousel">Открыть</a>
+          <a class="btn" id="openReplaySummaryCarouselDemo" target="_blank" href="/widget-replay-summary-carousel?demo=1">Демо</a>
+          <a class="btn" id="openReplaySummaryCarouselCards" target="_blank" href="/widget-replay-summary-carousel-cards">Карточки</a>
+          <button class="btn" type="button" data-copy-target="obsReplaySummaryCarouselUrl">Копировать</button>
+        </div>
+        <div class="obs-link">
+          <div>
+            <div class="obs-title">Replay Summary — Sharp 2×</div>
+            <div class="obs-meta">Browser Source: 1560×880 px, затем уменьшить в сцене</div>
+            <div class="obs-url" id="obsReplaySummarySharpUrl">—</div>
+          </div>
+          <a class="btn" id="openReplaySummarySharpWidget" target="_blank" href="/widget-replay-summary?scale=2">Открыть</a>
+          <button class="btn" type="button" data-copy-target="obsReplaySummarySharpUrl">Копировать</button>
+        </div>
+      </div>
+      <div class="note">Окно <strong>итогов боя</strong> появляется автоматически в том же OBS-виджете Replay Live (~3 мин после конца реплея). Отдельный источник <code>/widget-replay-summary</code> — опционально.</div>
+      <div class="note">Если обычный вариант выглядит мыльно, используйте <strong>Sharp 2×</strong>: задайте Browser Source <code>2340×1040</code>, затем уменьшите источник в сцене OBS. Это даёт downscale из 2× и обычно делает текст заметно чётче.</div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h2>Таблица урона (текущий бой / playback)</h2>
+      <div class="players" id="damageTable"></div>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h2>Последний завершённый бой</h2>
+      <div class="kv" id="lastBattle"></div>
+    </div>
+  </div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function setupObsLinks(){
+  const widgetUrl = new URL('/widget-replay-live?v=87', window.location.origin).toString();
+  const sharpUrl = new URL('/widget-replay-live?scale=2&v=87', window.location.origin).toString();
+  const summaryUrl = new URL('/widget-replay-summary', window.location.origin).toString();
+  const summaryDemoUrl = new URL('/widget-replay-summary?demo=1', window.location.origin).toString();
+  const summaryCarouselUrl = new URL('/widget-replay-summary-carousel', window.location.origin).toString();
+  const summaryCarouselDemoUrl = new URL('/widget-replay-summary-carousel?demo=1', window.location.origin).toString();
+  const summarySharpUrl = new URL('/widget-replay-summary?scale=2', window.location.origin).toString();
+  $('obsReplayLiveUrl').textContent = widgetUrl;
+  $('openReplayLiveWidget').href = widgetUrl;
+  $('obsReplayLiveSharpUrl').textContent = sharpUrl;
+  $('openReplayLiveSharpWidget').href = sharpUrl;
+  $('obsReplaySummaryUrl').textContent = summaryUrl;
+  $('openReplaySummaryWidget').href = summaryUrl;
+  $('openReplaySummaryDemo').href = summaryDemoUrl;
+  $('obsReplaySummaryCarouselUrl').textContent = summaryCarouselUrl;
+  $('openReplaySummaryCarouselWidget').href = summaryCarouselUrl;
+  $('openReplaySummaryCarouselDemo').href = summaryCarouselDemoUrl;
+  $('obsReplaySummarySharpUrl').textContent = summarySharpUrl;
+  $('openReplaySummarySharpWidget').href = summarySharpUrl;
+}
+async function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  ta.remove();
+}
+async function loadReplayPickList(){
+  const el = $('replayPickList');
+  if (!el) return;
+  try {
+    const r = await fetch('/api/replay-live/replays-list');
+    const j = await r.json();
+    if (!j.success || !j.items || !j.items.length) {
+      el.innerHTML = '<div class="note">Нет .tbreplay в настроенных папках</div>';
+      return;
+    }
+    const current = $('playbackReplayPath').value.trim().toLowerCase();
+    el.innerHTML = j.items.map((item) => {
+      const active = current && current === String(item.path).toLowerCase();
+      return `<button type="button" class="player replay-pick${active ? ' active' : ''}" data-path="${esc(item.path)}" style="width:100%;text-align:left;cursor:pointer;border:1px solid ${active ? '#6b8cff' : '#333'};background:${active ? '#1a2240' : 'transparent'};margin:0 0 6px;padding:8px 10px;border-radius:8px">
+        <span>${esc(item.name)} <span class="meta">${esc(item.folder)}</span></span>
+      </button>`;
+    }).join('');
+    el.querySelectorAll('.replay-pick').forEach((btn) => {
+      btn.onclick = async () => {
+        $('playbackReplayPath').value = btn.dataset.path;
+        el.querySelectorAll('.replay-pick').forEach((b) => {
+          b.classList.remove('active');
+          b.style.borderColor = '#333';
+          b.style.background = 'transparent';
+        });
+        btn.classList.add('active');
+        btn.style.borderColor = '#6b8cff';
+        btn.style.background = '#1a2240';
+        await fetch('/api/replay-live/play', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: btn.dataset.path })
+        });
+        await refresh();
+      };
+    });
+  } catch (_) {
+    el.innerHTML = '<div class="note">Не удалось загрузить список реплеев</div>';
+  }
+}
+async function loadConfig(){
+  const r = await fetch('/api/replay-live/config'); const j = await r.json();
+  if(!j.success) return;
+  $('replaysDir').value = j.config.replaysDir || '';
+  $('gameInstallDir').value = j.config.gameInstallDir || '';
+  $('extraReplaysDirs').value = (j.config.extraReplaysDirs || []).join('\n');
+  $('playerName').value = j.config.playerName || '';
+  $('pollIntervalMs').value = j.config.pollIntervalMs || 1000;
+  $('pythonPath').value = j.config.pythonPath || 'python';
+  $('playbackReplayPath').value = j.config.playbackReplayPath || '';
+  $('autoPlaybackMinutes').value = j.config.autoPlaybackMinutes ?? 0;
+  $('playbackSpeed').value = j.config.playbackSpeed ?? 1;
+  $('playbackAccessMinutes').value = j.config.playbackAccessMinutes ?? 10;
+  $('watchReplayCache').checked = j.config.watchReplayCache !== false;
+}
+function fmtTime(sec){ const s=Math.max(0,Math.floor(sec||0)); return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function fmtDmg(v){ return v == null ? '—' : String(v); }
+function render(data){
+  const badge = $('statusBadge');
+  badge.className = 'status ' + (data.status || 'idle');
+  $('statusText').textContent = (data.mode || data.status || 'idle');
+  const rows = [
+    ['Режим', data.mode || data.status || 'idle'],
+    ['Источник', data.sourceLabel || '—'],
+    ['Детект', data.playbackSource || (data.mode === 'recording' ? 'recording dir' : '—')],
+    ['Debug', data.playbackDebug ? JSON.stringify(data.playbackDebug) : '—'],
+    ['Время боя', (data.battleTimeLabel || '00:00') + (data.battleDurationSec ? (' / ' + fmtTime(data.battleDurationSec)) : '')],
+    ['Часы', (data.clockSource || '—') + (data.gamePositionSec != null ? (' · pos ' + data.gamePositionSec + 's') : '')],
+    ['Загрузка', data.playbackLoading ? 'да' : 'нет'],
+    ['Meta log', data.playbackDebug?.metaLogPath || '—'],
+    ['Пакетов', data.packetCount ?? 0],
+    ['Размер data.replay', ((data.dataFileSize||0)/1024).toFixed(1) + ' KB'],
+    ['Клиент', data.clientVersion || '—'],
+    ['Автор', data.authorNickname || '—'],
+    ['Урон автора', fmtDmg(data.live?.damageDealt)],
+    ['Источник урона', data.live?.damageSource || '—'],
+    ['Игроков', data.playerCount ?? 0],
+    ['Уровень боя', data.battleLevel ?? '—']
+  ];
+  $('liveKv').innerHTML = rows.map(([k,v])=>`<div class="k">${esc(k)}</div><div class="v">${esc(v)}</div>`).join('');
+  $('players').innerHTML = (data.players||[]).slice(0,8).map(p=>`<div class="player"><span>${esc(p.nickname||'?')}</span><span class="team">T${esc(p.team||0)}</span></div>`).join('') || '<div class="note">Список игроков появится после пакета UpdateArena (subtype 55).</div>';
+  $('damageTable').innerHTML = (data.players||[]).map((p,idx)=>`<div class="player"><span>${idx+1}. ${esc(p.nickname||'?')} <span class="meta">T${esc(p.team||0)} · ${esc(p.damageSource||'—')}</span></span><span class="dmg">${fmtDmg(p.damageDealt)}</span></div>`).join('') || '<div class="note">Нет данных об уроне. Запустите бой или укажите путь к .tbreplay.</div>';
+  const lb = data.lastBattle;
+  if(!lb){ $('lastBattle').innerHTML = '<div class="k">—</div><div class="v">Пока нет</div>'; return; }
+  $('lastBattle').innerHTML = [
+    ['Файл', lb.fileName], ['Танк', lb.tankName], ['Карта', lb.mapName],
+    ['Длительность', (lb.durationSec||0).toFixed(0)+' сек'],
+    ['Урон', lb.damageDealt ?? '—'], ['Базовый XP', lb.baseXp ?? '—'], ['Фраги', lb.frags ?? '—']
+  ].map(([k,v])=>`<div class="k">${esc(k)}</div><div class="v">${esc(v)}</div>`).join('');
+}
+async function refresh(){
+  const r = await fetch('/api/replay-live'); const j = await r.json();
+  if(j.success) render(j.data);
+}
+$('saveBtn').onclick = async () => {
+  const body = {
+    replaysDir: $('replaysDir').value.trim(),
+    gameInstallDir: $('gameInstallDir').value.trim(),
+    extraReplaysDirs: $('extraReplaysDirs').value.trim(),
+    playerName: $('playerName').value.trim(),
+    pollIntervalMs: Number($('pollIntervalMs').value),
+    pythonPath: $('pythonPath').value.trim(),
+    playbackReplayPath: $('playbackReplayPath').value.trim(),
+    autoPlaybackMinutes: Number($('autoPlaybackMinutes').value),
+    playbackSpeed: Number($('playbackSpeed').value),
+    playbackAccessMinutes: Number($('playbackAccessMinutes').value),
+    watchReplayCache: $('watchReplayCache').checked
+  };
+  const r = await fetch('/api/replay-live/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j = await r.json();
+  if(j.success) render(j.data);
+};
+$('resetTrackerBtn').onclick = async () => {
+  await fetch('/api/replay-live/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resetTracker: true })
+  });
+  await refresh();
+};
+$('rewindPlaybackBtn').onclick = async () => {
+  await fetch('/api/replay-live/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ resetPlaybackClock: true })
+  });
+  await refresh();
+};
+document.querySelectorAll('[data-copy-target]').forEach((btn)=>{
+  btn.addEventListener('click', async ()=>{
+    const target = $(btn.dataset.copyTarget);
+    const text = target ? target.textContent.trim() : '';
+    if(!text || text === '—') return;
+    await copyText(text);
+    const oldText = btn.textContent;
+    btn.textContent = 'Скопировано';
+    btn.classList.add('copy-ok');
+    setTimeout(()=>{
+      btn.textContent = oldText;
+      btn.classList.remove('copy-ok');
+    }, 1200);
+  });
+});
+setupObsLinks();
+loadConfig().then(() => { refresh(); loadReplayPickList(); });
+setInterval(refresh, 1500);
+setInterval(loadReplayPickList, 15000);
+</script>
+</body>
+</html>

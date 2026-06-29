@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Duration Widget - Borderless</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        /* LIVE indicator */
+        .live-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ff003c;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(255, 0, 60, 0.6);
+            animation: livePulse 2s ease-in-out infinite;
+            display: none;
+        }
+
+        .live-dot {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff003c;
+            box-shadow: 0 0 10px rgba(255, 0, 60, 0.7);
+            animation: liveDot 3s ease-in-out infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(255, 0, 60, 0.6);
+                transform: scale(1);
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(255, 0, 60, 0.8);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes liveDot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.15; }
+        }
+
+        /* Stream duration section - без подложки */
+        .stream-duration-section {
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            position: relative;
+            width: fit-content;
+            min-width: 200px;
+            max-width: 600px;
+            margin: 0 auto;
+            transition: width 0.3s ease-in-out;
+        }
+
+        .stream-duration-label {
+            font-size: 0.95rem;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 700;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 2px 4px rgba(0, 0, 0, 0.9);
+        }
+
+        .stream-duration-timer {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .stream-timer-segment {
+            text-align: center;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        
+        .stream-timer-segment.hidden {
+            display: none;
+        }
+
+        .stream-timer-number {
+            display: block;
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #ffffff;
+            line-height: 56px;
+            margin-bottom: 6px;
+            font-family: 'Inter', 'Arial Black', 'Arial', sans-serif;
+            letter-spacing: 0px;
+            text-shadow: 
+                0 0 15px rgba(255, 255, 255, 0.9),
+                0 2px 6px rgba(0, 0, 0, 0.9);
+            box-shadow: 
+                inset 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .stream-timer-label {
+            font-size: 0.75rem;
+            color: #ffffff;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            font-family: 'Inter', 'Arial', sans-serif;
+            text-shadow: 
+                0 0 8px rgba(255, 255, 255, 0.6),
+                0 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        @media (max-width: 600px) {
+            .stream-duration-timer {
+                gap: 8px;
+            }
+            
+            .stream-timer-number {
+                width: 55px;
+                height: 55px;
+                font-size: 1.5rem;
+                line-height: 51px;
+            }
+            
+            .stream-timer-label {
+                font-size: 0.65rem;
+            }
+            
+            .stream-duration-label {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Stream duration section -->
+    <div class="stream-duration-section" style="position: relative;">
+        <div class="live-dot" id="liveDot"></div>
+        <div class="live-indicator" id="liveIndicator">LIVE</div>
+        <div class="stream-duration-label">СТРИМ ИДЕТ</div>
+        <div class="stream-duration-timer">
+            <div class="stream-timer-segment">
+                <div class="stream-timer-number" id="streamDays">00</div>
+                <div class="stream-timer-label" id="streamDaysLabel">Дней</div>
+            </div>
+            <div class="stream-timer-segment">
+                <div class="stream-timer-number" id="streamHours">00</div>
+                <div class="stream-timer-label" id="streamHoursLabel">Часов</div>
+            </div>
+            <div class="stream-timer-segment">
+                <div class="stream-timer-number" id="streamMinutes">00</div>
+                <div class="stream-timer-label" id="streamMinutesLabel">Минут</div>
+            </div>
+            <div class="stream-timer-segment">
+                <div class="stream-timer-number" id="streamSeconds">00</div>
+                <div class="stream-timer-label" id="streamSecondsLabel">Секунд</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let streamStartTime = null;
+        let ws = null;
+
+        // Get initial state from server
+        async function getInitialState() {
+            try {
+                console.log('📡 Fetching initial state from server...');
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                console.log('📡 Initial state response:', data);
+                if (data.success) {
+                    console.log('✅ Initial state loaded:', data.state);
+                    updateState(data.state);
+                } else {
+                    console.error('❌ Failed to load initial state:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Error fetching initial state:', error);
+            }
+        }
+
+        let prevElapsedSec = null; // Сохраняем предыдущее значение для сравнения
+        let prevDays = null; // Кэшируем предыдущие значения для оптимизации
+        let prevHours = null;
+        let prevMinutes = null;
+        let prevVisibilityMode = null; // Кэшируем режим видимости (0=мин+сек, 1=час+мин+сек, 2=все)
+        const liveIndicator = document.getElementById('liveIndicator');
+        const liveDot = document.getElementById('liveDot');
+        
+        function updateState(newState) {
+            console.log('📺 updateState вызвана, stream_timer_initial_elapsed_sec:', newState.stream_timer_initial_elapsed_sec);
+            
+            // Инициализируем или обновляем время стрима
+            const newElapsedSec = newState.stream_timer_initial_elapsed_sec;
+            
+            // Проверяем, пришло ли новое значение времени
+            if (newElapsedSec !== undefined && newElapsedSec !== null) {
+                // ВСЕГДА обновляем время при получении STATE_UPDATE с новым значением
+                // Это гарантирует, что время обновится даже если виджет был перезагружен
+                const oldElapsedSec = prevElapsedSec;
+                const newStartTime = Date.now() - (newElapsedSec * 1000);
+                
+                // Обновляем время если:
+                // 1. Время еще не установлено ИЛИ
+                // 2. Значение изменилось ИЛИ
+                // 3. Это первое обновление после инициализации
+                const shouldUpdate = !streamStartTime || 
+                                    prevElapsedSec === null || 
+                                    prevElapsedSec !== newElapsedSec;
+                
+                if (shouldUpdate) {
+                    streamStartTime = newStartTime;
+                    prevElapsedSec = newElapsedSec;
+                    
+                    console.log('🕐 ✅ Время стрима ОБНОВЛЕНО:', {
+                        streamStartTime: new Date(streamStartTime).toISOString(),
+                        newElapsedSec: newElapsedSec,
+                        oldElapsedSec: oldElapsedSec,
+                        days: Math.floor(newElapsedSec / 86400),
+                        hours: Math.floor((newElapsedSec % 86400) / 3600),
+                        minutes: Math.floor((newElapsedSec % 3600) / 60)
+                    });
+                    
+                    // Сразу обновляем отображение после изменения времени
+                    updateStreamDuration();
+                } else {
+                    console.log('⏸️ Время стрима уже актуально:', {
+                        newElapsedSec: newElapsedSec,
+                        prevElapsedSec: prevElapsedSec
+                    });
+                    // Все равно обновляем отображение (на случай если прошло время)
+                    updateStreamDuration();
+                }
+            } else if (newElapsedSec === undefined && !streamStartTime) {
+                // Если время стрима не установлено, начинаем с 0
+                streamStartTime = Date.now();
+                prevElapsedSec = 0;
+                console.log('🕐 Время стрима начато с 0:', streamStartTime);
+                updateStreamDuration();
+            } else {
+                // Обновляем отображение даже если время не изменилось
+                updateStreamDuration();
+            }
+        }
+
+        // Stream duration update with proper labels and dynamic visibility
+        function updateStreamDuration() {
+            const daysEl = document.getElementById('streamDays');
+            const hoursEl = document.getElementById('streamHours');
+            const minutesEl = document.getElementById('streamMinutes');
+            const secondsEl = document.getElementById('streamSeconds');
+            const daysSegment = daysEl.closest('.stream-timer-segment');
+            const hoursSegment = hoursEl.closest('.stream-timer-segment');
+            
+            if (!streamStartTime) {
+                daysEl.textContent = '00';
+                hoursEl.textContent = '00';
+                minutesEl.textContent = '00';
+                secondsEl.textContent = '00';
+                // Показываем только минуты и секунды при инициализации
+                daysSegment.classList.add('hidden');
+                hoursSegment.classList.add('hidden');
+                prevDays = 0;
+                prevHours = 0;
+                prevMinutes = 0;
+                prevVisibilityMode = 0;
+                return;
+            }
+            
+            const elapsed = Math.floor((Date.now() - streamStartTime) / 1000);
+            const days = Math.floor(elapsed / 86400);
+            const hours = Math.floor((elapsed % 86400) / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const secs = elapsed % 60;
+            
+            // Определяем режим видимости (0=мин+сек, 1=час+мин+сек, 2=все)
+            let visibilityMode = 0;
+            if (elapsed >= 86400) {
+                visibilityMode = 2; // Все сегменты
+            } else if (elapsed >= 3600) {
+                visibilityMode = 1; // Часы, минуты, секунды
+            }
+            
+            // Обновляем видимость сегментов только если изменился режим или дни/часы/минуты
+            const needsVisibilityUpdate = prevVisibilityMode !== visibilityMode || 
+                                         prevDays !== days || 
+                                         prevHours !== hours || 
+                                         prevMinutes !== minutes;
+            
+            if (needsVisibilityUpdate) {
+                // Динамическое показ/скрытие сегментов
+                if (visibilityMode === 0) {
+                    // Меньше часа - показываем только минуты и секунды
+                    daysSegment.classList.add('hidden');
+                    hoursSegment.classList.add('hidden');
+                } else if (visibilityMode === 1) {
+                    // Больше часа, но меньше дня - показываем часы, минуты, секунды
+                    daysSegment.classList.add('hidden');
+                    hoursSegment.classList.remove('hidden');
+                    hoursEl.textContent = hours.toString().padStart(2, '0');
+                    
+                    const hL = document.getElementById('streamHoursLabel');
+                    hL.textContent = (hours === 1 || hours === 21) ? 'Час' : (((hours >= 2 && hours <= 4) || (hours >= 22 && hours <= 24)) ? 'Часа' : 'Часов');
+                } else {
+                    // Больше дня - показываем все сегменты
+                    daysSegment.classList.remove('hidden');
+                    hoursSegment.classList.remove('hidden');
+                    daysEl.textContent = days.toString().padStart(2, '0');
+                    hoursEl.textContent = hours.toString().padStart(2, '0');
+                    
+                    const dL = document.getElementById('streamDaysLabel');
+                    dL.textContent = (days % 10 === 1 && days % 100 !== 11) ? 'День' : ((days % 10 >= 2 && days % 10 <= 4 && (days % 100 < 12 || days % 100 > 14)) ? 'Дня' : 'Дней');
+                    
+                    const hL = document.getElementById('streamHoursLabel');
+                    hL.textContent = (hours === 1 || hours === 21) ? 'Час' : (((hours >= 2 && hours <= 4) || (hours >= 22 && hours <= 24)) ? 'Часа' : 'Часов');
+                }
+                
+                prevVisibilityMode = visibilityMode;
+                prevDays = days;
+                prevHours = hours;
+            } else {
+                // Обновляем только текст дней/часов если они видны
+                if (visibilityMode === 2) {
+                    // Все сегменты видны - обновляем текст дней и часов только если изменились
+                    if (prevDays !== days) {
+                        daysEl.textContent = days.toString().padStart(2, '0');
+                        const dL = document.getElementById('streamDaysLabel');
+                        dL.textContent = (days % 10 === 1 && days % 100 !== 11) ? 'День' : ((days % 10 >= 2 && days % 10 <= 4 && (days % 100 < 12 || days % 100 > 14)) ? 'Дня' : 'Дней');
+                        prevDays = days;
+                    }
+                    if (prevHours !== hours) {
+                        hoursEl.textContent = hours.toString().padStart(2, '0');
+                        const hL = document.getElementById('streamHoursLabel');
+                        hL.textContent = (hours === 1 || hours === 21) ? 'Час' : (((hours >= 2 && hours <= 4) || (hours >= 22 && hours <= 24)) ? 'Часа' : 'Часов');
+                        prevHours = hours;
+                    }
+                } else if (visibilityMode === 1) {
+                    // Видны часы, минуты, секунды - обновляем только часы если изменились
+                    if (prevHours !== hours) {
+                        hoursEl.textContent = hours.toString().padStart(2, '0');
+                        const hL = document.getElementById('streamHoursLabel');
+                        hL.textContent = (hours === 1 || hours === 21) ? 'Час' : (((hours >= 2 && hours <= 4) || (hours >= 22 && hours <= 24)) ? 'Часа' : 'Часов');
+                        prevHours = hours;
+                    }
+                }
+                
+                // Обновляем минуты только если изменились
+            }
+            
+            if (prevMinutes !== minutes) {
+                minutesEl.textContent = minutes.toString().padStart(2, '0');
+                const mL = document.getElementById('streamMinutesLabel');
+                const m10 = minutes % 10, m100 = minutes % 100;
+                mL.textContent = (m10 === 1 && m100 !== 11) ? 'Минута' : ((m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) ? 'Минуты' : 'Минут');
+                prevMinutes = minutes;
+            }
+
+            // Всегда обновляем секунды (они меняются каждую секунду)
+            secondsEl.textContent = secs.toString().padStart(2, '0');
+            
+            // Обновляем склонение для секунд (оно меняется каждую секунду)
+            if (liveIndicator && liveDot) {
+                if (elapsed >= 86400) {
+                    liveIndicator.style.display = 'block';
+                    liveDot.style.display = 'none';
+                } else {
+                    liveIndicator.style.display = 'none';
+                    liveDot.style.display = 'block';
+                }
+            }
+        }
+
+        // WebSocket connection
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            
+            console.log('🔌 Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function() {
+                console.log('✅ WebSocket connected');
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 WebSocket message received:', data.type);
+                    console.log('📨 WebSocket full data:', JSON.stringify(data, null, 2));
+                    
+                    if (data.type === 'INITIAL_STATE' || data.type === 'STATE_UPDATE' || data.type === 'INIT_STATE') {
+                        const state = data.state || data;
+                        console.log('📺 STATE_UPDATE получен, stream_timer_initial_elapsed_sec:', state.stream_timer_initial_elapsed_sec);
+                        console.log('📺 Полное состояние:', {
+                            stream_timer_initial_elapsed_sec: state.stream_timer_initial_elapsed_sec,
+                            type: typeof state.stream_timer_initial_elapsed_sec,
+                            prevElapsedSec: prevElapsedSec,
+                            streamStartTime: streamStartTime
+                        });
+                        // Обновление времени стрима происходит внутри updateState()
+                        updateState(state);
+                    } else {
+                        console.log('⚠️ Неизвестный тип сообщения:', data.type);
+                    }
+                } catch (e) {
+                    console.error('❌ Error parsing WebSocket message:', e);
+                    console.error('❌ Raw message:', event.data);
+                }
+            };
+            
+            ws.onclose = function(event) {
+                console.log('🔌 WebSocket disconnected, code:', event.code, 'reason:', event.reason);
+                console.log('🔄 Reconnecting in 3 seconds...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        // Initialize
+        getInitialState();
+        connectWebSocket();
+        
+        // Update stream duration every second
+        setInterval(updateStreamDuration, 1000);
+    </script>
+</body>
+</html>
+

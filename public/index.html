@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная | ФРАГ-ТРЕКЕР</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="/components/sidebar.html" as="fetch">
+    <link rel="preload" href="/components/header.html" as="fetch">
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --neon-yellow: #ffff00;
+            --dark: #0a0a14;
+            --darker: #050508;
+            --light: #f5f5f5;
+            --widget-bg-opacity: 0.95;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, #1a1a2e 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 40px rgba(255, 0, 60, 0.5);
+            animation: pulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; filter: brightness(1); }
+            50% { opacity: 0.9; filter: brightness(1.1); }
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 50px;
+            font-weight: 600;
+        }
+
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .mode-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 40px 30px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.1), 
+                transparent
+            );
+            transition: left 0.5s;
+        }
+        
+        .mode-card:hover::before {
+            left: 100%;
+        }
+
+
+        .mode-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            border-color: var(--glass-border-hover);
+            box-shadow: var(--shadow-xl), 0 0 30px rgba(255, 255, 255, 0.15);
+        }
+
+        .mode-card.mode1 {
+            --strip-color: var(--neon-red);
+            border-color: rgba(255, 0, 60, 0.4);
+        }
+        
+        .mode-card.mode1:hover {
+            border-color: var(--neon-red);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-red);
+        }
+
+        .mode-card.mode2 {
+            --strip-color: var(--neon-blue);
+            border-color: rgba(0, 240, 255, 0.4);
+        }
+        
+        .mode-card.mode2:hover {
+            border-color: var(--neon-blue);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-blue);
+        }
+
+        .mode-card.mode3 {
+            --strip-color: var(--neon-green);
+            border-color: rgba(0, 255, 71, 0.4);
+        }
+        
+        .mode-card.mode3:hover {
+            border-color: var(--neon-green);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-green);
+        }
+
+        .mode-card.mode4 {
+            --strip-color: var(--neon-yellow);
+            border-color: rgba(255, 255, 0, 0.4);
+        }
+        
+        .mode-card.mode4:hover {
+            border-color: var(--neon-yellow);
+            box-shadow: var(--shadow-xl), 0 0 30px rgba(255, 255, 0, 0.4);
+        }
+
+        .mode-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 15px currentColor);
+            animation: float 3s ease-in-out infinite;
+            transition: transform var(--transition-base);
+        }
+        
+        .mode-card:hover .mode-icon {
+            transform: scale(1.1) rotate(5deg);
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        
+        .mode-card:nth-child(1) .mode-icon { animation-delay: 0s; }
+        .mode-card:nth-child(2) .mode-icon { animation-delay: 0.5s; }
+        .mode-card:nth-child(3) .mode-icon { animation-delay: 1s; }
+        .mode-card:nth-child(4) .mode-icon { animation-delay: 1.5s; }
+        .mode-card:nth-child(5) .mode-icon { animation-delay: 2s; }
+        .mode-card:nth-child(6) .mode-icon { animation-delay: 2.5s; }
+        .mode-card:nth-child(7) .mode-icon { animation-delay: 3s; }
+
+        .mode-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .mode-description {
+            font-size: 1rem;
+            color: #ccc;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .mode-features {
+            list-style: none;
+            margin-bottom: 25px;
+        }
+
+        .mode-features li {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .mode-features li::before {
+            content: '▶';
+            position: absolute;
+            left: 0;
+            color: var(--neon-blue);
+            font-size: 0.8rem;
+        }
+
+        .mode-btn {
+            background: var(--glass-bg);
+            color: var(--light);
+            border: 1px solid var(--glass-border);
+            padding: 12px 25px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: 0.9rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .mode-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .mode-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .mode-btn:hover {
+            background: var(--glass-bg-hover);
+            border-color: var(--glass-border-hover);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .mode-card.mode1 .mode-btn {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        .mode-card.mode2 .mode-btn {
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        .mode-card.mode3 .mode-btn {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .mode-card.mode4 .mode-btn {
+            border-color: var(--neon-yellow);
+            color: var(--neon-yellow);
+        }
+
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2.5rem;
+            }
+            
+            .mode-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .mode-card {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Боковое меню -->
+        <div id="sidebar-placeholder"></div>
+        
+        <!-- Верхняя панель -->
+        <div id="header-placeholder"></div>
+        
+        <!-- Основной контент -->
+        <main class="app-main">
+            <div class="container">
+        <h1 class="title">ФРАГ-ТРЕКЕР</h1>
+        <p class="subtitle">Выберите режим работы</p>
+        
+        <div class="mode-grid">
+            <!-- Режим 1: Фраг-трекер -->
+            <div class="mode-card mode1" onclick="window.location.href='/mode1-frag-tracker'">
+                <div class="mode-icon">🎯</div>
+                <div class="mode-title" style="color: var(--neon-red);">ФРАГ-ТРЕКЕР</div>
+                <div class="mode-description">
+                    Отслеживание фрагов с донатами и автоматическим списанием
+                </div>
+                <ul class="mode-features">
+                    <li>Интеграция с DonationAlerts</li>
+                    <li>Поддержка DonatePay</li>
+                    <li>Автосписание фрагов из Lesta Games</li>
+                    <li>Real-time обновления</li>
+                </ul>
+                <button class="mode-btn">НАЧАТЬ ТРЕКИНГ</button>
+            </div>
+
+            <!-- Режим 2: Таймер -->
+            <div class="mode-card mode2" onclick="window.location.href='/mode2-timer'">
+                <div class="mode-icon">⏱️</div>
+                <div class="mode-title" style="color: var(--neon-blue);">ТАЙМЕР</div>
+                <div class="mode-description">
+                    Обратный отсчет времени с возможностью доната
+                </div>
+                <ul class="mode-features">
+                    <li>Настраиваемые интервалы</li>
+                    <li>Донаты для продления</li>
+                    <li>Визуальные эффекты</li>
+                    <li>Гибкие настройки</li>
+                </ul>
+                <button class="mode-btn">ЗАПУСТИТЬ ТАЙМЕР</button>
+            </div>
+
+
+            <!-- Очередь танков -->
+            <div class="mode-card mode1" onclick="window.location.href='/tank-queue.html'">
+                <div class="mode-icon">🚗</div>
+                <div class="mode-title" style="color: var(--neon-red);">ОЧЕРЕДЬ ТАНКОВ</div>
+                <div class="mode-description">
+                    Управление очередью заказанных танков с ранжированием по цене
+                </div>
+                <ul class="mode-features">
+                    <li>Ранжирование по стоимости</li>
+                    <li>Отслеживание текущего боя</li>
+                    <li>Дополнительные условия заказа</li>
+                    <li>Красивые анимации</li>
+                </ul>
+                <button class="mode-btn">ОТКРЫТЬ ОЧЕРЕДЬ</button>
+            </div>
+
+            <!-- Управление донатами -->
+            <div class="mode-card mode4" onclick="window.location.href='/donation-management.html'">
+                <div class="mode-icon">💰</div>
+                <div class="mode-title" style="color: var(--neon-yellow);">УПРАВЛЕНИЕ ДОНАТАМИ</div>
+                <div class="mode-description">
+                    Единый центр управления донатами с кастомизацией полосок
+                </div>
+                <ul class="mode-features">
+                    <li>12 готовых тем и форм полосок</li>
+                    <li>Кастомные изображения и фигуры</li>
+                    <li>Настройка сбора и статистика</li>
+                    <li>Превью в реальном времени</li>
+                </ul>
+                <button class="mode-btn">ОТКРЫТЬ УПРАВЛЕНИЕ</button>
+            </div>
+
+            <!-- Параметр от донатов -->
+            <div class="mode-card mode2" onclick="window.location.href='/donation-driven-widget'">
+                <div class="mode-icon">📈</div>
+                <div class="mode-title" style="color: var(--neon-blue);">ПАРАМЕТР ОТ ДОНАТОВ</div>
+                <div class="mode-description">
+                    Виджет с целью в % или своих единицах: за N₽ добавляется X, есть лимит
+                </div>
+                <ul class="mode-features">
+                    <li>Стартовое значение и лимит</li>
+                    <li>Гибкая единица: %, очки, уровень</li>
+                    <li>За 100₽ +0.1% или своя формула</li>
+                    <li>OBS-виджет в реальном времени</li>
+                </ul>
+                <button class="mode-btn">НАСТРОИТЬ ВИДЖЕТ</button>
+            </div>
+
+            <!-- Интеграции стримов -->
+            <div class="mode-card mode4" onclick="window.location.href='/stream-integrations.html'">
+                <div class="mode-icon">📡</div>
+                <div class="mode-title" style="color: var(--neon-blue);">ИНТЕГРАЦИИ СТРИМОВ</div>
+                <div class="mode-description">
+                    Авторизация и сбор метрик с YouTube и VK Play Live
+                </div>
+                <ul class="mode-features">
+                    <li>Авторизация OAuth</li>
+                    <li>Онлайн и лайки</li>
+                    <li>Чат в реальном времени</li>
+                    <li>Проверка подключения</li>
+                </ul>
+                <button class="mode-btn">ОТКРЫТЬ ИНТЕГРАЦИИ</button>
+            </div>
+
+            <!-- Replay Live -->
+            <div class="mode-card mode4" onclick="window.location.href='/replay-live'" style="--strip-color: #37d6ff; border-color: rgba(55,214,255,0.45);">
+                <div class="mode-icon">📼</div>
+                <div class="mode-title" style="color: #37d6ff;">REPLAY LIVE</div>
+                <div class="mode-description">
+                    Live-данные боя из файла реплея: таймер, состав, статус записи
+                </div>
+                <ul class="mode-features">
+                    <li>Чтение recording_*.tbreplay/data.replay</li>
+                    <li>Обновление каждую секунду в бою</li>
+                    <li>Итоги последнего боя после финализации</li>
+                    <li>OBS-виджет с прозрачным фоном</li>
+                </ul>
+                <button class="mode-btn" style="border-color:#37d6ff;color:#37d6ff;">ОТКРЫТЬ REPLAY LIVE</button>
+            </div>
+
+            <!-- Tanks Blitz Challenge -->
+            <div class="mode-card mode4" onclick="window.location.href='/tanks-blitz-challenge'" style="--strip-color: var(--neon-yellow); border-color: rgba(255,206,70,0.5);">
+                <div class="mode-icon">⚔️</div>
+                <div class="mode-title" style="color: #ffce46;">TANKS BLITZ CHALLENGE</div>
+                <div class="mode-description">
+                    Премиальный донат-челлендж: зрители коллективно усложняют стримеру бой
+                </div>
+                <ul class="mode-features">
+                    <li>Win Rate, Урон и Медали как цели</li>
+                    <li>Донаты повышают сложность</li>
+                    <li>Кинематографичные эффекты и victory-экран</li>
+                    <li>OBS-виджет в реальном времени</li>
+                </ul>
+                <button class="mode-btn" style="border-color:#ffce46;color:#ffce46;">ОТКРЫТЬ ЧЕЛЛЕНДЖ</button>
+            </div>
+
+            <!-- Lesta Games статистика -->
+            <div class="mode-card mode4" onclick="window.location.href='/lesta-stats'">
+                <div class="mode-icon">🎮</div>
+                <div class="mode-title" style="color: var(--neon-yellow);">LESTA GAMES</div>
+                <div class="mode-description">
+                    Статистика из World of Tanks Blitz с автоматическим подсчетом фрагов
+                </div>
+                <ul class="mode-features">
+                    <li>Автоматический подсчет фрагов</li>
+                    <li>Статистика боев и побед</li>
+                    <li>Синхронизация с донатами</li>
+                    <li>Real-time обновления</li>
+                </ul>
+                <button class="mode-btn">ПОСМОТРЕТЬ СТАТИСТИКУ</button>
+            </div>
+
+            <!-- РазБЛОГировка 2026 -->
+            <div class="mode-card mode4" onclick="window.location.href='/razblogirovka'" style="--strip-color: #ffd54a; border-color: rgba(255,213,74,0.45);">
+                <div class="mode-icon">🪙</div>
+                <div class="mode-title" style="color: #ffd54a;">РАЗБЛОГИРОВКА 2026</div>
+                <div class="mode-description">
+                    Копилка золота — сколько зрители «раздали» в боях 7×7 с 11 июня
+                </div>
+                <ul class="mode-features">
+                    <li>Подсчёт золота за каждый бой</li>
+                    <li>Синхронизация с Lesta API</li>
+                    <li>История боёв и итоги</li>
+                    <li>OBS-виджет копилки</li>
+                </ul>
+                <button class="mode-btn" style="border-color:#ffd54a;color:#ffd54a;">СМОТРЕТЬ РЕЗУЛЬТАТЫ</button>
+            </div>
+
+            <div class="mode-card mode4" style="--strip-color: #37d6ff; border-color: rgba(55,214,255,0.4); cursor: default;">
+                <div class="mode-icon">🖥️</div>
+                <div class="mode-title" style="color: #37d6ff;">DESKTOP-ПРИЛОЖЕНИЕ</div>
+                <div class="mode-description">
+                    Окно + трей вместо браузера. Сервер стартует сам, OBS-виджеты на localhost:3000 без изменений.
+                </div>
+                <ul class="mode-features">
+                    <li><code>start-desktop.bat</code> — запуск</li>
+                    <li><code>build-desktop.bat</code> — сборка .exe</li>
+                    <li>БД и config.env — в AppData</li>
+                </ul>
+            </div>
+        </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Загрузка компонентов
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roulette Text Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --neon-yellow: #ffff00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .roulette-text-container {
+            width: 100%;
+            max-width: 800px;
+            position: relative;
+            text-align: center;
+        }
+
+        .roulette-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--neon-yellow);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 
+                0 0 5px rgba(255, 255, 0, 0.5),
+                0 0 10px rgba(255, 255, 0, 0.3),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .roulette-text .number {
+            font-size: 2.2rem;
+            font-weight: 900;
+        }
+    </style>
+</head>
+<body>
+    <div class="roulette-text-container">
+        <div class="roulette-text" id="rouletteTextDisplay"><span class="number">750</span> лайков со всех стримов- крутим</div>
+    </div>
+
+    <script>
+        const textDisplay = document.getElementById('rouletteTextDisplay');
+        let currentText = '';
+
+        // Функция обновления текста
+        function updateText(newText) {
+            if (!newText) {
+                newText = '<span class="number">750</span> лайков со всех стримов- крутим';
+            }
+            console.log('🔄 updateText вызвана:', {
+                newText: newText,
+                currentText: currentText,
+                areEqual: newText === currentText
+            });
+            if (newText !== currentText) {
+                console.log('✅ Обновление текста с', currentText, 'на', newText);
+                currentText = newText;
+                textDisplay.innerHTML = newText;
+                console.log('✅ Текст обновлен в DOM:', textDisplay.innerHTML);
+            } else {
+                console.log('⏭️ Текст не изменился, пропускаем обновление');
+            }
+        }
+
+        // Загрузка текста с сервера
+        async function loadText() {
+            try {
+                const url = '/api/roulette/state?t=' + Date.now();
+                console.log('📥 Загрузка текста с:', url);
+                const response = await fetch(url);
+                const data = await response.json();
+                console.log('📥 Ответ сервера:', data);
+                if (data.success && data.state) {
+                    const newText = data.state.text || '<span class="number">750</span> лайков со всех стримов- крутим';
+                    console.log('📥 Извлеченный текст:', newText);
+                    updateText(newText);
+                } else {
+                    console.warn('⚠️ Нет данных в ответе:', data);
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки текста:', error);
+            }
+        }
+
+        // Загружаем текст при загрузке страницы
+        console.log('🚀 Виджет загружен, начинаем загрузку текста...');
+        loadText();
+
+        // Обновляем текст каждые 2 секунды
+        setInterval(() => {
+            console.log('⏰ Периодическое обновление текста...');
+            loadText();
+        }, 2000);
+
+        // WebSocket подключение для обновлений в реальном времени
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}`;
+        let ws = null;
+
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ WebSocket подключен для текста рулетки');
+                    ws.send(JSON.stringify({ type: 'CLIENT_TYPE', clientType: 'WIDGET' }));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        console.log('📨 WebSocket сообщение получено:', message);
+                        if (message.type === 'ROULETTE_UPDATE' && message.state) {
+                            const newText = message.state.text || '<span class="number">750</span> лайков со всех стримов- крутим';
+                            console.log('📨 WebSocket: извлеченный текст:', newText);
+                            updateText(newText);
+                        } else {
+                            console.log('📨 WebSocket: сообщение не для рулетки или нет state');
+                        }
+                    } catch (e) {
+                        console.error('Ошибка парсинга сообщения:', e);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('❌ WebSocket ошибка:', error);
+                };
+
+                ws.onclose = () => {
+                    console.log('⚠️ WebSocket отключен, переподключение через 3 секунды...');
+                    setTimeout(connectWebSocket, 3000);
+                };
+            } catch (error) {
+                console.error('❌ Ошибка подключения WebSocket:', error);
+                setTimeout(connectWebSocket, 3000);
+            }
+        }
+
+        connectWebSocket();
+    </script>
+</body>
+</html>
+

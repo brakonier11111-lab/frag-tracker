@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8" />
+	<title>Онлайн и лайки — виджеты</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+	<style>
+		:root {
+			--bg: #0b0f17;
+			--card: rgba(255,255,255,0.06);
+			--card-border: rgba(255,255,255,0.12);
+			--accent: #6ea8fe;
+			--accent-2: #9b59ff;
+			--ok: #32d296;
+			--error: #ff6b6b;
+			--text: #e8eef7;
+			--muted: rgba(232,238,247,0.7);
+		}
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+		.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+		.h1 { font-size: 28px; font-weight: 800; letter-spacing: .2px; margin: 86px 0 16px; }
+		.sub { color: var(--muted); margin-bottom: 24px; }
+
+		.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+		.card { background: var(--card); border: 1px solid var(--card-border); border-radius: 14px; padding: 18px; backdrop-filter: blur(10px); }
+		.card h2 { font-size: 18px; margin-bottom: 4px; }
+		.card p { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+
+		.widget-main {
+			display: flex;
+			align-items: baseline;
+			justify-content: space-between;
+			gap: 12px;
+			margin-bottom: 12px;
+		}
+		.widget-value-big {
+			font-size: 42px;
+			font-weight: 800;
+		}
+		.widget-label {
+			font-size: 14px;
+			color: var(--muted);
+		}
+		.widget-row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 8px 10px;
+			border-radius: 10px;
+			background: rgba(255,255,255,0.03);
+			border: 1px solid var(--card-border);
+			font-size: 13px;
+		}
+		.widget-row span.value {
+			font-weight: 600;
+		}
+
+		.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.04); color: var(--muted); }
+		.badge.ok { border-color: rgba(50,210,150,.25); background: rgba(50,210,150,.08); color: var(--ok); }
+		.badge.err { border-color: rgba(255,107,107,.25); background: rgba(255,107,107,.08); color: var(--error); }
+
+		.small { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+		.obs-row {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			margin-top: 6px;
+		}
+		.obs-input {
+			flex: 1;
+			min-width: 0;
+			padding: 4px 8px;
+			border-radius: 8px;
+			border: 1px solid var(--card-border);
+			background: rgba(0,0,0,0.4);
+			color: var(--muted);
+			font-size: 11px;
+		}
+		.obs-copy-btn {
+			font-size: 11px;
+			padding: 4px 8px;
+			border-radius: 999px;
+			border: 1px solid var(--card-border);
+			background: rgba(255,255,255,0.05);
+			color: var(--text);
+			cursor: pointer;
+		}
+		.obs-copy-btn:hover {
+			background: rgba(255,255,255,0.12);
+		}
+
+		.btn-test-like {
+			appearance: none;
+			border: 1px solid var(--card-border);
+			background: rgba(110,168,254,0.12);
+			color: var(--text);
+			padding: 10px 14px;
+			border-radius: 14px;
+			font-weight: 800;
+			cursor: pointer;
+			transition: background .15s ease, transform .05s ease;
+		}
+		.btn-test-like:hover { background: rgba(110,168,254,0.22); }
+		.btn-test-like:active { transform: translateY(1px); }
+
+		.btn-test-like.flash {
+			background: rgba(110,168,254,0.35);
+			box-shadow: 0 0 0 2px rgba(110,168,254,0.25);
+		}
+
+		.test-preview-wrap {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			flex-wrap: wrap;
+			margin-top: 10px;
+		}
+		.likes-test-counter {
+			font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+			font-size: 13px;
+			color: var(--muted);
+			background: rgba(255,255,255,0.03);
+			border: 1px solid var(--card-border);
+			padding: 6px 10px;
+			border-radius: 999px;
+			white-space: nowrap;
+		}
+		.likes-test-iframe {
+			width: 420px;
+			height: 90px;
+			border-radius: 16px;
+			border: 1px dashed rgba(255,255,255,0.18);
+			background: rgba(0,0,0,0.25);
+		}
+
+		/* Превью гифок для теста без iframe/postMessage */
+		.likes-test-gif-window {
+			position: relative;
+			width: 420px;
+			height: 90px;
+			border-radius: 16px;
+			border: 1px dashed rgba(255,255,255,0.18);
+			background: rgba(0,0,0,0.25);
+			overflow: hidden;
+		}
+		.likes-test-gif-static,
+		.likes-test-gif-animated {
+			position: absolute;
+			top: 0; left: 0;
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+			display: block;
+			line-height: 0;
+			vertical-align: top;
+		}
+		.likes-test-gif-animated { visibility: hidden; }
+		.likes-test-gif-window.playing .likes-test-gif-static { visibility: hidden; }
+		.likes-test-gif-window.playing .likes-test-gif-animated { visibility: visible; }
+	</style>
+</head>
+<body>
+	<div id="menu-container"></div>
+	<div class="page">
+		<div class="h1">Виджеты онлайна и лайков</div>
+		<div class="sub">Красивая панель для OBS: онлайн и лайки с YouTube и VK Play Live, плюс суммарные значения.</div>
+
+		<div class="grid">
+			<!-- Онлайн -->
+			<div class="card" id="card-online">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+					<h2>Онлайн зрителей</h2>
+					<span class="badge" id="online-status">Обновление...</span>
+				</div>
+				<p>Текущий онлайн на YouTube, VK Play Live и суммарно.</p>
+				<div class="widget-main">
+					<div>
+						<div class="widget-label">Всего зрителей</div>
+						<div class="widget-value-big" id="online-total">—</div>
+					</div>
+					<div style="text-align:right; font-size:12px; color:var(--muted);">
+						<div>Обновление каждые 5 секунд</div>
+					</div>
+				</div>
+				<div class="widget-row">
+					<span>YouTube</span>
+					<span class="value" id="online-yt">—</span>
+				</div>
+				<div class="widget-row" style="margin-top:6px;">
+					<span>VK Play Live</span>
+					<span class="value" id="online-vk">—</span>
+				</div>
+				<div class="small">
+					Статусы берутся из интеграций YouTube и VK Play. Убедитесь, что вы авторизованы и стрим активен.
+					<div class="obs-row">
+						<input id="obs-url-online" class="obs-input" readonly>
+						<button class="obs-copy-btn" onclick="copyObsUrl('obs-url-online')">Скопировать</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Лайки -->
+			<div class="card" id="card-likes">
+				<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+					<h2>Лайки стрима</h2>
+					<span class="badge" id="likes-status">Обновление...</span>
+				</div>
+				<p>Количество лайков на текущих эфирах YouTube и VK Play Live и их сумма.</p>
+				<div class="widget-main">
+					<div>
+						<div class="widget-label">Всего лайков</div>
+						<div class="widget-value-big" id="likes-total">—</div>
+					</div>
+					<div style="text-align:right; font-size:12px; color:var(--muted);">
+						<div>Обновление каждые 5 секунд</div>
+					</div>
+				</div>
+				<div class="widget-row">
+					<span>YouTube</span>
+					<span class="value" id="likes-yt">—</span>
+				</div>
+				<div class="widget-row" style="margin-top:6px;">
+					<span>VK Play Live</span>
+					<span class="value" id="likes-vk">—</span>
+				</div>
+				<div class="small">
+					Для подсчёта лайков YouTube используется YouTube Data API, для VK Play — counters стрима.
+					<div class="obs-row">
+						<input id="obs-url-likes" class="obs-input" readonly>
+						<button class="obs-copy-btn" onclick="copyObsUrl('obs-url-likes')">Скопировать</button>
+					</div>
+					<div class="obs-row" style="margin-top:6px;">
+						<input id="obs-url-likes-numbers" class="obs-input" readonly placeholder="Только цифры">
+						<button class="obs-copy-btn" onclick="copyObsUrl('obs-url-likes-numbers')">Только цифры</button>
+					</div>
+				</div>
+				<div class="small" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--card-border);">
+					<strong>Виджет с гифками</strong>: пока лайки не растут — статичная гиф, при добавлении лайков — анимированная (1 лайк = 1 проигрывание). Загрузите две гифки (GIF), затем вставьте ссылку в OBS.
+					<div style="margin-top:8px; display:grid; gap:8px; max-width:520px;">
+						<label style="font-size:12px; color:var(--muted);">Статичная гиф (по умолчанию)</label>
+						<input type="file" id="gif-static-file" accept="image/gif" class="obs-input" style="padding:6px;">
+						<label style="font-size:12px; color:var(--muted);">Анимированная гиф (при росте лайков)</label>
+						<input type="file" id="gif-animated-file" accept="image/gif" class="obs-input" style="padding:6px;">
+						<label style="font-size:12px; color:var(--muted);">Длительность одного проигрывания анимации (сек)</label>
+						<input type="number" id="gif-animated-duration" class="obs-input" value="1.7" min="0.5" max="10" step="0.1" style="max-width:80px;">
+						<button type="button" class="btn ghost" id="btn-upload-gifs" style="margin-top:4px; align-self:start;">Загрузить гифки</button>
+						<span id="gif-upload-status" style="font-size:12px; color:var(--muted);"></span>
+					</div>
+					<div class="obs-row" style="margin-top:10px;">
+						<input id="obs-url-likes-gif" class="obs-input" readonly placeholder="Сначала загрузите обе гифки">
+						<button class="obs-copy-btn" onclick="copyObsUrl('obs-url-likes-gif')">Скопировать</button>
+					</div>
+				</div>
+				<div class="small" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--card-border);">
+					<strong>Тестовый лайк (проверка анимаций)</strong>
+					<div style="margin-top:8px; color:var(--muted); font-size:12px;">
+						Кнопка отправляет команду в превью виджета: увеличиваем лайки на 1 и проигрываем анимацию как в OBS.
+					</div>
+					<div class="test-preview-wrap">
+						<div>
+							<button type="button" class="btn-test-like" id="btn-test-like">Лайк +1</button>
+							<div class="likes-test-counter" style="margin-top:8px;">Тестовые лайки: <span id="likes-test-counter">0</span></div>
+						</div>
+						<div class="likes-test-gif-window" id="likes-test-gif-window">
+							<img class="likes-test-gif-static" id="likes-test-gif-static" alt="">
+							<img class="likes-test-gif-animated" id="likes-test-gif-animated" alt="">
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		async function loadMenu() {
+			try {
+				const res = await fetch('/menu.html');
+				document.getElementById('menu-container').innerHTML = await res.text();
+			} catch (e) {
+				console.warn('menu load fail', e);
+			}
+		}
+		loadMenu();
+
+		function setBadge(el, ok, textOk, textErr) {
+			if (!el) return;
+			el.className = 'badge ' + (ok ? 'ok' : 'err');
+			el.textContent = ok ? textOk : textErr;
+		}
+
+		function initObsUrls() {
+			const origin = window.location.origin || 'http://localhost:3000';
+			const onlineInput = document.getElementById('obs-url-online');
+			const likesInput = document.getElementById('obs-url-likes');
+			if (onlineInput) onlineInput.value = origin + '/widget-stream-online.html';
+			if (likesInput) likesInput.value = origin + '/widget-stream-likes.html';
+			const likesNumbersInput = document.getElementById('obs-url-likes-numbers');
+			if (likesNumbersInput) likesNumbersInput.value = origin + '/widget-stream-likes.html?numbersOnly=1';
+		}
+
+		function buildLikesGifWidgetUrl(staticUrl, animatedUrl) {
+			const origin = window.location.origin || 'http://localhost:3000';
+			const duration = (document.getElementById('gif-animated-duration') || {}).value || '1.7';
+			const q = new URLSearchParams();
+			q.set('static', staticUrl);
+			q.set('animated', animatedUrl);
+			q.set('animatedDuration', String(Math.max(0.5, parseFloat(duration) || 1.7)));
+			return origin + '/widget-stream-likes.html?' + q.toString();
+		}
+
+		function getCurrentLikesGifUrls() {
+			// Если пользователь уже загрузил гифки и сгенерировал OBS URL,
+			// используем их; иначе берём дефолтные.
+			let staticUrl = '/widget-assets/likes-static.gif';
+			let animatedUrl = '/widget-assets/likes-animated.gif';
+			const v = document.getElementById('obs-url-likes-gif')?.value;
+			if (v) {
+				try {
+					const u = new URL(v, window.location.origin);
+					staticUrl = u.searchParams.get('static') || staticUrl;
+					animatedUrl = u.searchParams.get('animated') || animatedUrl;
+				} catch (_) {}
+			}
+			return { staticUrl, animatedUrl };
+		}
+
+		function setTestLikePreview(staticUrlOverride, animatedUrlOverride) {
+			const staticImg = document.getElementById('likes-test-gif-static');
+			const animatedImg = document.getElementById('likes-test-gif-animated');
+			const counterEl = document.getElementById('likes-test-counter');
+			if (!staticImg || !animatedImg) return;
+
+			const { staticUrl: staticUrlDef, animatedUrl: animatedUrlDef } = getCurrentLikesGifUrls();
+			const staticUrl = staticUrlOverride || staticUrlDef;
+			const animatedUrl = animatedUrlOverride || animatedUrlDef;
+
+			// Меняем src без cache-bust для статичной.
+			staticImg.src = staticUrl;
+
+			// Анимированную будем кеш-брейкать при каждом клике, но src нужен чтобы браузер подхватил.
+			animatedImg.src = animatedUrl;
+
+			if (counterEl) counterEl.textContent = '0';
+			const w = document.getElementById('likes-test-gif-window');
+			if (w) w.classList.remove('playing');
+		}
+
+		document.getElementById('btn-upload-gifs').addEventListener('click', async function() {
+			const staticInput = document.getElementById('gif-static-file');
+			const animatedInput = document.getElementById('gif-animated-file');
+			const statusEl = document.getElementById('gif-upload-status');
+			const obsInput = document.getElementById('obs-url-likes-gif');
+			if (!staticInput?.files?.length || !animatedInput?.files?.length) {
+				statusEl.textContent = 'Выберите оба файла (статичную и анимированную гиф).';
+				return;
+			}
+			statusEl.textContent = 'Загрузка...';
+			const readAsBase64 = (file) => new Promise((resolve, reject) => {
+				const r = new FileReader();
+				r.onload = () => resolve(r.result);
+				r.onerror = () => reject(new Error('Не удалось прочитать файл'));
+				r.readAsDataURL(file);
+			});
+			try {
+				const [staticBase64, animatedBase64] = await Promise.all([
+					readAsBase64(staticInput.files[0]),
+					readAsBase64(animatedInput.files[0])
+				]);
+				const url = (window.location.origin || 'http://localhost:3000') + '/api/widget-assets/upload-gifs';
+				const r = await fetch(url, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ staticBase64, animatedBase64 })
+				});
+				const data = await r.json().catch(() => ({}));
+				if (!r.ok) {
+					statusEl.textContent = data.error || ('Ошибка ' + r.status);
+					return;
+				}
+				const staticUrl = data.staticUrl || '/widget-assets/likes-static.gif';
+				const animatedUrl = data.animatedUrl || '/widget-assets/likes-animated.gif';
+				obsInput.value = buildLikesGifWidgetUrl(staticUrl, animatedUrl);
+				obsInput.placeholder = '';
+				statusEl.textContent = 'Загружено. Скопируйте ссылку для OBS.';
+				setTestLikePreview(staticUrl, animatedUrl);
+			} catch (e) {
+				statusEl.textContent = 'Ошибка: ' + (e.message || 'сеть') + '. Откройте страницу с того же адреса, что и сервер (например http://localhost:3000), убедитесь, что сервер запущен.';
+			}
+		});
+
+		async function copyObsUrl(inputId) {
+			try {
+				const el = document.getElementById(inputId);
+				if (!el) return;
+				const value = el.value;
+				if (!value) return;
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					await navigator.clipboard.writeText(value);
+				} else {
+					el.select();
+					document.execCommand('copy');
+				}
+			} catch (e) {
+				console.warn('Не удалось скопировать OBS URL:', e);
+			}
+		}
+
+		async function refreshWidgets() {
+			try {
+				const [ytRes, vkRes] = await Promise.all([
+					fetch('/integrations/youtube/status').then(r => r.json()).catch(() => null),
+					fetch('/integrations/vkplay/status').then(r => r.json()).catch(() => null)
+				]);
+
+				const ytConnected = ytRes && ytRes.connected;
+				const vkConnected = vkRes && vkRes.connected;
+
+				const ytViewers = ytConnected ? (ytRes.viewers || 0) : 0;
+				const vkViewers = vkConnected ? (vkRes.viewers || 0) : 0;
+				const totalViewers = ytViewers + vkViewers;
+
+				document.getElementById('online-yt').textContent = ytConnected ? ytViewers : '—';
+				document.getElementById('online-vk').textContent = vkConnected ? vkViewers : '—';
+				document.getElementById('online-total').textContent = ytConnected || vkConnected ? totalViewers : '—';
+
+				setBadge(
+					document.getElementById('online-status'),
+					ytConnected || vkConnected,
+					ytConnected && vkConnected ? 'YouTube и VK Play подключены' :
+						ytConnected ? 'Подключен только YouTube' :
+						vkConnected ? 'Подключен только VK Play' :
+						'Нет активных интеграций'
+				);
+
+				const ytLikes = ytConnected && typeof ytRes.likes !== 'undefined' ? (ytRes.likes || 0) : 0;
+				const vkLikes = vkConnected && typeof vkRes.likes !== 'undefined' ? (vkRes.likes || 0) : 0;
+				const totalLikes = ytLikes + vkLikes;
+
+				document.getElementById('likes-yt').textContent = ytConnected ? ytLikes : '—';
+				document.getElementById('likes-vk').textContent = vkConnected ? vkLikes : '—';
+				document.getElementById('likes-total').textContent = ytConnected || vkConnected ? totalLikes : '—';
+
+				setBadge(
+					document.getElementById('likes-status'),
+					ytConnected || vkConnected,
+					'Лайки обновлены',
+					'Нет данных по лайкам'
+				);
+			} catch (e) {
+				console.warn('Ошибка обновления виджетов стримов:', e);
+				setBadge(document.getElementById('online-status'), false, '', 'Ошибка обновления');
+				setBadge(document.getElementById('likes-status'), false, '', 'Ошибка обновления');
+			}
+		}
+
+		initObsUrls();
+		// При смене длительности анимации обновляем ссылку виджета, если она уже была сформирована
+		document.getElementById('gif-animated-duration').addEventListener('change', function() {
+			const obsInput = document.getElementById('obs-url-likes-gif');
+			if (!obsInput?.value) return;
+			try {
+				const u = new URL(obsInput.value);
+				const staticUrl = u.searchParams.get('static');
+				const animatedUrl = u.searchParams.get('animated');
+				if (staticUrl && animatedUrl) {
+					obsInput.value = buildLikesGifWidgetUrl(staticUrl, animatedUrl);
+					setTestLikePreview(staticUrl, animatedUrl);
+				}
+			} catch (_) {}
+		});
+
+		// Инициализация кнопки тестового лайка (gif-превью без iframe)
+		(function initTestLikeControls() {
+			const btn = document.getElementById('btn-test-like');
+			const counterEl = document.getElementById('likes-test-counter');
+			const w = document.getElementById('likes-test-gif-window');
+			const staticImg = document.getElementById('likes-test-gif-static');
+			const animatedImg = document.getElementById('likes-test-gif-animated');
+			if (!btn || !counterEl || !w || !staticImg || !animatedImg) return;
+
+			let testLikes = Number.parseInt(counterEl.textContent || '0', 10) || 0;
+			let queue = 0;
+			let playing = false;
+
+			function getAnimatedDurationMs() {
+				const el = document.getElementById('gif-animated-duration');
+				const sec = el ? parseFloat(el.value) : 1.7;
+				const ms = Math.max(500, (Number.isFinite(sec) ? sec : 1.7) * 1000);
+				return ms;
+			}
+
+			function playOne() {
+				if (queue <= 0) {
+					playing = false;
+					w.classList.remove('playing');
+					return;
+				}
+				playing = true;
+				queue -= 1;
+				w.classList.add('playing');
+
+				const { animatedUrl } = getCurrentLikesGifUrls();
+				// Cache-bust, чтобы браузер реально проигрывал заново.
+				const sep = animatedUrl && animatedUrl.indexOf('?') >= 0 ? '&' : '?';
+				animatedImg.src = (animatedUrl || animatedImg.src) + (sep ? sep : '?') + 't=' + Date.now();
+
+				setTimeout(() => {
+					w.classList.remove('playing');
+					playOne();
+				}, getAnimatedDurationMs());
+			}
+
+			btn.addEventListener('click', function() {
+				const delta = 1;
+				testLikes += delta;
+				counterEl.textContent = String(testLikes);
+
+				if (btn.classList) btn.classList.add('flash');
+				const oldText = btn.textContent;
+				btn.textContent = 'Лайк +1 ✓';
+				setTimeout(() => {
+					if (btn.classList) btn.classList.remove('flash');
+					btn.textContent = oldText;
+				}, 650);
+
+				queue += delta;
+				if (!playing) playOne();
+			});
+
+			// Первичная подгрузка превью по текущим URL (дефолт или из загрузки).
+			setTestLikePreview();
+			testLikes = 0;
+			counterEl.textContent = '0';
+			queue = 0;
+			playing = false;
+			w.classList.remove('playing');
+		})();
+
+		refreshWidgets();
+		setInterval(refreshWidgets, 5000);
+	</script>
+</body>
+</html>
+

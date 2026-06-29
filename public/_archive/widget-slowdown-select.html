@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slowdown Select Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --neon-yellow: #ffff00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* Slowdown spin window (random selection) */
+        .slowdown-spin-window {
+            position: relative;
+            background: linear-gradient(135deg,
+                rgba(5, 15, 25, 0.95) 0%,
+                rgba(10, 20, 35, 0.9) 100%
+            );
+            border: 2px solid var(--neon-blue);
+            border-radius: 12px;
+            padding: 20px 24px;
+            min-width: 500px;
+            max-width: 90vw;
+            text-align: center;
+            box-shadow: 
+                0 0 30px rgba(0, 240, 255, 0.5),
+                0 0 60px rgba(0, 240, 255, 0.3);
+        }
+
+        .slowdown-spin-title { 
+            font-size: 1.3rem; 
+            color: var(--neon-blue); 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            margin-bottom: 20px; 
+            text-shadow: 0 0 15px var(--neon-blue);
+            letter-spacing: 2px;
+        }
+
+        .slowdown-spin-container { 
+            display: flex; 
+            justify-content: center; 
+            gap: 12px; 
+            margin: 15px 0; 
+            flex-wrap: wrap; 
+            max-height: 200px; 
+            overflow: hidden; 
+            position: relative; 
+        }
+
+        .slowdown-spin-item { 
+            background: rgba(0, 240, 255, 0.12); 
+            border: 2px solid rgba(0, 240, 255, 0.35); 
+            border-radius: 10px; 
+            padding: 12px 18px; 
+            min-width: 90px; 
+            font-size: 1.3rem; 
+            font-weight: 800; 
+            color: var(--neon-blue); 
+            transition: all 0.25s ease; 
+            transform: scale(0.95); 
+            opacity: 0.65; 
+            letter-spacing: 0.5px;
+            cursor: pointer;
+        }
+
+        .slowdown-spin-item.active { 
+            background: rgba(0, 240, 255, 0.35); 
+            border-color: var(--neon-blue); 
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.7); 
+            transform: scale(1.15); 
+            opacity: 1; 
+            color: #ffffff; 
+        }
+
+        .slowdown-spin-item.selected { 
+            background: rgba(0, 255, 71, 0.4); 
+            border-color: #00ff47; 
+            box-shadow: 0 0 30px rgba(0, 255, 71, 1); 
+            transform: scale(1.25); 
+            opacity: 1; 
+            color: #ffffff; 
+            animation: selectedPulse 0.9s ease-in-out infinite; 
+        }
+
+        @keyframes selectedPulse { 
+            0% { transform: scale(1.2); } 
+            50% { transform: scale(1.3); } 
+            100% { transform: scale(1.2); } 
+        }
+
+        .slowdown-spin-selected { 
+            margin-top: 20px; 
+            padding-top: 20px; 
+            border-top: 2px solid rgba(0, 240, 255, 0.3); 
+        }
+
+        .slowdown-spin-result-text { 
+            font-size: 1rem; 
+            color: #ffffff; 
+            margin-bottom: 10px; 
+            opacity: 0.9;
+        }
+
+        .slowdown-spin-result-factor { 
+            font-size: 2.5rem; 
+            font-weight: 900; 
+            color: var(--neon-blue); 
+            text-shadow: 0 0 25px var(--neon-blue); 
+            font-family: 'Orbitron', monospace; 
+            letter-spacing: 1px; 
+        }
+
+        .slowdown-spin-result-duration {
+            font-size: 1.1rem;
+            color: var(--neon-green);
+            margin-top: 8px;
+            font-weight: 700;
+            text-shadow: 0 0 15px var(--neon-green);
+        }
+
+        .status-message {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 8px;
+            color: var(--neon-blue);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-message.error {
+            background: rgba(255, 0, 60, 0.1);
+            border-color: rgba(255, 0, 60, 0.3);
+            color: var(--neon-red);
+        }
+
+        .status-message.success {
+            background: rgba(0, 255, 71, 0.1);
+            border-color: rgba(0, 255, 71, 0.3);
+            color: var(--neon-green);
+        }
+    </style>
+</head>
+<body>
+    <div class="slowdown-spin-window" id="slowdownSpinWindow">
+        <div class="slowdown-spin-title">🎲 ВЫБОР ЗАМЕДЛЕНИЯ</div>
+        <div class="slowdown-spin-container" id="slowdownSpinContainer"></div>
+        <div class="slowdown-spin-title" id="slowdownTimeSpinTitle" style="margin-top:20px; display:none;">⏱️ ВЫБОР ВРЕМЕНИ</div>
+        <div class="slowdown-spin-container" id="slowdownTimeSpinContainer" style="display:none;"></div>
+        <div class="slowdown-spin-selected" id="slowdownSpinSelected" style="display: none;">
+            <div class="slowdown-spin-result-text">Таймер будет замедлен в</div>
+            <div class="slowdown-spin-result-factor" id="slowdownSpinResultFactor">×2.0</div>
+            <div class="slowdown-spin-result-duration" id="slowdownSpinResultDuration">на 05:00</div>
+        </div>
+        <div class="status-message" id="statusMessage" style="display: none;"></div>
+    </div>
+
+    <script>
+        let variants = [];
+        let durationVariants = [];
+        let selectedVariant = null;
+        let selectedDuration = null;
+        let isSpinning = false;
+
+        // WebSocket для получения команды на запуск
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}`;
+        let ws = null;
+
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ WebSocket подключен для виджета выбора замедления');
+                    ws.send(JSON.stringify({ type: 'CLIENT_TYPE', clientType: 'WIDGET' }));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        if (message.type === 'START_SLOWDOWN_SELECT' || message.type === 'SLOWDOWN_START_RANDOM') {
+                            const variants = message.variants || message.data?.variants;
+                            const durationVariants = message.durationVariants || message.data?.durationVariants;
+                            console.log('🎲 Получена команда на запуск выбора замедления:', { variants, durationVariants });
+                            startRandomSlowdown(variants, durationVariants);
+                        } else if (message.type === 'SLOWDOWN_FACTOR_RESULT') {
+                            // Сервер сообщил выбранный коэффициент - останавливаем первую рулетку
+                            console.log('✅ Получен результат коэффициента от сервера:', message.factor);
+                            stopFactorSpin(message.factor);
+                        } else if (message.type === 'SLOWDOWN_RESULT') {
+                            // Финальный результат - останавливаем все и показываем результат
+                            console.log('✅ Получен финальный результат замедления:', message);
+                            finalizeWithServerResult(message.factor, message.duration);
+                        }
+                    } catch (e) {
+                        console.error('Ошибка парсинга сообщения:', e);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('❌ WebSocket ошибка:', error);
+                };
+
+                ws.onclose = () => {
+                    console.log('⚠️ WebSocket отключен, переподключение через 3 секунды...');
+                    setTimeout(connectWebSocket, 3000);
+                };
+            } catch (error) {
+                console.error('❌ Ошибка подключения WebSocket:', error);
+                setTimeout(connectWebSocket, 3000);
+            }
+        }
+
+        // Загрузка настроек с сервера
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/slowdown/settings');
+                const data = await response.json();
+                if (data.success && data.settings) {
+                    if (data.settings.variants && Array.isArray(data.settings.variants)) {
+                        variants = data.settings.variants;
+                    }
+                    if (data.settings.durationVariants && Array.isArray(data.settings.durationVariants)) {
+                        durationVariants = data.settings.durationVariants;
+                    }
+                    console.log('✅ Настройки замедления загружены:', data.settings);
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки настроек:', error);
+            }
+        }
+
+        let spinInterval = null;
+        let timeSpinInterval = null;
+
+        // Запуск рандомного замедления
+        async function startRandomSlowdown(customVariants, customDurationVariants) {
+            const useVariants = customVariants || variants;
+            const useDurationVariants = customDurationVariants || durationVariants;
+
+            if (!useVariants || !Array.isArray(useVariants) || useVariants.length === 0) {
+                showStatus('❌ Нет вариантов для рандомного замедления', 'error');
+                return;
+            }
+
+            if (isSpinning) {
+                console.log('⚠️ Прокрутка уже активна');
+                return;
+            }
+
+            isSpinning = true;
+            selectedVariant = null;
+            selectedDuration = null;
+            
+            const spinContainer = document.getElementById('slowdownSpinContainer');
+            const timeContainer = document.getElementById('slowdownTimeSpinContainer');
+            const timeTitle = document.getElementById('slowdownTimeSpinTitle');
+            const spinSelected = document.getElementById('slowdownSpinSelected');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // Скрываем результат и сообщения
+            spinSelected.style.display = 'none';
+            statusMessage.style.display = 'none';
+
+            // Очищаем контейнеры
+            spinContainer.innerHTML = '';
+            if (timeContainer) timeContainer.innerHTML = '';
+
+            // Создаем элементы вариантов коэффициента
+            useVariants.forEach((variant, index) => {
+                const item = document.createElement('div');
+                item.className = 'slowdown-spin-item';
+                item.textContent = `x${parseFloat(variant.factor).toFixed(1)}`;
+                item.dataset.index = index;
+                item.dataset.factor = variant.factor;
+                item.dataset.chance = variant.chance;
+                spinContainer.appendChild(item);
+            });
+
+            // Если есть варианты времени, показываем вторую рулетку
+            if (useDurationVariants && Array.isArray(useDurationVariants) && useDurationVariants.length > 0) {
+                timeTitle.style.display = 'block';
+                timeContainer.style.display = 'flex';
+                
+                useDurationVariants.forEach((variant, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'slowdown-spin-item';
+                    const minutes = Math.floor(variant.seconds / 60);
+                    const seconds = variant.seconds % 60;
+                    item.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    item.dataset.index = index;
+                    item.dataset.seconds = variant.seconds;
+                    item.dataset.chance = variant.chance;
+                    timeContainer.appendChild(item);
+                });
+            } else {
+                timeTitle.style.display = 'none';
+                if (timeContainer) timeContainer.style.display = 'none';
+            }
+
+            // Прокрутка коэффициента (будет остановлена сервером)
+            let currentIndex = 0;
+            const totalSpinMs = 4000;
+            const minDelay = 30;
+            const maxDelay = 240;
+            const startTs = performance.now();
+
+            function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
+
+            function stepSpin() {
+                const now = performance.now();
+                const t = Math.min(1, (now - startTs) / totalSpinMs);
+                const items = spinContainer.querySelectorAll('.slowdown-spin-item');
+                
+                if (items.length > 0) {
+                    items.forEach(el => el.classList.remove('active'));
+                    currentIndex = (currentIndex + 1) % items.length;
+                    items[currentIndex].classList.add('active');
+                }
+
+                if (t >= 1 && !selectedVariant) {
+                    // Если сервер не ответил, выбираем случайный вариант
+                    selectedVariant = selectRandomVariant(useVariants);
+                    stopFactorSpin(selectedVariant.factor);
+                } else if (t < 1) {
+                    const delay = minDelay + (maxDelay - minDelay) * easeOutQuad(t);
+                    spinInterval = setTimeout(stepSpin, delay);
+                }
+            }
+
+            stepSpin();
+        }
+
+        function stopFactorSpin(factor) {
+            if (spinInterval) {
+                clearTimeout(spinInterval);
+                spinInterval = null;
+            }
+
+            const spinContainer = document.getElementById('slowdownSpinContainer');
+            const items = spinContainer.querySelectorAll('.slowdown-spin-item');
+            
+            items.forEach(el => {
+                el.classList.remove('active');
+                if (parseFloat(el.dataset.factor) === parseFloat(factor)) {
+                    el.classList.add('selected');
+                    selectedVariant = {
+                        factor: parseFloat(el.dataset.factor),
+                        chance: parseFloat(el.dataset.chance)
+                    };
+                }
+            });
+
+            // Запускаем прокрутку времени, если есть варианты
+            const timeContainer = document.getElementById('slowdownTimeSpinContainer');
+            if (timeContainer && timeContainer.children.length > 0) {
+                startTimeSpin();
+            } else {
+                // Нет вариантов времени - используем дефолтное
+                selectedDuration = { seconds: 300 };
+                finalizeSpin();
+            }
+        }
+
+        function startTimeSpin() {
+            const timeContainer = document.getElementById('slowdownTimeSpinContainer');
+            if (!timeContainer || timeContainer.children.length === 0) return;
+
+            let currentIndex = 0;
+            const totalSpinMs = 2500;
+            const minDelay = 30;
+            const maxDelay = 240;
+            const startTs = performance.now();
+
+            function easeOutQuad(t) { return 1 - (1 - t) * (1 - t); }
+
+            function stepTimeSpin() {
+                const now = performance.now();
+                const t = Math.min(1, (now - startTs) / totalSpinMs);
+                const items = timeContainer.querySelectorAll('.slowdown-spin-item');
+                
+                if (items.length > 0) {
+                    items.forEach(el => el.classList.remove('active'));
+                    currentIndex = (currentIndex + 1) % items.length;
+                    items[currentIndex].classList.add('active');
+                }
+
+                if (t >= 1 && !selectedDuration) {
+                    // Выбираем случайный вариант времени
+                    const timeVariants = Array.from(items).map(item => ({
+                        seconds: parseInt(item.dataset.seconds),
+                        chance: parseFloat(item.dataset.chance)
+                    }));
+                    selectedDuration = selectRandomVariant(timeVariants);
+                    finalizeSpin();
+                } else if (t < 1) {
+                    const delay = minDelay + (maxDelay - minDelay) * easeOutQuad(t);
+                    timeSpinInterval = setTimeout(stepTimeSpin, delay);
+                }
+            }
+
+            stepTimeSpin();
+        }
+
+        function finalizeWithServerResult(factor, duration) {
+            if (timeSpinInterval) {
+                clearTimeout(timeSpinInterval);
+                timeSpinInterval = null;
+            }
+
+            selectedVariant = { factor: parseFloat(factor) };
+            selectedDuration = { seconds: parseInt(duration) || 300 };
+            
+            finalizeSpin();
+        }
+
+        function selectRandomVariant(variants) {
+            const totalChance = variants.reduce((sum, v) => sum + (v.chance || 0), 0);
+            const random = Math.random() * totalChance;
+            
+            let accumulated = 0;
+            for (const variant of variants) {
+                accumulated += (variant.chance || 0);
+                if (random <= accumulated) {
+                    return variant;
+                }
+            }
+            
+            return variants[variants.length - 1];
+        }
+
+        async function finalizeSpin() {
+            if (!selectedVariant || !selectedDuration) {
+                console.log('⏳ Ожидание выбора вариантов...');
+                return;
+            }
+
+            const spinContainer = document.getElementById('slowdownSpinContainer');
+            const timeContainer = document.getElementById('slowdownTimeSpinContainer');
+            const spinSelected = document.getElementById('slowdownSpinSelected');
+            const resultFactor = document.getElementById('slowdownSpinResultFactor');
+            const resultDuration = document.getElementById('slowdownSpinResultDuration');
+
+            // Убираем активный класс со всех и отмечаем выбранные
+            if (spinContainer) {
+                spinContainer.querySelectorAll('.slowdown-spin-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (parseFloat(item.dataset.factor) === selectedVariant.factor) {
+                        item.classList.add('selected');
+                    }
+                });
+            }
+
+            if (timeContainer) {
+                timeContainer.querySelectorAll('.slowdown-spin-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (parseInt(item.dataset.seconds) === selectedDuration.seconds) {
+                        item.classList.add('selected');
+                    }
+                });
+            }
+
+            // Показываем результат
+            resultFactor.textContent = `×${selectedVariant.factor.toFixed(1)}`;
+            
+            const minutes = Math.floor(selectedDuration.seconds / 60);
+            const secs = selectedDuration.seconds % 60;
+            resultDuration.textContent = `на ${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            spinSelected.style.display = 'block';
+            isSpinning = false;
+
+            // Не отправляем на сервер - сервер сам активирует замедление
+            showStatus('✅ Замедление активировано сервером!', 'success');
+        }
+
+        function showStatus(message, type = '') {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = message;
+            statusMessage.className = 'status-message ' + type;
+            statusMessage.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Инициализация
+        loadSettings();
+        connectWebSocket();
+
+        // Также можно запустить через URL параметры для тестирования
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('test') === '1') {
+            setTimeout(() => {
+                startRandomSlowdown();
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

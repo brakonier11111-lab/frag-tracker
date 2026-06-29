@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФРАГ-ТРЕКЕР | РЕЖИМ 1</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        :root {
+            --card-bg: rgba(20, 20, 30, 0.9);
+            /* Виджет-превью размеры */
+            --widget-stats-value-size: 1.5rem;
+            --widget-progress-text-size: 0.8rem;
+            --widget-cost-font-size: 0.8rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 80px;
+        }
+
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .menu-logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .menu-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .menu-item.active {
+            background: var(--neon-purple);
+            color: var(--dark);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 350px;
+            gap: 15px;
+        }
+        
+        .main-content {
+            min-width: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(255, 0, 60, 0.5);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-link {
+            color: var(--neon-purple);
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .nav-link:hover {
+            color: var(--neon-blue);
+        }
+
+        .panel {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, 0.95) 0%,
+                rgba(8, 8, 20, 0.9) 50%,
+                rgba(12, 12, 25, 0.85) 100%
+            );
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 4px 16px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .panel-danger {
+            border-left: 4px solid var(--neon-red);
+        }
+
+        .panel-warning {
+            border-left: 4px solid var(--neon-blue);
+        }
+
+        .panel-success {
+            border-left: 4px solid var(--neon-green);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            color: var(--neon-blue);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(10, 10, 20, 0.8);
+            padding: 15px;
+            text-align: center;
+            border-radius: 6px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 5px 0;
+            transition: all 0.3s ease;
+        }
+
+        .stat-frags { color: var(--neon-red); }
+        .stat-donated { color: var(--neon-blue); }
+        .stat-done { color: var(--neon-blue); }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .progress-section {
+            margin: 20px 0;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            color: var(--neon-blue);
+        }
+
+        .progress-container {
+            background: rgba(10, 10, 20, 0.8);
+            height: 25px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-red), var(--neon-purple));
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 12px;
+        }
+
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-weight: bold;
+            line-height: 25px;
+            font-size: 0.8rem;
+        }
+
+        .frag-counter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .frag-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            background: rgba(255, 0, 60, 0.2);
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+            transition: all 0.3s ease;
+        }
+
+        .frag-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 0, 60, 0.3);
+        }
+
+        .frag-value {
+            font-size: 28px;
+            font-weight: 700;
+            min-width: 80px;
+            text-align: center;
+            color: var(--neon-red);
+            transition: all 0.3s ease;
+        }
+
+        .quick-add {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .input-field {
+            background: rgba(10, 10, 20, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 10px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            flex: 1;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+        }
+
+        .input-group {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+
+        .btn-danger {
+            background: rgba(255, 0, 60, 0.2);
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 0, 60, 0.3);
+        }
+
+        /* Специальные стили для кнопок быстрого списания */
+        .btn-danger[data-sub] {
+            background: rgba(255, 0, 60, 0.4);
+            color: #ffffff;
+            border: 2px solid var(--neon-red);
+            font-weight: 900;
+            font-size: 1.1rem;
+            text-shadow: 0 0 10px rgba(255, 0, 60, 0.8);
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.3);
+        }
+
+        .btn-danger[data-sub]:hover {
+            background: rgba(255, 0, 60, 0.6);
+            box-shadow: 0 0 20px rgba(255, 0, 60, 0.5);
+            transform: scale(1.05);
+        }
+
+        .btn-warning {
+            background: rgba(0, 240, 255, 0.2);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+        }
+
+        .btn-warning:hover {
+            background: rgba(0, 240, 255, 0.3);
+        }
+
+        .btn-success {
+            background: rgba(0, 255, 71, 0.2);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+        }
+
+        .btn-warning {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            color: #ffc107;
+        }
+
+        .btn-warning:hover {
+            background: rgba(255, 193, 7, 0.3);
+        }
+
+        .donation-controls {
+            margin-top: 10px;
+        }
+
+        .donation-controls button {
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .donation-controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .donation-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(10, 10, 20, 0.6);
+            border-radius: 6px;
+        }
+
+        .donation-item {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .donation-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .donation-item.realtime {
+            border-left: 4px solid var(--neon-green);
+        }
+
+        .donation-name {
+            font-weight: bold;
+            color: var(--neon-blue);
+        }
+
+        .donation-amount {
+            font-weight: bold;
+            color: var(--neon-red);
+            font-size: 1.1rem;
+        }
+
+        .donation-message {
+            color: #aaa;
+            font-size: 0.8rem;
+            margin-top: 3px;
+        }
+
+        .donation-frags {
+            color: var(--neon-green);
+            font-size: 0.8rem;
+            background: rgba(0, 255, 71, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .widget-preview {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, 0.95) 0%,
+                rgba(8, 8, 20, 0.9) 50%,
+                rgba(12, 12, 25, 0.85) 100%
+            );
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            padding: 25px 20px;
+            margin-bottom: 15px;
+            text-align: center;
+            border-radius: 12px;
+            position: relative;
+            backdrop-filter: blur(15px);
+            overflow: visible;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(0, 240, 255, 0.1);
+        }
+        .widget-preview::before,
+        .widget-preview::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background:
+                radial-gradient(12px 2px at left center, var(--strip-color, var(--neon-blue)), rgba(0,0,0,0) 70%),
+                linear-gradient(90deg, var(--strip-color, var(--neon-blue)), var(--strip-color, var(--neon-blue))),
+                radial-gradient(12px 2px at right center, var(--strip-color, var(--neon-blue)), rgba(0,0,0,0) 70%);
+            background-repeat: no-repeat;
+            background-size: 12px 100%, calc(100% - 24px) 100%, 12px 100%;
+            background-position: left center, center, right center;
+        }
+        .widget-preview::before { top: 6px; }
+        .widget-preview::after { bottom: 6px; }
+
+        .widget-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+
+        .widget-stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: var(--widget-stats-value-size, 1.5rem);
+            font-weight: 700;
+            color: #00ffea;
+            text-shadow: 0 0 20px rgba(0, 255, 234, 0.5);
+            background: rgba(0, 255, 234, 0.1);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 255, 234, 0.3);
+            min-width: 80px;
+            transition: all 0.3s ease;
+        }
+
+        .widget-stat-done {
+            color: #00ff9d;
+            text-shadow: 0 0 20px rgba(0, 255, 157, 0.5);
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+        }
+
+        .widget-stat-label {
+            font-size: 0.7rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .widget-progress {
+            height: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .widget-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--neon-red), var(--neon-blue), var(--neon-purple));
+            transition: width 0.5s ease-out;
+            position: relative;
+        }
+
+        .widget-progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-weight: 600;
+            font-size: var(--widget-progress-text-size, 0.7rem);
+            line-height: 20px;
+            color: #fff;
+            text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+            letter-spacing: 1px;
+            z-index: 2;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .widget-url {
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(20, 20, 30, 0.6);
+            border: 1px dashed var(--neon-blue);
+            font-size: 0.7rem;
+            word-break: break-all;
+            color: #888;
+            border-radius: 6px;
+        }
+
+        .opacity-control {
+            margin: 10px 0;
+        }
+
+        .opacity-slider {
+            width: 100%;
+            margin: 5px 0;
+        }
+
+        .opacity-value {
+            text-align: center;
+            color: var(--neon-green);
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .number-changing {
+            animation: numberPulse 1s ease;
+        }
+
+        .number-changing-red {
+            animation: numberPulseRed 1s ease;
+        }
+
+        .number-changing-green {
+            animation: numberPulseGreen 1s ease;
+        }
+
+        @keyframes numberPulse {
+            0% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+            }
+            50% { 
+                transform: scale(1.2); 
+                filter: brightness(1.3);
+                text-shadow: 0 0 20px currentColor;
+            }
+            100% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+            }
+        }
+
+        @keyframes numberPulseRed {
+            0% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+                color: inherit;
+            }
+            30% { 
+                transform: scale(1.3); 
+                filter: brightness(1.5);
+                text-shadow: 0 0 30px var(--neon-red), 0 0 60px var(--neon-red);
+                color: var(--neon-red);
+            }
+            60% { 
+                transform: scale(1.1); 
+                filter: brightness(1.2);
+                text-shadow: 0 0 20px var(--neon-red);
+                color: var(--neon-red);
+            }
+            100% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+                color: inherit;
+            }
+        }
+
+        @keyframes numberPulseGreen {
+            0% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+                color: inherit;
+            }
+            30% { 
+                transform: scale(1.3); 
+                filter: brightness(1.5);
+                text-shadow: 0 0 30px var(--neon-green), 0 0 60px var(--neon-green);
+                color: var(--neon-green);
+            }
+            60% { 
+                transform: scale(1.1); 
+                filter: brightness(1.2);
+                text-shadow: 0 0 20px var(--neon-green);
+                color: var(--neon-green);
+            }
+            100% { 
+                transform: scale(1); 
+                filter: brightness(1);
+                text-shadow: inherit;
+                color: inherit;
+            }
+        }
+
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(20, 20, 30, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--neon-purple);
+            border-radius: 3px;
+        }
+
+        .reset-btn {
+            background: rgba(255, 0, 60, 0.2);
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .reset-btn:hover {
+            background: rgba(255, 0, 60, 0.3);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="theme-neon">
+    <!-- Верхнее меню -->
+    <nav class="top-menu">
+        <div class="menu-container">
+            <a href="/index.html" class="menu-logo">
+                🎯 ФРАГ-ТРЕКЕР
+            </a>
+            <div class="menu-nav">
+                <a href="/index.html" class="menu-item">🏠 Главная</a>
+                <a href="/mode1-frag-tracker.html" class="menu-item active">🎯 Фраг-трекер</a>
+                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
+                <a href="/mode3-custom.html" class="menu-item">⚙️ Кастом</a>
+                <a href="/schedule.html" class="menu-item">🗓 Расписание</a>
+                <a href="/frag-stats.html" class="menu-item">📊 Статистика</a>
+                <a href="/lesta-stats.html" class="menu-item">🏆 Lesta Games</a>
+                <a href="/admin.html" class="menu-item">🔧 Админ</a>
+                <a href="/donations-analytics.html" class="menu-item">💰 Аналитика донатов</a>
+                <a href="/analytics.html" class="menu-item">📈 Аналитика</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <div class="title">ФРАГ-ТРЕКЕР | РЕЖИМ 1</div>
+            <div class="nav-links">
+                <a href="/" class="nav-link">🏠 ГЛАВНАЯ</a>
+                <a href="/admin" class="nav-link">👑 АДМИНКА</a>
+                <a href="/frag-stats.html" class="nav-link">📊 СТАТИСТИКА</a>
+            </div>
+        </div>
+        <div class="nav-links" style="grid-column: 1 / -1; justify-content: center; margin-bottom: 10px; gap: 10px;">
+            <a href="/dashboard/mode1" class="nav-link">🎯 ФРАГИ</a>
+            <a href="/dashboard/mode2" class="nav-link">⏰ ТАЙМЕР</a>
+            <a href="/dashboard/mode3" class="nav-link">🎨 КАСТОМ</a>
+        </div>
+
+        <!-- Основная панель -->
+        <div class="main-content">
+            <!-- Статистика -->
+            <div class="panel panel-warning">
+                <h2>📊 СТАТИСТИКА ФРАГОВ</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Нужно сделать</div>
+                        <div id="fragsNeeded" class="stat-value stat-frags">10</div>
+                        <div class="stat-label" id="fragsNeededLabel">фрагов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Сделано</div>
+                        <div id="fragsDone" class="stat-value stat-done">0</div>
+                        <div class="stat-label" id="fragsDoneLabel">фрагов</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Всего донатов</div>
+                        <div id="totalDonated" class="stat-value stat-donated">0₽</div>
+                        <div class="stat-label">Общая сумма</div>
+                        
+                        <!-- Кнопки управления суммой донатов -->
+                        <div class="donation-controls" style="margin-top: 10px; display: flex; gap: 8px; justify-content: center;">
+                            <button onclick="resetDonationTotal()" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;">
+                                🔄 Обнулить
+                            </button>
+                            <button onclick="setStartingAmount()" class="btn btn-warning" style="padding: 6px 12px; font-size: 0.8rem;">
+                                💰 Стартовая сумма
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span id="progressLabel">Прогресс до следующего фрага:</span>
+                        <span id="fragCostValue">50</span>₽ за фраг
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar">
+                            <div class="progress-text" id="progressText">0₽ из 50₽</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="frag-counter">
+                    <div class="frag-btn" id="decrease-frags">-</div>
+                    <div class="frag-value" id="current-frags">0/10</div>
+                    <div class="frag-btn" id="increase-frags">+</div>
+                </div>
+
+                <div class="quick-add">
+                    <input type="number" class="input-field" id="quick-frag-input" placeholder="Введите количество">
+                    <button class="btn btn-warning quick-add-btn" id="quick-add-frags">Добавить</button>
+                </div>
+
+                <!-- Быстрое списание фрагов (1-7) -->
+                <div class="quick-add" id="quick-subtract-group">
+                    <button class="btn btn-danger" data-sub="1">-1</button>
+                    <button class="btn btn-danger" data-sub="2">-2</button>
+                    <button class="btn btn-danger" data-sub="3">-3</button>
+                    <button class="btn btn-danger" data-sub="4">-4</button>
+                    <button class="btn btn-danger" data-sub="5">-5</button>
+                    <button class="btn btn-danger" data-sub="6">-6</button>
+                    <button class="btn btn-danger" data-sub="7">-7</button>
+                </div>
+
+                <!-- Ручное редактирование показателей -->
+                <div class="input-group" id="manual-edit-group">
+                    <div style="display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center;">
+                        <input type="number" class="input-field" id="manualFragsNeeded" placeholder="Нужно сделать (число)" min="0">
+                        <button class="btn btn-success" id="applyManualFragsNeeded">Сохранить</button>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center;">
+                        <input type="number" class="input-field" id="manualFragsDone" placeholder="Сделано (число)" min="0">
+                        <button class="btn btn-success" id="applyManualFragsDone">Сохранить</button>
+                    </div>
+                </div>
+
+                <button class="reset-btn" onclick="resetStats('mode1')">🗑️ СБРОС СТАТИСТИКИ</button>
+            </div>
+
+            <!-- Управление ценой -->
+            <div class="panel panel-danger">
+                <h2>💰 УПРАВЛЕНИЕ ЦЕНОЙ</h2>
+                <div class="input-group">
+                    <input type="number" class="input-field" id="fragCostInput" value="50" min="1" placeholder="Цена в рублях">
+                    <input type="number" class="input-field" id="fragAmountInput" value="1" min="1" placeholder="Количество единиц за эту цену">
+                    <input type="text" class="input-field" id="fragNameInput" value="фраг" placeholder="Название единицы">
+                    <button class="btn btn-danger" id="updatePriceBtn">💎 УСТАНОВИТЬ ЦЕНУ</button>
+                </div>
+                <div style="margin-top: 10px; color: var(--neon-blue); font-size: 0.9rem;">
+                    <strong>Текущая цена:</strong> <span id="currentPriceText">50₽ за 1 фраг</span>
+                </div>
+                <div style="margin-top: 5px; color: var(--neon-green); font-size: 0.8rem;">
+                    <strong>Цена за единицу:</strong> <span id="pricePerUnit">50</span>₽
+                </div>
+            </div>
+
+            <!-- Настройки виджета -->
+            <div class="panel panel-success">
+                <h2>🎨 НАСТРОЙКИ ВИДЖЕТА</h2>
+                <div class="input-group">
+                    <input type="text" class="input-field" id="widgetLeftLabel" value="ОСТАЛОСЬ" placeholder="Текст слева (осталось)">
+                    <input type="text" class="input-field" id="widgetRightLabel" value="СДЕЛАНО" placeholder="Текст справа (сделано)">
+                    <input type="text" class="input-field" id="widgetProgressLabel" value="До +1 фрага:" placeholder="Текст прогресса">
+                    <button class="btn btn-success" id="updateWidgetLabelsBtn">💾 СОХРАНИТЬ НАСТРОЙКИ</button>
+                </div>
+                <div class="input-group">
+                    <label style="color: var(--neon-green); font-size: 0.85rem;">РАЗМЕР ТЕКСТА "1 фраг = цена" (rem)</label>
+                    <input type="number" class="input-field" id="costFontSizeInput" value="1.4" step="0.1" min="0.6" max="3">
+                    <button class="btn btn-success" id="updateCostFontSizeBtn">🔤 СОХРАНИТЬ РАЗМЕР</button>
+                </div>
+            </div>
+
+            <!-- История донатов -->
+            <div class="panel panel-danger">
+                <h2>📜 ИСТОРИЯ ДОНАТОВ</h2>
+                <div class="donation-list" id="donationList">
+                    <div style="text-align: center; color: #666; padding: 30px;">
+                        ОЖИДАНИЕ ДОНАТОВ...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Боковая панель -->
+        <div class="sidebar">
+            <!-- OBS Widget Preview -->
+            <div class="panel panel-warning">
+                <h2>🎬 OBS ВИДЖЕТ</h2>
+                
+                <div class="opacity-control">
+                    <div style="color: var(--neon-green); font-size: 0.8rem; margin-bottom: 5px;">ПРОЗРАЧНОСТЬ ПОДЛОЖКИ:</div>
+                    <input type="range" class="opacity-slider" id="widgetOpacity" min="0.1" max="1" step="0.1" value="0.9">
+                    <div class="opacity-value" id="opacityValue">90%</div>
+                </div>
+
+                <div class="widget-preview" id="widgetPreview" style="opacity: 0.9;">
+                    <div class="widget-stats">
+                        <div class="widget-stat">
+                            <div class="widget-stat-value" id="widgetFragsNeeded">10</div>
+                            <div class="widget-stat-label" id="widgetFragsNeededLabel">ОСТАЛОСЬ</div>
+                        </div>
+                        <div class="widget-stat">
+                            <div class="widget-stat-value widget-stat-done" id="widgetFragsDone">0</div>
+                            <div class="widget-stat-label" id="widgetFragsDoneLabel">СДЕЛАНО</div>
+                        </div>
+                    </div>
+                    
+                    <div class="widget-progress">
+                        <div class="widget-progress-bar" id="widgetProgressBar">
+                            <div class="widget-progress-text" id="widgetProgressText">0₽ из 50₽</div>
+                        </div>
+                    </div>
+                    
+                    <div id="widgetCostInfoPreview" style="font-size: 0.8rem; color: var(--neon-green); font-weight: bold; margin: 8px 0;">
+                        1 фраг = <span id="widgetCostPerUnit">50</span>₽
+                    </div>
+                </div>
+
+                <div class="widget-url">
+                    <strong>URL ДЛЯ OBS:</strong><br>
+                    <span id="widgetUrl">http://localhost:3000/widget/mode1</span>
+                </div>
+
+                <button class="btn btn-warning" onclick="copyWidgetUrl()" style="width: 100%; margin-top: 10px;">
+                    📋 КОПИРОВАТЬ URL
+                </button>
+            </div>
+
+            <!-- Ручное добавление доната -->
+            <div class="panel panel-success">
+                <h2>🎯 РУЧНОЙ ДОНАТ</h2>
+                <div class="input-group">
+                    <input type="text" class="input-field" id="donorNameInput" placeholder="ИМЯ ДОНАТЕРА">
+                    <input type="number" class="input-field" id="donationAmountInput" placeholder="СУММА (РУБ)" min="1">
+                    <textarea class="input-field" id="donationMessageInput" placeholder="СООБЩЕНИЕ" rows="2"></textarea>
+                    <button class="btn btn-success" id="addManualDonationBtn">💥 ДОБАВИТЬ ДОНАТ</button>
+                </div>
+            </div>
+
+            <!-- Виджет алертов -->
+            <div class="panel panel-success">
+                <h2>🚨 ВИДЖЕТ АЛЕРТОВ</h2>
+                <div class="widget-preview">
+                    <div style="color: var(--neon-green); font-size: 1rem; margin-bottom: 8px;">НОВЫЙ ДОНАТ</div>
+                    <div style="color: var(--neon-blue); font-size: 1.2rem; font-weight: bold;">ИМЯ ДОНАТЕРА</div>
+                    <div style="color: var(--neon-yellow); font-size: 1.8rem; font-weight: bold; margin: 8px 0;">100₽</div>
+                    <div style="background: rgba(179, 0, 255, 0.2); padding: 12px 15px; border-radius: 8px; border: 2px solid var(--neon-purple); margin-top: 8px;">
+                        <div style="color: var(--neon-green); font-size: 1.2rem; font-weight: bold; text-shadow: 0 0 10px var(--neon-green);">
+                            +2 фрага
+                        </div>
+                    </div>
+                </div>
+
+                <div class="widget-url">
+                    <strong>URL АЛЕРТОВ:</strong><br>
+                    <span id="alertUrl">http://localhost:3000/alert/mode1</span>
+                </div>
+
+                <div style="display: grid; gap: 8px; margin-top: 10px;">
+                    <button class="btn btn-success" onclick="copyAlertUrl()">📋 КОПИРОВАТЬ URL</button>
+                    <button class="btn btn-warning" onclick="openAlert()">👁️ ПРЕДПРОСМОТР</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Settings Toggle (Mode1 Dashboard) -->
+    <button id="themeSettingsToggle_m1" style="position: fixed; left: 12px; bottom: 12px; z-index: 9999; background: rgba(20,20,30,0.9); color: #fff; border: 1px solid var(--neon-blue); border-radius: 6px; padding: 8px 10px; cursor: pointer;">🎨 Настройки темы</button>
+
+    <!-- Theme Settings Panel (Mode1) -->
+    <div id="themeSettingsPanel_m1" style="position: fixed; left: 12px; bottom: 54px; z-index: 9999; background: rgba(10,10,20,0.95); color: #fff; border: 1px solid var(--neon-blue); border-radius: 8px; padding: 12px; width: 300px; display: none; box-shadow: 0 6px 24px rgba(0,0,0,0.4);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-weight:700; color: var(--neon-blue);">Тема виджета (Mode 1)</div>
+            <button id="themeSettingsClose_m1" style="background: transparent; color:#fff; border: 1px solid #555; border-radius: 4px; padding:2px 6px; cursor:pointer;">✕</button>
+        </div>
+        <div style="font-size: 0.8rem; color:#bbb; margin-bottom:8px;">Размеры (rem)</div>
+        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px; align-items:center; margin-bottom:8px;">
+            <label>Значения</label>
+            <input type="number" step="0.1" min="0.6" id="m1_sizeStatsValue" style="width:72px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="1.5">
+            <label>Прогресс</label>
+            <input type="number" step="0.1" min="0.6" id="m1_sizeProgressText" style="width:72px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="0.8">
+            <label>Стоимость</label>
+            <input type="number" step="0.1" min="0.6" id="m1_sizeCostInfo" style="width:72px; background:#111; color:#fff; border:1px solid #444; border-radius:4px; padding:4px;" value="0.8">
+        </div>
+        <div style="font-size: 0.8rem; color:#bbb; margin:8px 0 6px;">Цвета</div>
+        <div style="display:grid; grid-template-columns: 1fr auto; gap:6px; align-items:center;">
+            <label>Красный</label>
+            <input type="color" id="m1_colorRed" value="#ff003c" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Синий</label>
+            <input type="color" id="m1_colorBlue" value="#00f0ff" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Фиолетовый</label>
+            <input type="color" id="m1_colorPurple" value="#b300ff" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Зеленый</label>
+            <input type="color" id="m1_colorGreen" value="#00ff47" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Желтый</label>
+            <input type="color" id="m1_colorYellow" value="#ffff00" style="width:48px; height:28px; border:none; background:transparent;">
+            <label>Полосы</label>
+            <input type="color" id="m1_colorStrip" value="#00f0ff" style="width:48px; height:28px; border:none; background:transparent;">
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+            <button id="m1_saveTheme" style="flex:1; background: rgba(0,255,71,0.15); color:#0f0; border:1px solid #0f0; border-radius:4px; padding:6px; cursor:pointer;">Сохранить</button>
+            <button id="m1_resetTheme" style="flex:1; background: rgba(255,0,60,0.15); color:#f55; border:1px solid #f55; border-radius:4px; padding:6px; cursor:pointer;">Сброс</button>
+        </div>
+        <div style="font-size: 0.75rem; color:#888; margin-top:8px;">Сохраняется локально и на сервере. Применяется сразу и в OBS-виджете.</div>
+    </div>
+    <script>
+        const state = {
+            fragsNeeded: 10,
+            fragsDone: 0,
+            currentBalance: 0,
+            totalDonated: 0,
+            fragCost: 50,
+            fragAmount: 1,
+            fragName: "фраг",
+            widgetLeftLabel: "ОСТАЛОСЬ",
+            widgetRightLabel: "СДЕЛАНО",
+            widgetProgressLabel: "До +1 фрага:",
+            donations: [],
+            da_access_token: null,
+            external_stats_url: '',
+            external_auto_sync: 0,
+            external_last_battles: null,
+            external_last_frag_per_battle: null,
+            external_last_calc_frags: null
+        };
+
+        let ws = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 Инициализация режима 1...');
+            loadStateFromServer();
+            setupEventListeners();
+            connectWebSocket();
+            setupWidgetUrls();
+            
+            // Настройка прозрачности
+            const opacitySlider = document.getElementById('widgetOpacity');
+            const opacityValue = document.getElementById('opacityValue');
+            const widgetPreview = document.getElementById('widgetPreview');
+            
+            opacitySlider.addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                document.documentElement.style.setProperty('--widget-bg-opacity', value);
+                opacityValue.textContent = Math.round(value * 100) + '%';
+                // Сохраняем и рассылаем новое значение прозрачности
+                fetch('/api/widget-opacity', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ opacity: value, target: 'background' })
+                }).catch(() => {});
+            });
+
+            // Сохранение размера текста стоимости в виджете
+            const costFontSizeInput = document.getElementById('costFontSizeInput');
+            const updateCostFontSizeBtn = document.getElementById('updateCostFontSizeBtn');
+            updateCostFontSizeBtn.addEventListener('click', async function() {
+                const size = parseFloat(costFontSizeInput.value) || 1.4;
+                try {
+                    await fetch('/api/state', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ widget_cost_font_size: size })
+                    });
+                } catch (e) {}
+            });
+        });
+
+        // WebSocket connection
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws?type=dashboard`;
+                
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ WebSocket подключен');
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        handleWebSocketMessage(message);
+                    } catch (error) {
+                        console.error('❌ Ошибка обработки сообщения:', error);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    console.log('🔌 WebSocket отключен');
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('❌ WebSocket ошибка:', error);
+                };
+                
+            } catch (error) {
+                console.error('❌ WebSocket ошибка:', error);
+            }
+        }
+
+        function handleWebSocketMessage(message) {
+            switch (message.type) {
+                case 'INIT_STATE':
+                    updateStateFromServer(message.state);
+                    updateDisplay();
+                    break;
+                    
+                case 'NEW_DONATION':
+                    if (message.donation) {
+                        state.donations.unshift(message.donation);
+                        updateDonationList();
+                    }
+                    if (message.state) {
+                        updateStateFromServer(message.state);
+                        updateDisplayWithAnimation();
+                    }
+                    break;
+                    
+                case 'STATE_UPDATE':
+                    updateStateFromServer(message.state);
+                    updateDisplayWithAnimation();
+                    break;
+
+                case 'SET_WIDGET_OPACITY':
+                    document.documentElement.style.setProperty('--widget-bg-opacity', message.opacity);
+                    document.getElementById('opacityValue').textContent = Math.round(message.opacity * 100) + '%';
+                    break;
+
+                case 'SHOW_ALERT':
+                    if (message.donation) {
+                        showInlineAlert(message.donation);
+                    }
+                    break;
+            }
+        }
+
+        function updateStateFromServer(serverState) {
+            state.fragsNeeded = serverState.frags_needed;
+            state.fragsDone = serverState.frags_done;
+            state.currentBalance = serverState.current_balance;
+            state.totalDonated = serverState.total_donated;
+            state.fragCost = serverState.frag_cost;
+            state.fragAmount = serverState.frag_amount;
+            state.fragName = serverState.frag_name;
+            state.widgetLeftLabel = serverState.widget_left_label;
+            state.widgetRightLabel = serverState.widget_right_label;
+            state.widgetProgressLabel = serverState.widget_progress_label;
+            // External sync fields
+            state.external_stats_url = serverState.external_stats_url || '';
+            state.external_auto_sync = serverState.external_auto_sync || 0;
+            state.external_last_battles = serverState.external_last_battles ?? null;
+            state.external_last_frag_per_battle = serverState.external_last_frag_per_battle ?? null;
+            state.external_last_calc_frags = serverState.external_last_calc_frags ?? null;
+            // Размер шрифта строки стоимости (rem)
+            if (typeof serverState.widget_cost_font_size === 'number') {
+                const preview = document.getElementById('widgetCostInfoPreview');
+                if (preview) preview.style.fontSize = serverState.widget_cost_font_size + 'rem';
+                const input = document.getElementById('costFontSizeInput');
+                if (input) input.value = serverState.widget_cost_font_size;
+            }
+            if (typeof serverState.widget_bg_opacity === 'number') {
+                // Применяем прозрачность на дашборде (превью)
+                const value = serverState.widget_bg_opacity;
+                document.documentElement.style.setProperty('--widget-bg-opacity', value);
+                const slider = document.getElementById('widgetOpacity');
+                const label = document.getElementById('opacityValue');
+                if (slider) slider.value = value;
+                if (label) label.textContent = Math.round(value * 100) + '%';
+            }
+            state.da_access_token = serverState.da_access_token;
+        }
+
+        async function loadStateFromServer() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                if (data.success) {
+                    updateStateFromServer(data.state);
+                    updateDisplay();
+                    
+                    // Загружаем историю донатов
+                    const donationsResponse = await fetch('/api/donations');
+                    const donationsData = await donationsResponse.json();
+                    if (donationsData.donations) {
+                        state.donations = donationsData.donations;
+                        updateDonationList();
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки состояния:', error);
+            }
+        }
+
+        // Управление фрагами
+        async function changeFrags(amount) {
+            try {
+                console.log(`🔄 Управление фрагами: ${amount}`);
+                
+                const response = await fetch('/api/manage-units', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: amount > 0 ? 'add' : 'complete',
+                        amount: Math.abs(amount),
+                        mode: 'mode1'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log(`✅ Фраги обновлены: ${amount}`);
+                } else {
+                    console.log('❌ Ошибка управления фрагами');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка управления фрагами:', error);
+            }
+        }
+
+        // Быстрое добавление фрагов
+        async function quickAddFrags() {
+            const input = document.getElementById('quick-frag-input');
+            const value = parseInt(input.value) || 0;
+            
+            if (value !== 0) {
+                await changeFrags(value);
+                input.value = '';
+            }
+        }
+
+        // Обновление цены
+        async function updatePrice() {
+            const cost = parseInt(document.getElementById('fragCostInput').value);
+            const amount = parseInt(document.getElementById('fragAmountInput').value);
+            const name = document.getElementById('fragNameInput').value.trim();
+            
+            if (cost > 0 && amount > 0 && name) {
+                try {
+                    const response = await fetch('/api/state', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            frag_cost: cost,
+                            frag_amount: amount,
+                            frag_name: name
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✅ Цена обновлена: ${cost}₽ за ${amount} ${name}`);
+                    } else {
+                        console.log('❌ Ошибка обновления цены');
+                    }
+                } catch (error) {
+                    console.error('❌ Ошибка обновления цены:', error);
+                }
+            } else {
+                console.log('❌ ЗАПОЛНИТЕ ВСЕ ПОЛЯ КОРРЕКТНО');
+            }
+        }
+
+        // Обновление текста виджета
+        async function updateWidgetLabels() {
+            const leftLabel = document.getElementById('widgetLeftLabel').value.trim();
+            const rightLabel = document.getElementById('widgetRightLabel').value.trim();
+            const progressLabel = document.getElementById('widgetProgressLabel').value.trim();
+            
+            if (leftLabel && rightLabel && progressLabel) {
+                try {
+                    const response = await fetch('/api/state', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            widget_left_label: leftLabel,
+                            widget_right_label: rightLabel,
+                            widget_progress_label: progressLabel
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        console.log('✅ Настройки виджета сохранены');
+                    }
+                } catch (error) {
+                    console.error('❌ Ошибка сохранения настроек:', error);
+                }
+            } else {
+                console.log('❌ ЗАПОЛНИТЕ ВСЕ ПОЛЯ');
+            }
+        }
+
+        // Widget Management
+        function setupWidgetUrls() {
+            const baseUrl = window.location.origin;
+            document.getElementById('widgetUrl').textContent = baseUrl + '/widget/mode1';
+            document.getElementById('alertUrl').textContent = baseUrl + '/alert/mode1';
+        }
+
+        function copyWidgetUrl() {
+            const widgetUrl = document.getElementById('widgetUrl').textContent;
+            navigator.clipboard.writeText(widgetUrl).then(() => {
+                console.log('✅ URL ВИДЖЕТА СКОПИРОВАН');
+            });
+        }
+
+        function copyAlertUrl() {
+            const alertUrl = document.getElementById('alertUrl').textContent;
+            navigator.clipboard.writeText(alertUrl).then(() => {
+                console.log('✅ URL АЛЕРТОВ СКОПИРОВАН');
+            });
+        }
+
+        function openAlert() {
+            const alertUrl = document.getElementById('alertUrl').textContent;
+            window.open(alertUrl, '_blank');
+        }
+
+        // Ручное добавление доната
+        async function addManualDonation() {
+            const username = document.getElementById('donorNameInput').value.trim();
+            const amount = parseFloat(document.getElementById('donationAmountInput').value);
+            const message = document.getElementById('donationMessageInput').value.trim();
+            
+            if (!username || !amount || amount <= 0) {
+                console.log('❌ ЗАПОЛНИТЕ ИМЯ И СУММУ КОРРЕКТНО');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/manual-donation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        amount: amount,
+                        message: message
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log('✅ РУЧНОЙ ДОНАТ ДОБАВЛЕН');
+                    document.getElementById('donorNameInput').value = '';
+                    document.getElementById('donationAmountInput').value = '';
+                    document.getElementById('donationMessageInput').value = '';
+                } else {
+                    console.log('❌ ОШИБКА ДОБАВЛЕНИЯ ДОНАТА');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка ручного доната:', error);
+            }
+        }
+
+        // Обнуление суммы донатов
+        async function resetDonationTotal() {
+            if (!confirm('❓ Вы уверены что хотите обнулить сумму и количество донатов?')) {
+                return;
+            }
+            
+            try {
+                // Обнуляем количество донатов (удаляем все записи)
+                const resetResponse = await fetch('/api/reset-donations-count', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (resetResponse.ok) {
+                    console.log('✅ Сумма и количество донатов обнулены');
+                    // Обновляем отображение
+                    state.totalDonated = 0;
+                    document.getElementById('totalDonated').textContent = '0₽';
+                    
+                    // Показываем уведомление
+                    showNotification('Сумма и количество донатов обнулены', 'success');
+                } else {
+                    console.log('❌ Ошибка обнуления донатов');
+                    showNotification('Ошибка обнуления донатов', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка обнуления:', error);
+                showNotification('Ошибка обнуления донатов', 'error');
+            }
+        }
+
+        // Установка стартовой суммы
+        async function setStartingAmount() {
+            const currentAmount = state.totalDonated || 0;
+            const input = prompt(`💰 Установить стартовую сумму донатов (₽):\n\nТекущая сумма: ${currentAmount.toLocaleString()}₽`, '0');
+            
+            if (input === null) return; // Отменено
+            
+            const newAmount = Math.max(0, Math.floor(Number(input)) || 0);
+            
+            if (newAmount === currentAmount) {
+                showNotification('Сумма не изменилась', 'info');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        total_donated: newAmount 
+                    })
+                });
+                
+                if (response.ok) {
+                    console.log(`✅ Стартовая сумма установлена: ${newAmount}₽`);
+                    // Обновляем отображение
+                    state.totalDonated = newAmount;
+                    document.getElementById('totalDonated').textContent = newAmount.toLocaleString() + '₽';
+                    
+                    // Показываем уведомление
+                    showNotification(`Стартовая сумма установлена: ${newAmount.toLocaleString()}₽`, 'success');
+                } else {
+                    console.log('❌ Ошибка установки суммы');
+                    showNotification('Ошибка установки суммы', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка установки суммы:', error);
+                showNotification('Ошибка установки суммы', 'error');
+            }
+        }
+
+        // Функция для показа уведомлений
+        function showNotification(message, type = 'info') {
+            // Создаем элемент уведомления
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background: ${type === 'success' ? 'rgba(0, 255, 71, 0.9)' : type === 'error' ? 'rgba(255, 0, 60, 0.9)' : 'rgba(0, 212, 255, 0.9)'};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                font-weight: 600;
+                font-size: 0.9rem;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Анимация появления
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+            
+            // Автоматическое скрытие через 3 секунды
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // Сброс статистики
+        async function resetStats(mode) {
+            if (!confirm('❓ Вы уверены что хотите сбросить статистику?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/reset-stats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mode: mode })
+                });
+                
+                if (response.ok) {
+                    console.log('✅ Статистика сброшена');
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('❌ Ошибка сброса статистики:', error);
+            }
+        }
+
+        // Display functions
+        function updateDisplayWithAnimation() {
+            animateNumberChange('fragsNeeded', state.fragsNeeded);
+            animateNumberChange('fragsDone', state.fragsDone);
+            // Убираем анимацию для totalDonated - обновляем сразу
+            document.getElementById('totalDonated').textContent = state.totalDonated + '₽';
+            animateNumberChange('widgetFragsNeeded', state.fragsNeeded);
+            animateNumberChange('widgetFragsDone', state.fragsDone);
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const costPerUnit = state.fragCost / state.fragAmount;
+            const progressPercent = Math.min(100, (state.currentBalance / costPerUnit) * 100);
+            
+            // Обновляем текстовые поля
+            document.getElementById('fragsNeeded').textContent = state.fragsNeeded;
+            document.getElementById('fragsDone').textContent = state.fragsDone;
+            document.getElementById('totalDonated').textContent = state.totalDonated + '₽';
+            document.getElementById('current-frags').textContent = `${state.fragsDone}/${state.fragsNeeded}`;
+            
+            // Обновляем подписи с учетом названия единицы
+            document.getElementById('fragsNeededLabel').textContent = getUnitWord(state.fragsNeeded, state.fragName);
+            document.getElementById('fragsDoneLabel').textContent = getUnitWord(state.fragsDone, state.fragName);
+            
+            // Обновляем прогресс
+            document.getElementById('progressBar').style.width = progressPercent + '%';
+            document.getElementById('progressText').textContent = 
+                `${Math.floor(state.currentBalance)}₽ из ${costPerUnit.toFixed(0)}₽`;
+            document.getElementById('progressLabel').textContent = state.widgetProgressLabel;
+            document.getElementById('fragCostValue').textContent = costPerUnit.toFixed(0);
+            
+            // Обновляем цену
+            document.getElementById('currentPriceText').textContent = 
+                `${state.fragCost}₽ за ${state.fragAmount} ${getUnitWord(state.fragAmount, state.fragName)}`;
+            document.getElementById('pricePerUnit').textContent = costPerUnit.toFixed(0);
+            
+            // Обновляем виджет
+            document.getElementById('widgetFragsNeeded').textContent = state.fragsNeeded;
+            document.getElementById('widgetFragsDone').textContent = state.fragsDone;
+            document.getElementById('widgetFragsNeededLabel').textContent = state.widgetLeftLabel;
+            document.getElementById('widgetFragsDoneLabel').textContent = state.widgetRightLabel;
+            document.getElementById('widgetProgressBar').style.width = progressPercent + '%';
+            document.getElementById('widgetProgressText').textContent = 
+                `${Math.floor(state.currentBalance)}₽ из ${costPerUnit.toFixed(0)}₽`;
+            document.getElementById('widgetCostPerUnit').textContent = costPerUnit.toFixed(0);
+            
+            // Обновляем поля ввода
+            document.getElementById('fragCostInput').value = state.fragCost;
+            document.getElementById('fragAmountInput').value = state.fragAmount;
+            document.getElementById('fragNameInput').value = state.fragName;
+            document.getElementById('widgetLeftLabel').value = state.widgetLeftLabel;
+            document.getElementById('widgetRightLabel').value = state.widgetRightLabel;
+            document.getElementById('widgetProgressLabel').value = state.widgetProgressLabel;
+        }
+
+        function animateNumberChange(elementId, newValue) {
+            const element = document.getElementById(elementId);
+            if (element && element.textContent != newValue) {
+                const oldValue = parseInt(element.textContent) || 0;
+                const change = newValue - oldValue;
+                
+                // Определяем тип изменения по ID элемента
+                const isFragsNeeded = elementId === 'fragsNeeded';
+                const isFragsDone = elementId === 'fragsDone';
+                
+                // Добавляем анимацию изменения числа с цветом
+                if (isFragsNeeded && change < 0) {
+                    // Уменьшение остатка - красная анимация
+                    element.classList.add('number-changing-red');
+                } else if (isFragsDone && change > 0) {
+                    // Увеличение сделанных - зеленая анимация
+                    element.classList.add('number-changing-green');
+                } else {
+                    // Обычная анимация для других случаев
+                    element.classList.add('number-changing');
+                }
+                
+                // Анимация для виджета-превью
+                const widgetElement = document.getElementById('widget' + elementId.charAt(0).toUpperCase() + elementId.slice(1));
+                if (widgetElement && change !== 0) {
+                    if (isFragsNeeded && change < 0) {
+                        widgetElement.classList.add('number-changing-red');
+                    } else if (isFragsDone && change > 0) {
+                        widgetElement.classList.add('number-changing-green');
+                    } else {
+                        widgetElement.classList.add('number-changing');
+                    }
+                }
+                
+                setTimeout(() => {
+                    element.textContent = newValue;
+                    if (widgetElement) {
+                        widgetElement.textContent = newValue;
+                    }
+                    setTimeout(() => {
+                        element.classList.remove('number-changing', 'number-changing-red', 'number-changing-green');
+                        if (widgetElement) {
+                            widgetElement.classList.remove('number-changing', 'number-changing-red', 'number-changing-green');
+                        }
+                    }, 800);
+                }, 200);
+            }
+        }
+
+
+        function updateDonationList() {
+            const donationList = document.getElementById('donationList');
+            
+            if (state.donations.length === 0) {
+                donationList.innerHTML = '<div style="text-align: center; color: #666; padding: 30px;">ОЖИДАНИЕ ДОНАТОВ...</div>';
+                return;
+            }
+            
+            donationList.innerHTML = '';
+            
+            state.donations.forEach(donation => {
+                const item = document.createElement('div');
+                item.className = `donation-item ${donation.isRealtime ? 'realtime' : ''}`;
+                
+                let fragText = '';
+                if (donation.fragsEarned > 0) {
+                    fragText = `<div class="donation-frags">+${donation.fragsEarned} ${state.fragName}</div>`;
+                }
+                
+                item.innerHTML = `
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <div class="donation-name">${donation.username}</div>
+                            ${donation.isRealtime ? '<div style="color: var(--neon-green); font-size: 0.7rem; background: rgba(0,255,71,0.2); padding: 1px 4px; border-radius: 2px;">LIVE</div>' : ''}
+                        </div>
+                        <div class="donation-amount">${donation.amount}₽</div>
+                        ${donation.message ? `<div class="donation-message">${donation.message}</div>` : ''}
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: #666; font-size: 0.7rem;">${donation.timestamp}</div>
+                        ${fragText}
+                    </div>
+                `;
+                
+                donationList.appendChild(item);
+            });
+        }
+
+        function setupEventListeners() {
+            // Кнопки фрагов
+            document.getElementById('decrease-frags').addEventListener('click', () => changeFrags(-1));
+            document.getElementById('increase-frags').addEventListener('click', () => changeFrags(1));
+            document.getElementById('quick-add-frags').addEventListener('click', quickAddFrags);
+
+            // Быстрое списание 1-7
+            const quickSubtract = document.getElementById('quick-subtract-group');
+            quickSubtract.querySelectorAll('button[data-sub]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const n = parseInt(btn.getAttribute('data-sub')) || 1;
+                    changeFrags(-n);
+                });
+            });
+
+            // Ручное редактирование значений
+            document.getElementById('applyManualFragsNeeded').addEventListener('click', async () => {
+                const val = parseInt(document.getElementById('manualFragsNeeded').value);
+                if (Number.isFinite(val) && val >= 0) {
+                    try {
+                        await fetch('/api/state', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ frags_needed: val })
+                        });
+                    } catch (e) {}
+                }
+            });
+            document.getElementById('applyManualFragsDone').addEventListener('click', async () => {
+                const val = parseInt(document.getElementById('manualFragsDone').value);
+                if (Number.isFinite(val) && val >= 0) {
+                    try {
+                        await fetch('/api/state', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ frags_done: val })
+                        });
+                    } catch (e) {}
+                }
+            });
+
+            // Ручной донат
+            document.getElementById('addManualDonationBtn').addEventListener('click', addManualDonation);
+
+            // Ручная правка суммы всех донатов
+            const totalEl = document.getElementById('totalDonated');
+            if (totalEl) {
+                totalEl.style.cursor = 'pointer';
+                totalEl.title = 'Нажмите, чтобы вручную задать сумму всех донатов';
+                totalEl.addEventListener('click', async () => {
+                    try {
+                        const raw = prompt('Введите новую сумму всех донатов (₽):', String(state.totalDonated || 0));
+                        if (!raw) return;
+                        const val = Math.max(0, Math.floor(Number(raw)) || 0);
+                        await fetch('/api/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ total_donated: val }) });
+                    } catch {}
+                });
+            }
+            
+            // Управление ценой
+            document.getElementById('updatePriceBtn').addEventListener('click', updatePrice);
+            
+            // Настройки виджета
+            document.getElementById('updateWidgetLabelsBtn').addEventListener('click', updateWidgetLabels);
+
+            
+            // Enter для быстрого ввода
+            document.getElementById('quick-frag-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') quickAddFrags();
+            });
+            document.getElementById('donationAmountInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') addManualDonation();
+            });
+        }
+
+        // Функции для правильных окончаний
+        function getUnitWord(count, unitName) {
+            const specialCases = {
+                'фраг': ['фраг', 'фрага', 'фрагов'],
+                'монета': ['монета', 'монеты', 'монет'],
+                'очко': ['очко', 'очка', 'очков'],
+                'серебро': ['серебро', 'серебра', 'серебра']
+            };
+            
+            if (specialCases[unitName]) {
+                const cases = specialCases[unitName];
+                return getRussianPlural(count, cases);
+            }
+            
+            return getUniversalPlural(count, unitName);
+        }
+
+        function getRussianPlural(count, cases) {
+            const lastDigit = count % 10;
+            const lastTwoDigits = count % 100;
+            
+            if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+                return cases[2];
+            }
+            
+            if (lastDigit === 1) {
+                return cases[0];
+            }
+            
+            if (lastDigit >= 2 && lastDigit <= 4) {
+                return cases[1];
+            }
+            
+            return cases[2];
+        }
+
+        function getUniversalPlural(count, word) {
+            const lastDigit = count % 10;
+            const lastTwoDigits = count % 100;
+            
+            if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
+                return word;
+            }
+            
+            if (lastDigit === 1) {
+                return word;
+            }
+            
+            if (lastDigit >= 2 && lastDigit <= 4) {
+                return word;
+            }
+            
+            return word;
+        }
+
+        // ================= Inline Alert Overlay =================
+        // Simple overlay to preview alerts inside dashboard page
+        function ensureInlineAlertDOM() {
+            if (document.getElementById('inlineAlertContainer')) return;
+            const container = document.createElement('div');
+            container.id = 'inlineAlertContainer';
+            container.style.position = 'fixed';
+            container.style.top = '50%';
+            container.style.right = '20px';
+            container.style.transform = 'translateY(-50%) translateX(400px)';
+            container.style.transition = 'transform 0.5s ease-in-out, opacity 0.3s ease-in-out';
+            container.style.zIndex = '9999';
+
+            const card = document.createElement('div');
+            card.id = 'inlineAlertCard';
+            card.style.minWidth = '300px';
+            card.style.padding = '16px 20px';
+            card.style.border = '2px solid #b300ff';
+            card.style.borderRadius = '12px';
+            card.style.background = 'linear-gradient(135deg, rgba(10,10,20,0.9), rgba(20,20,30,0.9))';
+            card.style.boxShadow = '0 0 24px rgba(179,0,255,0.35)';
+            card.style.color = '#fff';
+            card.style.fontFamily = "Rajdhani, sans-serif";
+
+            card.innerHTML = `
+                <div style="text-align:center; color:#00ff47; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px;">НОВЫЙ ДОНАТ</div>
+                <div id="inlineDonor" style="text-align:center; color:#00f0ff; font-size:22px; font-weight:700; text-shadow:0 0 10px rgba(0,240,255,0.5)">Имя</div>
+                <div id="inlineAmount" style="text-align:center; color:#ffff00; font-size:28px; font-weight:800; margin:8px 0; text-shadow:0 0 15px rgba(255,255,0,0.6)">0₽</div>
+                <div id="inlineMessage" style="text-align:center; color:#aaa; font-size:14px; font-style:italic; margin-bottom:6px;"></div>
+                <div id="inlineUnitsWrap" style="margin-top:6px; text-align:center;">
+                    <span id="inlineUnits" style="color:#00ff47; font-size:22px; font-weight:800; text-shadow:0 0 20px rgba(0,255,71,0.7)"></span>
+                </div>
+            `;
+
+            container.appendChild(card);
+            document.body.appendChild(container);
+        }
+
+        function showInlineAlert(donation) {
+            ensureInlineAlertDOM();
+            const container = document.getElementById('inlineAlertContainer');
+            document.getElementById('inlineDonor').textContent = donation.username || 'Аноним';
+            document.getElementById('inlineAmount').textContent = `${Math.floor(donation.amount || 0)}₽`;
+            document.getElementById('inlineMessage').textContent = donation.message || '';
+
+            const units = donation.fragsEarned || donation.unitsEarned || 0;
+            const unitName = donation.fragUnitName || donation.unitName || 'фрагов';
+            const unitsEl = document.getElementById('inlineUnits');
+            const wrapEl = document.getElementById('inlineUnitsWrap');
+            if (units > 0) {
+                unitsEl.textContent = `+${units} ${unitName}`;
+                wrapEl.style.display = 'block';
+            } else {
+                wrapEl.style.display = 'none';
+            }
+
+            container.style.opacity = '1';
+            container.style.transform = 'translateY(-50%) translateX(0)';
+
+            clearTimeout(showInlineAlert._t);
+            showInlineAlert._t = setTimeout(hideInlineAlert, 10000);
+        }
+
+        function hideInlineAlert() {
+            const container = document.getElementById('inlineAlertContainer');
+            if (!container) return;
+            container.style.transform = 'translateY(-50%) translateX(400px)';
+            container.style.opacity = '0';
+        }
+
+        console.log('✅ РЕЖИМ 1 ИНИЦИАЛИЗИРОВАН');
+        // ================= Theme (Mode1) =================
+        (function initThemePanelM1(){
+            const toggle = document.getElementById('themeSettingsToggle_m1');
+            const panel = document.getElementById('themeSettingsPanel_m1');
+            const closeBtn = document.getElementById('themeSettingsClose_m1');
+            const saveBtn = document.getElementById('m1_saveTheme');
+            const resetBtn = document.getElementById('m1_resetTheme');
+
+            function loadLocal(){
+                try { return JSON.parse(localStorage.getItem('theme_mode1')||'null'); } catch { return null; }
+            }
+            function saveLocal(theme){ localStorage.setItem('theme_mode1', JSON.stringify(theme)); }
+            function applyTheme(theme){
+                if (!theme || !theme.cssVars) return;
+                Object.keys(theme.cssVars).forEach(k=>document.documentElement.style.setProperty(k, theme.cssVars[k]));
+            }
+            function readInputs(){
+                return {
+                    cssVars: {
+                        '--widget-stats-value-size': (parseFloat(document.getElementById('m1_sizeStatsValue').value)||1.5)+'rem',
+                        '--widget-progress-text-size': (parseFloat(document.getElementById('m1_sizeProgressText').value)||0.8)+'rem',
+                        '--widget-cost-font-size': (parseFloat(document.getElementById('m1_sizeCostInfo').value)||0.8)+'rem',
+                        '--neon-red': document.getElementById('m1_colorRed').value,
+                        '--neon-blue': document.getElementById('m1_colorBlue').value,
+                        '--neon-purple': document.getElementById('m1_colorPurple').value,
+                        '--neon-green': document.getElementById('m1_colorGreen').value,
+                        '--neon-yellow': document.getElementById('m1_colorYellow').value,
+                        '--strip-color': document.getElementById('m1_colorStrip').value
+                    }
+                };
+            }
+
+            // init UI
+            toggle.addEventListener('click', ()=> panel.style.display = (panel.style.display==='none'||panel.style.display==='')?'block':'none');
+            closeBtn.addEventListener('click', ()=> panel.style.display = 'none');
+            saveBtn.addEventListener('click', async ()=>{
+                const theme = readInputs();
+                applyTheme(theme);
+                saveLocal(theme);
+                try {
+                    await fetch('/api/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ theme_mode1: theme }) });
+                } catch {}
+            });
+            resetBtn.addEventListener('click', async ()=>{
+                localStorage.removeItem('theme_mode1');
+                const defaults = readInputs(); // read current inputs as base
+                applyTheme({ cssVars: {
+                    '--widget-stats-value-size': '1.5rem',
+                    '--widget-progress-text-size': '0.8rem',
+                    '--widget-cost-font-size': '0.8rem',
+                    '--neon-red': '#ff003c',
+                    '--neon-blue': '#00f0ff',
+                    '--neon-purple': '#b300ff',
+                    '--neon-green': '#00ff47',
+                    '--neon-yellow': '#ffff00',
+                    '--strip-color': '#00f0ff'
+                }});
+                try { await fetch('/api/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ theme_mode1: null }) }); } catch {}
+            });
+
+            // apply initial (server + local)
+            (function applyInitial(){
+                // from websocket INIT_STATE already applied elsewhere; also apply local override
+                const local = loadLocal();
+                if (local) applyTheme(local);
+            })();
+        })();
+    </script>
+</body>
+</html>

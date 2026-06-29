@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление наградами - Frag Tracker</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body { font-family: 'Inter', sans-serif; }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: #333;
+        }
+
+        .btn { padding: 10px 20px; }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card { padding: 20px; }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .rewards-list { overflow: hidden; }
+
+        .reward-item { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+
+        .reward-item:last-child {
+            border-bottom: none;
+        }
+
+        .reward-info h3 {
+            margin-bottom: 5px;
+        }
+
+        .reward-info p {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .reward-meta {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* Badges используют стили из global.css, дополнительные варианты остаются */
+        .badge-trigger {
+            border-color: rgba(102, 126, 234, 0.4);
+        }
+
+        .badge-action {
+            border-color: rgba(79, 172, 254, 0.4);
+        }
+
+        .reward-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Modal использует стили из global.css */
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body class="theme-neon">
+    <div class="container">
+        <div class="header">
+            <h1>🎁 Управление наградами</h1>
+            <button class="btn btn-primary" onclick="openCreateModal()">+ Создать награду</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Всего наград</h3>
+                <div class="stat-value" id="total-rewards">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Активных</h3>
+                <div class="stat-value" id="enabled-rewards">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>Всего срабатываний</h3>
+                <div class="stat-value" id="total-triggers">-</div>
+            </div>
+        </div>
+
+        <div class="rewards-list" id="rewards-list">
+            <div class="empty-state">
+                <h3>Награды не найдены</h3>
+                <p>Создайте первую награду</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания/редактирования -->
+    <div class="modal" id="reward-modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Создать награду</h2>
+            <form id="reward-form">
+                <div class="form-group">
+                    <label>Название награды</label>
+                    <input type="text" name="name" required placeholder="Например: Большой донат">
+                </div>
+
+                <div class="form-group">
+                    <label>Описание</label>
+                    <textarea name="description" placeholder="Описание награды"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Тип триггера</label>
+                    <select name="trigger_type" required onchange="updateTriggerHelp(this.value)">
+                        <option value="donation_amount">Сумма доната</option>
+                        <option value="donation_goal">Достижение цели донатов</option>
+                        <option value="frag_count">Количество фрагов</option>
+                        <option value="timer_expired">Таймер истек</option>
+                        <option value="custom_goal">Кастомная цель</option>
+                    </select>
+                    <small id="trigger-help" style="color: #666; font-size: 12px;"></small>
+                </div>
+
+                <div class="form-group">
+                    <label>Значение триггера</label>
+                    <input type="number" name="trigger_value" required placeholder="Например: 1000">
+                </div>
+
+                <div class="form-group">
+                    <label>Тип действия</label>
+                    <select name="action_type" required onchange="updateActionForm(this.value)">
+                        <option value="alert">Алерт</option>
+                        <option value="webhook">Webhook</option>
+                        <option value="sound">Звук</option>
+                        <option value="chat_message">Сообщение в чат</option>
+                    </select>
+                </div>
+
+                <div id="action-fields"></div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="repeat_enabled"> Может срабатывать несколько раз
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="enabled" checked> Активна
+                    </label>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let rewards = [];
+
+        async function loadRewards() {
+            try {
+                const response = await fetch('/api/rewards');
+                const data = await response.json();
+                
+                if (data.success) {
+                    rewards = data.data;
+                    renderRewards();
+                }
+
+                // Загружаем статистику
+                const statsResponse = await fetch('/api/rewards/stats');
+                const statsData = await statsResponse.json();
+                
+                if (statsData.success) {
+                    updateStats(statsData.data);
+                }
+            } catch (error) {
+                console.error('Error loading rewards:', error);
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('total-rewards').textContent = stats.total || 0;
+            document.getElementById('enabled-rewards').textContent = stats.enabled || 0;
+            document.getElementById('total-triggers').textContent = stats.total_triggers || 0;
+        }
+
+        function renderRewards() {
+            const list = document.getElementById('rewards-list');
+            
+            if (rewards.length === 0) {
+                list.innerHTML = '<div class="empty-state"><h3>Награды не найдены</h3><p>Создайте первую награду</p></div>';
+                return;
+            }
+
+            list.innerHTML = rewards.map(reward => `
+                <div class="reward-item">
+                    <div class="reward-info">
+                        <h3>${reward.name}</h3>
+                        <p>${reward.description || ''}</p>
+                        <div class="reward-meta">
+                            <span class="badge badge-trigger">${getTriggerLabel(reward.trigger_type)}: ${reward.trigger_value}</span>
+                            <span class="badge badge-action">${getActionLabel(reward.action_type)}</span>
+                            <span class="badge ${reward.enabled ? 'badge-enabled' : 'badge-disabled'}">
+                                ${reward.enabled ? 'Активна' : 'Выключена'}
+                            </span>
+                            <span class="badge">Срабатываний: ${reward.times_triggered || 0}</span>
+                        </div>
+                    </div>
+                    <div class="reward-actions">
+                        <button class="btn btn-sm btn-success" onclick="testReward(${reward.id})">Тест</button>
+                        <button class="btn btn-sm btn-primary" onclick="toggleReward(${reward.id}, ${!reward.enabled})">
+                            ${reward.enabled ? 'Выключить' : 'Включить'}
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteReward(${reward.id})">Удалить</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getTriggerLabel(type) {
+            const labels = {
+                'donation_amount': '💰 Сумма доната',
+                'donation_goal': '🎯 Цель донатов',
+                'frag_count': '🎮 Количество фрагов',
+                'timer_expired': '⏱️ Таймер',
+                'custom_goal': '🎁 Кастомная цель'
+            };
+            return labels[type] || type;
+        }
+
+        function getActionLabel(type) {
+            const labels = {
+                'alert': '🚨 Алерт',
+                'webhook': '🔗 Webhook',
+                'sound': '🔊 Звук',
+                'chat_message': '💬 Чат',
+                'command': '⚙️ Команда'
+            };
+            return labels[type] || type;
+        }
+
+        function openCreateModal() {
+            document.getElementById('modal-title').textContent = 'Создать награду';
+            document.getElementById('reward-form').reset();
+            updateActionForm('alert');
+            document.getElementById('reward-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('reward-modal').classList.remove('active');
+        }
+
+        function updateActionForm(actionType) {
+            const container = document.getElementById('action-fields');
+            
+            let html = '';
+            switch (actionType) {
+                case 'alert':
+                    html = `
+                        <div class="form-group">
+                            <label>Заголовок алерта</label>
+                            <input type="text" name="action_title" placeholder="Заголовок">
+                        </div>
+                        <div class="form-group">
+                            <label>Сообщение</label>
+                            <textarea name="action_message" placeholder="Текст алерта"></textarea>
+                        </div>
+                    `;
+                    break;
+                case 'webhook':
+                    html = `
+                        <div class="form-group">
+                            <label>URL webhook</label>
+                            <input type="url" name="action_url" required placeholder="https://example.com/webhook">
+                        </div>
+                    `;
+                    break;
+                case 'sound':
+                    html = `
+                        <div class="form-group">
+                            <label>URL звукового файла</label>
+                            <input type="url" name="action_sound_url" required placeholder="https://example.com/sound.mp3">
+                        </div>
+                    `;
+                    break;
+                case 'chat_message':
+                    html = `
+                        <div class="form-group">
+                            <label>Сообщение в чат</label>
+                            <textarea name="action_message" required placeholder="Текст сообщения"></textarea>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function updateTriggerHelp(triggerType) {
+            const help = document.getElementById('trigger-help');
+            const helps = {
+                'donation_amount': 'Срабатывает когда донат >= указанной суммы',
+                'donation_goal': 'Срабатывает при достижении цели сбора',
+                'frag_count': 'Срабатывает при достижении количества фрагов',
+                'timer_expired': 'Срабатывает когда таймер истекает',
+                'custom_goal': 'Срабатывает при достижении кастомной цели'
+            };
+            help.textContent = helps[triggerType] || '';
+        }
+
+        document.getElementById('reward-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                name: formData.get('name'),
+                description: formData.get('description'),
+                trigger_type: formData.get('trigger_type'),
+                trigger_value: parseFloat(formData.get('trigger_value')),
+                action_type: formData.get('action_type'),
+                repeat_enabled: formData.get('repeat_enabled') ? 1 : 0,
+                enabled: formData.get('enabled') ? 1 : 0
+            };
+
+            // Собираем action_data в зависимости от типа
+            const actionData = {};
+            if (data.action_type === 'alert') {
+                actionData.title = formData.get('action_title');
+                actionData.message = formData.get('action_message');
+            } else if (data.action_type === 'webhook') {
+                actionData.url = formData.get('action_url');
+            } else if (data.action_type === 'sound') {
+                actionData.sound_url = formData.get('action_sound_url');
+            } else if (data.action_type === 'chat_message') {
+                actionData.message = formData.get('action_message');
+            }
+            
+            data.action_data = JSON.stringify(actionData);
+
+            try {
+                const response = await fetch('/api/rewards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeModal();
+                    loadRewards();
+                    alert('Награда создана успешно!');
+                } else {
+                    alert('Ошибка: ' + (result.error?.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error creating reward:', error);
+                alert('Ошибка создания награды');
+            }
+        });
+
+        async function toggleReward(id, enabled) {
+            try {
+                const response = await fetch(`/api/rewards/${id}/toggle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadRewards();
+                }
+            } catch (error) {
+                console.error('Error toggling reward:', error);
+            }
+        }
+
+        async function testReward(id) {
+            try {
+                const response = await fetch(`/api/rewards/${id}/test`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Награда протестирована успешно!');
+                    loadRewards();
+                }
+            } catch (error) {
+                console.error('Error testing reward:', error);
+            }
+        }
+
+        async function deleteReward(id) {
+            if (!confirm('Удалить награду?')) return;
+
+            try {
+                const response = await fetch(`/api/rewards/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadRewards();
+                }
+            } catch (error) {
+                console.error('Error deleting reward:', error);
+            }
+        }
+
+        // Закрытие модального окна по клику вне его
+        document.getElementById('reward-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'reward-modal') {
+                closeModal();
+            }
+        });
+
+        // Загружаем при старте
+        loadRewards();
+
+        // Автообновление
+        setInterval(loadRewards, 30000);
+    </script>
+</body>
+</html>
+
+
+
+

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alert - Mode 2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --neon-yellow: #ffff00;
+            --neon-orange: #ff7700;
+            --alert-opacity: 0.95;
+        }
+
+        body {
+            background: transparent;
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .alert-container {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%) translateX(400px);
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .alert-visible {
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .alert-card {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, var(--alert-opacity)) 0%,
+                rgba(8, 8, 20, calc(var(--alert-opacity) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--alert-opacity) * 0.85)) 100%
+            );
+            border: 2px solid rgba(0, 240, 255, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            min-width: 300px;
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 30px rgba(0, 240, 255, 0.3);
+        }
+
+        .alert-header {
+            color: var(--neon-green);
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+
+        .donor-name {
+            color: var(--neon-blue);
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .donor-achievement-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .donation-amount {
+            color: var(--neon-yellow);
+            font-size: 2.2rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            text-shadow: 0 0 15px rgba(255, 255, 0, 0.6);
+        }
+
+        .time-container {
+            background: rgba(255, 165, 0, 0.3);
+            border: 2px solid var(--neon-orange);
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .time-earned {
+            color: var(--neon-yellow);
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 255, 0, 0.8);
+        }
+
+
+        .alert-hide {
+            animation: slideOut 0.5s ease-in-out forwards;
+        }
+
+        @keyframes slideOut {
+            to {
+                transform: translateY(-50%) translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .pulse {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 30px rgba(0, 240, 255, 0.4); }
+            50% { box-shadow: 0 0 50px rgba(0, 240, 255, 0.8); }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="alert-container" id="alertContainer">
+        <div class="alert-card" id="alertCard">
+            <div class="alert-header">ДОБАВИЛ ВРЕМЯ</div>
+            <div class="donor-name" id="donorName">
+                <span class="donor-achievement-icon" id="donorAchievementIcon" style="display: none;"></span>
+                <span id="donorNameText">ИМЯ ДОНАТЕРА</span>
+            </div>
+            <div class="donation-amount" id="donationAmount">100₽</div>
+            <div class="time-container">
+                <div class="time-earned" id="timeEarned">+2:00 минут</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentAlert = null;
+        let alertTimeout = null;
+        let alertOpacity = 0.95;
+        let ws = null;
+
+        // WebSocket connection for real-time alerts
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws?type=alert`;
+                
+                console.log('🔌 Alert Mode 2: Подключение к WebSocket:', wsUrl);
+                
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ Alert Mode 2: WebSocket подключен для алертов');
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        console.log('🚨 ALERT CLIENT RECEIVED:', message.type, message);
+                        
+                        if (message.type === 'SET_ALERT_OPACITY') {
+                            setAlertOpacity(message.opacity);
+                        } else if (message.type === 'SHOW_ALERT' && message.donation) {
+                            if (message.donation.alertMode && message.donation.alertMode !== 'mode2') return;
+                            console.log('🎯 SHOW_ALERT triggered:', message.donation);
+                            showAlert(message.donation);
+                        }
+                    } catch (error) {
+                        console.error('❌ Alert Mode 2: Ошибка обработки сообщения:', error);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    console.log('🔌 Alert Mode 2: WebSocket отключен');
+                    setTimeout(connectWebSocket, 3000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('❌ Alert Mode 2: WebSocket ошибка:', error);
+                };
+                
+            } catch (error) {
+                console.error('❌ Alert Mode 2: Ошибка подключения WebSocket:', error);
+            }
+        }
+
+        function setAlertOpacity(opacity) {
+            alertOpacity = opacity;
+            document.documentElement.style.setProperty('--alert-opacity', opacity);
+        }
+
+        function showAlert(donation) {
+            // Clear any existing alert
+            if (currentAlert) {
+                hideCurrentAlert();
+            }
+
+            console.log('🎯 Alert Mode 2: Обновление алерта:', donation);
+
+            // Update alert content
+            document.getElementById('donorNameText').textContent = donation.username || 'Аноним';
+            document.getElementById('donationAmount').textContent = (donation.amount || 0) + '₽';
+            
+            // Update achievement icon if available
+            const achievementIcon = document.getElementById('donorAchievementIcon');
+            if (donation.donorAchievement && donation.donorAchievement.icon) {
+                achievementIcon.textContent = donation.donorAchievement.icon;
+                achievementIcon.style.color = donation.donorAchievement.color || '#00f0ff';
+                achievementIcon.style.display = 'inline-block';
+            } else {
+                achievementIcon.style.display = 'none';
+            }
+            
+            // Update time earned with bright colors
+            if (donation.timeEarned > 0) {
+                const timeFormatted = formatTimeDetailed(donation.timeEarned);
+                document.getElementById('timeEarned').textContent = `+${timeFormatted}`;
+                document.getElementById('timeEarned').style.display = 'block';
+            } else {
+                document.getElementById('timeEarned').style.display = 'none';
+            }
+
+            // Show alert with animation
+            const alertContainer = document.getElementById('alertContainer');
+            const alertCard = document.getElementById('alertCard');
+            
+            alertContainer.classList.remove('alert-hide');
+            alertContainer.classList.add('alert-visible');
+            alertCard.classList.add('pulse');
+
+            currentAlert = donation;
+
+            // Auto hide after 8 seconds
+            alertTimeout = setTimeout(() => {
+                hideCurrentAlert();
+            }, 8000);
+        }
+
+        function hideCurrentAlert() {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertCard = document.getElementById('alertCard');
+            
+            alertCard.classList.remove('pulse');
+            alertContainer.classList.remove('alert-visible');
+            alertContainer.classList.add('alert-hide');
+            
+            if (alertTimeout) {
+                clearTimeout(alertTimeout);
+                alertTimeout = null;
+            }
+            
+            currentAlert = null;
+        }
+
+        function formatTimeDetailed(seconds) {
+            if (seconds < 60) {
+                return `${seconds} сек`;
+            } else if (seconds < 3600) {
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                return secs > 0 ? `${minutes}:${secs.toString().padStart(2, '0')} мин` : `${minutes} мин`;
+            } else {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                return minutes > 0 ? `${hours}:${minutes.toString().padStart(2, '0')} ч` : `${hours} ч`;
+            }
+        }
+
+        // Test function for preview
+        function testAlert() {
+            showAlert({
+                username: 'Тестовый Донатер',
+                amount: 150,
+                message: 'Это тестовый донат! 🎉',
+                timeEarned: 180,
+                timeFormatted: '3:00 минут'
+            });
+        }
+
+        // Initialize WebSocket connection
+        connectWebSocket();
+
+        // Auto-test on load for preview
+        setTimeout(testAlert, 1000);
+    </script>
+</body>
+</html>

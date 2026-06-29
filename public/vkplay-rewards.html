@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление наградами и ролями VK Play</title>
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <style>
+        .rewards-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-xl);
+            padding-top: calc(80px + var(--spacing-xl));
+        }
+
+        .section {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--color-neon-blue);
+            margin-bottom: var(--spacing-md);
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            transition: color var(--transition-base);
+        }
+
+        .section-title:hover {
+            color: var(--color-neon-purple);
+        }
+
+        .section-title::before {
+            content: '▼';
+            font-size: 0.8rem;
+            transition: transform var(--transition-base);
+        }
+
+        .section-title.collapsed::before {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            transition: max-height var(--transition-base), opacity var(--transition-base);
+            overflow: hidden;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .section-content:not(.collapsed) {
+            max-height: 5000px;
+            opacity: 1;
+        }
+
+        .rewards-grid, .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .reward-card, .role-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            transition: all var(--transition-base);
+        }
+
+        .reward-card:hover, .role-card:hover {
+            border-color: var(--color-neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .reward-name, .role-name {
+            font-weight: 600;
+            color: var(--color-light);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .reward-price {
+            color: var(--color-neon-green);
+            font-size: 0.9rem;
+        }
+
+        .reward-description {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-top: var(--spacing-xs);
+        }
+
+        .mappings-list {
+            display: grid;
+            gap: var(--spacing-sm);
+        }
+
+        .mapping-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--spacing-md);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+        }
+
+        .mapping-info {
+            flex: 1;
+        }
+
+        .mapping-reward {
+            font-weight: 600;
+            color: var(--color-neon-blue);
+        }
+
+        .mapping-arrow {
+            margin: 0 var(--spacing-sm);
+            color: var(--color-neon-purple);
+        }
+
+        .mapping-role {
+            font-weight: 600;
+            color: var(--color-neon-green);
+        }
+
+        .mapping-actions {
+            display: flex;
+            gap: var(--spacing-xs);
+        }
+
+        .btn-icon {
+            padding: 6px 10px;
+            font-size: 0.85rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-2xl);
+            color: var(--muted);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: var(--spacing-xs);
+        }
+
+        .status-enabled {
+            background: rgba(0, 255, 71, 0.2);
+            color: var(--color-neon-green);
+        }
+
+        .status-disabled {
+            background: rgba(255, 107, 107, 0.2);
+            color: var(--color-neon-red);
+        }
+
+        .status-error {
+            background: rgba(255, 193, 7, 0.2);
+            color: var(--color-neon-yellow);
+        }
+
+        .history-list {
+            display: grid;
+            gap: var(--spacing-sm);
+        }
+
+        .history-item {
+            padding: var(--spacing-md);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-base);
+        }
+
+        .history-item:hover {
+            border-color: var(--glass-border-hover);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .history-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-xs);
+        }
+
+        .history-user {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            font-size: 1rem;
+            color: var(--color-light);
+        }
+
+        .history-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .history-details {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            margin-top: var(--spacing-xs);
+        }
+
+        .history-reward {
+            color: var(--color-neon-blue);
+            font-weight: 600;
+        }
+
+        .history-arrow {
+            color: var(--color-neon-purple);
+        }
+
+        .history-role {
+            color: var(--color-neon-green);
+            font-weight: 600;
+        }
+
+        .history-reason {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85rem;
+            margin-top: var(--spacing-xs);
+            font-style: italic;
+        }
+
+        .history-date {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+            margin-top: var(--spacing-xs);
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar-container"></div>
+
+    <div class="rewards-container">
+        <h1 class="section-title">🎁 Управление наградами и ролями VK Play</h1>
+        <p style="color: var(--muted); margin-bottom: var(--spacing-lg);">
+            Настройте автоматическую выдачу ролей при активации наград
+        </p>
+
+        <div class="section">
+            <h2 class="section-title">📋 Связи награда → роль</h2>
+            <div id="mappings-container">
+                <div class="empty-state">Загрузка...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title" onclick="toggleSection('rewards')">🎁 Доступные награды</h2>
+            <div id="rewards-container" class="section-content">
+                <div class="empty-state">Загрузка...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title" onclick="toggleSection('roles')">👤 Доступные роли</h2>
+            <div id="roles-container" class="section-content">
+                <div class="empty-state">Загрузка...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">➕ Создать новую связь</h2>
+            <form id="mapping-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Награда</label>
+                        <select id="reward-select" class="form-select" required>
+                            <option value="">Выберите награду...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Роль</label>
+                        <select id="role-select" class="form-select" required>
+                            <option value="">Выберите роль...</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Создать связь</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📜 История выдачи ролей</h2>
+            <div style="margin-bottom: var(--spacing-md); display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+                <button class="btn btn-ghost" onclick="loadHistory('all')" id="filter-all">Все</button>
+                <button class="btn btn-ghost" onclick="loadHistory('assigned')" id="filter-assigned">Выдано</button>
+                <button class="btn btn-ghost" onclick="loadHistory('rejected')" id="filter-rejected">Отклонено</button>
+                <button class="btn btn-ghost" onclick="loadHistory('error')" id="filter-error">Ошибки</button>
+            </div>
+            <div id="history-container">
+                <div class="empty-state">Загрузка истории...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rewards = [];
+        let roles = [];
+        let mappings = [];
+
+        // Функция для сворачивания/разворачивания секций
+        function toggleSection(sectionName) {
+            const containerId = sectionName === 'rewards' ? 'rewards-container' : 'roles-container';
+            const content = document.getElementById(containerId);
+            const title = content.previousElementSibling;
+            
+            if (title && content) {
+                title.classList.toggle('collapsed');
+                content.classList.toggle('collapsed');
+            }
+        }
+        
+        // Инициализация: сворачиваем секции по умолчанию
+        function initCollapsedSections() {
+            const rewardsContent = document.getElementById('rewards-container');
+            const rolesContent = document.getElementById('roles-container');
+            
+            if (rewardsContent) {
+                const rewardsTitle = rewardsContent.previousElementSibling;
+                if (rewardsTitle) {
+                    rewardsTitle.classList.add('collapsed');
+                    rewardsContent.classList.add('collapsed');
+                }
+            }
+            if (rolesContent) {
+                const rolesTitle = rolesContent.previousElementSibling;
+                if (rolesTitle) {
+                    rolesTitle.classList.add('collapsed');
+                    rolesContent.classList.add('collapsed');
+                }
+            }
+        }
+
+        // Загрузка данных
+        async function loadData() {
+            await Promise.all([
+                loadRewards(),
+                loadRoles(),
+                loadMappings()
+            ]);
+            updateSelects();
+            // Инициализируем сворачивание после загрузки данных
+            setTimeout(initCollapsedSections, 100);
+        }
+
+        async function loadRewards() {
+            try {
+                const response = await fetch('/api/vkplay/rewards');
+                if (response.ok) {
+                    const data = await response.json();
+                    rewards = data.data?.rewards || [];
+                    renderRewards();
+                } else {
+                    document.getElementById('rewards-container').innerHTML = 
+                        '<div class="empty-state">Ошибка загрузки наград. Убедитесь, что VK Play подключен.</div>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки наград:', error);
+                document.getElementById('rewards-container').innerHTML = 
+                    '<div class="empty-state">Ошибка загрузки наград</div>';
+            }
+        }
+
+        async function loadRoles() {
+            try {
+                const response = await fetch('/api/vkplay/roles');
+                if (response.ok) {
+                    const data = await response.json();
+                    roles = data.data?.roles || [];
+                    renderRoles();
+                } else {
+                    document.getElementById('roles-container').innerHTML = 
+                        '<div class="empty-state">Ошибка загрузки ролей. Убедитесь, что VK Play подключен.</div>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки ролей:', error);
+                document.getElementById('roles-container').innerHTML = 
+                    '<div class="empty-state">Ошибка загрузки ролей</div>';
+            }
+        }
+
+        async function loadMappings() {
+            try {
+                const response = await fetch('/api/vkplay/reward-roles');
+                if (response.ok) {
+                    const data = await response.json();
+                    mappings = data.rewardRoles || [];
+                    renderMappings();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки связей:', error);
+            }
+        }
+
+        function renderRewards() {
+            const container = document.getElementById('rewards-container');
+            if (rewards.length === 0) {
+                container.innerHTML = '<div class="empty-state">Награды не найдены</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="rewards-grid"></div>';
+            const grid = container.querySelector('.rewards-grid');
+
+            rewards.forEach(reward => {
+                const card = document.createElement('div');
+                card.className = 'reward-card';
+                card.innerHTML = `
+                    <div class="reward-name">${reward.name}</div>
+                    <div class="reward-price">${reward.price} баллов</div>
+                    ${reward.description ? `<div class="reward-description">${reward.description}</div>` : ''}
+                    <div style="margin-top: var(--spacing-xs); font-size: 0.75rem; color: var(--muted);">
+                        ID: ${reward.id}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderRoles() {
+            const container = document.getElementById('roles-container');
+            if (roles.length === 0) {
+                container.innerHTML = '<div class="empty-state">Роли не найдены</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="roles-grid"></div>';
+            const grid = container.querySelector('.roles-grid');
+
+            roles.forEach(role => {
+                const card = document.createElement('div');
+                card.className = 'role-card';
+                card.innerHTML = `
+                    <div class="role-name">${role.name}</div>
+                    <div style="margin-top: var(--spacing-xs); font-size: 0.75rem; color: var(--muted);">
+                        ID: ${role.id}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderMappings() {
+            const container = document.getElementById('mappings-container');
+            if (mappings.length === 0) {
+                container.innerHTML = '<div class="empty-state">Связи не созданы. Создайте первую связь ниже.</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="mappings-list"></div>';
+            const list = container.querySelector('.mappings-list');
+
+            mappings.forEach(mapping => {
+                const item = document.createElement('div');
+                item.className = 'mapping-item';
+                item.innerHTML = `
+                    <div class="mapping-info">
+                        <span class="mapping-reward">${mapping.reward_name}</span>
+                        <span class="mapping-arrow">→</span>
+                        <span class="mapping-role">${mapping.role_name}</span>
+                        <span class="status-badge ${mapping.enabled ? 'status-enabled' : 'status-disabled'}">
+                            ${mapping.enabled ? 'Активна' : 'Отключена'}
+                        </span>
+                    </div>
+                    <div class="mapping-actions">
+                        <button class="btn btn-ghost btn-icon" onclick="toggleMapping(${mapping.id}, ${!mapping.enabled})">
+                            ${mapping.enabled ? 'Отключить' : 'Включить'}
+                        </button>
+                        <button class="btn btn-danger btn-icon" onclick="deleteMapping(${mapping.id})">Удалить</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function updateSelects() {
+            const rewardSelect = document.getElementById('reward-select');
+            const roleSelect = document.getElementById('role-select');
+
+            // Очищаем и заполняем награды
+            rewardSelect.innerHTML = '<option value="">Выберите награду...</option>';
+            rewards.forEach(reward => {
+                const option = document.createElement('option');
+                option.value = reward.id;
+                option.textContent = `${reward.name} (${reward.price} баллов)`;
+                rewardSelect.appendChild(option);
+            });
+
+            // Очищаем и заполняем роли
+            roleSelect.innerHTML = '<option value="">Выберите роль...</option>';
+            roles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role.id;
+                option.textContent = role.name;
+                roleSelect.appendChild(option);
+            });
+        }
+
+        // Создание связи
+        document.getElementById('mapping-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const rewardId = document.getElementById('reward-select').value;
+            const roleId = document.getElementById('role-select').value;
+
+            if (!rewardId || !roleId) {
+                alert('Выберите награду и роль');
+                return;
+            }
+
+            const reward = rewards.find(r => r.id === rewardId);
+            const role = roles.find(r => r.id === roleId);
+
+            try {
+                const response = await fetch('/api/vkplay/reward-roles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reward_id: rewardId,
+                        reward_name: reward.name,
+                        role_id: roleId,
+                        role_name: role.name,
+                        enabled: true
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('mapping-form').reset();
+                    await loadMappings();
+                    showNotification('Связь создана успешно', 'success');
+                } else {
+                    const error = await response.json();
+                    alert('Ошибка: ' + (error.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                console.error('Ошибка создания связи:', error);
+                alert('Ошибка создания связи');
+            }
+        });
+
+        // Удаление связи
+        async function deleteMapping(id) {
+            if (!confirm('Удалить эту связь?')) return;
+
+            try {
+                const response = await fetch(`/api/vkplay/reward-roles/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    await loadMappings();
+                    showNotification('Связь удалена', 'success');
+                } else {
+                    alert('Ошибка удаления связи');
+                }
+            } catch (error) {
+                console.error('Ошибка удаления связи:', error);
+                alert('Ошибка удаления связи');
+            }
+        }
+
+        // Переключение активности связи
+        async function toggleMapping(id, enabled) {
+            const mapping = mappings.find(m => m.id === id);
+            if (!mapping) return;
+
+            try {
+                const response = await fetch('/api/vkplay/reward-roles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reward_id: mapping.reward_id,
+                        reward_name: mapping.reward_name,
+                        role_id: mapping.role_id,
+                        role_name: mapping.role_name,
+                        enabled: enabled
+                    })
+                });
+
+                if (response.ok) {
+                    await loadMappings();
+                    showNotification(enabled ? 'Связь включена' : 'Связь отключена', 'success');
+                } else {
+                    alert('Ошибка обновления связи');
+                }
+            } catch (error) {
+                console.error('Ошибка обновления связи:', error);
+                alert('Ошибка обновления связи');
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type} show`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                background: ${type === 'error' ? 'var(--gradient-danger)' : 'var(--gradient-success)'};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: var(--shadow-lg);
+                z-index: 10000;
+                transform: translateX(400px);
+                transition: transform 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+            }, 100);
+
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Загрузка navbar
+        fetch('/components/navbar.html')
+            .then(res => res.text())
+            .then(html => {
+                document.getElementById('navbar-container').innerHTML = html;
+            });
+
+        // История выдачи ролей
+        let currentHistoryFilter = 'all';
+
+        async function loadHistory(status = 'all') {
+            currentHistoryFilter = status;
+            const container = document.getElementById('history-container');
+            
+            // Обновляем активную кнопку фильтра
+            document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-ghost');
+            });
+            const activeBtn = document.getElementById(`filter-${status}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('btn-ghost');
+                activeBtn.classList.add('btn-primary');
+            }
+
+            try {
+                const url = status === 'all' 
+                    ? '/api/vkplay/role-history'
+                    : `/api/vkplay/role-history?status=${status}`;
+                
+                console.log('📜 Загрузка истории:', url);
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('📜 История получена:', data);
+                    renderHistory(data.history || []);
+                } else {
+                    const error = await response.json();
+                    console.error('❌ Ошибка загрузки истории:', error);
+                    container.innerHTML = '<div class="empty-state">Ошибка загрузки истории: ' + (error.error || 'Неизвестная ошибка') + '</div>';
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки истории:', error);
+                container.innerHTML = '<div class="empty-state">Ошибка загрузки истории</div>';
+            }
+        }
+
+        function renderHistory(history) {
+            const container = document.getElementById('history-container');
+            
+            if (history.length === 0) {
+                container.innerHTML = '<div class="empty-state">История пуста</div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="history-list"></div>';
+            const list = container.querySelector('.history-list');
+
+            history.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                
+                const statusClass = item.status === 'assigned' ? 'status-enabled' 
+                    : item.status === 'rejected' ? 'status-disabled' 
+                    : 'status-error';
+                
+                const statusText = item.status === 'assigned' ? '✅ Выдано'
+                    : item.status === 'rejected' ? '❌ Отклонено'
+                    : '⚠️ Ошибка';
+
+                const date = new Date(item.created_at);
+                const dateStr = date.toLocaleString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Отображаем ник, если он есть, иначе ID
+                const userName = item.user_nick && item.user_nick.trim() !== '' 
+                    ? item.user_nick 
+                    : `ID: ${item.user_id}`;
+                
+                historyItem.innerHTML = `
+                    <div class="history-info">
+                        <div class="history-user">
+                            <strong>${userName}</strong>
+                            <span class="history-badge ${statusClass}">${statusText}</span>
+                        </div>
+                        <div class="history-details">
+                            <span class="history-reward">${item.reward_name}</span>
+                            <span class="history-arrow">→</span>
+                            <span class="history-role">${item.role_name}</span>
+                        </div>
+                        ${item.reason ? `<div class="history-reason">Причина: ${item.reason}</div>` : ''}
+                        <div class="history-date">${dateStr}</div>
+                    </div>
+                `;
+                list.appendChild(historyItem);
+            });
+        }
+
+        // WebSocket для обновления истории в реальном времени
+        let ws = null;
+        let historyUpdateInterval = null;
+        let wsReconnectTimeout = null;
+
+        function connectWebSocket() {
+            // Очищаем предыдущий таймаут переподключения
+            if (wsReconnectTimeout) {
+                clearTimeout(wsReconnectTimeout);
+                wsReconnectTimeout = null;
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}?type=dashboard`;
+            
+            try {
+                console.log('🔌 Подключение к WebSocket:', wsUrl);
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ WebSocket подключен для обновления истории');
+                    // Останавливаем polling, если WebSocket работает
+                    if (historyUpdateInterval) {
+                        clearInterval(historyUpdateInterval);
+                        historyUpdateInterval = null;
+                        console.log('⏹️ Polling остановлен, используется WebSocket');
+                    }
+                };
+                
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('📨 Получено WebSocket сообщение:', data.type);
+                        
+                        if (data.type === 'VKPLAY_ROLE_HISTORY_UPDATE') {
+                            console.log('📜 Получено обновление истории ролей:', data.data);
+                            // Обновляем историю
+                            loadHistory(currentHistoryFilter);
+                        }
+                    } catch (error) {
+                        console.error('❌ Ошибка обработки WebSocket сообщения:', error);
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('❌ Ошибка WebSocket:', error);
+                };
+                
+                ws.onclose = () => {
+                    console.log('⚠️ WebSocket отключен, переподключение через 3 секунды...');
+                    // Запускаем polling как fallback
+                    if (!historyUpdateInterval) {
+                        startHistoryPolling();
+                    }
+                    // Пытаемся переподключиться
+                    wsReconnectTimeout = setTimeout(() => {
+                        connectWebSocket();
+                    }, 3000);
+                };
+            } catch (error) {
+                console.error('❌ Ошибка подключения WebSocket:', error);
+                // Fallback на polling, если WebSocket не работает
+                if (!historyUpdateInterval) {
+                    startHistoryPolling();
+                }
+            }
+        }
+
+        function startHistoryPolling() {
+            // Обновляем историю каждые 3 секунды
+            if (historyUpdateInterval) {
+                clearInterval(historyUpdateInterval);
+            }
+            historyUpdateInterval = setInterval(() => {
+                console.log('🔄 Polling: обновление истории...');
+                loadHistory(currentHistoryFilter);
+            }, 3000);
+            console.log('🔄 Запущен polling для обновления истории (каждые 3 секунды)');
+        }
+
+        // Загружаем данные при загрузке страницы
+        loadData();
+        loadHistory('all');
+        
+        // Подключаемся к WebSocket для обновления истории в реальном времени
+        connectWebSocket();
+        
+        // Если WebSocket не подключится в течение 2 секунд, используем polling
+        setTimeout(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                console.log('⚠️ WebSocket не подключен в течение 2 секунд, используем polling');
+                if (!historyUpdateInterval) {
+                    startHistoryPolling();
+                }
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

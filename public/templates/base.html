@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{PAGE_TITLE}} | ФРАГ-ТРЕКЕР</title>
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    {{EXTRA_STYLES}}
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Боковое меню -->
+        <div id="sidebar-placeholder"></div>
+        
+        <!-- Верхняя панель -->
+        <div id="header-placeholder"></div>
+        
+        <!-- Основной контент -->
+        <main class="app-main">
+            {{PAGE_CONTENT}}
+        </main>
+    </div>
+
+    <script>
+        // Загрузка компонентов
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
+        });
+    </script>
+    {{EXTRA_SCRIPTS}}
+</body>
+</html>

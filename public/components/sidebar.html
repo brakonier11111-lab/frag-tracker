@@ -1,0 +1,173 @@
+<!-- Боковое меню навигации -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/index.html" class="sidebar-logo">
+            <span class="logo-icon">🎯</span>
+            <span class="logo-text">ФРАГ-ТРЕКЕР</span>
+        </a>
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Свернуть меню">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M5 15L15 5M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </button>
+    </div>
+    
+    <nav class="sidebar-nav">
+        <!-- Главная -->
+        <div class="nav-section">
+            <a href="/index.html" class="nav-item" data-page="home">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Главная</span>
+            </a>
+        </div>
+
+        <!-- Трекеры -->
+        <div class="nav-section">
+            <div class="nav-section-title">Трекеры</div>
+            <a href="/mode1-frag-tracker.html" class="nav-item" data-page="mode1">
+                <span class="nav-icon">🎯</span>
+                <span class="nav-text">Фраг-трекер</span>
+            </a>
+            <a href="/mode2-timer.html" class="nav-item" data-page="mode2">
+                <span class="nav-icon">⏰</span>
+                <span class="nav-text">Таймер</span>
+            </a>
+        </div>
+
+        <!-- Донаты -->
+        <div class="nav-section">
+            <div class="nav-section-title">Донаты</div>
+            <a href="/donation-management.html" class="nav-item" data-page="donation-management">
+                <span class="nav-icon">💰</span>
+                <span class="nav-text">Управление</span>
+            </a>
+            <a href="/donation-goal.html" class="nav-item" data-page="donation-goal">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Полоска сбора</span>
+            </a>
+            <a href="/donations-dashboard.html" class="nav-item" data-page="donations-dashboard">
+                <span class="nav-icon">📚</span>
+                <span class="nav-text">Дашборд</span>
+            </a>
+        </div>
+
+        <!-- Статистика -->
+        <div class="nav-section">
+            <div class="nav-section-title">Статистика</div>
+            <a href="/frag-stats.html" class="nav-item" data-page="stats">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Фраги</span>
+            </a>
+            <a href="/chat-stats.html" class="nav-item" data-page="chat-stats">
+                <span class="nav-icon">💬</span>
+                <span class="nav-text">Чат</span>
+            </a>
+            <a href="/lesta-stats.html" class="nav-item" data-page="lesta">
+                <span class="nav-icon">🏆</span>
+                <span class="nav-text">Lesta Games</span>
+            </a>
+            <a href="/razblogirovka" class="nav-item" data-page="razblogirovka">
+                <span class="nav-icon">🪙</span>
+                <span class="nav-text">РазБЛОГировка</span>
+            </a>
+            <a href="/analytics.html" class="nav-item" data-page="analytics">
+                <span class="nav-icon">📈</span>
+                <span class="nav-text">Аналитика</span>
+            </a>
+        </div>
+
+        <!-- Дополнительно -->
+        <div class="nav-section">
+            <div class="nav-section-title">Дополнительно</div>
+            <a href="/stream-stats-widgets.html" class="nav-item" data-page="stream-stats-widgets">
+                <span class="nav-icon">📡</span>
+                <span class="nav-text">Онлайн и лайки</span>
+            </a>
+            <a href="/donation-driven-widget" class="nav-item" data-page="donation-driven-widget">
+                <span class="nav-icon">📈</span>
+                <span class="nav-text">Параметр от донатов</span>
+            </a>
+            <a href="/tanks-blitz-challenge" class="nav-item" data-page="tanks-blitz-challenge">
+                <span class="nav-icon">⚔️</span>
+                <span class="nav-text">Blitz Challenge</span>
+            </a>
+            <a href="/tank-queue.html" class="nav-item" data-page="tank-queue">
+                <span class="nav-icon">🚗</span>
+                <span class="nav-text">Очередь танков</span>
+            </a>
+            <a href="/schedule.html" class="nav-item" data-page="schedule">
+                <span class="nav-icon">🗓️</span>
+                <span class="nav-text">Расписание</span>
+            </a>
+            <a href="/donor-achievements.html" class="nav-item" data-page="donor-achievements">
+                <span class="nav-icon">🏆</span>
+                <span class="nav-text">Достижения</span>
+            </a>
+            <a href="/tournament.html" class="nav-item" data-page="tournament">
+                <span class="nav-icon">🎮</span>
+                <span class="nav-text">Турнир</span>
+            </a>
+        </div>
+
+        <!-- Админ -->
+        <div class="nav-section">
+            <div class="nav-section-title">Администрирование</div>
+            <a href="/admin.html" class="nav-item" data-page="admin">
+                <span class="nav-icon">🔧</span>
+                <span class="nav-text">Админ-панель</span>
+            </a>
+        </div>
+    </nav>
+</aside>
+
+<script>
+(function() {
+    // Автоматическое выделение активной страницы
+    const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+    const navItems = document.querySelectorAll('.nav-item[data-page]');
+    
+    navItems.forEach(item => {
+        const page = item.getAttribute('data-page');
+        if (page === currentPage || (currentPage === '' && page === 'home') || (currentPage === 'index' && page === 'home')) {
+            item.classList.add('active');
+            // Раскрываем родительскую секцию
+            const section = item.closest('.nav-section');
+            if (section) {
+                section.classList.add('expanded');
+            }
+        }
+    });
+
+    // Переключение сайдбара
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const body = document.body;
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+        });
+    }
+
+    // Восстановление состояния сайдбара
+    if (localStorage.getItem('sidebarCollapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+        body.classList.add('sidebar-collapsed');
+    }
+
+    // Адаптивность: автоматическое сворачивание на мобильных
+    if (window.innerWidth < 768) {
+        sidebar.classList.add('collapsed');
+        body.classList.add('sidebar-collapsed');
+    }
+
+    window.addEventListener('resize', () => {
+        if (window.innerWidth < 768) {
+            sidebar.classList.add('collapsed');
+            body.classList.add('sidebar-collapsed');
+        }
+    });
+})();
+</script>

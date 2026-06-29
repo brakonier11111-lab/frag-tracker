@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Удаление донатов СВОшник</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .donation-item {
+            background: #2a2a2a;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .donation-item.to-remove {
+            border: 2px solid #ff4444;
+            background: #3a1a1a;
+        }
+        button {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #cc0000;
+        }
+        button.success {
+            background: #44ff44;
+            color: #000;
+        }
+        button.success:hover {
+            background: #00cc00;
+        }
+        .info {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .summary {
+            background: #2a4a2a;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border: 2px solid #44ff44;
+        }
+        input[type="number"] {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #2a2a2a;
+            color: #fff;
+            width: 150px;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Удаление донатов СВОшник</h1>
+    
+    <div class="info">
+        <label>Сумма для удаления: <input type="number" id="amountToRemove" value="14000" min="1" step="1">₽</label>
+        <button onclick="findDonations()">Найти донаты</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        let allDonations = [];
+        let donationsToRemove = [];
+
+        async function findDonations() {
+            const resultsDiv = document.getElementById('results');
+            const amountToRemove = parseFloat(document.getElementById('amountToRemove').value) || 14000;
+            resultsDiv.innerHTML = '<p>Поиск...</p>';
+
+            try {
+                // Получаем все донаты
+                const response = await fetch('/api/donations?limit=1000');
+                const data = await response.json();
+                
+                // Фильтруем донаты от СВОшник
+                allDonations = data.donations.filter(d => 
+                    d.username && d.username.includes('СВОшник')
+                ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                if (allDonations.length === 0) {
+                    resultsDiv.innerHTML = '<p>Донаты не найдены</p>';
+                    return;
+                }
+
+                // Выбираем донаты для удаления (до суммы amountToRemove)
+                donationsToRemove = [];
+                let currentSum = 0;
+
+                for (let i = 0; i < allDonations.length && currentSum < amountToRemove; i++) {
+                    const donation = allDonations[i];
+                    if (currentSum + donation.amount <= amountToRemove) {
+                        donationsToRemove.push(donation);
+                        currentSum += donation.amount;
+                    }
+                }
+
+                if (donationsToRemove.length === 0) {
+                    resultsDiv.innerHTML = '<p>Не найдено донатов на указанную сумму</p>';
+                    return;
+                }
+
+                let totalAmount = allDonations.reduce((sum, d) => sum + d.amount, 0);
+                let removeAmount = donationsToRemove.reduce((sum, d) => sum + d.amount, 0);
+                let removeTime = donationsToRemove.reduce((sum, d) => sum + (d.time_earned || 0), 0);
+
+                let html = `
+                    <div class="summary">
+                        <strong>📊 Статистика:</strong><br>
+                        Всего донатов от СВОшник: ${allDonations.length}<br>
+                        Общая сумма: ${totalAmount}₽<br><br>
+                        <strong style="color: #ff4444;">Будет удалено:</strong><br>
+                        Донатов: ${donationsToRemove.length}<br>
+                        Сумма: ${removeAmount}₽<br>
+                        Время: ${removeTime}с
+                    </div>
+                `;
+
+                html += '<h2>Все донаты от СВОшник:</h2>';
+
+                allDonations.forEach((donation, index) => {
+                    const isToRemove = donationsToRemove.some(d => d.id === donation.id);
+                    html += `
+                        <div class="donation-item ${isToRemove ? 'to-remove' : ''}">
+                            ${isToRemove ? '<strong style="color: #ff4444;">🔴 БУДЕТ УДАЛЕН</strong><br>' : ''}
+                            ID: ${donation.id}<br>
+                            Пользователь: ${donation.username}<br>
+                            Сумма: ${donation.amount}₽<br>
+                            Время добавлено: ${donation.time_earned || 0}с<br>
+                            Дата: ${donation.created_at}
+                        </div>
+                    `;
+                });
+
+                html += `
+                    <div style="margin-top: 20px;">
+                        <button class="success" onclick="removeDonations()">✅ Удалить выбранные донаты (${donationsToRemove.length} шт, ${removeAmount}₽)</button>
+                    </div>
+                `;
+
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: #ff4444;">Ошибка: ${error.message}</p>`;
+            }
+        }
+
+        async function removeDonations() {
+            if (donationsToRemove.length === 0) {
+                alert('Нет донатов для удаления');
+                return;
+            }
+
+            const removeAmount = donationsToRemove.reduce((sum, d) => sum + d.amount, 0);
+            const removeTime = donationsToRemove.reduce((sum, d) => sum + (d.time_earned || 0), 0);
+
+            if (!confirm(`Удалить ${donationsToRemove.length} донатов?\n\nСумма: ${removeAmount}₽\nВремя: ${removeTime}с`)) {
+                return;
+            }
+
+            try {
+                // Удаляем донаты по одному
+                let deletedCount = 0;
+                let errors = [];
+
+                for (const donation of donationsToRemove) {
+                    try {
+                        const response = await fetch('/api/donations/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ donationId: donation.id })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            deletedCount++;
+                        } else {
+                            errors.push(`ID ${donation.id}: ${data.error}`);
+                        }
+                    } catch (error) {
+                        errors.push(`ID ${donation.id}: ${error.message}`);
+                    }
+                }
+
+                if (errors.length > 0) {
+                    alert(`Удалено: ${deletedCount}/${donationsToRemove.length}\n\nОшибки:\n${errors.join('\n')}`);
+                } else {
+                    alert(`✅ Успешно удалено ${deletedCount} донатов!\n\nУбрано из суммы: ${removeAmount}₽\nУбрано из таймера: ${removeTime}с`);
+                }
+
+                // Обновляем список
+                findDonations();
+            } catch (error) {
+                alert(`❌ Ошибка: ${error.message}`);
+            }
+        }
+
+        // Автоматически ищем донаты при загрузке страницы
+        window.onload = findDonations;
+    </script>
+</body>
+</html>
+
+
+
+

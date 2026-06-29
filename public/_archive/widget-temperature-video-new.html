@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Video Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff47;
+            --neon-blue: #00f0ff;
+            --neon-orange: #ff4400;
+            --neon-yellow: #ffff00;
+            --neon-purple: #ff00ff;
+            --neon-red: #ff0000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .video-widget {
+            position: relative;
+            width: 300px;
+            height: 420px;
+            border-radius: 15px;
+            overflow: hidden;
+            opacity: 0;
+            transform: scale(0.8) translateX(-100px);
+            transition: all 0.5s ease-out;
+        }
+
+        .video-widget.show {
+            opacity: 1;
+            transform: scale(1) translateX(0);
+        }
+
+        /* Видео как основа виджета */
+        .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* Текст поверх видео */
+        .overlay-text {
+            position: absolute;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.2) 0%,
+                rgba(0, 0, 0, 0.1) 50%,
+                rgba(0, 0, 0, 0.2) 100%
+            );
+        }
+
+        /* Заголовок */
+        .widget-title {
+            color: #ff4400;
+            font-size: 1.8rem;
+            font-weight: 900;
+            text-align: center;
+            text-shadow: 
+                0 0 20px rgba(255, 68, 0, 0.9),
+                0 0 40px rgba(255, 68, 0, 0.5),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+
+        /* Центральная информация */
+        .center-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .temperature-display {
+            color: #ff6600;
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-shadow: 
+                0 0 25px rgba(255, 102, 0, 0.9),
+                0 0 50px rgba(255, 102, 0, 0.6),
+                0 3px 6px rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 102, 0, 0.6);
+            margin-bottom: 20px;
+        }
+
+        .progress-text {
+            color: #ffffff;
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-shadow: 
+                0 0 15px rgba(255, 255, 255, 0.8),
+                0 0 30px rgba(255, 68, 0, 0.6),
+                0 2px 4px rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* Нижняя информация */
+        .bottom-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 600;
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.7),
+                0 0 20px rgba(255, 68, 0, 0.5),
+                0 1px 2px rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .info-label {
+            color: #ffffff;
+        }
+
+        .info-value {
+            color: #ff6600;
+            font-weight: 800;
+            text-shadow: 
+                0 0 15px rgba(255, 102, 0, 0.8),
+                0 0 30px rgba(255, 102, 0, 0.4);
+        }
+
+        /* Анимации для активного состояния */
+        .video-widget.show .widget-title {
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% {
+                text-shadow: 
+                    0 0 20px rgba(255, 68, 0, 0.9),
+                    0 0 40px rgba(255, 68, 0, 0.5),
+                    0 2px 4px rgba(0, 0, 0, 0.8);
+            }
+            100% {
+                text-shadow: 
+                    0 0 30px rgba(255, 68, 0, 1),
+                    0 0 60px rgba(255, 68, 0, 0.7),
+                    0 2px 4px rgba(0, 0, 0, 0.8);
+            }
+        }
+
+        .video-widget.show .temperature-display {
+            animation: temperaturePulse 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes temperaturePulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 
+                    0 0 20px rgba(255, 102, 0, 0.6),
+                    inset 0 0 20px rgba(255, 102, 0, 0.2);
+            }
+            100% {
+                transform: scale(1.05);
+                box-shadow: 
+                    0 0 30px rgba(255, 102, 0, 0.8),
+                    inset 0 0 30px rgba(255, 102, 0, 0.3);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="video-widget" id="videoWidget">
+        <!-- Видео как основа виджета -->
+        <video class="video-background" autoplay muted loop>
+            <source src="/assets/Widget Peregrev.mov" type="video/quicktime">
+            <source src="C:\Users\ixacy\Downloads\Рабочая если что\Рабочая резерв — копия\assets\Widget Peregrev.mov" type="video/quicktime">
+            <!-- Fallback если видео не загрузится -->
+            <div style="background: linear-gradient(135deg, rgba(5, 5, 15, 0.95) 0%, rgba(8, 8, 20, 0.9) 50%, rgba(12, 12, 25, 0.85) 100%); width: 100%; height: 100%;"></div>
+        </video>
+
+        <!-- Текст поверх видео -->
+        <div class="overlay-text">
+            <!-- Заголовок -->
+            <div class="widget-title">ПЕРЕГРЕВ ТАЙМЕРА</div>
+            
+            <!-- Центральная информация -->
+            <div class="center-info">
+                <div class="temperature-display" id="temperatureDisplay">0°C</div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+            
+            <!-- Нижняя информация -->
+            <div class="bottom-info">
+                <div class="info-item">
+                    <span class="info-label">Перегреть таймер:</span>
+                    <span class="info-value" id="targetAmountValue">10000₽</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Скорость охлаждения:</span>
+                    <span class="info-value" id="coolingRateValue">-50₽/сек</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">До перегрева:</span>
+                    <span class="info-value" id="amountToPeak">10000₽</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Награда при перегреве:</span>
+                    <span class="info-value" id="peakReward">+5 минут к таймеру</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let temperatureMode = {
+            active: false,
+            currentAmount: 0,
+            targetAmount: 10000,
+            coolingRate: 50,
+            peakRewardMinutes: 5
+        };
+
+        let ws = null;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            
+            console.log('🔗 Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                console.log('✅ WebSocket connected');
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 WebSocket message received:', data);
+                    
+                    switch(data.type) {
+                        case 'INIT_STATE':
+                            console.log('🔄 Initial state received:', data.state);
+                            updateTemperatureMode(data.state.temperatureMode || temperatureMode);
+                            break;
+                        case 'temperature_mode_toggle':
+                            temperatureMode.active = data.active;
+                            temperatureMode.currentAmount = data.currentAmount || 0;
+                            temperatureMode.targetAmount = data.targetAmount || 10000;
+                            temperatureMode.coolingRate = data.coolingRate || 50;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_update':
+                            temperatureMode.currentAmount = data.currentAmount;
+                            temperatureMode.targetAmount = data.targetAmount || temperatureMode.targetAmount;
+                            temperatureMode.coolingRate = data.coolingRate || temperatureMode.coolingRate;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || temperatureMode.peakRewardMinutes;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_peak':
+                            showTemperaturePeak(data);
+                            break;
+                        default:
+                            console.log('📨 Other WebSocket message type:', data.type);
+                    }
+                } catch (e) {
+                    console.error('Error parsing WebSocket message:', e);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('❌ WebSocket disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('❌ WebSocket error:', error);
+            };
+        }
+
+        function updateTemperatureMode(data) {
+            temperatureMode.active = data.active;
+            temperatureMode.currentAmount = data.currentAmount || 0;
+            temperatureMode.targetAmount = data.targetAmount || 10000;
+            temperatureMode.coolingRate = data.coolingRate || 50;
+            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+            
+            const videoWidgetEl = document.getElementById('videoWidget');
+            const temperatureDisplayEl = document.getElementById('temperatureDisplay');
+            const progressTextEl = document.getElementById('progressText');
+            
+            if (temperatureMode.active) {
+                videoWidgetEl.classList.add('show');
+                
+                // Обновляем отображение температуры (0-100 градусов)
+                const heatPercentage = (temperatureMode.currentAmount / temperatureMode.targetAmount) * 100;
+                const clampedPercentage = Math.min(100, heatPercentage);
+                const temperatureCelsius = Math.round(clampedPercentage);
+                
+                temperatureDisplayEl.textContent = temperatureCelsius + '°C';
+                progressTextEl.textContent = Math.round(clampedPercentage) + '%';
+                
+                // Обновляем информацию о температуре
+                updateTemperatureInfo();
+            } else {
+                videoWidgetEl.classList.remove('show');
+            }
+        }
+
+        function updateTemperatureInfo() {
+            // Обновляем целевую сумму
+            document.getElementById('targetAmountValue').textContent = Math.round(temperatureMode.targetAmount) + '₽';
+            
+            // Обновляем скорость охлаждения
+            document.getElementById('coolingRateValue').textContent = '-' + Math.round(temperatureMode.coolingRate) + '₽/сек';
+            
+            // Обновляем информацию о награде
+            const amountToPeak = temperatureMode.targetAmount - temperatureMode.currentAmount;
+            document.getElementById('amountToPeak').textContent = Math.round(Math.max(0, amountToPeak)) + '₽';
+            document.getElementById('peakReward').textContent = '+' + temperatureMode.peakRewardMinutes + ' минут к таймеру';
+        }
+
+        function showTemperaturePeak(data) {
+            console.log('🔥 Temperature peak reached!', data);
+            // Можно добавить дополнительную анимацию пика
+        }
+
+        // Подключаемся к WebSocket при загрузке страницы
+        connectWebSocket();
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

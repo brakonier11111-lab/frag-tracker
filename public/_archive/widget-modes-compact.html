@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Минималистичная реклама режимов</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00d4ff;
+            --neon-green: #00ff88;
+            --neon-yellow: #ffff00;
+            --neon-purple: #ff00ff;
+            --neon-red: #ff0040;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Orbitron', monospace;
+            background: transparent;
+            color: white;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .compact-ad {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.9) 0%,
+                rgba(10, 10, 20, 0.8) 100%
+            );
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mode-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .mode-icon {
+            font-size: 2rem;
+            animation: iconGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes iconGlow {
+            0% { filter: brightness(1); }
+            100% { filter: brightness(1.3); }
+        }
+
+        .mode-name {
+            font-size: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .mode-dots {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+        }
+
+        .cta-mini {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Цветовые схемы */
+        .mode-normal .mode-name { color: var(--neon-blue); }
+        .mode-normal .dot.active { background: var(--neon-blue); box-shadow: 0 0 8px var(--neon-blue); }
+
+        .mode-discount .mode-name { color: var(--neon-yellow); }
+        .mode-discount .dot.active { background: var(--neon-yellow); box-shadow: 0 0 8px var(--neon-yellow); }
+
+        .mode-slowdown .mode-name { color: var(--neon-purple); }
+        .mode-slowdown .dot.active { background: var(--neon-purple); box-shadow: 0 0 8px var(--neon-purple); }
+
+        .mode-temperature .mode-name { color: var(--neon-red); }
+        .mode-temperature .dot.active { background: var(--neon-red); box-shadow: 0 0 8px var(--neon-red); }
+
+        /* Анимации */
+        .mode-badge {
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            0% { 
+                opacity: 0; 
+                transform: translateX(-20px); 
+            }
+            100% { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
+        }
+
+        /* Эффект свечения фона */
+        .compact-ad::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.02), transparent);
+            animation: backgroundShimmer 6s infinite;
+            pointer-events: none;
+        }
+
+        @keyframes backgroundShimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body>
+    <div class="compact-ad" id="compactAd">
+        <div class="mode-badge">
+            <div class="mode-icon" id="modeIcon">⏰</div>
+            <div class="mode-name" id="modeName">ОБЫЧНЫЙ</div>
+        </div>
+        
+        <div class="mode-dots">
+            <div class="dot active" data-mode="0"></div>
+            <div class="dot" data-mode="1"></div>
+            <div class="dot" data-mode="2"></div>
+            <div class="dot" data-mode="3"></div>
+        </div>
+        
+        <div class="cta-mini">Донатьте для активации!</div>
+    </div>
+
+    <script>
+        const modes = [
+            { icon: '⏰', name: 'ОБЫЧНЫЙ', color: '#00d4ff' },
+            { icon: '🎁', name: 'СКИДКА', color: '#ffff00' },
+            { icon: '🐢', name: 'ЗАМЕДЛЕНИЕ', color: '#ff00ff' },
+            { icon: '🔥', name: 'ПЕРЕГРЕВ', color: '#ff0040' }
+        ];
+
+        let currentMode = 0;
+        let rotationInterval;
+
+        function updateMode(index) {
+            const mode = modes[index];
+            const ad = document.getElementById('compactAd');
+            
+            // Обновляем класс
+            ad.className = `compact-ad mode-${['normal', 'discount', 'slowdown', 'temperature'][index]}`;
+            
+            // Обновляем содержимое
+            document.getElementById('modeIcon').textContent = mode.icon;
+            document.getElementById('modeName').textContent = mode.name;
+            
+            // Обновляем точки
+            document.querySelectorAll('.dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+            
+            // Анимация
+            const badge = document.querySelector('.mode-badge');
+            badge.style.animation = 'none';
+            setTimeout(() => {
+                badge.style.animation = 'slideIn 0.6s ease-out';
+            }, 10);
+        }
+
+        function startRotation() {
+            rotationInterval = setInterval(() => {
+                currentMode = (currentMode + 1) % modes.length;
+                updateMode(currentMode);
+            }, 3000);
+        }
+
+        function stopRotation() {
+            if (rotationInterval) {
+                clearInterval(rotationInterval);
+            }
+        }
+
+        // Клики по точкам
+        document.querySelectorAll('.dot').forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                currentMode = index;
+                updateMode(currentMode);
+                stopRotation();
+                setTimeout(startRotation, 8000);
+            });
+        });
+
+        // Hover для паузы
+        document.getElementById('compactAd').addEventListener('mouseenter', stopRotation);
+        document.getElementById('compactAd').addEventListener('mouseleave', startRotation);
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            updateMode(0);
+            startRotation();
+        });
+
+        // Пауза при скрытии
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopRotation();
+            } else {
+                startRotation();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

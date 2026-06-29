@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФРАГ-ТРЕКЕР | LESTA GAMES СТАТИСТИКА</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --widget-bg-opacity: 0.95;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 80px;
+        }
+
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .menu-logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .menu-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .menu-item.active {
+            background: var(--neon-purple);
+            color: var(--dark);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+
+        .player-header {
+            background: rgba(15, 15, 25, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .player-details {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .player-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 5px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .player-id {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 10px;
+        }
+
+        .connection-status {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .connection-status.connected {
+            background: rgba(0, 255, 71, 0.2);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(255, 0, 60, 0.2);
+            color: var(--neon-red);
+            border: 1px solid var(--neon-red);
+        }
+
+        .player-actions {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+            text-decoration: none;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-success {
+            border-color: #4ade80;
+            color: #4ade80;
+        }
+
+        .btn-success:hover {
+            background: rgba(74, 222, 128, 0.1);
+        }
+
+        .btn-danger {
+            border-color: #f87171;
+            color: #f87171;
+        }
+
+        .btn-danger:hover {
+            background: rgba(248, 113, 113, 0.1);
+        }
+
+        .btn-warning {
+            border-color: #fbbf24;
+            color: #fbbf24;
+        }
+
+        .btn-warning:hover {
+            background: rgba(251, 191, 36, 0.1);
+        }
+
+        .btn-info {
+            border-color: #60a5fa;
+            color: #60a5fa;
+        }
+
+        .btn-info:hover {
+            background: rgba(96, 165, 250, 0.1);
+        }
+
+        .stats-grid {
+            display: block;
+            margin-bottom: 30px;
+        }
+
+        .stat-block {
+            background: rgba(15, 15, 25, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .main-stats {
+            background: rgba(20, 20, 30, 0.9);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+        }
+
+        .main-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .main-stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+        }
+
+        .main-stat-label {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .main-stat-value {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .stat-block-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expandable-header {
+            transition: all 0.2s ease;
+        }
+
+        .expandable-header:hover {
+            color: rgba(255, 255, 255, 1);
+        }
+
+        .expand-icon {
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(180deg);
+        }
+
+        .additional-stats-content {
+            margin-top: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .stat-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-right: 4px;
+        }
+
+        .stat-change.positive {
+            color: #4ade80;
+        }
+
+        .stat-change.negative {
+            color: #f87171;
+        }
+
+        .stat-change.neutral {
+            color: rgba(255, 255, 255, 0.4);
+            display: none;
+        }
+
+        .tank-row {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s ease;
+        }
+
+        .tank-row:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tank-row:last-child {
+            border-bottom: none;
+        }
+
+        #tanksList {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        #tanksList::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #tanksList::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        #tanksList::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        #tanksList::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .tabs-container {
+            margin-bottom: 30px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            background: rgba(5, 5, 15, 0.5);
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--light);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.9rem;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+        }
+
+        .tab-btn.active {
+            background: var(--neon-purple);
+            color: var(--dark);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stats-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .stats-dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px 12px;
+        }
+
+        @media (max-width: 700px) {
+            .metric-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .metric-cell {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+
+        .metric-cell-label {
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 4px;
+        }
+
+        .metric-cell-value {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+        }
+
+        .session-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .session-metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            max-height: 480px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .achievement-chip {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            font-size: 0.82rem;
+        }
+
+        .achievement-chip span:last-child {
+            font-weight: 700;
+            color: #7dff8a;
+            white-space: nowrap;
+        }
+
+        .tank-table-header,
+        .tank-row-compact {
+            display: grid;
+            grid-template-columns: 1.4fr 0.5fr 0.6fr 0.6fr 0.5fr 0.8fr;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 10px;
+            font-size: 0.82rem;
+        }
+
+        .tank-table-header {
+            color: rgba(255, 255, 255, 0.45);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 4px;
+        }
+
+        .tank-row-compact {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .tank-row-compact:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tank-name-cell {
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.92);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #periodTanksList {
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        #tanksList {
+            max-height: 520px;
+            overflow-y: auto;
+        }
+
+        .section-hint {
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.45);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .period-selector {
+            background: rgba(15, 15, 25, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .period-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 12px;
+            text-align: left;
+        }
+
+        .period-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .period-btn {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .period-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .period-btn.active {
+            background: rgba(96, 165, 250, 0.2);
+            color: #60a5fa;
+            border-color: #60a5fa;
+        }
+
+        .period-summary {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .period-summary-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 12px;
+        }
+
+        .period-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 10px;
+        }
+
+        .period-metric {
+            background: rgba(96, 165, 250, 0.08);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .period-metric-label {
+            display: block;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.55);
+            margin-bottom: 4px;
+        }
+
+        .period-metric-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #93c5fd;
+        }
+
+        .period-note {
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.45);
+            line-height: 1.4;
+        }
+
+        .activity-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            margin-top: 14px;
+            min-height: 90px;
+            padding: 8px 4px 0;
+        }
+
+        .activity-bar-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-width: 28px;
+            height: 90px;
+            justify-content: flex-end;
+        }
+
+        .activity-bar {
+            width: 100%;
+            max-width: 28px;
+            min-height: 4px;
+            background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+            border-radius: 4px 4px 0 0;
+        }
+
+        .activity-bar-label {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.45);
+            white-space: nowrap;
+        }
+
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .title {
+                font-size: 1.5rem;
+            }
+            
+            .player-info {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .player-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            
+            .stat-block {
+                padding: 15px;
+            }
+            
+            .stat-row {
+                font-size: 0.85rem;
+            }
+            
+            .stat-label {
+                font-size: 0.85rem;
+            }
+            
+            .stat-value {
+                font-size: 0.85rem;
+            }
+            
+            .period-buttons {
+                flex-direction: row;
+            }
+            
+            .period-btn {
+                flex: 1;
+                min-width: 60px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="theme-neon">
+    <!-- Верхнее меню -->
+    <nav class="top-menu">
+        <div class="menu-container">
+            <a href="/index.html" class="menu-logo">
+                🎯 ФРАГ-ТРЕКЕР
+            </a>
+            <div class="menu-nav">
+                <a href="/index.html" class="menu-item">🏠 Главная</a>
+                <a href="/mode1-frag-tracker.html" class="menu-item">🎯 Фраг-трекер</a>
+                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
+                <a href="/mode3-custom.html" class="menu-item">⚙️ Кастом</a>
+                <a href="/frag-stats.html" class="menu-item">📊 Статистика</a>
+                <a href="/lesta-stats.html" class="menu-item active">🏆 Lesta Games</a>
+                <a href="/admin.html" class="menu-item">🔧 Админ</a>
+                <a href="/analytics.html" class="menu-item">📈 Аналитика</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- Заголовок игрока -->
+        <div class="player-header">
+            <div class="player-info">
+                <div class="player-details">
+                    <div class="player-name" id="playerName">—</div>
+                    <div class="player-id" id="playerId">ID: —</div>
+                    <div class="connection-status" id="connectionStatus">Не авторизован</div>
+                </div>
+                <div class="player-actions">
+                    <button class="btn btn-success hidden" onclick="authLestaGames()" id="authButton">Авторизоваться</button>
+                    <button class="btn btn-warning" onclick="toggleAccountSwitcher()" id="switchAccountBtn">Сменить аккаунт</button>
+                    <button class="btn btn-info" onclick="syncStats()">Обновить</button>
+                </div>
+            </div>
+
+            <div id="accountSwitcher" style="display:none; margin-top: 14px; padding: 14px; border-radius: 8px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12);">
+                <div style="font-size: 0.9rem; color: rgba(255,255,255,0.75); margin-bottom: 10px;">
+                    Поиск по нику — без OAuth. Подходит, если авторизация всегда подставляет чужой аккаунт.
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                    <input type="text" id="accountSearchInput" placeholder="Никнейм игрока" style="flex:1; min-width:180px; padding:8px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.4); color:#fff;">
+                    <button class="btn btn-info" type="button" onclick="searchLestaAccount()">Найти</button>
+                </div>
+                <div id="accountSearchResults" style="max-height:160px; overflow-y:auto;"></div>
+                <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-success" type="button" onclick="authLestaGames()">Войти через Lesta (другой аккаунт)</button>
+                    <button class="btn btn-danger" type="button" onclick="resetLestaData()">Сбросить привязку</button>
+                </div>
+                <p style="font-size:0.8rem; color:rgba(255,255,255,0.5); margin-top:8px;">
+                    Для OAuth: выйдите из Lesta в браузере на <a href="https://lesta.ru/" target="_blank" rel="noopener" style="color:#60a5fa;">lesta.ru</a> или используйте режим инкогнито.
+                </p>
+            </div>
+            
+            <div class="auto-sync-info" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.85rem; color: rgba(255, 255, 255, 0.6);">
+                    <span>🔄 Автосинхронизация: <span style="color: #4ade80;">ВКЛ</span></span>
+                    <span id="lastSyncTime">Последняя синхронизация: никогда</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладки -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('stats')" id="tab-stats">📊 Сводка</button>
+                <button class="tab-btn" onclick="switchTab('tanks')" id="tab-tanks">🚗 Техника</button>
+                <button class="tab-btn" onclick="switchTab('achievements')" id="tab-achievements">🏆 Медали</button>
+                <button class="tab-btn" onclick="switchTab('session')" id="tab-session">🎮 Сессия</button>
+                <button class="tab-btn" onclick="switchTab('rating')" id="tab-rating">⭐ Рейтинг</button>
+            </div>
+        </div>
+
+        <!-- Контент вкладки Сводка -->
+        <div id="tab-content-stats" class="tab-content active">
+            <div class="stats-dashboard">
+                <div class="period-selector" style="margin-bottom:0;">
+                    <div class="period-title">За период</div>
+                    <div class="period-buttons">
+                        <button class="period-btn active" onclick="showChanges('1d', event)">СУТКИ</button>
+                        <button class="period-btn" onclick="showChanges('7d', event)">НЕДЕЛЯ</button>
+                        <button class="period-btn" onclick="showChanges('30d', event)">МЕСЯЦ</button>
+                        <button class="period-btn" onclick="showChanges('180d', event)">ПОЛГОДА</button>
+                        <button class="period-btn" onclick="showChanges('365d', event)">ГОД</button>
+                    </div>
+                    <div class="period-summary" id="periodSummary">
+                        <div class="period-summary-grid">
+                            <div class="period-metric"><span class="period-metric-label">Боёв</span><span class="period-metric-value" id="periodBattles">—</span></div>
+                            <div class="period-metric"><span class="period-metric-label">Побед</span><span class="period-metric-value" id="periodWins">—</span></div>
+                            <div class="period-metric"><span class="period-metric-label">Винрейт</span><span class="period-metric-value" id="periodWinRate">—</span></div>
+                            <div class="period-metric"><span class="period-metric-label">Ср. урон</span><span class="period-metric-value" id="periodAvgDamage">—</span></div>
+                            <div class="period-metric"><span class="period-metric-label">Фраги</span><span class="period-metric-value" id="periodFrags">—</span></div>
+                            <div class="period-metric"><span class="period-metric-label">Фр/бой</span><span class="period-metric-value" id="periodFragsPerBattle">—</span></div>
+                        </div>
+                        <p class="period-note" id="periodDataNote">Загрузка…</p>
+                        <div class="activity-chart" id="activityChart"></div>
+                    </div>
+                </div>
+
+                <div class="stat-block main-stats" style="margin-bottom:0;">
+                    <div class="stat-block-title">Всего на аккаунте</div>
+                    <div class="main-stats-grid">
+                        <div class="main-stat-item">
+                            <div class="main-stat-label">Бои</div>
+                            <div class="main-stat-value">
+                                <span class="stat-change neutral" id="battlesChange"></span>
+                                <span id="battlesCount">—</span>
+                            </div>
+                        </div>
+                        <div class="main-stat-item">
+                            <div class="main-stat-label">Победы</div>
+                            <div class="main-stat-value">
+                                <span class="stat-change neutral" id="winsChange"></span>
+                                <span id="winsCount">—</span>
+                            </div>
+                        </div>
+                        <div class="main-stat-item">
+                            <div class="main-stat-label">Поражения</div>
+                            <div class="main-stat-value">
+                                <span class="stat-change neutral" id="lossesChange"></span>
+                                <span id="lossesCount">—</span>
+                            </div>
+                        </div>
+                        <div class="main-stat-item">
+                            <div class="main-stat-label">Винрейт</div>
+                            <div class="main-stat-value">
+                                <span class="stat-change neutral" id="winRateChange"></span>
+                                <span id="winRate">—</span>
+                            </div>
+                        </div>
+                        <div class="main-stat-item">
+                            <div class="main-stat-label">Средний урон</div>
+                            <div class="main-stat-value">
+                                <span class="stat-change neutral" id="avgDamageChange"></span>
+                                <span id="avgDamage">—</span>
+                            </div>
+                        </div>
+                        <div class="main-stat-item">
+                            <div class="main-stat-label">Фраги за бой</div>
+                            <div class="main-stat-value">
+                                <span class="stat-change neutral" id="fragsPerBattleChange"></span>
+                                <span id="fragsPerBattle">—</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-block" style="margin-top:16px;">
+                <div class="stat-block-title expandable-header" onclick="toggleAdditionalStats()" style="cursor: pointer; user-select: none;">
+                    <span>Подробная статистика</span>
+                    <span class="expand-icon" id="expandIcon">▼</span>
+                </div>
+                <div id="additionalStats" class="additional-stats-content metric-grid" style="display: none;">
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Всего фрагов</div>
+                        <div class="metric-cell-value"><span class="stat-change neutral" id="fragsChange"></span><span id="fragsCount">—</span></div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Макс. фрагов</div>
+                        <div class="metric-cell-value" id="maxFrags">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Фраги 8+</div>
+                        <div class="metric-cell-value" id="frags8p">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Нанесено урона</div>
+                        <div class="metric-cell-value"><span class="stat-change neutral" id="damageDealtChange"></span><span id="damageDealt">—</span></div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Получено урона</div>
+                        <div class="metric-cell-value" id="damageReceived">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Всего опыта</div>
+                        <div class="metric-cell-value"><span class="stat-change neutral" id="xpChange"></span><span id="xpCount">—</span></div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Средний опыт</div>
+                        <div class="metric-cell-value"><span class="stat-change neutral" id="avgXpChange"></span><span id="avgXp">—</span></div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Макс. опыт</div>
+                        <div class="metric-cell-value" id="maxXp">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Выжил в боях</div>
+                        <div class="metric-cell-value" id="survivedBattles">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Точность</div>
+                        <div class="metric-cell-value" id="accuracy">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Попадания / выстрелы</div>
+                        <div class="metric-cell-value"><span id="hits">—</span> / <span id="shots">—</span></div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Обнаружено</div>
+                        <div class="metric-cell-value" id="spotted">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Захват / защита</div>
+                        <div class="metric-cell-value"><span id="capturePoints">—</span> / <span id="droppedCapturePoints">—</span></div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Победы + выжил</div>
+                        <div class="metric-cell-value" id="winAndSurvived">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-block period-tanks-block" id="periodTanksBlock" style="margin-top:16px;">
+                <div class="stat-block-title">Техника за период</div>
+                <p class="section-hint" id="periodTanksNote">Загрузка…</p>
+                <div class="tank-table-header" id="periodTanksTableHeader" style="display:none;">
+                    <span>Танк</span><span>Ур.</span><span>+Боёв</span><span>С/У</span><span>ВР%</span><span>Фраги</span>
+                </div>
+                <div id="periodTanksList"></div>
+            </div>
+        </div>
+
+        <!-- Техника -->
+        <div id="tab-content-tanks" class="tab-content">
+            <div class="stat-block" id="tanksStatsBlock">
+                <div class="stat-block-title" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+                    <span>Статистика по технике</span>
+                    <button class="btn btn-info" onclick="loadPlayerTanks()" id="loadTanksBtn" style="padding:6px 12px;font-size:0.8rem;">Загрузить</button>
+                </div>
+                <p class="section-hint">Список танков с боями. Если пусто — включите доступ к данным в настройках Lesta или смените аккаунт.</p>
+                <div id="tanksCount" style="margin-bottom:12px;color:rgba(255,255,255,0.6);font-size:0.85rem;"></div>
+                <div id="tanksFilters" style="margin-bottom:12px;display:none;">
+                    <input type="text" id="tankSearch" placeholder="Поиск по названию..." style="width:100%;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.9);margin-bottom:10px;font-size:0.9rem;">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <select id="tierFilter" style="padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.9);font-size:0.85rem;">
+                            <option value="">Все уровни</option>
+                            <option value="1">I</option><option value="2">II</option><option value="3">III</option><option value="4">IV</option>
+                            <option value="5">V</option><option value="6">VI</option><option value="7">VII</option><option value="8">VIII</option>
+                            <option value="9">IX</option><option value="10">X</option>
+                        </select>
+                        <select id="typeFilter" style="padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.9);font-size:0.85rem;">
+                            <option value="">Все типы</option>
+                            <option value="lightTank">Лёгкий</option>
+                            <option value="mediumTank">Средний</option>
+                            <option value="heavyTank">Тяжёлый</option>
+                            <option value="AT-SPG">ПТ-САУ</option>
+                        </select>
+                        <select id="sortFilter" style="padding:6px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:rgba(255,255,255,0.9);font-size:0.85rem;">
+                            <option value="battles">Боёв</option>
+                            <option value="damage">С/У</option>
+                            <option value="winrate">Винрейт</option>
+                            <option value="frags">Фраги</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="tank-table-header">
+                    <span>Танк</span><span>Ур.</span><span>Боёв</span><span>С/У</span><span>ВР%</span><span>Фраги</span>
+                </div>
+                <div id="tanksList"></div>
+            </div>
+        </div>
+
+        <!-- Достижения -->
+        <div id="tab-content-achievements" class="tab-content">
+            <div class="stat-block" id="achievementsBlock">
+                <div class="stat-block-title">Медали и достижения</div>
+                <div id="achievementsContent">
+                    <p class="section-hint">Загрузятся после привязки аккаунта Lesta.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Контент вкладки Сессия -->
+        <div id="tab-content-session" class="tab-content">
+            <div class="stat-block">
+                <div class="stat-block-title">Текущая сессия</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                    <button class="btn btn-success" type="button" onclick="startLestaSession()">▶ Начать сессию</button>
+                    <button class="btn btn-warning" type="button" onclick="resetLestaSession()">Сбросить сессию</button>
+                </div>
+                <p id="sessionModeNote" class="period-note" style="margin-bottom:12px;">—</p>
+                <div class="session-metrics">
+                    <div class="metric-cell"><div class="metric-cell-label">Бои</div><div class="metric-cell-value" id="sessionBattles">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Фраги</div><div class="metric-cell-value" id="sessionFrags">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Победы</div><div class="metric-cell-value" id="sessionWins">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Поражения</div><div class="metric-cell-value" id="sessionLosses">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Винрейт</div><div class="metric-cell-value" id="sessionWinRate">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Ср. урон</div><div class="metric-cell-value" id="sessionAvgDamage">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Ср. опыт</div><div class="metric-cell-value" id="sessionAvgXp">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Фр/бой</div><div class="metric-cell-value" id="sessionFragsPerBattle">—</div></div>
+                </div>
+            </div>
+
+            <div class="stat-block">
+                <div class="stat-block-title">История сессий</div>
+                <div id="sessionsHistory">
+                    <p class="section-hint">Загрузка…</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Контент вкладки Рейтинг -->
+        <div id="tab-content-rating" class="tab-content">
+            <div class="stat-block">
+                <div class="stat-block-title">Рейтинговые показатели</div>
+                <div class="metric-grid">
+                    <div class="metric-cell"><div class="metric-cell-label">WN8</div><div class="metric-cell-value" id="wn8Rating">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Средний урон</div><div class="metric-cell-value" id="avgDamageRating">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Винрейт</div><div class="metric-cell-value" id="winRateRating">—</div></div>
+                    <div class="metric-cell"><div class="metric-cell-label">Фраги за бой</div><div class="metric-cell-value" id="fragsPerBattleRating">—</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let currentPeriod = '1d';
+        let currentStats = null;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+            ws.onopen = function() {
+                console.log('✅ WebSocket подключен');
+                reconnectAttempts = 0;
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                console.log('📨 Получено сообщение:', data);
+                
+                if ((data.type === 'STATE_UPDATE' || data.type === 'state_update') && data.state) {
+                    updateUI(data.state);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('❌ WebSocket отключен');
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    console.log(`🔄 Попытка переподключения ${reconnectAttempts}/${maxReconnectAttempts}`);
+                    setTimeout(connectWebSocket, 2000 * reconnectAttempts);
+                }
+            };
+
+            ws.onerror = function(error) {
+                console.error('❌ Ошибка WebSocket:', error);
+            };
+        }
+
+        async function loadPreviousStats() {
+            try {
+                const response = await fetch(`/api/lesta-history?period=1d`);
+                const data = await response.json();
+                
+                if (data.success && data.history && data.history.length > 1) {
+                    const previousRecord = data.history[1];
+                    previousStats = {
+                        battles: previousRecord.battles || 0,
+                        wins: previousRecord.wins || 0,
+                        losses: previousRecord.losses || 0,
+                        winRate: previousRecord.win_rate || 0,
+                        frags: previousRecord.frags || 0,
+                        fragsPerBattle: previousRecord.frags_per_battle || 0,
+                        damageDealt: previousRecord.damage_dealt || 0,
+                        xp: previousRecord.xp || 0
+                    };
+                    console.log('📊 Загружены предыдущие значения для delta:', previousStats);
+                }
+            } catch (error) {
+                console.error('❌ Ошибка загрузки предыдущих значений:', error);
+            }
+        }
+
+        async function updateUI(state) {
+            // Обновляем информацию об игроке
+            if (state.lesta_nickname || state.lesta_account_id) {
+                document.getElementById('playerName').textContent = state.lesta_nickname || '—';
+                document.getElementById('playerId').textContent = `ID: ${state.lesta_account_id || '—'}`;
+                const hasToken = !!(state.lesta_access_token && String(state.lesta_access_token).trim());
+                document.getElementById('connectionStatus').textContent = hasToken
+                    ? 'Авторизован (OAuth)'
+                    : 'Отслеживается (публичная статистика)';
+                document.getElementById('connectionStatus').className = 'connection-status connected';
+                document.getElementById('authButton').classList.add('hidden');
+            } else {
+                document.getElementById('playerName').textContent = '—';
+                document.getElementById('playerId').textContent = 'ID: —';
+                document.getElementById('connectionStatus').textContent = 'Не привязан';
+                document.getElementById('connectionStatus').className = 'connection-status disconnected';
+                document.getElementById('authButton').classList.remove('hidden');
+            }
+
+            // Обновляем время последней синхронизации
+            const lastSyncTimeElement = document.getElementById('lastSyncTime');
+            if (state.lesta_last_sync_time && state.lesta_last_sync_time > 0) {
+                const syncDate = new Date(state.lesta_last_sync_time * 1000);
+                const now = new Date();
+                const diffMs = now - syncDate;
+                const diffSec = Math.floor(diffMs / 1000);
+                const diffMin = Math.floor(diffSec / 60);
+                const diffHour = Math.floor(diffMin / 60);
+                
+                let timeText = '';
+                if (diffSec < 60) {
+                    timeText = `${diffSec} сек назад`;
+                } else if (diffMin < 60) {
+                    timeText = `${diffMin} мин назад`;
+                } else if (diffHour < 24) {
+                    timeText = `${diffHour} ч назад`;
+                } else {
+                    const days = Math.floor(diffHour / 24);
+                    timeText = `${days} дн назад`;
+                }
+                
+                lastSyncTimeElement.textContent = `Последняя синхронизация: ${timeText}`;
+            } else {
+                lastSyncTimeElement.textContent = 'Последняя синхронизация: никогда';
+            }
+
+            // Загружаем предыдущие значения для вычисления delta
+            if (!previousStats) {
+                await loadPreviousStats();
+            }
+
+            // Сохраняем текущие статистики
+            currentStats = {
+                battles: state.lesta_last_battles || 0,
+                wins: state.lesta_last_wins || 0,
+                losses: state.lesta_last_losses || 0,
+                winRate: state.lesta_last_win_rate || 0,
+                frags: state.lesta_last_frags || 0,
+                fragsPerBattle: state.lesta_last_frags_per_battle || 0,
+                damageDealt: state.lesta_last_damage_dealt || 0,
+                damageReceived: state.lesta_last_damage_received || 0,
+                xp: state.lesta_last_xp || 0,
+                maxFrags: state.lesta_last_max_frags || 0,
+                frags8p: state.lesta_last_frags8p || 0,
+                hits: state.lesta_last_hits || 0,
+                shots: state.lesta_last_shots || 0,
+                spotted: state.lesta_last_spotted || 0,
+                capturePoints: state.lesta_last_capture_points || 0,
+                droppedCapturePoints: state.lesta_last_dropped_capture_points || 0,
+                survivedBattles: state.lesta_last_survived_battles || 0,
+                winAndSurvived: state.lesta_last_win_and_survived || 0,
+                maxXp: state.lesta_last_max_xp || 0
+            };
+
+            // Обновляем отображение статистики
+            updateStatsDisplay();
+            
+            // Обновляем полную статистику
+            updateFullStatsDisplay(state);
+            
+            // Достижения — отложенно, чтобы не блокировать отрисовку страницы
+            if (state.lesta_account_id) {
+                const accountId = state.lesta_account_id;
+                setTimeout(function() { loadAchievements(accountId); }, 400);
+            }
+        }
+
+        let previousStats = null;
+
+        function formatNumber(num) {
+            if (num === null || num === undefined || num === '—') return '—';
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+        }
+
+        function updateDeltaElement(elementId, deltaFormatted) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                if (deltaFormatted.text && deltaFormatted.text !== '') {
+                    element.textContent = deltaFormatted.text;
+                    element.className = `stat-change ${deltaFormatted.class}`;
+                    element.style.display = 'inline';
+                } else {
+                    element.textContent = '';
+                    element.className = 'stat-change neutral';
+                    element.style.display = 'none';
+                }
+            }
+        }
+
+        function calculateDelta(current, previous) {
+            if (previous === null || previous === undefined || previous === 0) return null;
+            return current - previous;
+        }
+
+        function formatDelta(delta, options) {
+            const opts = typeof options === 'boolean' ? { isPercentage: options } : (options || {});
+            if (delta === null || delta === undefined) return { text: '', class: 'neutral' };
+            if (Math.abs(delta) < 0.005) return { text: '', class: 'neutral' };
+            
+            const sign = delta > 0 ? '+' : '-';
+            let text;
+            if (opts.isPercentage) {
+                text = `${sign}${Math.abs(delta).toFixed(2)}%`;
+            } else if (opts.isDecimal) {
+                text = `${sign}${Math.abs(delta).toFixed(2)}`;
+            } else {
+                text = `${sign}${formatNumber(Math.abs(delta))}`;
+            }
+            const className = delta > 0 ? 'positive' : 'negative';
+            
+            return { text, class: className };
+        }
+
+        function updateStatsDisplay() {
+            if (!currentStats) return;
+
+            // Получаем предыдущие значения из истории или состояния
+            const previousBattles = previousStats?.battles || 0;
+            const previousWins = previousStats?.wins || 0;
+            const previousLosses = previousStats?.losses || 0;
+            const previousWinRate = previousStats?.winRate || 0;
+            const previousFrags = previousStats?.frags || 0;
+            const previousFragsPerBattle = previousStats?.fragsPerBattle || 0;
+            const previousDamageDealt = previousStats?.damageDealt || 0;
+            const previousAvgDamage = previousBattles > 0 ? previousDamageDealt / previousBattles : 0;
+            const previousXp = previousStats?.xp || 0;
+            const previousAvgXp = previousBattles > 0 ? previousXp / previousBattles : 0;
+
+            // Обновляем основные значения с delta и форматированием
+            const battlesDelta = calculateDelta(currentStats.battles, previousBattles);
+            const battlesDeltaFormatted = formatDelta(battlesDelta);
+            document.getElementById('battlesCount').textContent = formatNumber(currentStats.battles);
+            updateDeltaElement('battlesChange', battlesDeltaFormatted);
+
+            const winsDelta = calculateDelta(currentStats.wins, previousWins);
+            const winsDeltaFormatted = formatDelta(winsDelta);
+            document.getElementById('winsCount').textContent = formatNumber(currentStats.wins);
+            updateDeltaElement('winsChange', winsDeltaFormatted);
+
+            const lossesDelta = calculateDelta(currentStats.losses, previousLosses);
+            const lossesDeltaFormatted = formatDelta(lossesDelta);
+            document.getElementById('lossesCount').textContent = formatNumber(currentStats.losses);
+            updateDeltaElement('lossesChange', lossesDeltaFormatted);
+
+            const winRateDelta = calculateDelta(parseFloat(currentStats.winRate), parseFloat(previousWinRate));
+            const winRateDeltaFormatted = formatDelta(winRateDelta, { isPercentage: true });
+            document.getElementById('winRate').textContent = currentStats.winRate ? `${parseFloat(currentStats.winRate).toFixed(1)}%` : '—';
+            updateDeltaElement('winRateChange', winRateDeltaFormatted);
+            
+            // Фраги
+            const fragsDelta = calculateDelta(currentStats.frags, previousFrags);
+            const fragsDeltaFormatted = formatDelta(fragsDelta);
+            document.getElementById('fragsCount').textContent = formatNumber(currentStats.frags);
+            updateDeltaElement('fragsChange', fragsDeltaFormatted);
+
+            const fragsPerBattleDelta = calculateDelta(parseFloat(currentStats.fragsPerBattle), parseFloat(previousFragsPerBattle));
+            const fragsPerBattleDeltaFormatted = formatDelta(fragsPerBattleDelta, { isDecimal: true });
+            document.getElementById('fragsPerBattle').textContent = currentStats.fragsPerBattle ? parseFloat(currentStats.fragsPerBattle).toFixed(2) : '—';
+            updateDeltaElement('fragsPerBattleChange', fragsPerBattleDeltaFormatted);
+
+            document.getElementById('maxFrags').textContent = formatNumber(currentStats.maxFrags);
+            document.getElementById('frags8p').textContent = formatNumber(currentStats.frags8p);
+            
+            // Урон
+            const damageDealtDelta = calculateDelta(currentStats.damageDealt, previousDamageDealt);
+            const damageDealtDeltaFormatted = formatDelta(damageDealtDelta);
+            document.getElementById('damageDealt').textContent = formatNumber(currentStats.damageDealt);
+            updateDeltaElement('damageDealtChange', damageDealtDeltaFormatted);
+
+            document.getElementById('damageReceived').textContent = formatNumber(currentStats.damageReceived);
+            const avgDamage = currentStats.battles > 0 ? Math.round(currentStats.damageDealt / currentStats.battles) : 0;
+            const avgDamageDelta = calculateDelta(avgDamage, Math.round(previousAvgDamage));
+            const avgDamageDeltaFormatted = formatDelta(avgDamageDelta);
+            document.getElementById('avgDamage').textContent = formatNumber(avgDamage);
+            updateDeltaElement('avgDamageChange', avgDamageDeltaFormatted);
+            
+            // Опыт
+            const xpDelta = calculateDelta(currentStats.xp, previousXp);
+            const xpDeltaFormatted = formatDelta(xpDelta);
+            document.getElementById('xpCount').textContent = formatNumber(currentStats.xp);
+            updateDeltaElement('xpChange', xpDeltaFormatted);
+
+            const avgXp = currentStats.battles > 0 ? Math.round(currentStats.xp / currentStats.battles) : 0;
+            const avgXpDelta = calculateDelta(avgXp, Math.round(previousAvgXp));
+            const avgXpDeltaFormatted = formatDelta(avgXpDelta);
+            document.getElementById('avgXp').textContent = formatNumber(avgXp);
+            updateDeltaElement('avgXpChange', avgXpDeltaFormatted);
+
+            document.getElementById('maxXp').textContent = formatNumber(currentStats.maxXp);
+            document.getElementById('survivedBattles').textContent = formatNumber(currentStats.survivedBattles);
+            
+            // Дополнительно
+            document.getElementById('hits').textContent = formatNumber(currentStats.hits);
+            document.getElementById('shots').textContent = formatNumber(currentStats.shots);
+            document.getElementById('accuracy').textContent = currentStats.shots > 0 ? `${(currentStats.hits / currentStats.shots * 100).toFixed(1)}%` : '—';
+            document.getElementById('spotted').textContent = formatNumber(currentStats.spotted);
+            
+            // Захват баз
+            document.getElementById('capturePoints').textContent = formatNumber(currentStats.capturePoints);
+            document.getElementById('droppedCapturePoints').textContent = formatNumber(currentStats.droppedCapturePoints);
+            document.getElementById('winAndSurvived').textContent = formatNumber(currentStats.winAndSurvived);
+
+            // Сохраняем текущие значения как предыдущие для следующего обновления
+            previousStats = { ...currentStats };
+        }
+
+
+        function updateFullStatsDisplay(state) {
+            const set = (id, text) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            };
+            set('fullNickname', state.lesta_nickname || '—');
+            set('fullAccountId', state.lesta_account_id || '—');
+            set('fullAuthStatus', state.lesta_nickname ? 'Авторизован' : 'Не авторизован');
+            set('fullAutoSync', state.lesta_auto_sync ? 'Включена' : 'Отключена');
+            set('fullBattles', state.lesta_last_battles || '—');
+            set('fullFrags', state.lesta_last_frags || '—');
+            set('fullWins', state.lesta_last_wins || '—');
+            set('fullLosses', state.lesta_last_losses || '—');
+            set('fullWinRate', state.lesta_last_win_rate ? `${state.lesta_last_win_rate}%` : '—');
+            set('fullFragsPerBattle', state.lesta_last_frags_per_battle || '—');
+            set('fullDamageDealt', state.lesta_last_damage_dealt || '—');
+            set('fullDamageReceived', state.lesta_last_damage_received || '—');
+            set('fullXp', state.lesta_last_xp || '—');
+            set('fullMaxFrags', state.lesta_last_max_frags || '—');
+            set('fullFrags8p', state.lesta_last_frags8p || '—');
+            set('fullHits', state.lesta_last_hits || '—');
+            set('fullShots', state.lesta_last_shots || '—');
+            set('fullSpotted', state.lesta_last_spotted || '—');
+            set('fullCapturePoints', state.lesta_last_capture_points || '—');
+            set('fullDroppedCapturePoints', state.lesta_last_dropped_capture_points || '—');
+            set('fullSurvivedBattles', state.lesta_last_survived_battles || '—');
+            set('fullWinAndSurvived', state.lesta_last_win_and_survived || '—');
+            set('fullMaxXp', state.lesta_last_max_xp || '—');
+        }
+
+        function toggleAdditionalStats() {
+            const additionalStats = document.getElementById('additionalStats');
+            const expandIcon = document.getElementById('expandIcon');
+            const isVisible = additionalStats.style.display !== 'none';
+            
+            if (isVisible) {
+                additionalStats.style.display = 'none';
+                expandIcon.classList.remove('expanded');
+            } else {
+                additionalStats.style.display = 'grid';
+                expandIcon.classList.add('expanded');
+            }
+        }
+
+        function toggleFullStats() {
+            const fullStatsBlock = document.getElementById('fullStatsBlock');
+            if (!fullStatsBlock) return;
+            const isVisible = fullStatsBlock.style.display !== 'none';
+            if (isVisible) {
+                fullStatsBlock.style.display = 'none';
+            } else {
+                fullStatsBlock.style.display = 'block';
+                fullStatsBlock.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        async function loadAchievements(accountId = null) {
+            const achievementsContent = document.getElementById('achievementsContent');
+            
+            // Если accountId не передан, получаем из текущего состояния
+            if (!accountId) {
+                accountId = document.getElementById('playerId').textContent.replace('ID: ', '');
+            }
+            
+            console.log('🏆 loadAchievements вызвана с accountId:', accountId);
+            
+            if (!accountId || accountId === '—') {
+                console.log('❌ Нет accountId для загрузки достижений');
+                achievementsContent.innerHTML = '<p class="section-hint">Сначала привяжите аккаунт Lesta.</p>';
+                return;
+            }
+            
+            achievementsContent.innerHTML = '<p class="section-hint">Загрузка достижений…</p>';
+            
+            try {
+                const response = await fetch(`/api/lesta-achievements?account_id=${accountId}&fields=achievements,max_series&language=ru`);
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    displayAchievements(data.data);
+                } else {
+                    achievementsContent.innerHTML = `<p class="section-hint" style="color:#f87171;">${data.message || 'Ошибка загрузки'}</p>`;
+                }
+            } catch (error) {
+                achievementsContent.innerHTML = `<p class="section-hint" style="color:#f87171;">${error.message}</p>`;
+            }
+        }
+
+        const ACHIEVEMENT_LABELS = {
+            medalCarius: 'Кариус',
+            medalHalonen: 'Халонен',
+            medalEkins: 'Икинс',
+            medalKay: 'Кей',
+            medalLeClerc: 'Леклерк',
+            medalLehvaslaiho: 'Лехваслайхо',
+            medalAbrams: 'Абрамс',
+            medalPoppel: 'Поппель',
+            medalRadleyWalters: 'Рэдли-Уолтерс',
+            medalSupremacy: 'Превосходство',
+            markOfMasteryI: 'Знак мастерства I',
+            markOfMasteryII: 'Знак мастерства II',
+            markOfMasteryIII: 'Знак мастерства III',
+            firstBlood: 'Первая кровь',
+            firstVictory: 'Первая победа',
+            invader: 'Захватчик',
+            defender: 'Защитник',
+            supporter: 'Поддержка',
+            steelwall: 'Стальная стена',
+            punisher: 'Каратель',
+            armorPiercer: 'Бронебойный',
+            mousebane: 'Крысолов',
+            cadet: 'Курсант',
+            heroesOfRassenay: 'Герои Рассенаи'
+        };
+
+        function unwrapLestaAccountPayload(data, accountId) {
+            if (!data || typeof data !== 'object') return data;
+            const key = String(accountId || '').trim();
+            if (key && data[key] && typeof data[key] === 'object') return data[key];
+            return data;
+        }
+
+        function displayAchievements(data) {
+            const achievementsContent = document.getElementById('achievementsContent');
+            let html = '';
+            const accountId = document.getElementById('playerId').textContent.replace('ID: ', '');
+            data = unwrapLestaAccountPayload(data, accountId);
+            
+            if (data.achievements && Object.keys(data.achievements).length > 0) {
+                const medals = Object.keys(data.achievements)
+                    .sort((a, b) => (data.achievements[b] || 0) - (data.achievements[a] || 0));
+                html += `<p class="section-hint">Медалей: ${medals.length}</p>`;
+                html += '<div class="achievements-grid">';
+                medals.forEach(achievementId => {
+                    const count = data.achievements[achievementId];
+                    const label = ACHIEVEMENT_LABELS[achievementId] || achievementId;
+                    html += `<div class="achievement-chip"><span>${label}</span><span>${formatNumber(count)}</span></div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (data.max_series && Object.keys(data.max_series).length > 0) {
+                html += '<p class="section-hint" style="margin-top:16px;">Максимальные серии</p>';
+                html += '<div class="achievements-grid">';
+                Object.keys(data.max_series).forEach(seriesId => {
+                    const series = data.max_series[seriesId];
+                    html += `<div class="achievement-chip"><span>${seriesId}</span><span>${series}</span></div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (html === '') {
+                html = '<p class="section-hint">Медали не найдены</p>';
+            }
+            
+            achievementsContent.innerHTML = html;
+        }
+
+        function toggleAccountSwitcher() {
+            const el = document.getElementById('accountSwitcher');
+            if (!el) return;
+            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function searchLestaAccount() {
+            const input = document.getElementById('accountSearchInput');
+            const resultsEl = document.getElementById('accountSearchResults');
+            const nickname = (input && input.value || '').trim();
+            if (!nickname) {
+                alert('Введите никнейм');
+                return;
+            }
+            resultsEl.innerHTML = '<div style="color:rgba(255,255,255,0.6);padding:8px 0;">Поиск…</div>';
+            try {
+                const response = await fetch('/api/lesta-search?nickname=' + encodeURIComponent(nickname));
+                const data = await response.json();
+                if (!data.success || !data.players) {
+                    resultsEl.innerHTML = '<div style="color:#f87171;padding:8px 0;">Игроки не найдены</div>';
+                    return;
+                }
+                const players = Object.values(data.players);
+                if (!players.length) {
+                    resultsEl.innerHTML = '<div style="color:#f87171;padding:8px 0;">Игроки не найдены</div>';
+                    return;
+                }
+                resultsEl.innerHTML = players.slice(0, 20).map(function(p) {
+                    const id = p.account_id;
+                    const nick = p.nickname || '—';
+                    return '<button type="button" class="btn btn-secondary" style="display:block;width:100%;text-align:left;margin-bottom:6px;" onclick="selectLestaAccount(\'' + id + '\', \'' + nick.replace(/'/g, "\\'") + '\')">' +
+                        nick + ' <span style="opacity:0.7;">(ID: ' + id + ')</span></button>';
+                }).join('');
+            } catch (e) {
+                resultsEl.innerHTML = '<div style="color:#f87171;padding:8px 0;">Ошибка поиска</div>';
+            }
+        }
+
+        async function selectLestaAccount(accountId, nickname) {
+            if (!accountId) return;
+            try {
+                const response = await fetch('/api/lesta-set-account', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accountId: String(accountId), nickname: nickname || '' })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    alert('Ошибка: ' + (data.error || 'не удалось установить аккаунт'));
+                    return;
+                }
+                alert('✅ Отслеживается: ' + (data.nickname || nickname) + ' (ID: ' + accountId + ')');
+                document.getElementById('accountSwitcher').style.display = 'none';
+                await syncStats();
+                const stateRes = await fetch('/api/state');
+                const stateData = await stateRes.json();
+                if (stateData.success && stateData.state) updateUI(stateData.state);
+            } catch (e) {
+                alert('Ошибка подключения к серверу');
+            }
+        }
+
+        function authLestaGames() {
+            const authWindow = window.open('/auth/lesta', 'Lesta Games Auth', 'width=600,height=700');
+            
+            // Слушаем сообщения от окна авторизации
+            const messageHandler = (event) => {
+                if (event.data.type === 'LESTA_OAUTH_SUCCESS') {
+                    console.log('✅ Получено сообщение об успешной авторизации');
+                    // Обновляем состояние через 1 секунду
+                    setTimeout(() => {
+                        fetch('/api/state')
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success && data.state) {
+                                    updateUI(data.state);
+                                } else {
+                                    console.error('Ошибка получения состояния:', data);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Ошибка загрузки состояния:', error);
+                            });
+                    }, 1000);
+                }
+            };
+            
+            window.addEventListener('message', messageHandler);
+            
+            const checkAuth = setInterval(() => {
+                if (authWindow.closed) {
+                    clearInterval(checkAuth);
+                    window.removeEventListener('message', messageHandler);
+                    // Проверяем состояние сразу после закрытия окна
+                    fetch('/api/state')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.state) {
+                                updateUI(data.state);
+                            } else {
+                                console.error('Ошибка получения состояния:', data);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Ошибка загрузки состояния:', error);
+                        });
+                }
+            }, 1000);
+        }
+
+        function testStats() {
+            fetch('/api/lesta-test-stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`✅ Тест статистики успешен!\nБои: ${data.stats.battles}, Фраги: ${data.stats.frags}\nНикнейм: ${data.stats.nickname}`);
+                    } else {
+                        alert('❌ Ошибка теста статистики: ' + data.error + '\n\n' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('❌ Ошибка подключения к серверу: ' + error.message);
+                });
+        }
+
+        function syncStats() {
+            fetch('/api/lesta-sync', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Синхронизация выполнена!\nБои: ${data.stats.battles}, Фраги: ${data.stats.frags}`);
+                } else {
+                    alert('❌ Ошибка синхронизации: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('❌ Ошибка подключения к серверу');
+            });
+        }
+
+        function resetLestaData() {
+            if (confirm('⚠️ ВНИМАНИЕ! Это действие удалит все данные Lesta Games. Продолжить?')) {
+                fetch('/api/reset-lesta', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('✅ Данные Lesta Games сброшены');
+                        location.reload();
+                    } else {
+                        alert('❌ Ошибка сброса данных');
+                    }
+                })
+                .catch(error => {
+                    alert('❌ Ошибка подключения к серверу');
+                });
+            }
+        }
+
+        function switchTab(tabName) {
+            // Скрываем все вкладки
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Убираем активный класс со всех кнопок
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Показываем выбранную вкладку
+            document.getElementById(`tab-content-${tabName}`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Загружаем данные для вкладки
+            if (tabName === 'session') {
+                loadSessionData();
+            } else if (tabName === 'rating') {
+                loadRatingData();
+            } else if (tabName === 'tanks') {
+                if (allTanksData.length === 0) {
+                    const accountId = document.getElementById('playerId').textContent.replace('ID: ', '');
+                    if (accountId && accountId !== '—') loadPlayerTanks();
+                }
+            } else if (tabName === 'achievements') {
+                const accountId = document.getElementById('playerId').textContent.replace('ID: ', '');
+                if (accountId && accountId !== '—') loadAchievements(accountId);
+            }
+        }
+
+        function calculateSessionFromHistory(records) {
+            if (!records || records.length < 2) {
+                return null;
+            }
+
+            // Массив history приходит отсортированным по времени убыванию (DESC)
+            const lastRecord = records[0]; // самая свежая
+            const firstRecord = records[records.length - 1]; // самая старая
+
+            const battlesDiff = (lastRecord.battles || 0) - (firstRecord.battles || 0);
+            const fragsDiff = (lastRecord.frags || 0) - (firstRecord.frags || 0);
+            const winsDiff = (lastRecord.wins || 0) - (firstRecord.wins || 0);
+            const lossesDiff = (lastRecord.losses || 0) - (firstRecord.losses || 0);
+            const damageDiff = (lastRecord.damage_dealt || 0) - (firstRecord.damage_dealt || 0);
+            const xpDiff = (lastRecord.xp || 0) - (firstRecord.xp || 0);
+
+            const battlesPlayed = Math.max(battlesDiff, 0);
+            const sessionWinRate = battlesPlayed > 0 ? (winsDiff / battlesPlayed) * 100 : 0;
+            const avgDamage = battlesPlayed > 0 ? Math.round(damageDiff / battlesPlayed) : 0;
+            const avgXp = battlesPlayed > 0 ? Math.round(xpDiff / battlesPlayed) : 0;
+            const fragsPerBattle = battlesPlayed > 0 ? fragsDiff / battlesPlayed : 0;
+
+            return {
+                battles: battlesPlayed,
+                frags: Math.max(fragsDiff, 0),
+                wins: Math.max(winsDiff, 0),
+                losses: Math.max(lossesDiff, 0),
+                winRate: sessionWinRate,
+                avgDamage,
+                avgXp,
+                fragsPerBattle
+            };
+        }
+
+        function updateCurrentSessionUI(session) {
+            if (!session) {
+                document.getElementById('sessionBattles').textContent = '—';
+                document.getElementById('sessionFrags').textContent = '—';
+                document.getElementById('sessionWins').textContent = '—';
+                document.getElementById('sessionLosses').textContent = '—';
+                document.getElementById('sessionWinRate').textContent = '—';
+                if (document.getElementById('sessionAvgDamage')) {
+                    document.getElementById('sessionAvgDamage').textContent = '—';
+                }
+                if (document.getElementById('sessionAvgXp')) {
+                    document.getElementById('sessionAvgXp').textContent = '—';
+                }
+                if (document.getElementById('sessionFragsPerBattle')) {
+                    document.getElementById('sessionFragsPerBattle').textContent = '—';
+                }
+                return;
+            }
+
+            document.getElementById('sessionBattles').textContent = session.battles;
+            document.getElementById('sessionFrags').textContent = session.frags;
+            document.getElementById('sessionWins').textContent = session.wins;
+            document.getElementById('sessionLosses').textContent = session.losses;
+            document.getElementById('sessionWinRate').textContent = `${session.winRate.toFixed(2)}%`;
+
+            if (document.getElementById('sessionAvgDamage')) {
+                document.getElementById('sessionAvgDamage').textContent = formatNumber(session.avgDamage);
+            }
+            if (document.getElementById('sessionAvgXp')) {
+                document.getElementById('sessionAvgXp').textContent = formatNumber(session.avgXp);
+            }
+            if (document.getElementById('sessionFragsPerBattle')) {
+                document.getElementById('sessionFragsPerBattle').textContent = session.fragsPerBattle.toFixed(2);
+            }
+        }
+
+        async function loadSessionData() {
+            try {
+                const response = await fetch('/api/lesta-session');
+                const data = await response.json();
+
+                const note = document.getElementById('sessionModeNote');
+                if (data.mode === 'manual' && data.startedAt) {
+                    note.textContent = 'Ручная сессия с ' + new Date(data.startedAt * 1000).toLocaleString('ru-RU');
+                } else if (data.hasData) {
+                    note.textContent = 'Авто-сессия за сегодня (с ' + (data.baselineAt ? new Date(data.baselineAt).toLocaleString('ru-RU') : 'начала дня') + ')';
+                } else {
+                    note.textContent = 'Нажмите «Начать сессию» или сыграйте бои — данные появятся после синка Lesta.';
+                }
+
+                if (data.success && data.session && data.session.battlesPlayed > 0) {
+                    updateCurrentSessionUI({
+                        battles: data.session.battlesPlayed,
+                        frags: data.session.frags,
+                        wins: data.session.wins,
+                        losses: data.session.losses,
+                        winRate: data.session.winRate,
+                        avgDamage: data.session.avgDamage,
+                        avgXp: data.session.avgXp,
+                        fragsPerBattle: data.session.fragsPerBattle
+                    });
+                    await loadSessionsHistory();
+                } else {
+                    updateCurrentSessionUI(null);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки данных сессии:', error);
+                updateCurrentSessionUI(null);
+            }
+        }
+
+        async function loadSessionsHistory() {
+            try {
+                const response = await fetch('/api/lesta-history?period=30d');
+                const data = await response.json();
+                const sessionsHistory = document.getElementById('sessionsHistory');
+
+                if (!data.success || !data.daily || !data.daily.length) {
+                    sessionsHistory.innerHTML = '<p class="section-hint">Нет данных по дням. История накапливается при работе сервера.</p>';
+                    return;
+                }
+
+                sessionsHistory.innerHTML = '';
+                data.daily.slice().reverse().forEach((day) => {
+                    if (!day.battlesPlayed || day.battlesPlayed <= 0) return;
+
+                    const dateKey = new Date(day.date + 'T12:00:00').toLocaleDateString('ru-RU', {
+                        day: '2-digit', month: '2-digit', year: '2-digit'
+                    });
+                    const row = document.createElement('div');
+                    row.className = 'stat-row';
+                    row.innerHTML = `
+                        <span class="stat-label">${dateKey}</span>
+                        <div class="stat-value">
+                            <span>Бои: <strong>${day.battlesPlayed}</strong></span>
+                            <span>ВР: <strong>${day.winRate}%</strong></span>
+                            <span>С/У: <strong>${formatNumber(day.avgDamage)}</strong></span>
+                            <span>Фр/бой: <strong>${day.fragsPerBattle.toFixed(2)}</strong></span>
+                        </div>
+                    `;
+                    sessionsHistory.appendChild(row);
+                });
+
+                if (!sessionsHistory.hasChildNodes()) {
+                    sessionsHistory.innerHTML = '<p class="section-hint">За последние 30 дней боёв не зафиксировано.</p>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки истории сессий:', error);
+            }
+        }
+
+        function loadRatingData() {
+            if (!currentStats) return;
+            
+            // WN8 рассчитывается по сложной формуле, здесь упрощенная версия
+            const avgDamage = currentStats.battles > 0 ? currentStats.damageDealt / currentStats.battles : 0;
+            const winRate = parseFloat(currentStats.winRate) || 0;
+            const fragsPerBattle = parseFloat(currentStats.fragsPerBattle) || 0;
+            
+            // Упрощенный расчет WN8 (реальная формула сложнее)
+            const wn8 = Math.round((avgDamage * 0.5 + winRate * 10 + fragsPerBattle * 100) * 10);
+            
+            document.getElementById('wn8Rating').textContent = wn8;
+            document.getElementById('avgDamageRating').textContent = Math.round(avgDamage);
+            document.getElementById('winRateRating').textContent = `${winRate}%`;
+            document.getElementById('fragsPerBattleRating').textContent = fragsPerBattle.toFixed(2);
+        }
+
+        let allTanksData = [];
+        let vehiclesById = {};
+        let vehiclesLoaded = false;
+
+        async function loadVehiclesIfNeeded() {
+            if (vehiclesLoaded) return;
+            
+            try {
+                const response = await fetch('/api/lesta-vehicles');
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    console.warn('Некорректный Content-Type для /api/lesta-vehicles:', contentType);
+                    return;
+                }
+                
+                const data = await response.json();
+                if (data.success && data.data) {
+                    vehiclesById = data.data;
+                    vehiclesLoaded = true;
+                    console.log('Загружена энциклопедия техники, всего записей:', Object.keys(vehiclesById).length);
+                } else {
+                    console.warn('Не удалось загрузить список техники:', data);
+                }
+            } catch (e) {
+                console.error('Ошибка загрузки списка техники:', e);
+            }
+        }
+
+        async function loadPlayerTanks() {
+            const loadBtn = document.getElementById('loadTanksBtn');
+            const tanksList = document.getElementById('tanksList');
+            const tanksFilters = document.getElementById('tanksFilters');
+            
+            loadBtn.disabled = true;
+            loadBtn.textContent = 'Загрузка...';
+            tanksList.innerHTML = '<p class="section-hint">Загрузка техники…</p>';
+            
+            try {
+                const accountId = document.getElementById('playerId').textContent.replace('ID: ', '');
+                if (!accountId || accountId === '—') {
+                    throw new Error('Сначала авторизуйтесь');
+                }
+                
+                // Используем поисковый запрос, если он есть, чтобы сразу получать статистику только по найденным танкам
+                const searchInput = document.getElementById('tankSearch');
+                const searchValue = searchInput ? searchInput.value.trim() : '';
+                const url = searchValue
+                    ? `/api/lesta-player-tanks?account_id=${accountId}&search=${encodeURIComponent(searchValue)}`
+                    : `/api/lesta-player-tanks?account_id=${accountId}`;
+                
+                const response = await fetch(url);
+                
+                // Проверяем, что ответ - это JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    throw new Error(`Сервер вернул неверный формат данных. Проверьте консоль сервера для деталей.`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success && Array.isArray(data.data)) {
+                    allTanksData = data.data;
+                    const count = data.count != null ? data.count : allTanksData.length;
+                    document.getElementById('tanksCount').textContent = count > 0
+                        ? `У игрока ${count} танков с боями`
+                        : 'Нет данных по технике';
+                    tanksFilters.style.display = count > 0 ? 'block' : 'none';
+
+                    await loadVehiclesIfNeeded();
+
+                    if (count === 0) {
+                        const msg = data.code === 'STATS_HIDDEN'
+                            ? (data.message || 'Статистика по танкам скрыта в Lesta')
+                            : (data.message || 'Нет танков с боями');
+                        tanksList.innerHTML = `<p class="section-hint">${msg}</p>`;
+                        return;
+                    }
+
+                    filterAndDisplayTanks();
+                } else {
+                    const errorMsg = data.message || data.error || 'Не удалось загрузить технику';
+                    throw new Error(`${errorMsg}${data.details ? ': ' + JSON.stringify(data.details) : ''}`);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки техники:', error);
+                tanksList.innerHTML = `<p class="section-hint" style="color:#f87171;">Ошибка: ${error.message}</p>`;
+            } finally {
+                loadBtn.disabled = false;
+                loadBtn.textContent = 'Загрузить';
+            }
+        }
+
+        function filterAndDisplayTanks() {
+            const searchTerm = document.getElementById('tankSearch').value.toLowerCase();
+            const tierFilter = document.getElementById('tierFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            
+            let filtered = allTanksData.filter(tank => {
+                const tankName = (tank.name || `Танк #${tank.tank_id || '?'}`).toLowerCase();
+                // Поиск по названию
+                if (searchTerm && !tankName.includes(searchTerm)) {
+                    return false;
+                }
+                
+                // Фильтр по уровню
+                if (tierFilter && tank.tier !== parseInt(tierFilter)) {
+                    return false;
+                }
+                
+                // Фильтр по типу
+                if (typeFilter && tank.type !== typeFilter) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // Сортировка
+            filtered.sort((a, b) => {
+                const statsA = a.statistics?.all || {};
+                const statsB = b.statistics?.all || {};
+                
+                switch(sortFilter) {
+                    case 'battles':
+                        return (statsB.battles || 0) - (statsA.battles || 0);
+                    case 'damage':
+                        const avgDamageA = (statsA.battles || 0) > 0 ? (statsA.damage_dealt || 0) / statsA.battles : 0;
+                        const avgDamageB = (statsB.battles || 0) > 0 ? (statsB.damage_dealt || 0) / statsB.battles : 0;
+                        return avgDamageB - avgDamageA;
+                    case 'winrate':
+                        const winrateA = (statsA.battles || 0) > 0 ? ((statsA.wins || 0) / statsA.battles * 100) : 0;
+                        const winrateB = (statsB.battles || 0) > 0 ? ((statsB.wins || 0) / statsB.battles * 100) : 0;
+                        return winrateB - winrateA;
+                    case 'frags':
+                        return (statsB.frags || 0) - (statsA.frags || 0);
+                    default:
+                        return 0;
+                }
+            });
+            
+            // Отображение
+            const tanksList = document.getElementById('tanksList');
+            tanksList.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                tanksList.innerHTML = '<p class="section-hint">Техника не найдена</p>';
+                return;
+            }
+            
+            const tierLabel = (t) => ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][t] || String(t);
+
+            filtered.forEach(tank => {
+                const stats = tank.statistics?.all || {};
+                const battles = stats.battles || 0;
+                const avgDamage = battles > 0 ? Math.round((stats.damage_dealt || 0) / battles) : 0;
+                const winrate = battles > 0 ? ((stats.wins || 0) / battles * 100).toFixed(1) : '0';
+                const frags = stats.frags || 0;
+
+                const tankId = tank.tank_id;
+                let vehicleInfo = {};
+                if (tankId != null) {
+                    if (Array.isArray(vehiclesById)) {
+                        vehicleInfo = vehiclesById.find(v => v.tank_id === tankId) || {};
+                    } else {
+                        vehicleInfo = vehiclesById[tankId] || vehiclesById[String(tankId)] || {};
+                    }
+                }
+
+                const tankName =
+                    tank.name ||
+                    vehicleInfo.name ||
+                    vehicleInfo.short_name ||
+                    vehicleInfo.name_i18n ||
+                    (tankId != null ? `Танк ${tankId}` : 'Неизвестный танк');
+
+                const tankTier = tank.tier || vehicleInfo.tier || 0;
+                
+                const row = document.createElement('div');
+                row.className = 'tank-row-compact';
+                row.innerHTML = `
+                    <span class="tank-name-cell" title="${tankName}">${tankName}</span>
+                    <span>${tierLabel(tankTier)}</span>
+                    <span>${formatNumber(battles)}</span>
+                    <span>${formatNumber(avgDamage)}</span>
+                    <span>${winrate}%</span>
+                    <span>${formatNumber(frags)}</span>
+                `;
+                tanksList.appendChild(row);
+            });
+        }
+
+        // Инициализация фильтров техники
+        document.addEventListener('DOMContentLoaded', function() {
+            const tankSearch = document.getElementById('tankSearch');
+            const tierFilter = document.getElementById('tierFilter');
+            const typeFilter = document.getElementById('typeFilter');
+            const sortFilter = document.getElementById('sortFilter');
+            
+            if (tankSearch) {
+                tankSearch.addEventListener('input', filterAndDisplayTanks);
+            }
+            if (tierFilter) {
+                tierFilter.addEventListener('change', filterAndDisplayTanks);
+            }
+            if (typeFilter) {
+                typeFilter.addEventListener('change', filterAndDisplayTanks);
+            }
+            if (sortFilter) {
+                sortFilter.addEventListener('change', filterAndDisplayTanks);
+            }
+        });
+
+        async function loadPeriodStats(period) {
+            try {
+                const [periodRes, tanksRes] = await Promise.all([
+                    fetch(`/api/lesta-period?period=${encodeURIComponent(period)}`),
+                    fetch(`/api/lesta-tank-period?period=${encodeURIComponent(period)}`)
+                ]);
+                const data = await periodRes.json();
+                const tankData = tanksRes.ok ? await tanksRes.json() : null;
+                if (!data.success) return;
+                renderPeriodSummary(data);
+                renderActivityChart(data.daily || []);
+                renderPeriodTankChanges(tankData, data.periodStats);
+                if (currentStats) updateStatsDisplay();
+            } catch (error) {
+                console.error('Ошибка загрузки периода:', error);
+            }
+        }
+
+        function tankTierLabel(tier) {
+            return ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][tier] || String(tier || '');
+        }
+
+        function renderPeriodTankChanges(tankData, periodStats) {
+            const block = document.getElementById('periodTanksBlock');
+            const list = document.getElementById('periodTanksList');
+            const note = document.getElementById('periodTanksNote');
+            const header = document.getElementById('periodTanksTableHeader');
+            if (!block || !list) return;
+
+            block.style.display = 'block';
+            list.innerHTML = '';
+            if (header) header.style.display = 'none';
+
+            if (!tankData || !tankData.success) {
+                if (note) note.textContent = 'Не удалось загрузить статистику по технике.';
+                return;
+            }
+
+            if (tankData.hidden) {
+                if (note) {
+                    note.textContent = tankData.message || 'Статистика по танкам скрыта в настройках Lesta. Включите «Доступ к данным» в игре — тогда здесь появятся изменения по технике за период.';
+                }
+                return;
+            }
+
+            const changes = tankData.changes || [];
+            const totalBattles = periodStats?.battlesPlayed || 0;
+
+            if (!changes.length) {
+                if (note) {
+                    if (tankData.message) {
+                        note.textContent = tankData.message;
+                    } else if (tankData.hasBaseline === false) {
+                        note.textContent = 'Базовый снимок сохранён. После боёв здесь появятся танки с изменениями за период.';
+                    } else if (totalBattles > 0) {
+                        note.textContent = `За период на аккаунте ${formatNumber(totalBattles)} ${totalBattles === 1 ? 'бой' : 'боёв'}, но по отдельным танкам изменений пока не зафиксировано (нужен ещё один снимок после боёв).`;
+                    } else {
+                        note.textContent = 'За выбранный период изменений по технике нет.';
+                    }
+                }
+                return;
+            }
+
+            if (header) header.style.display = 'grid';
+            if (note) {
+                const tankBattles = changes.reduce((s, t) => s + (t.battlesPlayed || 0), 0);
+                note.textContent = tankData.baselineAt
+                    ? `Изменения с ${new Date(tankData.baselineAt).toLocaleString('ru-RU')}: ${changes.length} танк(ов), ${tankBattles} боёв по технике${totalBattles > 0 ? ` (всего за период: ${totalBattles})` : ''}.`
+                    : `${changes.length} танк(ов) с новыми боями за период.`;
+            }
+
+            list.innerHTML = changes.map((tank) => `
+                <div class="tank-row-compact">
+                    <span class="tank-name-cell" title="${tank.name}">${tank.name}</span>
+                    <span>${tankTierLabel(tank.tier)}</span>
+                    <span>+${formatNumber(tank.battlesPlayed)}</span>
+                    <span>${formatNumber(tank.avgDamage)}</span>
+                    <span>${tank.winRate}%</span>
+                    <span>${formatNumber(tank.frags)}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderPeriodSummary(data) {
+            const ps = data.periodStats || {};
+            const set = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            };
+            set('periodBattles', ps.battlesPlayed ?? '—');
+            set('periodWins', ps.wins ?? '—');
+            set('periodWinRate', ps.battlesPlayed > 0 ? `${ps.winRate}%` : '—');
+            set('periodAvgDamage', ps.battlesPlayed > 0 ? formatNumber(ps.avgDamage) : '—');
+            set('periodFrags', ps.frags ?? '—');
+            set('periodFragsPerBattle', ps.battlesPlayed > 0 ? ps.fragsPerBattle.toFixed(2) : '—');
+
+            const note = document.getElementById('periodDataNote');
+            if (!note) return;
+            if (!ps.battlesPlayed || ps.battlesPlayed === 0) {
+                const since = data.trackingSince
+                    ? ` Учёт с ${new Date(data.trackingSince).toLocaleString('ru-RU')}.`
+                    : '';
+                note.textContent = `За выбранный период боёв не зафиксировано.${since}`;
+            } else if (data.baselineAt) {
+                note.textContent = `С ${new Date(data.baselineAt).toLocaleString('ru-RU')}: ${ps.battlesPlayed} боёв за период.`;
+            } else {
+                note.textContent = `За период: ${ps.battlesPlayed} боёв.`;
+            }
+        }
+
+        function renderActivityChart(daily) {
+            const el = document.getElementById('activityChart');
+            if (!el) return;
+            if (!daily || !daily.length) {
+                el.innerHTML = '';
+                return;
+            }
+            const max = Math.max(...daily.map((d) => d.battlesPlayed || 0), 1);
+            el.innerHTML = daily.map((d) => {
+                const h = Math.max(4, Math.round(((d.battlesPlayed || 0) / max) * 100));
+                const label = String(d.date || '').slice(5);
+                return `<div class="activity-bar-wrap" title="${d.date}: ${d.battlesPlayed || 0} боёв, WR ${d.winRate || 0}%">
+                    <div class="activity-bar" style="height:${h}%"></div>
+                    <div class="activity-bar-label">${label}</div>
+                </div>`;
+            }).join('');
+        }
+
+        async function startLestaSession() {
+            try {
+                const response = await fetch('/api/lesta-session/start', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    await loadSessionData();
+                } else {
+                    alert('Не удалось начать сессию: ' + (data.error || 'ошибка'));
+                }
+            } catch (error) {
+                alert('Ошибка: ' + error.message);
+            }
+        }
+
+        async function resetLestaSession() {
+            try {
+                await fetch('/api/lesta-session/reset', { method: 'POST' });
+                await loadSessionData();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function showChanges(period, evt) {
+            currentPeriod = period;
+
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            if (evt && evt.target) {
+                evt.target.classList.add('active');
+            }
+
+            await loadPeriodStats(period);
+        }
+
+        function applyHistoryForPeriod(historyData) {
+            if (!historyData || !historyData.success || !historyData.history || !historyData.history.length) return;
+            const firstRecord = historyData.history[historyData.history.length - 1];
+            previousStats = {
+                battles: firstRecord.battles || 0,
+                wins: firstRecord.wins || 0,
+                losses: firstRecord.losses || 0,
+                winRate: firstRecord.win_rate || 0,
+                frags: firstRecord.frags || 0,
+                fragsPerBattle: firstRecord.frags_per_battle || 0,
+                damageDealt: firstRecord.damage_dealt || 0,
+                xp: firstRecord.xp || 0
+            };
+            if (currentStats) updateStatsDisplay();
+        }
+
+        // Инициализация — один запрос истории + state параллельно
+        document.addEventListener('DOMContentLoaded', function() {
+            connectWebSocket();
+            currentPeriod = '1d';
+
+            Promise.all([
+                loadPeriodStats('1d'),
+                fetch('/api/state').then(function(r) { return r.json(); })
+            ]).then(function(results) {
+                const stateData = results[1];
+                if (stateData && stateData.success && stateData.state) {
+                    updateUI(stateData.state);
+                }
+            }).catch(function(error) {
+                console.error('Ошибка загрузки страницы Lesta:', error);
+            });
+        });
+    </script>
+</body>
+</html>

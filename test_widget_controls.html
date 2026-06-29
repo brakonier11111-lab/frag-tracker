@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Widget Controls</title>
+</head>
+<body>
+    <h1>Test Widget Controls</h1>
+    <button onclick="testOpacity()">Test Opacity</button>
+    <button onclick="testBlur()">Test Blur</button>
+    <button onclick="testGetState()">Get State</button>
+    <div id="result"></div>
+
+    <script>
+        async function testOpacity() {
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        widget_opacity: 0.5
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 'Opacity Test: ' + JSON.stringify(result);
+                console.log('Opacity Test:', result);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+
+        async function testBlur() {
+            try {
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        widget_background_blur: 1
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 'Blur Test: ' + JSON.stringify(result);
+                console.log('Blur Test:', result);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+
+        async function testGetState() {
+            try {
+                const response = await fetch('/api/state');
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 'State: ' + JSON.stringify(result, null, 2);
+                console.log('State:', result);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+

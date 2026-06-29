@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка суммы донатов в виджете</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success { color: #00ff88; }
+        .error { color: #ff4444; }
+        .info { color: #00d4ff; }
+        button {
+            background: #ff0040;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #ff0066; }
+        .widget-frame {
+            width: 100%;
+            height: 400px;
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .status {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Проверка суммы донатов в виджете</h1>
+        
+        <div class="test-section">
+            <h2>📊 Проверка API</h2>
+            <button onclick="checkAPI()">🔄 Проверить API</button>
+            <div id="apiStatus"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📱 Виджет</h2>
+            <button onclick="checkWidget()">🔄 Проверить виджет</button>
+            <button onclick="forceUpdateWidget()">🔧 Принудительно обновить</button>
+            <div class="widget-frame">
+                <iframe id="widgetFrame" src="/widget-mode2-copy.html"></iframe>
+            </div>
+            <div id="widgetStatus"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 Исправления</h2>
+            <button onclick="fixTotalDonated()">🔧 Исправить total_donated</button>
+            <button onclick="refreshWidget()">🔄 Обновить виджет</button>
+            <div id="fixStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            element.appendChild(div);
+            console.log(message);
+        }
+
+        async function checkAPI() {
+            log('apiStatus', '🔄 Проверяем API...', 'info');
+            
+            try {
+                const response = await fetch('/api/donations-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('apiStatus', `✅ API сумма: ${data.totalAmount.toLocaleString()} RUB`, 'success');
+                    log('apiStatus', `✅ Количество: ${data.totalCount} донатов`, 'success');
+                } else {
+                    log('apiStatus', `❌ Ошибка API: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log('apiStatus', `❌ Ошибка запроса: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkWidget() {
+            log('widgetStatus', '🔄 Проверяем виджет...', 'info');
+            
+            try {
+                const iframe = document.getElementById('widgetFrame');
+                const widgetDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                if (widgetDoc) {
+                    const donationAmount = widgetDoc.getElementById('donationAmount');
+                    if (donationAmount) {
+                        log('widgetStatus', `📱 Виджет показывает: ${donationAmount.textContent}`, 'info');
+                        
+                        // Проверяем currentState
+                        const widgetWindow = iframe.contentWindow;
+                        if (widgetWindow && widgetWindow.currentState) {
+                            const currentTotal = Math.round(widgetWindow.currentState.donation_total || 0);
+                            log('widgetStatus', `📊 currentState.donation_total: ${currentTotal.toLocaleString()} RUB`, 'info');
+                            
+                            if (currentTotal === 0) {
+                                log('widgetStatus', '❌ currentState.donation_total = 0! Нужно обновить', 'error');
+                            } else {
+                                log('widgetStatus', '✅ currentState.donation_total обновлен', 'success');
+                            }
+                        } else {
+                            log('widgetStatus', '❌ currentState не найден', 'error');
+                        }
+                    } else {
+                        log('widgetStatus', '❌ Элемент donationAmount не найден', 'error');
+                    }
+                } else {
+                    log('widgetStatus', '❌ Не удалось получить доступ к виджету', 'error');
+                }
+            } catch (error) {
+                log('widgetStatus', `❌ Ошибка проверки виджета: ${error.message}`, 'error');
+            }
+        }
+
+        async function forceUpdateWidget() {
+            log('widgetStatus', '🔧 Принудительно обновляем виджет...', 'info');
+            
+            try {
+                const iframe = document.getElementById('widgetFrame');
+                const widgetWindow = iframe.contentWindow;
+                
+                if (widgetWindow) {
+                    // Вызываем функцию принудительного обновления
+                    if (typeof widgetWindow.forceUpdateState === 'function') {
+                        await widgetWindow.forceUpdateState();
+                        log('widgetStatus', '✅ Принудительное обновление выполнено', 'success');
+                        
+                        // Проверяем результат
+                        setTimeout(() => {
+                            checkWidget();
+                        }, 1000);
+                    } else {
+                        log('widgetStatus', '❌ Функция forceUpdateState не найдена', 'error');
+                    }
+                } else {
+                    log('widgetStatus', '❌ Не удалось получить доступ к виджету', 'error');
+                }
+            } catch (error) {
+                log('widgetStatus', `❌ Ошибка обновления: ${error.message}`, 'error');
+            }
+        }
+
+        async function fixTotalDonated() {
+            log('fixStatus', '🔧 Исправляем total_donated...', 'info');
+            
+            try {
+                const response = await fetch('/api/fix-total-donated', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('fixStatus', `✅ Исправление выполнено!`, 'success');
+                    log('fixStatus', `📊 Новое значение: ${data.newValue.toLocaleString()} RUB`, 'success');
+                    
+                    // Обновляем виджет
+                    setTimeout(() => {
+                        forceUpdateWidget();
+                    }, 2000);
+                } else {
+                    log('fixStatus', `❌ Ошибка исправления: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log('fixStatus', `❌ Ошибка запроса: ${error.message}`, 'error');
+            }
+        }
+
+        function refreshWidget() {
+            const iframe = document.getElementById('widgetFrame');
+            const src = iframe.src;
+            iframe.src = '';
+            setTimeout(() => {
+                iframe.src = src;
+            }, 100);
+        }
+
+        // Автоматическая проверка при загрузке
+        window.addEventListener('load', () => {
+            setTimeout(checkAPI, 1000);
+            setTimeout(checkWidget, 3000);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

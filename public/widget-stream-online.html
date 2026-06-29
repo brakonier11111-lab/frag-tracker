@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<title>Онлайн стрима — виджет</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		html, body {
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+		body {
+			background: transparent;
+			color: #fff;
+			font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+		.widget {
+			min-width: 260px;
+			max-width: 420px;
+			padding: 14px 18px;
+			border-radius: 14px;
+			background: radial-gradient(circle at top left, rgba(110,168,254,0.22), transparent 55%),
+			            radial-gradient(circle at bottom right, rgba(155,89,255,0.28), transparent 55%),
+			            rgba(5,8,15,0.92);
+			border: 1px solid rgba(255,255,255,0.18);
+			box-shadow:
+				0 0 24px rgba(0,0,0,0.7),
+				0 0 18px rgba(110,168,254,0.45);
+			backdrop-filter: blur(6px);
+		}
+		.header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			margin-bottom: 10px;
+		}
+		.title {
+			font-family: 'Orbitron', sans-serif;
+			font-size: 13px;
+			letter-spacing: .18em;
+			text-transform: uppercase;
+			color: rgba(255,255,255,0.85);
+		}
+		.badge-live {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 2px 8px;
+			border-radius: 999px;
+			font-size: 10px;
+			text-transform: uppercase;
+			letter-spacing: .12em;
+			background: rgba(255,0,76,0.18);
+			border: 1px solid rgba(255,0,76,0.7);
+			color: #ff517a;
+		}
+		.badge-live-dot {
+			width: 7px;
+			height: 7px;
+			border-radius: 50%;
+			background: #ff1744;
+			box-shadow: 0 0 10px rgba(255,23,68,0.9);
+			animation: pulse 1.4s ease-in-out infinite;
+		}
+		@keyframes pulse {
+			0%, 100% { transform: scale(1); opacity: 1; }
+			50% { transform: scale(0.7); opacity: 0.5; }
+		}
+		.main {
+			display: flex;
+			align-items: baseline;
+			justify-content: space-between;
+			margin-bottom: 8px;
+		}
+		.main-label {
+			font-size: 11px;
+			color: rgba(255,255,255,0.65);
+			text-transform: uppercase;
+			letter-spacing: .08em;
+			margin-bottom: 2px;
+		}
+		.main-value {
+			font-family: 'Orbitron', sans-serif;
+			font-size: 34px;
+			font-weight: 700;
+			line-height: 1;
+			text-shadow:
+				0 0 12px rgba(110,168,254,0.9),
+				0 0 32px rgba(155,89,255,0.9);
+		}
+		.rows {
+			display: grid;
+			gap: 4px;
+			margin-top: 4px;
+			font-size: 12px;
+		}
+		.row {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 4px 6px;
+			border-radius: 8px;
+			background: rgba(255,255,255,0.03);
+		}
+		.row-label {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
+		.dot-yt {
+			width: 8px;
+			height: 8px;
+			border-radius: 4px;
+			background: linear-gradient(135deg,#ff4757,#ffa502);
+		}
+		.dot-vk {
+			width: 8px;
+			height: 8px;
+			border-radius: 4px;
+			background: linear-gradient(135deg,#6ea8fe,#9b59ff);
+		}
+		.value {
+			font-family: 'Orbitron', sans-serif;
+			font-size: 14px;
+		}
+		.value.dim {
+			color: rgba(255,255,255,0.5);
+		}
+	</style>
+</head>
+<body>
+	<div class="widget">
+		<div class="header">
+			<div class="title">Онлайн зрителей</div>
+			<div class="badge-live">
+				<span class="badge-live-dot"></span>
+				<span id="status-text">нет данных</span>
+			</div>
+		</div>
+		<div class="main">
+			<div>
+				<div class="main-label">Всего зрителей</div>
+				<div class="main-value" id="online-total">—</div>
+			</div>
+		</div>
+		<div class="rows">
+			<div class="row">
+				<div class="row-label">
+					<span class="dot-yt"></span>
+					<span>YouTube</span>
+				</div>
+				<div class="value" id="online-yt">—</div>
+			</div>
+			<div class="row">
+				<div class="row-label">
+					<span class="dot-vk"></span>
+					<span>VK Play</span>
+				</div>
+				<div class="value" id="online-vk">—</div>
+			</div>
+		</div>
+	</div>
+
+	<script>
+		async function refreshOnline() {
+			const totalEl = document.getElementById('online-total');
+			const ytEl = document.getElementById('online-yt');
+			const vkEl = document.getElementById('online-vk');
+			const statusEl = document.getElementById('status-text');
+
+			try {
+				const [ytRes, vkRes] = await Promise.all([
+					fetch('/integrations/youtube/status').then(r => r.json()).catch(() => null),
+					fetch('/integrations/vkplay/status').then(r => r.json()).catch(() => null)
+				]);
+
+				const ytConnected = ytRes && ytRes.connected;
+				const vkConnected = vkRes && vkRes.connected;
+
+				const ytViewers = ytConnected ? (ytRes.viewers || 0) : 0;
+				const vkViewers = vkConnected ? (vkRes.viewers || 0) : 0;
+				const total = ytViewers + vkViewers;
+
+				ytEl.textContent = ytConnected ? ytViewers : '—';
+				vkEl.textContent = vkConnected ? vkViewers : '—';
+				totalEl.textContent = (ytConnected || vkConnected) ? total : '—';
+
+				if (ytConnected && vkConnected) {
+					statusEl.textContent = 'YouTube + VK Play';
+				} else if (ytConnected) {
+					statusEl.textContent = 'Только YouTube';
+				} else if (vkConnected) {
+					statusEl.textContent = 'Только VK Play';
+				} else {
+					statusEl.textContent = 'интеграции не подключены';
+				}
+			} catch (e) {
+				console.warn('Ошибка виджета онлайна:', e);
+				statusEl.textContent = 'ошибка';
+				totalEl.textContent = '—';
+				ytEl.textContent = '—';
+				vkEl.textContent = '—';
+			}
+		}
+
+		refreshOnline();
+		setInterval(refreshOnline, 5000);
+	</script>
+</body>
+</html>
+

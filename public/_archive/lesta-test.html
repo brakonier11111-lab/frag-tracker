@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест Lesta Games API</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --neon-yellow: #ffff00;
+            --dark: #0a0a14;
+            --darker: #050508;
+            --light: #f5f5f5;
+            --widget-bg-opacity: 0.95;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, var(--widget-bg-opacity)) 0%,
+                rgba(8, 8, 20, calc(var(--widget-bg-opacity) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--widget-bg-opacity) * 0.85)) 100%
+            );
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(0, 240, 255, 0.1);
+            position: relative;
+            overflow: visible;
+        }
+
+        .container::before,
+        .container::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background:
+                radial-gradient(12px 2px at left center, var(--neon-blue), rgba(0,0,0,0) 70%),
+                linear-gradient(90deg, var(--neon-blue), var(--neon-blue)),
+                radial-gradient(12px 2px at right center, var(--neon-blue), rgba(0,0,0,0) 70%);
+            background-repeat: no-repeat;
+            background-size: 12px 100%, calc(100% - 24px) 100%, 12px 100%;
+            background-position: left center, center, right center;
+        }
+        .container::before { top: 6px; }
+        .container::after { bottom: 6px; }
+        
+        h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(255, 0, 60, 0.5);
+            text-align: center;
+        }
+
+        .app-id {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .app-id strong {
+            color: var(--neon-green);
+            font-family: 'Orbitron', monospace;
+        }
+        
+        .btn {
+            background: rgba(0, 240, 255, 0.2);
+            color: var(--neon-blue);
+            border: 1px solid var(--neon-blue);
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            background: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn-success {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+
+        .btn-success:hover {
+            background: rgba(0, 255, 71, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 71, 0.3);
+        }
+
+        .btn-danger {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 0, 60, 0.2);
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.3);
+        }
+        
+        .result {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .success { 
+            border-left: 4px solid var(--neon-green);
+            box-shadow: 0 0 10px rgba(0, 255, 71, 0.2);
+        }
+        
+        .error { 
+            border-left: 4px solid var(--neon-red);
+            box-shadow: 0 0 10px rgba(255, 0, 60, 0.2);
+        }
+
+        .loading {
+            border-left: 4px solid var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .button-group {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--neon-purple);
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: color 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            color: var(--neon-blue);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .btn {
+                display: block;
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← НАЗАД</a>
+    
+    <div class="container">
+        <h1>🎮 Тест Lesta Games API</h1>
+        <div class="app-id">
+            <p>Application ID: <strong>da7874d5a895ff241d8b55e271c03ff3</strong></p>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn" onclick="testAuth()">🔑 Тест авторизации</button>
+            <button class="btn" onclick="testSearch()">🔍 Тест поиска игрока</button>
+            <button class="btn" onclick="testStats()">📊 Тест статистики</button>
+            <button class="btn btn-danger" onclick="clearResults()">🗑️ Очистить</button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function addResult(title, content, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = `<strong>${title}</strong>\n${content}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function testAuth() {
+            addResult('🔑 Тест авторизации', 'Открытие окна авторизации...', 'loading');
+            
+            const authWindow = window.open('/auth/lesta', 'Lesta Auth', 'width=600,height=700');
+            
+            // Проверяем статус авторизации каждые 2 секунды
+            const checkAuth = setInterval(() => {
+                if (authWindow.closed) {
+                    clearInterval(checkAuth);
+                    addResult('🔑 Авторизация', 'Окно авторизации закрыто. Проверьте статус в админке.', 'info');
+                }
+            }, 2000);
+        }
+
+        function testSearch() {
+            const nickname = prompt('Введите никнейм игрока для поиска:');
+            if (!nickname) return;
+
+            addResult('🔍 Поиск игрока', `Поиск игрока: ${nickname}...`, 'loading');
+
+            fetch('/api/lesta-search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    nickname: nickname
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addResult('✅ Поиск успешен', 
+                        `Найден игрок:\n` +
+                        `Никнейм: ${data.player.nickname}\n` +
+                        `ID: ${data.player.account_id}\n` +
+                        `Создан: ${new Date(data.player.created_at * 1000).toLocaleString('ru-RU')}`, 
+                        'success'
+                    );
+                } else {
+                    addResult('❌ Ошибка поиска', `Ошибка: ${data.error}`, 'error');
+                }
+            })
+            .catch(error => {
+                addResult('❌ Ошибка запроса', `Ошибка: ${error.message}`, 'error');
+            });
+        }
+
+        function testStats() {
+            addResult('📊 Тест статистики', 'Получение статистики игрока...', 'loading');
+
+            fetch('/api/lesta-stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        addResult('✅ Статистика получена', 
+                            `Статистика игрока:\n` +
+                            `Никнейм: ${data.stats.nickname || 'Не указан'}\n` +
+                            `Бои: ${data.stats.battles || 0}\n` +
+                            `Фраги: ${data.stats.frags || 0}\n` +
+                            `Победы: ${data.stats.wins || 0}\n` +
+                            `Поражения: ${data.stats.losses || 0}\n` +
+                            `Винрейт: ${data.stats.winRate || 0}%\n` +
+                            `Фраги за бой: ${data.stats.fragsPerBattle || 0}\n` +
+                            `Урон: ${data.stats.damage_dealt || 0}\n` +
+                            `Опыт: ${data.stats.xp || 0}`, 
+                            'success'
+                        );
+                    } else {
+                        addResult('❌ Ошибка получения статистики', `Ошибка: ${data.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    addResult('❌ Ошибка запроса', `Ошибка: ${error.message}`, 'error');
+                });
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Добавляем информацию о тестировании при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            addResult('ℹ️ Информация', 
+                'Добро пожаловать в тест Lesta Games API!\n\n' +
+                'Этот инструмент позволяет протестировать различные функции интеграции с Lesta Games API.\n\n' +
+                'Доступные тесты:\n' +
+                '• Тест авторизации - проверяет процесс OAuth авторизации\n' +
+                '• Тест поиска игрока - ищет игрока по никнейму\n' +
+                '• Тест статистики - получает статистику авторизованного игрока\n\n' +
+                'Для работы некоторых тестов требуется предварительная авторизация.', 
+                'info'
+            );
+        });
+    </script>
+</body>
+</html>

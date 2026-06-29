@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест API аналитики</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .test-result {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+        button {
+            background: #4c6ef5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #364fc7;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Тест API аналитики</h1>
+    
+    <div class="test-section">
+        <h2>📊 Общая аналитика</h2>
+        <button onclick="testAPI('/api/donations-analytics')">Тест общей аналитики</button>
+        <div id="general-analytics" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎮 Режимы таймера</h2>
+        <button onclick="testAPI('/api/timer-modes-analytics')">Тест режимов таймера</button>
+        <div id="timer-modes" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>👥 Группировка донатеров</h2>
+        <button onclick="testAPI('/api/donors-grouped')">Тест группировки донатеров</button>
+        <div id="donors-grouped" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📈 Статистика донатов</h2>
+        <button onclick="testAPI('/api/donations-stats')">Тест статистики донатов</button>
+        <div id="donations-stats" class="test-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🗄️ Проверка базы данных</h2>
+        <button onclick="checkDatabase()">Проверить данные в БД</button>
+        <div id="database-check" class="test-result"></div>
+    </div>
+
+    <script>
+        async function testAPI(endpoint) {
+            const resultDiv = document.getElementById(endpoint.replace('/api/', '').replace('-', '-'));
+            resultDiv.innerHTML = 'Загрузка...';
+            
+            try {
+                const response = await fetch(endpoint);
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `<span class="success">✅ Успешно</span>\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.innerHTML = `<span class="error">❌ Ошибка</span>\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Ошибка сети</span>\n${error.message}`;
+            }
+        }
+
+        async function checkDatabase() {
+            const resultDiv = document.getElementById('database-check');
+            resultDiv.innerHTML = 'Проверка базы данных...';
+            
+            try {
+                // Проверяем общую статистику
+                const statsResponse = await fetch('/api/donations-stats');
+                const statsData = await statsResponse.json();
+                
+                // Проверяем режимы таймера
+                const modesResponse = await fetch('/api/timer-modes-analytics');
+                const modesData = await modesResponse.json();
+                
+                let result = '📊 Результаты проверки БД:\n\n';
+                
+                if (statsData.success) {
+                    result += `✅ Общая статистика: ${statsData.totalCount} донатов, ${statsData.totalAmount}₽\n`;
+                } else {
+                    result += `❌ Ошибка общей статистики: ${statsData.error}\n`;
+                }
+                
+                if (modesData.success) {
+                    const data = modesData.data;
+                    result += `\n🎮 Режимы таймера:\n`;
+                    result += `- Статистика по времени: ${data.timerTimeStats ? data.timerTimeStats.length : 0} записей\n`;
+                    result += `- Статистика по режимам: ${data.timerModesStats ? data.timerModesStats.length : 0} записей\n`;
+                    result += `- Статистика по температуре: ${data.temperatureStats ? data.temperatureStats.length : 0} записей\n`;
+                    result += `- Сессии температуры: ${data.temperatureSessions ? data.temperatureSessions.length : 0} записей\n`;
+                    result += `- Статистика скидок: ${data.discountStats ? data.discountStats.length : 0} записей\n`;
+                    result += `- Статистика замедления: ${data.slowdownStats ? data.slowdownStats.length : 0} записей\n`;
+                    
+                    // Показываем детали по температуре
+                    if (data.temperatureStats && data.temperatureStats.length > 0) {
+                        result += `\n🌡️ Детали по температуре:\n`;
+                        data.temperatureStats.forEach(item => {
+                            result += `- ${item.temperatureRange}: ${item.donationCount} донатов, ${item.totalAmount}₽\n`;
+                        });
+                    } else {
+                        result += `\n🌡️ Нет данных по температуре\n`;
+                    }
+                    
+                    // Показываем детали по скидкам
+                    if (data.discountStats && data.discountStats.length > 0) {
+                        result += `\n💰 Детали по скидкам:\n`;
+                        data.discountStats.forEach(item => {
+                            result += `- ${item.discount_percentage}%: ${item.donationCount} донатов, ${item.totalAmount}₽\n`;
+                        });
+                    } else {
+                        result += `\n💰 Нет данных по скидкам\n`;
+                    }
+                } else {
+                    result += `❌ Ошибка режимов таймера: ${modesData.error}\n`;
+                }
+                
+                resultDiv.innerHTML = result;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<span class="error">❌ Ошибка проверки БД</span>\n${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

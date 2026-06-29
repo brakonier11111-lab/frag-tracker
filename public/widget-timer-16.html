@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нейронная Сеть</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-green: #00ff47;
+            --neon-purple: #b300ff;
+            --neon-red: #ff003c;
+            --neon-yellow: #ffff00;
+            --neon-orange: #ff6600;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: white;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .neural-widget {
+            width: 450px;
+            height: 350px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .neural-container {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.9) 0%,
+                rgba(0, 0, 0, 0.95) 100%
+            );
+            border: 3px solid var(--neon-green);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 0 40px var(--neon-green),
+                inset 0 0 40px rgba(0, 255, 71, 0.1);
+        }
+
+        .neural-container.discount-active {
+            border-color: var(--neon-orange);
+            box-shadow: 
+                0 0 40px var(--neon-orange),
+                inset 0 0 40px rgba(255, 102, 0, 0.1);
+        }
+
+        .neural-container.slowdown-active {
+            border-color: var(--neon-red);
+            box-shadow: 
+                0 0 40px var(--neon-red),
+                inset 0 0 40px rgba(255, 0, 60, 0.1);
+        }
+
+        .neural-network {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .neuron {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-green);
+            animation: neuronPulse 2s ease-in-out infinite;
+        }
+
+        .neuron.input {
+            background: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        .neuron.output {
+            background: var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        @keyframes neuronPulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            50% { 
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        .neural-container.discount-active .neuron {
+            background: var(--neon-orange);
+            box-shadow: 0 0 10px var(--neon-orange);
+        }
+
+        .neural-container.slowdown-active .neuron {
+            background: var(--neon-red);
+            box-shadow: 0 0 10px var(--neon-red);
+        }
+
+        .synapse {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, 
+                transparent 0%,
+                var(--neon-green) 50%,
+                transparent 100%
+            );
+            border-radius: 1px;
+            animation: synapseFlow 3s ease-in-out infinite;
+        }
+
+        .neural-container.discount-active .synapse {
+            background: linear-gradient(90deg, 
+                transparent 0%,
+                var(--neon-orange) 50%,
+                transparent 100%
+            );
+        }
+
+        .neural-container.slowdown-active .synapse {
+            background: linear-gradient(90deg, 
+                transparent 0%,
+                var(--neon-red) 50%,
+                transparent 100%
+            );
+        }
+
+        @keyframes synapseFlow {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid var(--neon-green);
+        }
+
+        .timer-numbers {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: 0 0 15px var(--neon-green);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .timer-label {
+            font-size: 0.8rem;
+            color: #ffffff;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cost-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.9rem;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            font-weight: 600;
+        }
+
+        .neural-pulses {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .pulse {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            animation: pulseMove 4s linear infinite;
+        }
+
+        @keyframes pulseMove {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        .neural-container.discount-active .pulse {
+            background: var(--neon-orange);
+        }
+
+        .neural-container.slowdown-active .pulse {
+            background: var(--neon-red);
+        }
+
+        @keyframes timeAddedGlow {
+            0% {
+                text-shadow: 0 0 15px var(--neon-green);
+                transform: scale(1);
+            }
+            50% {
+                text-shadow: 0 0 30px var(--neon-blue);
+                transform: scale(1.1);
+                color: var(--neon-blue);
+            }
+            100% {
+                text-shadow: 0 0 15px var(--neon-green);
+                transform: scale(1);
+            }
+        }
+
+        .timer-numbers.time-added {
+            animation: timeAddedGlow 2s ease-out;
+        }
+
+        .neural-container.time-added {
+            animation: neuralShake 2s ease-out;
+        }
+
+        @keyframes neuralShake {
+            0%, 100% { transform: translateX(0); }
+            10% { transform: translateX(-2px); }
+            20% { transform: translateX(2px); }
+            30% { transform: translateX(-2px); }
+            40% { transform: translateX(2px); }
+            50% { transform: translateX(-1px); }
+            60% { transform: translateX(1px); }
+            70% { transform: translateX(-1px); }
+            80% { transform: translateX(1px); }
+            90% { transform: translateX(-1px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="neural-widget" id="neuralWidget">
+        <div class="neural-container" id="neuralContainer">
+            <div class="neural-network" id="neuralNetwork"></div>
+            <div class="neural-pulses" id="neuralPulses"></div>
+            
+            <div class="timer-display">
+                <div class="timer-numbers" id="timerNumbers">01:00:00</div>
+                <div class="timer-label" id="timerLabel">ДО КОНЦА СТРИМА</div>
+            </div>
+            
+            <div class="cost-display" id="costText">1 минута = 50₽</div>
+        </div>
+    </div>
+
+    <script>
+        // Состояние виджета
+        let currentState = {
+            timer_seconds: 3600,
+            cost_per_minute: 50,
+            timer_discount: 0,
+            timer_discount_until_ts: 0,
+            timer_slowdown_active: false,
+            timer_slowdown_factor: 1.0,
+            timer_slowdown_until_ts: 0
+        };
+
+        let timerInterval = null;
+        let lastUpdateTime = Date.now();
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎨 Виджет "Нейронная Сеть" загружен');
+            createNeuralNetwork();
+            createPulses();
+            updateDisplay();
+            startTimer();
+            
+            // Уведомляем родительскую страницу о загрузке
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'WIDGET_LOADED' }, '*');
+            }
+        });
+
+        // Обработка сообщений от родительской страницы
+        window.addEventListener('message', function(event) {
+            switch(event.data.type) {
+                case 'UPDATE_STATE':
+                    updateState(event.data);
+                    break;
+                case 'SET_MODE':
+                    setMode(event.data.mode, event.data);
+                    break;
+                case 'TEST_DONATION':
+                    triggerTimeAddedAnimation(60);
+                    break;
+            }
+        });
+
+        function updateState(newState) {
+            Object.assign(currentState, newState);
+            updateDisplay();
+        }
+
+        function setMode(mode, data) {
+            const container = document.getElementById('neuralContainer');
+            container.classList.remove('discount-active', 'slowdown-active');
+            
+            switch(mode) {
+                case 'discount':
+                    container.classList.add('discount-active');
+                    currentState.timer_discount = parseInt(data.discount) || 20;
+                    currentState.timer_discount_until_ts = Date.now() + 300000;
+                    break;
+                case 'slowdown':
+                    container.classList.add('slowdown-active');
+                    currentState.timer_slowdown_active = true;
+                    currentState.timer_slowdown_factor = parseFloat(data.slowdown) || 0.5;
+                    currentState.timer_slowdown_until_ts = Date.now() + 300000;
+                    break;
+                default:
+                    currentState.timer_discount = 0;
+                    currentState.timer_slowdown_active = false;
+                    currentState.timer_slowdown_factor = 1.0;
+            }
+            
+            updateDisplay();
+        }
+
+        function createNeuralNetwork() {
+            const networkContainer = document.getElementById('neuralNetwork');
+            
+            // Создаем нейроны
+            const neurons = [
+                { x: 50, y: 30, type: 'input' },
+                { x: 150, y: 30, type: 'input' },
+                { x: 250, y: 30, type: 'input' },
+                { x: 350, y: 30, type: 'input' },
+                { x: 100, y: 120, type: 'hidden' },
+                { x: 200, y: 120, type: 'hidden' },
+                { x: 300, y: 120, type: 'hidden' },
+                { x: 150, y: 210, type: 'hidden' },
+                { x: 250, y: 210, type: 'hidden' },
+                { x: 200, y: 300, type: 'output' }
+            ];
+            
+            neurons.forEach((neuron, index) => {
+                const neuronEl = document.createElement('div');
+                neuronEl.className = `neuron ${neuron.type}`;
+                neuronEl.style.left = neuron.x + 'px';
+                neuronEl.style.top = neuron.y + 'px';
+                neuronEl.style.animationDelay = (index * 0.2) + 's';
+                
+                networkContainer.appendChild(neuronEl);
+            });
+            
+            // Создаем синапсы
+            const synapses = [
+                { from: { x: 50, y: 30 }, to: { x: 100, y: 120 } },
+                { from: { x: 150, y: 30 }, to: { x: 100, y: 120 } },
+                { from: { x: 250, y: 30 }, to: { x: 200, y: 120 } },
+                { from: { x: 350, y: 30 }, to: { x: 300, y: 120 } },
+                { from: { x: 100, y: 120 }, to: { x: 150, y: 210 } },
+                { from: { x: 200, y: 120 }, to: { x: 150, y: 210 } },
+                { from: { x: 200, y: 120 }, to: { x: 250, y: 210 } },
+                { from: { x: 300, y: 120 }, to: { x: 250, y: 210 } },
+                { from: { x: 150, y: 210 }, to: { x: 200, y: 300 } },
+                { from: { x: 250, y: 210 }, to: { x: 200, y: 300 } }
+            ];
+            
+            synapses.forEach((synapse, index) => {
+                const synapseEl = document.createElement('div');
+                synapseEl.className = 'synapse';
+                
+                const dx = synapse.to.x - synapse.from.x;
+                const dy = synapse.to.y - synapse.from.y;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                
+                synapseEl.style.width = length + 'px';
+                synapseEl.style.left = synapse.from.x + 'px';
+                synapseEl.style.top = synapse.from.y + 'px';
+                synapseEl.style.transform = `rotate(${angle}deg)`;
+                synapseEl.style.animationDelay = (index * 0.3) + 's';
+                
+                networkContainer.appendChild(synapseEl);
+            });
+        }
+
+        function createPulses() {
+            const pulsesContainer = document.getElementById('neuralPulses');
+            
+            setInterval(() => {
+                if (Math.random() < 0.3) {
+                    const pulse = document.createElement('div');
+                    pulse.className = 'pulse';
+                    pulse.style.left = Math.random() * 100 + '%';
+                    pulse.style.top = Math.random() * 100 + '%';
+                    pulse.style.animationDelay = Math.random() * 2 + 's';
+                    pulse.style.animationDuration = (3 + Math.random() * 3) + 's';
+                    
+                    pulsesContainer.appendChild(pulse);
+                    
+                    setTimeout(() => {
+                        if (pulse.parentNode) {
+                            pulse.parentNode.removeChild(pulse);
+                        }
+                    }, 6000);
+                }
+            }, 500);
+        }
+
+        function updateDisplay() {
+            updateTimerDisplay();
+            updateCostDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const totalSeconds = currentState.timer_seconds;
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timerNumbers').textContent = timeString;
+        }
+
+        function updateCostDisplay() {
+            const baseCost = currentState.cost_per_minute;
+            const discount = currentState.timer_discount || 0;
+            const actualCost = Math.max(1, baseCost - discount);
+            
+            if (discount > 0) {
+                document.getElementById('costText').innerHTML = `
+                    <span style="text-decoration: line-through; opacity: 0.6;">${baseCost}₽</span> 
+                    <span style="color: var(--neon-orange);">${actualCost}₽</span>
+                `;
+            } else {
+                document.getElementById('costText').textContent = `1 минута = ${actualCost}₽`;
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) return;
+            
+            timerInterval = setInterval(() => {
+                if (currentState.timer_seconds > 0) {
+                    const factor = currentState.timer_slowdown_active ? 
+                        Math.max(0.1, currentState.timer_slowdown_factor) : 1.0;
+                    const currentTime = Date.now();
+                    const elapsedMs = currentTime - lastUpdateTime;
+                    const msPerLogicalSecond = 1000 * factor;
+                    
+                    if (elapsedMs >= msPerLogicalSecond) {
+                        currentState.timer_seconds--;
+                        lastUpdateTime = currentTime;
+                        updateDisplay();
+                    }
+                }
+            }, 100);
+        }
+
+        function triggerTimeAddedAnimation(timeEarned) {
+            console.log(`🎬 Анимация добавления времени: ${timeEarned} секунд`);
+            
+            const timerNumbers = document.getElementById('timerNumbers');
+            const container = document.getElementById('neuralContainer');
+            
+            timerNumbers.classList.add('time-added');
+            container.classList.add('time-added');
+            
+            setTimeout(() => {
+                timerNumbers.classList.remove('time-added');
+                container.classList.remove('time-added');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

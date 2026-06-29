@@ -1,0 +1,2563 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Очередь танков | Управление</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --neon-yellow: #ffff00;
+            --dark: #0a0a14;
+            --darker: #050508;
+            --light: #f5f5f5;
+            --bg-dark: rgba(10, 10, 20, 0.95);
+            --bg-light: rgba(20, 25, 35, 0.9);
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 80px;
+        }
+
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .menu-logo {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .menu-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .menu-item.active {
+            background: var(--neon-purple);
+            color: var(--dark);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .page-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+            text-align: center;
+        }
+
+        .page-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, 0.95) 0%,
+                rgba(8, 8, 20, 0.9) 50%,
+                rgba(12, 12, 25, 0.85) 100%
+            );
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 25px;
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px var(--neon-blue);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .current-battle-panel {
+            border-color: var(--neon-blue);
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 30px rgba(0, 240, 255, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .current-tank-display {
+            background: linear-gradient(135deg, 
+                rgba(0, 240, 255, 0.1) 0%,
+                rgba(179, 0, 255, 0.1) 100%
+            );
+            border: 2px solid var(--neon-blue);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-tank-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent
+            );
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .current-tank-name {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--neon-blue);
+            text-shadow: 0 0 20px var(--neon-blue);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .current-tank-details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .current-tank-price {
+            font-size: 1.2rem;
+            color: var(--neon-green);
+            font-weight: 700;
+        }
+
+        .current-tank-conditions {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .battle-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--neon-blue);
+            color: var(--dark);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: var(--neon-blue);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--neon-green);
+            color: var(--dark);
+            box-shadow: 0 0 15px rgba(0, 255, 71, 0.4);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 0 25px rgba(0, 255, 71, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: var(--neon-red);
+            color: white;
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.4);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 0 25px rgba(255, 0, 60, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: var(--neon-yellow);
+            color: var(--dark);
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.4);
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 0 25px rgba(255, 255, 0, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.2);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .form-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .queue-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .queue-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .queue-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        .queue-list::-webkit-scrollbar-thumb {
+            background: var(--neon-blue);
+            border-radius: 3px;
+        }
+
+        .queue-item {
+            background: var(--bg-light);
+            border-left: 4px solid;
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .queue-item.low-price {
+            border-color: var(--neon-red);
+            background: linear-gradient(90deg, 
+                rgba(255, 0, 60, 0.15),
+                var(--bg-light)
+            );
+        }
+
+        .queue-item.medium-price {
+            border-color: var(--neon-yellow);
+            background: linear-gradient(90deg, 
+                rgba(255, 255, 0, 0.15),
+                var(--bg-light)
+            );
+        }
+
+        .queue-item.high-price {
+            border-color: var(--neon-green);
+            background: linear-gradient(90deg, 
+                rgba(0, 255, 71, 0.15),
+                var(--bg-light)
+            );
+        }
+
+        .queue-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .queue-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .queue-item-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .queue-item-details {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .queue-item-price {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--neon-green);
+            white-space: nowrap;
+        }
+
+        .queue-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .empty-queue {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-queue-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .price-settings {
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .price-display {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .price-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .price-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 15px var(--neon-yellow);
+        }
+
+        .widget-link {
+            display: block;
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 240, 255, 0.1);
+            border: 2px solid var(--neon-blue);
+            border-radius: 12px;
+            color: var(--neon-blue);
+            text-decoration: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .widget-link:hover {
+            background: rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+        }
+
+        .queue-item.slide-in {
+            animation: slideIn 0.4s ease-out forwards;
+        }
+
+        .queue-item.slide-out {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Верхнее меню -->
+    <nav class="top-menu">
+        <div class="menu-container">
+            <a href="/index.html" class="menu-logo">
+                🎯 ФРАГ-ТРЕКЕР
+            </a>
+            <div class="menu-nav">
+                <a href="/index.html" class="menu-item">🏠 Главная</a>
+                <a href="/mode1-frag-tracker.html" class="menu-item">🎯 Фраг-трекер</a>
+                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
+                <a href="/mode3-custom.html" class="menu-item">⚙️ Кастом</a>
+                <a href="/tank-queue.html" class="menu-item active">🚗 Очередь танков</a>
+                <a href="/schedule.html" class="menu-item">🗓 Расписание</a>
+                <a href="/admin.html" class="menu-item">🔧 Админ</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <h1 class="page-title">ОЧЕРЕДЬ ТАНКОВ</h1>
+        <p class="page-subtitle">Управление очередью заказанных танков</p>
+
+        <div class="content-grid">
+            <!-- Левая панель: Очередь -->
+            <div class="panel">
+                <div class="panel-title">📋 ОЧЕРЕДЬ ТАНКОВ</div>
+                <ul class="queue-list" id="queueList">
+                    <li class="empty-queue">
+                        <div class="empty-queue-icon">🚗</div>
+                        <div>Очередь пуста</div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Правая панель: Управление -->
+            <div>
+                <!-- Текущий бой -->
+                <div class="panel current-battle-panel">
+                    <div class="panel-title">⚔️ ТЕКУЩИЙ БОЙ</div>
+                    <div id="currentBattleDisplay" class="current-tank-display" style="display: none;">
+                        <div class="current-tank-name" id="currentTankName">-</div>
+                        <div class="current-tank-details">
+                            <span class="current-tank-price" id="currentTankPrice">0₽</span>
+                            <span class="current-tank-conditions" id="currentTankConditions"></span>
+                        </div>
+                        <div class="battle-controls">
+                            <button class="btn btn-success" onclick="finishBattle()">✅ Завершить бой</button>
+                            <button class="btn btn-danger" onclick="cancelBattle()">❌ Отменить</button>
+                        </div>
+                    </div>
+                    <div id="noBattleDisplay" class="empty-queue">
+                        <div class="empty-queue-icon">⏸️</div>
+                        <div>Нет активного боя</div>
+                        <button class="btn btn-primary" onclick="startNextBattle()" style="margin-top: 15px;">
+                            ▶️ Начать следующий бой
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Быстрое добавление по фикс цене -->
+                <div class="panel">
+                    <div class="panel-title">⚡ БЫСТРОЕ ДОБАВЛЕНИЕ</div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <div class="form-group">
+                            <label class="form-label" id="quickLabel150">Заказ танка (<span id="quickPrice150">150</span>₽)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" class="form-input" id="quickTankName150" placeholder="Название танка" style="flex: 1;">
+                                <button class="btn btn-primary" onclick="addQuickTank('normal', 1)">Добавить</button>
+                            </div>
+                            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('normal', 2)">+2</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('normal', 3)">+3</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('normal', 4)">+4</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('normal', 5)">+5</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Приоритетный заказ -->
+                    <div style="padding-top: 20px; border-top: 1px solid var(--border);">
+                        <div class="form-group">
+                            <label class="form-label" id="quickLabelPriority">Приоритетный заказ (<span id="quickPricePriority">0</span>₽)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" class="form-input" id="quickTankNamePriority" placeholder="Название танка" style="flex: 1;">
+                                <button class="btn btn-warning" onclick="addQuickTank('priority', 1)">Добавить</button>
+                            </div>
+                            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('priority', 2)">+2</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('priority', 3)">+3</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('priority', 4)">+4</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('priority', 5)">+5</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Мегаприоритет -->
+                    <div style="padding-top: 20px; border-top: 1px solid var(--border);">
+                        <div class="form-group">
+                            <label class="form-label" id="quickLabelMega">Мегаприоритет (<span id="quickPriceMega">0</span>₽)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" class="form-input" id="quickTankNameMega" placeholder="Название танка" style="flex: 1;">
+                                <button class="btn btn-danger" onclick="addQuickTank('mega', 1)">Добавить</button>
+                            </div>
+                            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('mega', 2)">+2</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('mega', 3)">+3</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('mega', 4)">+4</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('mega', 5)">+5</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Заказ до топ 1 - скрыто по умолчанию -->
+                    <div id="quickTop1Section" style="padding-top: 20px; border-top: 1px solid var(--border); display: none;">
+                        <div class="form-group">
+                            <label class="form-label" id="quickLabel500">Заказ танка до топ 1 (<span id="quickPrice500">500</span>₽)</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" class="form-input" id="quickTankName500" placeholder="Название танка" style="flex: 1;">
+                                <button class="btn btn-warning" onclick="addQuickTank('top1', 1)">Добавить</button>
+                            </div>
+                            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('top1', 2)">+2</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('top1', 3)">+3</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('top1', 4)">+4</button>
+                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('top1', 5)">+5</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Добавление танка -->
+                <div class="panel">
+                    <div class="panel-title">➕ ДОБАВИТЬ ТАНК (ПОЛНАЯ ФОРМА)</div>
+                    <form id="tankForm">
+                        <div class="form-group">
+                            <label class="form-label">Название танка</label>
+                            <input type="text" class="form-input" id="tankName" placeholder="Введите название танка" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Стоимость (₽)</label>
+                            <input type="number" class="form-input" id="tankPrice" placeholder="Введите стоимость" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Дополнительные условия (необязательно)</label>
+                            <textarea class="form-input form-textarea" id="tankConditions" placeholder="Например: Только в клане, С определенным экипажем и т.д."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Добавить в очередь</button>
+                    </form>
+                </div>
+
+                <!-- Настройка цены -->
+                <div class="panel">
+                    <div class="panel-title">💰 ЦЕНА ЗА ЗАКАЗ</div>
+                    <div class="price-settings">
+                        <!-- Обычный заказ -->
+                        <div style="margin-bottom: 20px;">
+                            <div class="price-display">
+                                <div class="price-label" id="orderPriceLabelDisplay">Заказ танка</div>
+                                <div class="price-value" id="orderPriceDisplay">0₽</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Установить цену</label>
+                                <input type="number" class="form-input" id="orderPriceInput" placeholder="Цена за заказ танка" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Надпись в виджете</label>
+                                <input type="text" class="form-input" id="orderPriceLabelInput" placeholder="Заказ танка" value="Заказ танка">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="orderPriceEnabled" checked style="width: 20px; height: 20px; cursor: pointer;">
+                                <label for="orderPriceEnabled" style="cursor: pointer; margin: 0;">Отображать в виджете</label>
+                            </div>
+                            <button class="btn btn-warning" onclick="setOrderPrice()" style="width: 100%; margin-bottom: 20px;">Установить цену</button>
+                        </div>
+
+                        <!-- Приоритетный заказ -->
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                            <div class="price-display">
+                                <div class="price-label" id="orderPricePriorityLabelDisplay">Приоритетный заказ</div>
+                                <div class="price-value" id="orderPricePriorityDisplay">0₽</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Установить цену приоритетного заказа</label>
+                                <input type="number" class="form-input" id="orderPricePriorityInput" placeholder="Цена за приоритетный заказ танка" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Надпись в виджете</label>
+                                <input type="text" class="form-input" id="orderPricePriorityLabelInput" placeholder="Приоритетный заказ" value="Приоритетный заказ">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="orderPricePriorityEnabled" checked style="width: 20px; height: 20px; cursor: pointer;">
+                                <label for="orderPricePriorityEnabled" style="cursor: pointer; margin: 0;">Отображать в виджете</label>
+                            </div>
+                            <button class="btn btn-warning" onclick="setOrderPricePriority()" style="width: 100%; margin-bottom: 20px;">Установить цену приоритетного заказа</button>
+                        </div>
+
+                        <!-- Мегаприоритет -->
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                            <div class="price-display">
+                                <div class="price-label" id="orderPriceMegaLabelDisplay">Мегаприоритет</div>
+                                <div class="price-value" id="orderPriceMegaDisplay">0₽</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Установить цену мегаприоритета</label>
+                                <input type="number" class="form-input" id="orderPriceMegaInput" placeholder="Цена за мегаприоритет танка" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Надпись в виджете</label>
+                                <input type="text" class="form-input" id="orderPriceMegaLabelInput" placeholder="Мегаприоритет" value="Мегаприоритет">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="orderPriceMegaEnabled" checked style="width: 20px; height: 20px; cursor: pointer;">
+                                <label for="orderPriceMegaEnabled" style="cursor: pointer; margin: 0;">Отображать в виджете</label>
+                            </div>
+                            <button class="btn btn-warning" onclick="setOrderPriceMega()" style="width: 100%; margin-bottom: 20px;">Установить цену мегаприоритета</button>
+                        </div>
+                        
+                        <!-- Заказ до топ 1 - скрыто по умолчанию -->
+                        <div id="top1SectionToggle" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                            <button class="btn btn-secondary" onclick="toggleTop1Section()" style="width: 100%; margin-bottom: 15px;">
+                                <span id="top1ToggleText">🔓 Включить "Заказ танка до топ 1"</span>
+                            </button>
+                        </div>
+                        
+                        <div id="top1Section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); display: none;">
+                            <div class="price-display">
+                                <div class="price-label" id="orderPriceTop1LabelDisplay">Заказ танка до топ 1</div>
+                                <div class="price-value" id="orderPriceTop1Display">0₽</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Установить цену до топ 1</label>
+                                <input type="number" class="form-input" id="orderPriceTop1Input" placeholder="Цена за заказ танка до топ 1" min="0">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Надпись в виджете</label>
+                                <input type="text" class="form-input" id="orderPriceTop1LabelInput" placeholder="Заказ танка до топ 1" value="Заказ танка до топ 1">
+                            </div>
+                            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="orderPriceTop1Enabled" checked style="width: 20px; height: 20px; cursor: pointer;">
+                                <label for="orderPriceTop1Enabled" style="cursor: pointer; margin: 0;">Отображать в виджете</label>
+                            </div>
+                            <button class="btn btn-warning" onclick="setOrderPriceTop1()" style="width: 100%; margin-bottom: 20px;">Установить цену до топ 1</button>
+                            <button class="btn btn-secondary" onclick="toggleTop1Section()" style="width: 100%;">Скрыть</button>
+                        </div>
+                        
+                        <!-- Карусель цен/текстов (5 полей) -->
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                            <div class="form-group">
+                                <label class="form-label" style="font-weight: 600; margin-bottom: 15px; display: block;">📺 Карусель цен/текстов (отображается в нижнем окне)</label>
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">
+                                    Формат: если в тексте указана цена (например, "150₽" или "200 руб"), будет показан текст сверху и цена снизу. Если только текст - текст будет крупнее и по центру.
+                                </div>
+                            </div>
+                            
+                            <!-- Поле 1 -->
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <input type="checkbox" id="priceCarouselEnabled1" checked style="width: 20px; height: 20px; cursor: pointer;">
+                                    <label for="priceCarouselEnabled1" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 1 (включено в карусель)</label>
+                                </div>
+                                <div class="form-group">
+                                    <input type="text" class="form-input" id="priceCarouselText1" placeholder="Например: Заказ танка 150₽ или просто текст">
+                                </div>
+                            </div>
+                            
+                            <!-- Поле 2 -->
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <input type="checkbox" id="priceCarouselEnabled2" checked style="width: 20px; height: 20px; cursor: pointer;">
+                                    <label for="priceCarouselEnabled2" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 2 (включено в карусель)</label>
+                                </div>
+                                <div class="form-group">
+                                    <input type="text" class="form-input" id="priceCarouselText2" placeholder="Например: Приоритетный заказ 300₽ или просто текст">
+                                </div>
+                            </div>
+                            
+                            <!-- Поле 3 -->
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <input type="checkbox" id="priceCarouselEnabled3" style="width: 20px; height: 20px; cursor: pointer;">
+                                    <label for="priceCarouselEnabled3" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 3 (выключено из карусели)</label>
+                                </div>
+                                <div class="form-group">
+                                    <input type="text" class="form-input" id="priceCarouselText3" placeholder="Например: Мегаприоритет 500₽ или просто текст">
+                                </div>
+                            </div>
+                            
+                            <!-- Поле 4 -->
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <input type="checkbox" id="priceCarouselEnabled4" style="width: 20px; height: 20px; cursor: pointer;">
+                                    <label for="priceCarouselEnabled4" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 4 (выключено из карусели)</label>
+                                </div>
+                                <div class="form-group">
+                                    <input type="text" class="form-input" id="priceCarouselText4" placeholder="Введите текст или текст с ценой">
+                                </div>
+                            </div>
+                            
+                            <!-- Поле 5 -->
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <input type="checkbox" id="priceCarouselEnabled5" style="width: 20px; height: 20px; cursor: pointer;">
+                                    <label for="priceCarouselEnabled5" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 5 (выключено из карусели)</label>
+                                </div>
+                                <div class="form-group">
+                                    <input type="text" class="form-input" id="priceCarouselText5" placeholder="Введите текст или текст с ценой">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" style="margin-top: 20px;">
+                                <label class="form-label">⏱️ Время смены элементов карусели (секунды)</label>
+                                <input type="number" class="form-input" id="priceCarouselInterval" placeholder="15" min="1" max="300" value="15">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                                    Минимум: 1 секунда, Максимум: 300 секунд
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-primary" onclick="savePriceCarousel()" style="width: 100%;">💾 Сохранить карусель</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Фото стримера -->
+                <div class="panel">
+                    <div class="panel-title">📸 ФОТО СТРИМЕРА</div>
+                    <div style="margin-bottom: 20px;">
+                        <div class="form-group">
+                            <label class="form-label">Загрузить фото для окна пустой очереди</label>
+                            <input type="file" class="form-input" id="streamerPhotoInput" accept="image/*" style="padding: 8px;">
+                            <div style="margin-top: 10px; font-size: 0.85rem; color: var(--text-secondary);">
+                                Рекомендуемый размер: квадратное изображение (например, 400x400px)
+                            </div>
+                        </div>
+                        <div id="photoPreview" style="margin-top: 15px; text-align: center; display: none;">
+                            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">Предпросмотр:</div>
+                            <img id="photoPreviewImg" src="" alt="Предпросмотр" style="max-width: 200px; max-height: 200px; border-radius: 10px; border: 2px solid var(--border);">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveStreamerPhoto()" style="width: 100%; margin-top: 15px;">💾 Сохранить фото</button>
+                        <button class="btn btn-danger" onclick="removeStreamerPhoto()" style="width: 100%; margin-top: 10px;">🗑️ Удалить фото</button>
+                    </div>
+                    <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border);">
+                        <div class="form-group">
+                            <label class="form-label">Загрузить второе фото для анимации</label>
+                            <input type="file" class="form-input" id="secondPhotoInput" accept="image/*" style="padding: 8px;">
+                            <div style="margin-top: 10px; font-size: 0.85rem; color: var(--text-secondary);">
+                                Второе фото будет выезжать после текста "Очередь пуста"
+                            </div>
+                        </div>
+                        <div id="secondPhotoPreview" style="margin-top: 15px; text-align: center; display: none;">
+                            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">Предпросмотр:</div>
+                            <img id="secondPhotoPreviewImg" src="" alt="Предпросмотр" style="max-width: 200px; max-height: 200px; border-radius: 10px; border: 2px solid var(--border);">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveSecondPhoto()" style="width: 100%; margin-top: 15px;">💾 Сохранить второе фото</button>
+                        <button class="btn btn-danger" onclick="removeSecondPhoto()" style="width: 100%; margin-top: 10px;">🗑️ Удалить второе фото</button>
+                    </div>
+
+                    <div style="margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border);">
+                        <div class="form-group">
+                            <label class="form-label">Загрузить третье фото (окно пустой очереди)</label>
+                            <input type="file" class="form-input" id="thirdPhotoInput" accept="image/*" style="padding: 8px;">
+                            <div style="margin-top: 10px; font-size: 0.85rem; color: var(--text-secondary);">
+                                Третье фото будет отображаться вместо окна когда очередь пуста
+                            </div>
+                        </div>
+                        <div id="thirdPhotoPreview" style="margin-top: 15px; text-align: center; display: none;">
+                            <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">Предпросмотр:</div>
+                            <img id="thirdPhotoPreviewImg" src="" alt="Предпросмотр" style="max-width: 200px; max-height: 200px; border-radius: 10px; border: 2px solid var(--border);">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveThirdPhoto()" style="width: 100%; margin-top: 15px;">💾 Сохранить третье фото</button>
+                        <button class="btn btn-danger" onclick="removeThirdPhoto()" style="width: 100%; margin-top: 10px;">🗑️ Удалить третье фото</button>
+                    </div>
+                </div>
+
+                <!-- Действия -->
+                <div class="panel">
+                    <div class="panel-title">⚙️ ДЕЙСТВИЯ</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button class="btn btn-danger" onclick="clearQueue()">🗑️ Очистить очередь</button>
+                        <a href="/widget-tank-queue.html" target="_blank" class="widget-link">
+                            📺 Открыть виджет (полный)
+                        </a>
+                        <a href="/widget-tank-queue-obs.html" target="_blank" class="widget-link">
+                            🎬 Открыть виджет для OBS
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const QUEUE_KEY = 'tankQueue';
+        const CURRENT_TANK_KEY = 'currentTankIndex';
+        const ORDER_PRICE_KEY = 'tankOrderPrice';
+        const ORDER_PRICE_TOP1_KEY = 'tankOrderPriceTop1';
+        const ORDER_PRICE_PRIORITY_KEY = 'tankOrderPricePriority';
+        const ORDER_PRICE_MEGA_KEY = 'tankOrderPriceMega';
+        const PRICE_INFO_KEY = 'tankPriceInfo';
+        const PRICE_CAROUSEL_KEY = 'tankPriceCarousel';
+        const PRICE_CAROUSEL_INTERVAL_KEY = 'tankPriceCarouselInterval';
+        const ORDER_PRICE_LABEL_KEY = 'tankOrderPriceLabel';
+        const ORDER_PRICE_TOP1_LABEL_KEY = 'tankOrderPriceTop1Label';
+        const ORDER_PRICE_PRIORITY_LABEL_KEY = 'tankOrderPricePriorityLabel';
+        const ORDER_PRICE_MEGA_LABEL_KEY = 'tankOrderPriceMegaLabel';
+        const ORDER_PRICE_ENABLED_KEY = 'tankOrderPriceEnabled';
+        const ORDER_PRICE_TOP1_ENABLED_KEY = 'tankOrderPriceTop1Enabled';
+        const ORDER_PRICE_PRIORITY_ENABLED_KEY = 'tankOrderPricePriorityEnabled';
+        const ORDER_PRICE_MEGA_ENABLED_KEY = 'tankOrderPriceMegaEnabled';
+        const TOP1_SECTION_VISIBLE_KEY = 'top1SectionVisible';
+        const VERSION_KEY = 'tankQueueVersion';
+        const LAST_VERSION_KEY = 'lastVersion';
+
+        let tanks = [];
+        let currentTankIndex = -1;
+        let orderPrice = 0;
+        let orderPriceTop1 = 0;
+        let orderPricePriority = 0;
+        let orderPriceMega = 0;
+        let priceInfo = '';
+        let priceCarousel = [
+            { text: '', enabled: true },
+            { text: '', enabled: true },
+            { text: '', enabled: false },
+            { text: '', enabled: false },
+            { text: '', enabled: false }
+        ];
+        let priceCarouselInterval = 15; // Время смены в секундах (по умолчанию 15)
+        let orderPriceLabel = 'Заказ танка';
+        let orderPriceTop1Label = 'Заказ танка до топ 1';
+        let orderPricePriorityLabel = 'Приоритетный заказ';
+        let orderPriceMegaLabel = 'Мегаприоритет';
+        let orderPriceEnabled = true;
+        let orderPriceTop1Enabled = false; // По умолчанию выключено
+        let orderPricePriorityEnabled = true;
+        let orderPriceMegaEnabled = true;
+        let top1SectionVisible = false; // Флаг видимости секции топ 1
+        let streamerPhoto = null;
+        let secondPhoto = null;
+        let thirdPhoto = null;
+        let isUpdatingDisplay = false; // Флаг для предотвращения сохранения при программной установке
+        let isSavingData = false; // Флаг, чтобы не перезагружать данные во время сохранения
+
+        const queueList = document.getElementById('queueList');
+        const streamerPhotoInput = document.getElementById('streamerPhotoInput');
+        const photoPreview = document.getElementById('photoPreview');
+        const photoPreviewImg = document.getElementById('photoPreviewImg');
+        const secondPhotoInput = document.getElementById('secondPhotoInput');
+        const secondPhotoPreview = document.getElementById('secondPhotoPreview');
+        const secondPhotoPreviewImg = document.getElementById('secondPhotoPreviewImg');
+        const thirdPhotoInput = document.getElementById('thirdPhotoInput');
+        const thirdPhotoPreview = document.getElementById('thirdPhotoPreview');
+        const thirdPhotoPreviewImg = document.getElementById('thirdPhotoPreviewImg');
+        const currentBattleDisplay = document.getElementById('currentBattleDisplay');
+        const noBattleDisplay = document.getElementById('noBattleDisplay');
+        const currentTankName = document.getElementById('currentTankName');
+        const currentTankPrice = document.getElementById('currentTankPrice');
+        const currentTankConditions = document.getElementById('currentTankConditions');
+        const orderPriceDisplay = document.getElementById('orderPriceDisplay');
+        const orderPriceInput = document.getElementById('orderPriceInput');
+        const orderPriceLabelDisplay = document.getElementById('orderPriceLabelDisplay');
+        const orderPriceLabelInput = document.getElementById('orderPriceLabelInput');
+        const orderPriceEnabledCheckbox = document.getElementById('orderPriceEnabled');
+        const orderPriceTop1Display = document.getElementById('orderPriceTop1Display');
+        const orderPriceTop1Input = document.getElementById('orderPriceTop1Input');
+        const orderPriceTop1LabelDisplay = document.getElementById('orderPriceTop1LabelDisplay');
+        const orderPriceTop1LabelInput = document.getElementById('orderPriceTop1LabelInput');
+        const orderPriceTop1EnabledCheckbox = document.getElementById('orderPriceTop1Enabled');
+        // priceInfoInput удален - теперь используется карусель
+        const quickPrice150 = document.getElementById('quickPrice150');
+        const quickPrice500 = document.getElementById('quickPrice500');
+        const quickLabel150 = document.getElementById('quickLabel150');
+        const quickLabel500 = document.getElementById('quickLabel500');
+        const tankForm = document.getElementById('tankForm');
+
+        async function loadData() {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:loadData:entry',message:'loadData called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
+            // Загружаем с сервера для синхронизации
+            try {
+                const res = await fetch(`/api/tank-queue?t=${Date.now()}`);
+                const data = await res.json();
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:loadData:response',message:'Response received',data:{success:data.success,hasTanks:Array.isArray(data.tanks),tanksLength:data.tanks?.length,hasPriceCarousel:Array.isArray(data.priceCarousel),priceCarouselLength:data.priceCarousel?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                // #endregion
+                if (data.success) {
+                    tanks = Array.isArray(data.tanks) ? data.tanks : [];
+                    currentTankIndex = data.currentTankIndex !== undefined ? data.currentTankIndex : -1;
+                    orderPrice = data.orderPrice !== undefined ? data.orderPrice : 0;
+                    orderPriceTop1 = data.orderPriceTop1 !== undefined ? data.orderPriceTop1 : 0;
+                    orderPricePriority = data.orderPricePriority !== undefined ? data.orderPricePriority : 0;
+                    orderPriceMega = data.orderPriceMega !== undefined ? data.orderPriceMega : 0;
+                    console.log('💰 Цены загружены:', {
+                        orderPrice,
+                        orderPriceTop1,
+                        orderPricePriority,
+                        orderPriceMega
+                    });
+                    priceInfo = data.priceInfo !== undefined ? data.priceInfo : '';
+                    // Загружаем карусель
+                    if (data.priceCarousel && Array.isArray(data.priceCarousel)) {
+                        priceCarousel = data.priceCarousel;
+                        // Убеждаемся, что массив имеет 5 элементов
+                        while (priceCarousel.length < 5) {
+                            priceCarousel.push({ text: '', enabled: false });
+                        }
+                        console.log('📺 Карусель загружена с сервера:', priceCarousel);
+                    } else {
+                        // Если карусель не загружена, инициализируем дефолтными значениями
+                        priceCarousel = [
+                            { text: '', enabled: true },
+                            { text: '', enabled: true },
+                            { text: '', enabled: false },
+                            { text: '', enabled: false },
+                            { text: '', enabled: false }
+                        ];
+                        console.log('⚠️ Карусель не загружена, инициализируем дефолтными значениями');
+                    }
+                    if (data.priceCarouselInterval !== undefined) {
+                        priceCarouselInterval = parseInt(data.priceCarouselInterval) || 15;
+                    }
+                    const versionFromStorage = localStorage.getItem(VERSION_KEY);
+                    if (versionFromStorage) {
+                        localStorage.setItem(LAST_VERSION_KEY, versionFromStorage);
+                    }
+                    orderPriceLabel = data.orderPriceLabel || 'Заказ танка';
+                    orderPriceTop1Label = data.orderPriceTop1Label || 'Заказ танка до топ 1';
+                    orderPricePriorityLabel = data.orderPricePriorityLabel || 'Приоритетный заказ';
+                    orderPriceMegaLabel = data.orderPriceMegaLabel || 'Мегаприоритет';
+                    orderPriceEnabled = data.orderPriceEnabled !== undefined ? (data.orderPriceEnabled === 1 || data.orderPriceEnabled === true) : true;
+                    orderPriceTop1Enabled = data.orderPriceTop1Enabled !== undefined ? (data.orderPriceTop1Enabled === 1 || data.orderPriceTop1Enabled === true) : false;
+                    orderPricePriorityEnabled = data.orderPricePriorityEnabled !== undefined ? (data.orderPricePriorityEnabled === 1 || data.orderPricePriorityEnabled === true) : true;
+                    orderPriceMegaEnabled = data.orderPriceMegaEnabled !== undefined ? (data.orderPriceMegaEnabled === 1 || data.orderPriceMegaEnabled === true) : true;
+                    top1SectionVisible = data.top1SectionVisible !== undefined ? (data.top1SectionVisible === 1 || data.top1SectionVisible === true) : false;
+                    streamerPhoto = data.streamerPhoto || null;
+                    secondPhoto = data.secondPhoto || null;
+                    thirdPhoto = data.thirdPhoto || null;
+                    
+                    console.log('Loading data from server:');
+                    console.log('  streamerPhoto:', streamerPhoto ? `exists (${streamerPhoto.length} chars)` : 'null');
+                    console.log('  secondPhoto:', secondPhoto ? `exists (${secondPhoto.length} chars)` : 'null');
+                    console.log('  thirdPhoto:', thirdPhoto ? `exists (${thirdPhoto.length} chars)` : 'null');
+                    
+                    // Показываем превью если есть фото
+                    if (streamerPhoto) {
+                        photoPreviewImg.src = streamerPhoto;
+                        photoPreview.style.display = 'block';
+                    } else {
+                        photoPreview.style.display = 'none';
+                    }
+                    
+                    // Показываем превью второго фото если есть
+                    if (secondPhoto) {
+                        secondPhotoPreviewImg.src = secondPhoto;
+                        secondPhotoPreview.style.display = 'block';
+                    } else {
+                        secondPhotoPreview.style.display = 'none';
+                    }
+                    
+                    // Показываем превью третьего фото если есть
+                    if (thirdPhoto) {
+                        thirdPhotoPreviewImg.src = thirdPhoto;
+                        thirdPhotoPreview.style.display = 'block';
+                    } else {
+                        thirdPhotoPreview.style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:loadData:error',message:'Error loading from server',data:{error:e.message,stack:e.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+                // #endregion
+                console.error('Error loading from server, using localStorage:', e);
+                // Fallback на localStorage
+                const savedQueue = localStorage.getItem(QUEUE_KEY);
+                const savedCurrent = localStorage.getItem(CURRENT_TANK_KEY);
+                const savedPrice = localStorage.getItem(ORDER_PRICE_KEY);
+                const savedPriceTop1 = localStorage.getItem(ORDER_PRICE_TOP1_KEY);
+                const savedPricePriority = localStorage.getItem(ORDER_PRICE_PRIORITY_KEY);
+                const savedPriceMega = localStorage.getItem(ORDER_PRICE_MEGA_KEY);
+                const savedPriceInfo = localStorage.getItem(PRICE_INFO_KEY);
+                const savedPriceLabel = localStorage.getItem(ORDER_PRICE_LABEL_KEY);
+                const savedPriceTop1Label = localStorage.getItem(ORDER_PRICE_TOP1_LABEL_KEY);
+                const savedPricePriorityLabel = localStorage.getItem(ORDER_PRICE_PRIORITY_LABEL_KEY);
+                const savedPriceMegaLabel = localStorage.getItem(ORDER_PRICE_MEGA_LABEL_KEY);
+                const savedPriceEnabled = localStorage.getItem(ORDER_PRICE_ENABLED_KEY);
+                const savedPriceTop1Enabled = localStorage.getItem(ORDER_PRICE_TOP1_ENABLED_KEY);
+                const savedPricePriorityEnabled = localStorage.getItem(ORDER_PRICE_PRIORITY_ENABLED_KEY);
+                const savedPriceMegaEnabled = localStorage.getItem(ORDER_PRICE_MEGA_ENABLED_KEY);
+                const savedTop1SectionVisible = localStorage.getItem(TOP1_SECTION_VISIBLE_KEY);
+
+                if (savedQueue) {
+                    try {
+                        tanks = JSON.parse(savedQueue);
+                    } catch (e) {
+                        tanks = [];
+                    }
+                }
+
+                if (savedCurrent !== null) {
+                    currentTankIndex = parseInt(savedCurrent) || -1;
+                }
+
+                if (savedPrice !== null) {
+                    orderPrice = parseInt(savedPrice) || 0;
+                }
+
+                if (savedPriceTop1 !== null) {
+                    orderPriceTop1 = parseInt(savedPriceTop1) || 0;
+                }
+
+                if (savedPricePriority !== null) {
+                    orderPricePriority = parseInt(savedPricePriority) || 0;
+                }
+
+                if (savedPriceMega !== null) {
+                    orderPriceMega = parseInt(savedPriceMega) || 0;
+                }
+
+                if (savedPriceInfo !== null) {
+                    priceInfo = savedPriceInfo;
+                }
+
+                const savedPriceCarousel = localStorage.getItem(PRICE_CAROUSEL_KEY);
+                if (savedPriceCarousel !== null) {
+                    try {
+                        priceCarousel = JSON.parse(savedPriceCarousel);
+                    } catch (e) {
+                        priceCarousel = [
+                            { text: '', enabled: true },
+                            { text: '', enabled: true },
+                            { text: '', enabled: false },
+                            { text: '', enabled: false },
+                            { text: '', enabled: false }
+                        ];
+                    }
+                }
+
+                const savedPriceCarouselInterval = localStorage.getItem(PRICE_CAROUSEL_INTERVAL_KEY);
+                if (savedPriceCarouselInterval !== null) {
+                    priceCarouselInterval = parseInt(savedPriceCarouselInterval) || 15;
+                }
+
+                if (savedPriceLabel !== null) {
+                    orderPriceLabel = savedPriceLabel;
+                }
+
+                if (savedPriceTop1Label !== null) {
+                    orderPriceTop1Label = savedPriceTop1Label;
+                }
+
+                if (savedPricePriorityLabel !== null) {
+                    orderPricePriorityLabel = savedPricePriorityLabel;
+                }
+
+                if (savedPriceMegaLabel !== null) {
+                    orderPriceMegaLabel = savedPriceMegaLabel;
+                }
+
+                if (savedPriceEnabled !== null) {
+                    orderPriceEnabled = savedPriceEnabled === 'true';
+                }
+
+                if (savedPriceTop1Enabled !== null) {
+                    orderPriceTop1Enabled = savedPriceTop1Enabled === 'true';
+                }
+
+                if (savedPricePriorityEnabled !== null) {
+                    orderPricePriorityEnabled = savedPricePriorityEnabled === 'true';
+                }
+
+                if (savedPriceMegaEnabled !== null) {
+                    orderPriceMegaEnabled = savedPriceMegaEnabled === 'true';
+                }
+
+                if (savedTop1SectionVisible !== null) {
+                    top1SectionVisible = savedTop1SectionVisible === 'true';
+                }
+            }
+
+                // Обновляем отображение с задержкой, чтобы DOM был готов
+                setTimeout(() => {
+                    console.log('🔄 Обновление отображения после загрузки данных');
+                    console.log('  Карусель:', priceCarousel);
+                    console.log('  Цены:', { orderPrice, orderPricePriority, orderPriceMega });
+                    console.log('  Танки в очереди:', tanks.length);
+                    updateOrderPriceDisplay();
+                    renderQueue();
+                    updateCurrentBattle();
+                }, 200);
+            
+            // Восстанавливаем состояние секции топ 1
+            if (top1SectionVisible) {
+                const top1Section = document.getElementById('top1Section');
+                const top1ToggleText = document.getElementById('top1ToggleText');
+                const quickTop1Section = document.getElementById('quickTop1Section');
+                if (top1Section) {
+                    top1Section.style.display = 'block';
+                    if (top1ToggleText) top1ToggleText.textContent = '🔒 Скрыть "Заказ танка до топ 1"';
+                }
+                if (quickTop1Section) {
+                    quickTop1Section.style.display = 'block';
+                }
+            }
+        }
+
+        function saveData(options = {}) {
+            const { includePhotos = false } = options;
+            isSavingData = true;
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:saveData:entry',message:'saveData called',data:{tanksLength:tanks.length,orderPrice,orderPricePriority,orderPriceMega,priceCarouselLength:priceCarousel?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            try {
+                localStorage.setItem(QUEUE_KEY, JSON.stringify(tanks));
+                localStorage.setItem(CURRENT_TANK_KEY, currentTankIndex.toString());
+                localStorage.setItem(ORDER_PRICE_KEY, orderPrice.toString());
+                localStorage.setItem(ORDER_PRICE_TOP1_KEY, orderPriceTop1.toString());
+                localStorage.setItem(ORDER_PRICE_PRIORITY_KEY, orderPricePriority.toString());
+                localStorage.setItem(ORDER_PRICE_MEGA_KEY, orderPriceMega.toString());
+                localStorage.setItem(PRICE_INFO_KEY, priceInfo);
+                localStorage.setItem(ORDER_PRICE_LABEL_KEY, orderPriceLabel);
+                localStorage.setItem(ORDER_PRICE_TOP1_LABEL_KEY, orderPriceTop1Label);
+                localStorage.setItem(ORDER_PRICE_PRIORITY_LABEL_KEY, orderPricePriorityLabel);
+                localStorage.setItem(ORDER_PRICE_MEGA_LABEL_KEY, orderPriceMegaLabel);
+                localStorage.setItem(ORDER_PRICE_ENABLED_KEY, orderPriceEnabled.toString());
+                localStorage.setItem(ORDER_PRICE_TOP1_ENABLED_KEY, orderPriceTop1Enabled.toString());
+                localStorage.setItem(ORDER_PRICE_PRIORITY_ENABLED_KEY, orderPricePriorityEnabled.toString());
+                localStorage.setItem(ORDER_PRICE_MEGA_ENABLED_KEY, orderPriceMegaEnabled.toString());
+                localStorage.setItem(TOP1_SECTION_VISIBLE_KEY, top1SectionVisible.toString());
+                const versionStamp = Date.now().toString();
+                localStorage.setItem(VERSION_KEY, versionStamp);
+                // Сразу синхронизируем маркер, чтобы интервал не перезагружал старые данные с сервера.
+                localStorage.setItem(LAST_VERSION_KEY, versionStamp);
+            } catch (storageError) {
+                console.warn('⚠️ localStorage overflow/error, continuing server save:', storageError);
+            }
+            
+            // Сохраняем на сервере для OBS виджета
+            const saveDataObj = {
+                tanks: tanks,
+                currentTankIndex: currentTankIndex,
+                orderPrice: orderPrice,
+                orderPriceTop1: orderPriceTop1,
+                orderPricePriority: orderPricePriority,
+                orderPriceMega: orderPriceMega,
+                priceInfo: priceInfo,
+                priceCarousel: priceCarousel,
+                priceCarouselInterval: priceCarouselInterval,
+                orderPriceLabel: orderPriceLabel,
+                orderPriceTop1Label: orderPriceTop1Label,
+                orderPricePriorityLabel: orderPricePriorityLabel,
+                orderPriceMegaLabel: orderPriceMegaLabel,
+                orderPriceEnabled: orderPriceEnabled,
+                orderPriceTop1Enabled: orderPriceTop1Enabled,
+                orderPricePriorityEnabled: orderPricePriorityEnabled,
+                orderPriceMegaEnabled: orderPriceMegaEnabled,
+                top1SectionVisible: top1SectionVisible
+            };
+            if (includePhotos) {
+                saveDataObj.streamerPhoto = streamerPhoto;
+                saveDataObj.secondPhoto = secondPhoto;
+                saveDataObj.thirdPhoto = thirdPhoto;
+            }
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:saveData:before_fetch',message:'Before fetch to /api/tank-queue/save',data:{tanksLength:saveDataObj.tanks.length,orderPrice:saveDataObj.orderPrice,orderPricePriority:saveDataObj.orderPricePriority,orderPriceMega:saveDataObj.orderPriceMega,priceCarouselLength:saveDataObj.priceCarousel?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            
+            console.log('💾 Сохранение на сервер:');
+            console.log('  orderPrice:', orderPrice);
+            console.log('  orderPricePriority:', orderPricePriority);
+            console.log('  orderPriceMega:', orderPriceMega);
+            console.log('  priceCarousel:', priceCarousel ? JSON.stringify(priceCarousel) : 'null');
+            console.log('  streamerPhoto:', streamerPhoto ? 'exists (' + streamerPhoto.length + ' chars)' : 'null');
+            console.log('  secondPhoto:', secondPhoto ? 'exists (' + secondPhoto.length + ' chars)' : 'null');
+            console.log('  thirdPhoto:', thirdPhoto ? 'exists (' + thirdPhoto.length + ' chars)' : 'null');
+            
+            fetch('/api/tank-queue/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(saveDataObj)
+            })
+            .then(res => res.json())
+            .then(data => {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:saveData:fetch_response',message:'Fetch response received',data:{success:data.success,error:data.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
+                if (data.success) {
+                    console.log('Data saved successfully');
+                    // Проверяем, что второе фото сохранилось
+                    setTimeout(() => {
+                        fetch('/api/tank-queue?t=' + Date.now())
+                            .then(res => res.json())
+                            .then(checkData => {
+                                if (checkData.success) {
+                                    console.log('Checking saved second photo, response:', {
+                                        success: checkData.success,
+                                        hasSecondPhoto: !!checkData.secondPhoto,
+                                        secondPhotoLength: checkData.secondPhoto ? checkData.secondPhoto.length : 0
+                                    });
+                                    if (secondPhoto && !checkData.secondPhoto) {
+                                        console.warn('⚠️ Second photo was not saved!');
+                                        console.warn('Sent secondPhoto length:', secondPhoto.length);
+                                        console.warn('Received secondPhoto:', checkData.secondPhoto);
+                                    } else if (checkData.secondPhoto) {
+                                        // Обновляем второе фото из ответа сервера
+                                        console.log('✅ Second photo received from server, length:', checkData.secondPhoto.length);
+                                        secondPhoto = checkData.secondPhoto;
+                                        secondPhotoPreviewImg.src = checkData.secondPhoto;
+                                        secondPhotoPreview.style.display = 'block';
+                                        console.log('✅ Second photo updated in preview');
+                                    } else {
+                                        console.log('ℹ️ No second photo in response (expected if not saved)');
+                                    }
+                                    
+                                    // Проверяем третье фото
+                                    console.log('Checking saved third photo, response:', {
+                                        success: checkData.success,
+                                        hasThirdPhoto: !!checkData.thirdPhoto,
+                                        thirdPhotoLength: checkData.thirdPhoto ? checkData.thirdPhoto.length : 0
+                                    });
+                                    // Проверяем третье фото - обновляем всегда, если оно есть в ответе
+                                    if (checkData.thirdPhoto) {
+                                        // Обновляем третье фото из ответа сервера
+                                        console.log('✅ Third photo received from server, length:', checkData.thirdPhoto.length);
+                                        thirdPhoto = checkData.thirdPhoto;
+                                        thirdPhotoPreviewImg.src = checkData.thirdPhoto;
+                                        thirdPhotoPreview.style.display = 'block';
+                                        console.log('✅ Third photo updated in preview from saveData check');
+                                    } else if (thirdPhoto) {
+                                        // Если мы отправили фото, но его нет в ответе - это проблема
+                                        console.warn('⚠️ Third photo was not saved!');
+                                        console.warn('Sent thirdPhoto length:', thirdPhoto.length);
+                                        console.warn('Received thirdPhoto:', checkData.thirdPhoto);
+                                        // Сохраняем локальную копию, чтобы фото не пропало
+                                        thirdPhotoPreviewImg.src = thirdPhoto;
+                                        thirdPhotoPreview.style.display = 'block';
+                                    } else {
+                                        console.log('ℹ️ No third photo in response (expected if not saved)');
+                                    }
+                                }
+                            })
+                            .catch(err => console.error('Error checking saved photos:', err));
+                    }, 500);
+                } else {
+                    console.error('Error saving data:', data.error);
+                }
+            })
+            .catch(err => {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:saveData:fetch_error',message:'Fetch error',data:{error:err.message,stack:err.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
+                console.error('Error saving to server:', err);
+            })
+            .finally(() => {
+                isSavingData = false;
+            });
+            
+            // Отправляем сообщение через BroadcastChannel для синхронизации с виджетом
+            try {
+                const channel = new BroadcastChannel('tankQueueChannel');
+                channel.postMessage({ type: 'update', timestamp: Date.now() });
+                channel.close();
+            } catch (e) {
+                // BroadcastChannel не поддерживается, используем только storage event
+            }
+        }
+
+        function updateOrderPriceDisplay() {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:updateOrderPriceDisplay:entry',message:'updateOrderPriceDisplay called',data:{orderPrice,orderPricePriority,orderPriceMega,priceCarouselLength:priceCarousel?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
+            isUpdatingDisplay = true; // Устанавливаем флаг
+            
+            // Получаем элементы DOM для приоритетных и мегаприоритетных цен
+            const orderPricePriorityDisplay = document.getElementById('orderPricePriorityDisplay');
+            const orderPricePriorityInput = document.getElementById('orderPricePriorityInput');
+            const orderPricePriorityLabelDisplay = document.getElementById('orderPricePriorityLabelDisplay');
+            const orderPricePriorityLabelInput = document.getElementById('orderPricePriorityLabelInput');
+            const orderPricePriorityEnabledCheckbox = document.getElementById('orderPricePriorityEnabled');
+            const orderPriceMegaDisplay = document.getElementById('orderPriceMegaDisplay');
+            const orderPriceMegaInput = document.getElementById('orderPriceMegaInput');
+            const orderPriceMegaLabelDisplay = document.getElementById('orderPriceMegaLabelDisplay');
+            const orderPriceMegaLabelInput = document.getElementById('orderPriceMegaLabelInput');
+            const orderPriceMegaEnabledCheckbox = document.getElementById('orderPriceMegaEnabled');
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:updateOrderPriceDisplay:dom_check',message:'DOM elements check',data:{orderPriceDisplay:!!orderPriceDisplay,orderPriceInput:!!orderPriceInput,queueList:!!queueList},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            
+            // Обновляем отображение основной цены
+            if (orderPriceDisplay) {
+                orderPriceDisplay.textContent = `${orderPrice}₽`;
+            }
+            if (orderPriceInput) {
+                orderPriceInput.value = orderPrice;
+            }
+            if (orderPriceLabelDisplay) {
+                orderPriceLabelDisplay.textContent = orderPriceLabel;
+            }
+            if (orderPriceLabelInput) {
+                orderPriceLabelInput.value = orderPriceLabel;
+            }
+            if (orderPriceEnabledCheckbox && orderPriceEnabledCheckbox.checked !== orderPriceEnabled) {
+                orderPriceEnabledCheckbox.checked = orderPriceEnabled;
+            }
+            
+            if (orderPriceTop1Display) {
+                orderPriceTop1Display.textContent = `${orderPriceTop1}₽`;
+            }
+            if (orderPriceTop1Input) {
+                orderPriceTop1Input.value = orderPriceTop1;
+            }
+            if (orderPriceTop1LabelDisplay) {
+                orderPriceTop1LabelDisplay.textContent = orderPriceTop1Label;
+            }
+            if (orderPriceTop1LabelInput) {
+                orderPriceTop1LabelInput.value = orderPriceTop1Label;
+            }
+            if (orderPriceTop1EnabledCheckbox && orderPriceTop1EnabledCheckbox.checked !== orderPriceTop1Enabled) {
+                orderPriceTop1EnabledCheckbox.checked = orderPriceTop1Enabled;
+            }
+            
+            // priceInfoInput удален - теперь используется карусель
+            // priceInfo сохраняется для обратной совместимости, но не отображается в UI
+            
+            // Обновляем приоритетные цены
+            if (orderPricePriorityDisplay) orderPricePriorityDisplay.textContent = `${orderPricePriority}₽`;
+            if (orderPricePriorityInput) orderPricePriorityInput.value = orderPricePriority;
+            if (orderPricePriorityLabelDisplay) orderPricePriorityLabelDisplay.textContent = orderPricePriorityLabel;
+            if (orderPricePriorityLabelInput) orderPricePriorityLabelInput.value = orderPricePriorityLabel;
+            if (orderPricePriorityEnabledCheckbox && orderPricePriorityEnabledCheckbox.checked !== orderPricePriorityEnabled) {
+                orderPricePriorityEnabledCheckbox.checked = orderPricePriorityEnabled;
+            }
+            
+            if (orderPriceMegaDisplay) orderPriceMegaDisplay.textContent = `${orderPriceMega}₽`;
+            if (orderPriceMegaInput) orderPriceMegaInput.value = orderPriceMega;
+            if (orderPriceMegaLabelDisplay) orderPriceMegaLabelDisplay.textContent = orderPriceMegaLabel;
+            if (orderPriceMegaLabelInput) orderPriceMegaLabelInput.value = orderPriceMegaLabel;
+            if (orderPriceMegaEnabledCheckbox && orderPriceMegaEnabledCheckbox.checked !== orderPriceMegaEnabled) {
+                orderPriceMegaEnabledCheckbox.checked = orderPriceMegaEnabled;
+            }
+            
+            // Обновляем поля карусели
+            console.log('🔄 Обновление полей карусели, данные:', priceCarousel);
+            if (priceCarousel && Array.isArray(priceCarousel)) {
+                // Убеждаемся, что массив имеет 5 элементов
+                while (priceCarousel.length < 5) {
+                    priceCarousel.push({ text: '', enabled: false });
+                }
+                for (let i = 0; i < 5; i++) {
+                    const textInput = document.getElementById(`priceCarouselText${i + 1}`);
+                    const enabledCheckbox = document.getElementById(`priceCarouselEnabled${i + 1}`);
+                    if (textInput) {
+                        // Всегда устанавливаем значение, даже если оно пустое или null
+                        const item = priceCarousel[i];
+                        const textValue = (item && item.text !== undefined && item.text !== null) ? String(item.text) : '';
+                        textInput.value = textValue;
+                        console.log(`  Поле ${i + 1}: "${textValue}" (тип: ${typeof item?.text}, длина: ${textValue.length}, элемент: ${item ? JSON.stringify(item) : 'null'})`);
+                    } else {
+                        console.error(`❌ Поле ${i + 1}: элемент textInput не найден в DOM (priceCarouselText${i + 1})`);
+                    }
+                    if (enabledCheckbox) {
+                        const item = priceCarousel[i];
+                        const enabledValue = (item && item.enabled !== undefined) ? item.enabled : (i < 2);
+                        enabledCheckbox.checked = enabledValue;
+                        console.log(`  Чекбокс ${i + 1}: ${enabledValue}`);
+                    } else {
+                        console.error(`❌ Поле ${i + 1}: элемент enabledCheckbox не найден в DOM (priceCarouselEnabled${i + 1})`);
+                    }
+                }
+            } else {
+                // Если карусель не загружена, очищаем все поля
+                console.log('⚠️ Карусель пуста или не загружена, очищаем поля');
+                for (let i = 1; i <= 5; i++) {
+                    const textInput = document.getElementById(`priceCarouselText${i}`);
+                    const enabledCheckbox = document.getElementById(`priceCarouselEnabled${i}`);
+                    if (textInput) textInput.value = '';
+                    if (enabledCheckbox) enabledCheckbox.checked = i <= 2; // Первые два включены по умолчанию
+                }
+            }
+            
+            // Обновляем поле интервала
+            const intervalInput = document.getElementById('priceCarouselInterval');
+            if (intervalInput) {
+                intervalInput.value = priceCarouselInterval || 15;
+            }
+            
+            // Обновляем приоритетные цены (дублируем для надежности)
+            if (orderPricePriorityDisplay) orderPricePriorityDisplay.textContent = `${orderPricePriority}₽`;
+            if (orderPricePriorityInput) orderPricePriorityInput.value = orderPricePriority;
+            if (orderPricePriorityLabelDisplay) orderPricePriorityLabelDisplay.textContent = orderPricePriorityLabel;
+            if (orderPricePriorityLabelInput) orderPricePriorityLabelInput.value = orderPricePriorityLabel;
+            if (orderPricePriorityEnabledCheckbox && orderPricePriorityEnabledCheckbox.checked !== orderPricePriorityEnabled) {
+                orderPricePriorityEnabledCheckbox.checked = orderPricePriorityEnabled;
+            }
+            
+            if (orderPriceMegaDisplay) orderPriceMegaDisplay.textContent = `${orderPriceMega}₽`;
+            if (orderPriceMegaInput) orderPriceMegaInput.value = orderPriceMega;
+            if (orderPriceMegaLabelDisplay) orderPriceMegaLabelDisplay.textContent = orderPriceMegaLabel;
+            if (orderPriceMegaLabelInput) orderPriceMegaLabelInput.value = orderPriceMegaLabel;
+            if (orderPriceMegaEnabledCheckbox && orderPriceMegaEnabledCheckbox.checked !== orderPriceMegaEnabled) {
+                orderPriceMegaEnabledCheckbox.checked = orderPriceMegaEnabled;
+            }
+            
+            // Обновляем быстрые кнопки
+            // Обновляем быстрые кнопки
+            if (quickPrice150) quickPrice150.textContent = orderPrice;
+            if (quickPrice500) quickPrice500.textContent = orderPriceTop1;
+            const quickPricePriority = document.getElementById('quickPricePriority');
+            const quickPriceMega = document.getElementById('quickPriceMega');
+            const quickLabelPriority = document.getElementById('quickLabelPriority');
+            const quickLabelMega = document.getElementById('quickLabelMega');
+            if (quickPricePriority) quickPricePriority.textContent = orderPricePriority;
+            if (quickPriceMega) quickPriceMega.textContent = orderPriceMega;
+            if (quickLabel150) quickLabel150.innerHTML = `${orderPriceLabel} (<span id="quickPrice150">${orderPrice}</span>₽)`;
+            if (quickLabel500) quickLabel500.innerHTML = `${orderPriceTop1Label} (<span id="quickPrice500">${orderPriceTop1}</span>₽)`;
+            if (quickLabelPriority) quickLabelPriority.innerHTML = `${orderPricePriorityLabel} (<span id="quickPricePriority">${orderPricePriority}</span>₽)`;
+            if (quickLabelMega) quickLabelMega.innerHTML = `${orderPriceMegaLabel} (<span id="quickPriceMega">${orderPriceMega}</span>₽)`;
+            
+            // Сбрасываем флаг после небольшой задержки
+            setTimeout(() => {
+                isUpdatingDisplay = false;
+            }, 50);
+        }
+
+        function setPriceInfo() {
+            priceInfo = priceInfoInput.value.trim();
+            saveData();
+            alert('Информация сохранена');
+        }
+
+        function savePriceCarousel() {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:savePriceCarousel:entry',message:'savePriceCarousel called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            // Сохраняем значения из полей ввода
+            const text1 = document.getElementById('priceCarouselText1');
+            const enabled1 = document.getElementById('priceCarouselEnabled1');
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:savePriceCarousel:dom_check',message:'DOM elements check',data:{text1:!!text1,enabled1:!!enabled1},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            priceCarousel = [
+                {
+                    text: text1 ? text1.value.trim() : '',
+                    enabled: enabled1 ? enabled1.checked : false
+                },
+                {
+                    text: document.getElementById('priceCarouselText2')?.value.trim() || '',
+                    enabled: document.getElementById('priceCarouselEnabled2')?.checked || false
+                },
+                {
+                    text: document.getElementById('priceCarouselText3')?.value.trim() || '',
+                    enabled: document.getElementById('priceCarouselEnabled3')?.checked || false
+                },
+                {
+                    text: document.getElementById('priceCarouselText4')?.value.trim() || '',
+                    enabled: document.getElementById('priceCarouselEnabled4')?.checked || false
+                },
+                {
+                    text: document.getElementById('priceCarouselText5')?.value.trim() || '',
+                    enabled: document.getElementById('priceCarouselEnabled5')?.checked || false
+                }
+            ];
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:savePriceCarousel:after_read',message:'Price carousel data read',data:{priceCarousel:JSON.stringify(priceCarousel)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            // Сохраняем время смены
+            const intervalInput = document.getElementById('priceCarouselInterval');
+            if (intervalInput) {
+                priceCarouselInterval = parseInt(intervalInput.value) || 15;
+                if (priceCarouselInterval < 1) priceCarouselInterval = 1;
+                if (priceCarouselInterval > 300) priceCarouselInterval = 300;
+            }
+            console.log('💾 Сохранение карусели:', priceCarousel, 'Интервал:', priceCarouselInterval);
+            
+            // Обновляем поля СРАЗУ из сохраненных значений, чтобы они не пропадали
+            for (let i = 0; i < 5; i++) {
+                const textInput = document.getElementById(`priceCarouselText${i + 1}`);
+                const enabledCheckbox = document.getElementById(`priceCarouselEnabled${i + 1}`);
+                if (textInput) {
+                    textInput.value = priceCarousel[i] ? (priceCarousel[i].text || '') : '';
+                }
+                if (enabledCheckbox) {
+                    enabledCheckbox.checked = priceCarousel[i] ? (priceCarousel[i].enabled !== false) : false;
+                }
+            }
+            
+            // Обновляем поле интервала (используем уже объявленную переменную)
+            if (intervalInput) {
+                intervalInput.value = priceCarouselInterval;
+            }
+            
+            // Сохраняем данные на сервер
+            saveData();
+            
+            alert('Карусель сохранена');
+        }
+
+        function setOrderPrice() {
+            console.log('🔍 DEBUG: setOrderPrice called');
+            if (!orderPriceInput) {
+                console.error('❌ DEBUG: orderPriceInput is null or undefined');
+                alert('Ошибка: поле ввода цены не найдено');
+                return;
+            }
+            const price = parseInt(orderPriceInput.value) || 0;
+            console.log('🔍 DEBUG: price parsed:', price);
+            if (price < 0) {
+                alert('Цена не может быть отрицательной');
+                return;
+            }
+            orderPrice = price;
+            orderPriceLabel = orderPriceLabelInput.value.trim() || 'Заказ танка';
+            orderPriceEnabled = orderPriceEnabledCheckbox.checked;
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:setOrderPrice:before_save',message:'Before updateOrderPriceDisplay and saveData',data:{orderPrice,orderPriceLabel},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            updateOrderPriceDisplay();
+            saveData();
+        }
+
+        function setOrderPriceTop1() {
+            const price = parseInt(orderPriceTop1Input.value) || 0;
+            if (price < 0) {
+                alert('Цена не может быть отрицательной');
+                return;
+            }
+            orderPriceTop1 = price;
+            orderPriceTop1Label = orderPriceTop1LabelInput.value.trim() || 'Заказ танка до топ 1';
+            orderPriceTop1Enabled = orderPriceTop1EnabledCheckbox.checked;
+            updateOrderPriceDisplay();
+            saveData();
+        }
+
+        function setOrderPricePriority() {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:setOrderPricePriority:entry',message:'setOrderPricePriority called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            const priceInput = document.getElementById('orderPricePriorityInput');
+            const labelInput = document.getElementById('orderPricePriorityLabelInput');
+            const enabledCheckbox = document.getElementById('orderPricePriorityEnabled');
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:setOrderPricePriority:dom_check',message:'DOM elements check',data:{priceInput:!!priceInput,labelInput:!!labelInput,enabledCheckbox:!!enabledCheckbox},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            const price = parseInt(priceInput.value) || 0;
+            if (price < 0) {
+                alert('Цена не может быть отрицательной');
+                return;
+            }
+            orderPricePriority = price;
+            orderPricePriorityLabel = labelInput.value.trim() || 'Приоритетный заказ';
+            orderPricePriorityEnabled = enabledCheckbox.checked;
+            console.log('💾 Сохранение приоритетной цены:', orderPricePriority, 'Метка:', orderPricePriorityLabel);
+            
+            // Обновляем отображение
+            updateOrderPriceDisplay();
+            
+            // Сохраняем данные
+            saveData();
+            
+            alert('Цена приоритетного заказа сохранена: ' + orderPricePriority + '₽');
+        }
+
+        function setOrderPriceMega() {
+            const priceInput = document.getElementById('orderPriceMegaInput');
+            const labelInput = document.getElementById('orderPriceMegaLabelInput');
+            const enabledCheckbox = document.getElementById('orderPriceMegaEnabled');
+            const price = parseInt(priceInput.value) || 0;
+            if (price < 0) {
+                alert('Цена не может быть отрицательной');
+                return;
+            }
+            orderPriceMega = price;
+            orderPriceMegaLabel = labelInput.value.trim() || 'Мегаприоритет';
+            orderPriceMegaEnabled = enabledCheckbox.checked;
+            console.log('💾 Сохранение мегаприоритетной цены:', orderPriceMega, 'Метка:', orderPriceMegaLabel);
+            
+            // Обновляем отображение
+            updateOrderPriceDisplay();
+            
+            // Сохраняем данные
+            saveData();
+            
+            alert('Цена мегаприоритета сохранена: ' + orderPriceMega + '₽');
+        }
+
+        function toggleTop1Section() {
+            const top1Section = document.getElementById('top1Section');
+            const top1ToggleText = document.getElementById('top1ToggleText');
+            const quickTop1Section = document.getElementById('quickTop1Section');
+            
+            top1SectionVisible = !top1SectionVisible;
+            
+            if (top1SectionVisible) {
+                top1Section.style.display = 'block';
+                top1ToggleText.textContent = '🔒 Скрыть "Заказ танка до топ 1"';
+                if (quickTop1Section) {
+                    quickTop1Section.style.display = 'block';
+                }
+            } else {
+                top1Section.style.display = 'none';
+                top1ToggleText.textContent = '🔓 Включить "Заказ танка до топ 1"';
+                if (quickTop1Section) {
+                    quickTop1Section.style.display = 'none';
+                }
+            }
+            
+            localStorage.setItem(TOP1_SECTION_VISIBLE_KEY, top1SectionVisible.toString());
+        }
+
+        function addQuickTank(type, count = 1) {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:addQuickTank:entry',message:'addQuickTank called',data:{type,orderPrice,orderPricePriority,orderPriceMega,orderPriceTop1},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            let nameInput, name, price, conditions, priority;
+            
+            if (type === 'normal') {
+                nameInput = document.getElementById('quickTankName150');
+                if (!nameInput) {
+                    console.error('❌ DEBUG: quickTankName150 not found');
+                    alert('Ошибка: поле ввода не найдено');
+                    return;
+                }
+                name = nameInput.value.trim();
+                price = typeof orderPrice !== 'undefined' ? orderPrice : 0;
+                conditions = '';
+                priority = 0; // Базовый приоритет
+            } else if (type === 'priority') {
+                nameInput = document.getElementById('quickTankNamePriority');
+                if (!nameInput) {
+                    console.error('❌ DEBUG: quickTankNamePriority not found');
+                    alert('Ошибка: поле ввода не найдено');
+                    return;
+                }
+                name = nameInput.value.trim();
+                price = typeof orderPricePriority !== 'undefined' ? orderPricePriority : 0;
+                conditions = '';
+                priority = 1; // Приоритетный
+            } else if (type === 'mega') {
+                nameInput = document.getElementById('quickTankNameMega');
+                if (!nameInput) {
+                    console.error('❌ DEBUG: quickTankNameMega not found');
+                    alert('Ошибка: поле ввода не найдено');
+                    return;
+                }
+                name = nameInput.value.trim();
+                price = typeof orderPriceMega !== 'undefined' ? orderPriceMega : 0;
+                conditions = '';
+                priority = 2; // Мегаприоритет
+            } else if (type === 'top1') {
+                nameInput = document.getElementById('quickTankName500');
+                if (!nameInput) {
+                    console.error('❌ DEBUG: quickTankName500 not found');
+                    alert('Ошибка: поле ввода не найдено');
+                    return;
+                }
+                name = nameInput.value.trim();
+                price = typeof orderPriceTop1 !== 'undefined' ? orderPriceTop1 : 0;
+                conditions = 'до топ 1';
+                priority = 0; // Базовый приоритет
+            } else {
+                console.error('❌ DEBUG: Invalid type:', type);
+                return;
+            }
+
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:addQuickTank:after_input',message:'Input values extracted',data:{nameInput:!!nameInput,name,price,priority},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+
+            if (!name) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:addQuickTank:no_name',message:'No name provided, returning',data:{name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+                alert('Введите название танка');
+                return;
+            }
+
+            if (price <= 0) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:addQuickTank:invalid_price',message:'Invalid price, returning',data:{price},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+                alert('Сначала установите цену');
+                return;
+            }
+
+            // Нормализуем количество (минимум 1)
+            const addCount = Math.max(1, parseInt(count) || 1);
+
+            for (let i = 0; i < addCount; i++) {
+                const tank = {
+                    name: name,
+                    price: price,
+                    conditions: conditions,
+                    priority: priority || 0, // Приоритет: 0 = базовый, 1 = приоритетный, 2 = мегаприоритет
+                    addedAt: Date.now() + i // Немного сдвигаем время, чтобы порядок внутри группы был корректным
+                };
+
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:addQuickTank:before_add',message:'Tank object created, before adding to array',data:{tank,tanksLength:tanks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+
+                // Добавляем танк в конец своей группы приоритета
+                if (priority === 2) {
+                    // Мегаприоритет - добавляем в конец всех мегаприоритетных
+                    let insertIndex = tanks.length; // По умолчанию в конец
+                    for (let j = 0; j < tanks.length; j++) {
+                        const tankPriority = tanks[j].priority || 0;
+                        if (tankPriority < 2) {
+                            // Нашли первый не-мегаприоритетный танк - вставляем перед ним
+                            insertIndex = j;
+                            break;
+                        }
+                        // Продолжаем искать конец группы мегаприоритетных
+                        insertIndex = j + 1;
+                    }
+                    tanks.splice(insertIndex, 0, tank);
+                } else if (priority === 1) {
+                    // Приоритетный - добавляем в конец всех приоритетных (после мегаприоритетных, перед обычными)
+                    let insertIndex = tanks.length; // По умолчанию в конец
+                    for (let j = 0; j < tanks.length; j++) {
+                        const tankPriority = tanks[j].priority || 0;
+                        if (tankPriority === 2) {
+                            // Продолжаем искать конец группы мегаприоритетных
+                            insertIndex = j + 1;
+                        } else if (tankPriority === 1) {
+                            // Находимся в группе приоритетных - продолжаем искать конец этой группы
+                            insertIndex = j + 1;
+                        } else {
+                            // Нашли первый обычный танк - вставляем перед ним (конец группы приоритетных)
+                            insertIndex = j;
+                            break;
+                        }
+                    }
+                    tanks.splice(insertIndex, 0, tank);
+                } else {
+                    // Обычный танк - добавляем в конец очереди
+                    tanks.push(tank);
+                }
+            }
+            
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:addQuickTank:after_add',message:'Tank added to array',data:{tanksLength:tanks.length,priority},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            
+            // Очищаем поле ввода после добавления
+            if (nameInput) {
+                nameInput.value = '';
+            }
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:addQuickTank:before_save',message:'Before calling saveData and renderQueue',data:{tanksLength:tanks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
+            saveData();
+            renderQueue();
+        }
+
+        function sortTanks() {
+            const hadActiveTank = currentTankIndex >= 0 && currentTankIndex < tanks.length;
+            const activeTankRef = hadActiveTank ? tanks[currentTankIndex] : null;
+
+            // Сортируем сначала по приоритету (2 > 1 > 0), затем по времени добавления (старые выше, новые ниже)
+            tanks.sort((a, b) => {
+                const priorityA = a.priority || 0;
+                const priorityB = b.priority || 0;
+                
+                // Сначала по приоритету
+                if (priorityA !== priorityB) {
+                    return priorityB - priorityA; // Мегаприоритет (2) > Приоритетный (1) > Базовый (0)
+                }
+                
+                // Если приоритет одинаковый, то по времени добавления (старые выше, новые ниже)
+                const timeA = a.addedAt || 0;
+                const timeB = b.addedAt || 0;
+                if (timeA !== timeB) {
+                    return timeA - timeB; // Старые выше (меньшее время = выше в очереди)
+                }
+                
+                // Если время одинаковое, то по цене (выше цена = выше в очереди)
+                return b.price - a.price;
+            });
+
+            // После сортировки индекс активного боя должен указывать на тот же объект танка.
+            // Иначе при добавлении/сортировке очередь "ломается" и активным становится другой танк.
+            if (activeTankRef) {
+                const nextIndex = tanks.indexOf(activeTankRef);
+                currentTankIndex = nextIndex >= 0 ? nextIndex : -1;
+            } else if (!hadActiveTank) {
+                currentTankIndex = -1;
+            }
+        }
+
+        function getPriceClass(price) {
+            if (price >= 200) return 'high-price';
+            if (price >= 101) return 'medium-price';
+            if (price >= 75) return 'low-price';
+            return '';
+        }
+
+        function renderQueue() {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:renderQueue:entry',message:'renderQueue called',data:{queueList:!!queueList,tanksLength:tanks.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
+            if (!queueList) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:renderQueue:no_queueList',message:'queueList not found, returning',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                // #endregion
+                console.error('❌ queueList не найден в DOM!');
+                return;
+            }
+            sortTanks();
+            queueList.innerHTML = '';
+            console.log('📋 Рендеринг очереди, танков:', tanks.length);
+
+            if (tanks.length === 0) {
+                queueList.innerHTML = `
+                    <li class="empty-queue">
+                        <div class="empty-queue-icon">🚗</div>
+                        <div>Очередь пуста</div>
+                    </li>
+                `;
+                return;
+            }
+
+            tanks.forEach((tank, index) => {
+                const li = document.createElement('li');
+                li.className = `queue-item ${getPriceClass(tank.price)} slide-in`;
+                
+                const infoDiv = document.createElement('div');
+                infoDiv.className = 'queue-item-info';
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'queue-item-name';
+                nameDiv.textContent = tank.name;
+                infoDiv.appendChild(nameDiv);
+
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'queue-item-details';
+                if (tank.conditions) {
+                    const conditionsSpan = document.createElement('span');
+                    conditionsSpan.textContent = tank.conditions;
+                    detailsDiv.appendChild(conditionsSpan);
+                }
+                infoDiv.appendChild(detailsDiv);
+
+                li.appendChild(infoDiv);
+
+                const priceSpan = document.createElement('span');
+                priceSpan.className = 'queue-item-price';
+                priceSpan.textContent = `${tank.price}₽`;
+                li.appendChild(priceSpan);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'queue-item-actions';
+
+                if (index !== currentTankIndex) {
+                    const startBtn = document.createElement('button');
+                    startBtn.className = 'btn btn-success btn-icon';
+                    startBtn.textContent = '▶️';
+                    startBtn.title = 'Начать бой';
+                    startBtn.onclick = () => startBattle(index);
+                    actionsDiv.appendChild(startBtn);
+                }
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-primary btn-icon';
+                editBtn.textContent = '✏️';
+                editBtn.title = 'Редактировать';
+                editBtn.onclick = () => editTank(index);
+                actionsDiv.appendChild(editBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-danger btn-icon';
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.title = 'Удалить';
+                deleteBtn.onclick = () => deleteTank(index);
+                actionsDiv.appendChild(deleteBtn);
+
+                li.appendChild(actionsDiv);
+                queueList.appendChild(li);
+            });
+        }
+
+        function updateCurrentBattle() {
+            if (currentTankIndex >= 0 && currentTankIndex < tanks.length) {
+                const currentTank = tanks[currentTankIndex];
+                currentTankName.textContent = currentTank.name;
+                currentTankPrice.textContent = `${currentTank.price}₽`;
+                currentTankConditions.textContent = currentTank.conditions || 'Нет дополнительных условий';
+                currentBattleDisplay.style.display = 'block';
+                noBattleDisplay.style.display = 'none';
+            } else {
+                currentBattleDisplay.style.display = 'none';
+                noBattleDisplay.style.display = 'block';
+            }
+        }
+
+        function startBattle(index) {
+            if (index < 0 || index >= tanks.length) return;
+            currentTankIndex = index;
+            saveData();
+            updateCurrentBattle();
+            renderQueue();
+        }
+
+        function startNextBattle() {
+            if (tanks.length === 0) {
+                alert('Очередь пуста');
+                return;
+            }
+            if (currentTankIndex >= 0 && currentTankIndex < tanks.length) {
+                alert('Уже есть активный бой. Завершите его сначала.');
+                return;
+            }
+            // Сбрасываем индекс текущего боя перед удалением
+            currentTankIndex = -1;
+            // Сортируем очередь перед удалением, чтобы удалить правильный первый танк
+            sortTanks();
+            // Убеждаемся, что удаляем именно первый танк после сортировки
+            if (tanks.length > 0) {
+                // Сохраняем информацию о удаляемом танке для отладки
+                const firstTank = tanks[0];
+                const lastTank = tanks[tanks.length - 1];
+                console.log('🗑️ ПЕРЕД удалением:');
+                console.log('  Первый танк (tanks[0]):', firstTank.name, 'Приоритет:', firstTank.priority, 'Время:', firstTank.addedAt);
+                console.log('  Последний танк (tanks[' + (tanks.length - 1) + ']):', lastTank.name, 'Приоритет:', lastTank.priority, 'Время:', lastTank.addedAt);
+                console.log('  Всего танков:', tanks.length);
+                console.log('  Все танки по порядку:', tanks.map((t, i) => `${i + 1}. ${t.name} (приоритет: ${t.priority || 0}, время: ${t.addedAt || 'нет'})`));
+                
+                // Удаляем ПЕРВЫЙ танк из очереди (tanks[0]) - это должен быть танк с позицией 1 в виджете
+                // ВАЖНО: используем shift(), который удаляет первый элемент массива
+                const removed = tanks.shift();
+                console.log('✅ Удален танк:', removed?.name, 'Осталось танков:', tanks.length);
+                
+                // Убеждаемся, что индекс сброшен
+                currentTankIndex = -1;
+                saveData();
+                renderQueue();
+                updateCurrentBattle();
+            }
+        }
+
+        function finishBattle() {
+            if (currentTankIndex < 0 || currentTankIndex >= tanks.length) return;
+            
+            tanks.splice(currentTankIndex, 1);
+            currentTankIndex = -1;
+            saveData();
+            renderQueue();
+            updateCurrentBattle();
+        }
+
+        function cancelBattle() {
+            if (confirm('Вы уверены, что хотите отменить текущий бой?')) {
+                currentTankIndex = -1;
+                saveData();
+                updateCurrentBattle();
+            }
+        }
+
+        function deleteTank(index) {
+            if (index < 0 || index >= tanks.length) {
+                console.warn('⚠️ deleteTank: invalid index', index, 'length:', tanks.length);
+                return;
+            }
+            if (index === currentTankIndex) {
+                alert('Нельзя удалить танк, который находится в бою. Завершите бой сначала.');
+                return;
+            }
+            if (index < currentTankIndex) {
+                currentTankIndex--;
+            }
+            tanks.splice(index, 1);
+            renderQueue();
+            updateCurrentBattle();
+            saveData();
+        }
+
+        function editTank(index) {
+            if (index === currentTankIndex) {
+                alert('Нельзя редактировать танк, который находится в бою. Завершите бой сначала.');
+                return;
+            }
+            const tank = tanks[index];
+            const name = prompt('Название танка:', tank.name);
+            if (name === null) return;
+            const price = prompt('Стоимость (₽):', tank.price);
+            if (price === null) return;
+            const priceNum = parseInt(price);
+            if (isNaN(priceNum) || priceNum < 1) {
+                alert('Некорректная стоимость');
+                return;
+            }
+            const conditions = prompt('Дополнительные условия:', tank.conditions || '');
+            if (conditions === null) return;
+
+            tank.name = name.trim();
+            tank.price = priceNum;
+            tank.conditions = conditions.trim();
+            saveData();
+            renderQueue();
+        }
+
+        function clearQueue() {
+            if (tanks.length === 0) {
+                alert('Очередь уже пуста');
+                return;
+            }
+            if (confirm('Вы уверены, что хотите очистить всю очередь?')) {
+                if (currentTankIndex >= 0) {
+                    if (!confirm('Есть активный бой. Очистить очередь вместе с текущим боем?')) {
+                        return;
+                    }
+                }
+                tanks = [];
+                currentTankIndex = -1;
+                saveData();
+                renderQueue();
+                updateCurrentBattle();
+            }
+        }
+
+        tankForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('tankName').value.trim();
+            const price = parseInt(document.getElementById('tankPrice').value);
+            const conditions = document.getElementById('tankConditions').value.trim();
+
+            if (!name) {
+                alert('Введите название танка');
+                return;
+            }
+            if (isNaN(price) || price < 1) {
+                alert('Введите корректную стоимость');
+                return;
+            }
+
+            const newTank = {
+                name,
+                price,
+                conditions,
+                addedAt: Date.now()
+            };
+            
+            // Обычный танк - добавляем в конец очереди
+            tanks.push(newTank);
+
+            tankForm.reset();
+            saveData();
+            renderQueue();
+        });
+
+        // Обработчики событий
+        function handleOrderPriceEnabledChange(e) {
+            if (e) e.stopPropagation();
+            // Не сохраняем, если это программная установка
+            if (isUpdatingDisplay) return;
+            orderPriceEnabled = orderPriceEnabledCheckbox.checked;
+            saveData();
+        }
+
+        function handleOrderPriceTop1EnabledChange(e) {
+            if (e) e.stopPropagation();
+            // Не сохраняем, если это программная установка
+            if (isUpdatingDisplay) return;
+            orderPriceTop1Enabled = orderPriceTop1EnabledCheckbox.checked;
+            saveData();
+        }
+
+        function handleOrderPriceLabelBlur() {
+            orderPriceLabel = orderPriceLabelInput.value.trim() || 'Заказ танка';
+            saveData();
+        }
+
+        function handleOrderPriceTop1LabelBlur() {
+            orderPriceTop1Label = orderPriceTop1LabelInput.value.trim() || 'Заказ танка до топ 1';
+            saveData();
+        }
+
+        // Функция для инициализации обработчиков событий
+        function initEventHandlers() {
+            // Обработчики для автоматического сохранения при изменении чекбоксов
+            if (orderPriceEnabledCheckbox) {
+                // Удаляем старые обработчики, если есть
+                orderPriceEnabledCheckbox.removeEventListener('change', handleOrderPriceEnabledChange);
+                orderPriceEnabledCheckbox.removeEventListener('click', handleOrderPriceEnabledChange);
+                // Добавляем обработчик на click для более надежной работы
+                orderPriceEnabledCheckbox.addEventListener('click', handleOrderPriceEnabledChange);
+                orderPriceEnabledCheckbox.addEventListener('change', handleOrderPriceEnabledChange);
+            }
+
+            if (orderPriceTop1EnabledCheckbox) {
+                // Удаляем старые обработчики, если есть
+                orderPriceTop1EnabledCheckbox.removeEventListener('change', handleOrderPriceTop1EnabledChange);
+                orderPriceTop1EnabledCheckbox.removeEventListener('click', handleOrderPriceTop1EnabledChange);
+                // Добавляем обработчик на click для более надежной работы
+                orderPriceTop1EnabledCheckbox.addEventListener('click', handleOrderPriceTop1EnabledChange);
+                orderPriceTop1EnabledCheckbox.addEventListener('change', handleOrderPriceTop1EnabledChange);
+            }
+
+            // Обработчики для автоматического сохранения при изменении надписей
+            if (orderPriceLabelInput) {
+                orderPriceLabelInput.removeEventListener('blur', handleOrderPriceLabelBlur);
+                orderPriceLabelInput.addEventListener('blur', handleOrderPriceLabelBlur);
+            }
+
+            if (orderPriceTop1LabelInput) {
+                orderPriceTop1LabelInput.removeEventListener('blur', handleOrderPriceTop1LabelBlur);
+                orderPriceTop1LabelInput.addEventListener('blur', handleOrderPriceTop1LabelBlur);
+            }
+        }
+
+        // Функции для работы с фото стримера
+        streamerPhotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Проверяем размер файла (макс 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Файл слишком большой! Максимальный размер: 2MB');
+                    streamerPhotoInput.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64 = event.target.result;
+                    
+                    // Сжимаем изображение если оно слишком большое
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const maxWidth = 800;
+                        const maxHeight = 800;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > maxWidth || height > maxHeight) {
+                            if (width > height) {
+                                height = (height * maxWidth) / width;
+                                width = maxWidth;
+                            } else {
+                                width = (width * maxHeight) / height;
+                                height = maxHeight;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Сохраняем прозрачность для PNG
+                        ctx.clearRect(0, 0, width, height);
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Определяем формат исходного изображения
+                        const isPNG = base64.startsWith('data:image/png') || file.type === 'image/png';
+                        const mimeType = isPNG ? 'image/png' : 'image/jpeg';
+                        const quality = isPNG ? undefined : 0.8; // PNG не поддерживает quality
+                        
+                        // Конвертируем в base64, сохраняя формат
+                        const compressedBase64 = canvas.toDataURL(mimeType, quality);
+                        console.log('Original size:', base64.length, 'Compressed size:', compressedBase64.length, 'Format:', mimeType);
+                        
+                        photoPreviewImg.src = compressedBase64;
+                        photoPreview.style.display = 'block';
+                        streamerPhoto = compressedBase64;
+                    };
+                    img.src = base64;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function saveStreamerPhoto() {
+            if (!streamerPhoto) {
+                alert('Сначала выберите фото');
+                return;
+            }
+            console.log('Saving streamer photo, length:', streamerPhoto.length);
+            saveData({ includePhotos: true });
+            
+            // Ждем сохранения и проверяем
+            setTimeout(() => {
+                fetch('/api/tank-queue?t=' + Date.now())
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log('Checking saved photo, response:', {
+                            success: data.success,
+                            hasPhoto: !!data.streamerPhoto,
+                            photoLength: data.streamerPhoto ? data.streamerPhoto.length : 0
+                        });
+                        if (data.success && data.streamerPhoto) {
+                            alert('Фото успешно сохранено!');
+                            console.log('Photo saved, length:', data.streamerPhoto.length);
+                            // Обновляем превью
+                            photoPreviewImg.src = data.streamerPhoto;
+                            photoPreview.style.display = 'block';
+                            streamerPhoto = data.streamerPhoto;
+                        } else {
+                            alert('Ошибка: фото не сохранилось. Проверьте консоль сервера.');
+                            console.error('Photo not saved in response:', data);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error checking photo:', err);
+                        alert('Ошибка проверки сохранения фото');
+                    });
+            }, 1000);
+        }
+
+        function removeStreamerPhoto() {
+            if (confirm('Удалить фото стримера?')) {
+                streamerPhoto = null;
+                photoPreview.style.display = 'none';
+                streamerPhotoInput.value = '';
+                saveData({ includePhotos: true });
+                alert('Фото удалено');
+            }
+        }
+
+        // Обработчик для второго фото
+        secondPhotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Проверяем размер файла (макс 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Файл слишком большой! Максимальный размер: 2MB');
+                    secondPhotoInput.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64 = event.target.result;
+                    
+                    // Сжимаем изображение если оно слишком большое
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const maxWidth = 800;
+                        const maxHeight = 800;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > maxWidth || height > maxHeight) {
+                            if (width > height) {
+                                height = (height * maxWidth) / width;
+                                width = maxWidth;
+                            } else {
+                                width = (width * maxHeight) / height;
+                                height = maxHeight;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Сохраняем прозрачность для PNG
+                        ctx.clearRect(0, 0, width, height);
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Определяем формат исходного изображения
+                        const isPNG = base64.startsWith('data:image/png') || file.type === 'image/png';
+                        const mimeType = isPNG ? 'image/png' : 'image/jpeg';
+                        const quality = isPNG ? undefined : 0.8; // PNG не поддерживает quality
+                        
+                        // Конвертируем в base64, сохраняя формат
+                        const compressedBase64 = canvas.toDataURL(mimeType, quality);
+                        console.log('Second photo - Original size:', base64.length, 'Compressed size:', compressedBase64.length, 'Format:', mimeType);
+                        
+                        secondPhotoPreviewImg.src = compressedBase64;
+                        secondPhotoPreview.style.display = 'block';
+                        secondPhoto = compressedBase64;
+                    };
+                    img.src = base64;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function saveSecondPhoto() {
+            if (!secondPhoto) {
+                alert('Сначала выберите фото');
+                return;
+            }
+            console.log('Saving second photo, length:', secondPhoto.length);
+            saveData({ includePhotos: true });
+            // Перезагружаем данные после сохранения, чтобы убедиться, что фото сохранилось
+            setTimeout(() => {
+                loadData().then(() => {
+                    console.log('Reloading data after save, secondPhoto exists:', !!secondPhoto);
+                    if (secondPhoto) {
+                        secondPhotoPreviewImg.src = secondPhoto;
+                        secondPhotoPreview.style.display = 'block';
+                        console.log('✅ Second photo reloaded after save, length:', secondPhoto.length);
+                    } else {
+                        console.warn('⚠️ Second photo is null after reload!');
+                        secondPhotoPreview.style.display = 'none';
+                    }
+                }).catch(err => {
+                    console.error('Error reloading data after save:', err);
+                });
+            }, 1000);
+            alert('Второе фото сохранено');
+        }
+
+        function removeSecondPhoto() {
+            if (confirm('Удалить второе фото?')) {
+                secondPhoto = null;
+                secondPhotoPreview.style.display = 'none';
+                secondPhotoInput.value = '';
+                saveData({ includePhotos: true });
+                alert('Второе фото удалено');
+            }
+        }
+
+        // Функции для работы с третьим фото
+        thirdPhotoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Проверяем размер файла (макс 2MB)
+                if (file.size > 2 * 1024 * 1024) {
+                    alert('Файл слишком большой! Максимальный размер: 2MB');
+                    thirdPhotoInput.value = '';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64 = event.target.result;
+                    
+                    // Не сжимаем третье фото для сохранения качества
+                    // Используем оригинальное изображение без сжатия
+                    thirdPhotoPreviewImg.src = base64;
+                    thirdPhotoPreview.style.display = 'block';
+                    thirdPhoto = base64;
+                    console.log('Third photo - Original size (no compression):', base64.length);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function saveThirdPhoto() {
+            if (!thirdPhoto) {
+                alert('Сначала выберите фото');
+                return;
+            }
+            console.log('Saving third photo, length:', thirdPhoto.length);
+            // Сохраняем локальную копию перед сохранением
+            const photoToSave = thirdPhoto;
+            saveData({ includePhotos: true });
+            // Перезагружаем данные после сохранения, чтобы убедиться, что фото сохранилось
+            // Увеличиваем задержку до 2 секунд, чтобы дать серверу больше времени
+            setTimeout(() => {
+                loadData().then(() => {
+                    console.log('Reloading data after save, thirdPhoto exists:', !!thirdPhoto);
+                    if (thirdPhoto) {
+                        thirdPhotoPreviewImg.src = thirdPhoto;
+                        thirdPhotoPreview.style.display = 'block';
+                        console.log('✅ Third photo reloaded after save, length:', thirdPhoto.length);
+                    } else {
+                        // Если фото не загрузилось с сервера, используем локальную копию
+                        console.warn('⚠️ Third photo is null after reload, using local copy');
+                        if (photoToSave) {
+                            thirdPhoto = photoToSave;
+                            thirdPhotoPreviewImg.src = thirdPhoto;
+                            thirdPhotoPreview.style.display = 'block';
+                            console.log('✅ Third photo restored from local copy');
+                        } else {
+                            thirdPhotoPreview.style.display = 'none';
+                        }
+                    }
+                }).catch(err => {
+                    console.error('Error reloading data after save:', err);
+                    // В случае ошибки используем локальную копию
+                    if (photoToSave) {
+                        thirdPhoto = photoToSave;
+                        thirdPhotoPreviewImg.src = thirdPhoto;
+                        thirdPhotoPreview.style.display = 'block';
+                    }
+                });
+            }, 2000);
+            alert('Третье фото сохранено');
+        }
+
+        function removeThirdPhoto() {
+            if (confirm('Удалить третье фото?')) {
+                thirdPhoto = null;
+                thirdPhotoPreview.style.display = 'none';
+                thirdPhotoInput.value = '';
+                saveData({ includePhotos: true });
+                alert('Третье фото удалено');
+            }
+        }
+
+        // Инициализируем обработчики сразу после получения элементов
+        initEventHandlers();
+        
+        // Инициализация данных
+        loadData();
+
+        // Периодический авто-reload отключен:
+        // при частых save/load он мог визуально "возвращать" удаленные элементы.
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,127 @@
+<!-- Верхняя панель -->
+<header class="app-header">
+    <div class="header-left">
+        <button class="header-menu-toggle" id="mobileMenuToggle" aria-label="Меню">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        </button>
+        <div class="header-breadcrumb" id="breadcrumb">
+            <span class="breadcrumb-item">Главная</span>
+        </div>
+    </div>
+    
+    <div class="header-right">
+        <div class="header-auth">
+            <a href="#" class="header-login-btn" id="headerLoginBtn" title="Вход">
+                <span class="header-login-icon">👤</span>
+                <span class="header-login-text">Вход</span>
+            </a>
+        </div>
+        <div class="header-stats" id="headerStats" style="display: none;">
+            <div class="stat-badge">
+                <span class="stat-label">Донаты</span>
+                <span class="stat-value" id="headerDonations">0</span>
+            </div>
+            <div class="stat-badge">
+                <span class="stat-label">Фраги</span>
+                <span class="stat-value" id="headerFrags">0</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="header-action-btn" title="Настройки">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M15.6066 12.5C15.4797 12.7504 15.3969 13.0197 15.3623 13.2971L14.6408 13.1786C14.4213 13.1411 14.1951 13.1834 13.9998 13.3007C13.8045 13.418 13.6502 13.6044 13.5608 13.8286L12.8393 15.2714C12.6054 15.7128 12.2338 16.0662 11.7814 16.2771C11.329 16.488 10.8209 16.5453 10.3314 16.4393L9.66864 16.3107C9.17914 16.2047 8.67102 16.262 8.21864 16.4729C7.76626 16.6838 7.39464 17.0372 7.16075 17.4786L6.43925 18.9214C6.20536 19.3628 5.76626 19.6838 5.26864 19.4729C4.77102 19.262 4.42914 18.8206 4.33139 18.3107L4.16075 17.4786C4.06299 16.9686 3.76626 16.512 3.33139 16.1893C2.89652 15.8666 2.35414 15.7007 1.80075 15.7214L0.5 15.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+</header>
+
+<script>
+(function() {
+    // Обновление хлебных крошек
+    const breadcrumb = document.getElementById('breadcrumb');
+    const pageTitles = {
+        'index': 'Главная',
+        'mode1-frag-tracker': 'Фраг-трекер',
+        'mode2-timer': 'Таймер',
+        'mode3-custom': 'Кастомный',
+        'donation-management': 'Управление донатами',
+        'donation-driven-widget': 'Параметр от донатов',
+        'donation-goal': 'Сбор донатов',
+        'donations-dashboard': 'Дашборд донатов',
+        'stats': 'Статистика фрагов',
+        'lesta': 'Lesta Games',
+        'analytics': 'Аналитика',
+        'admin': 'Админ-панель',
+        'tank-queue': 'Очередь танков',
+        'schedule': 'Расписание',
+        'donor-achievements': 'Достижения',
+        'tournament': 'Турнир'
+    };
+
+    const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+    if (breadcrumb && pageTitles[currentPage]) {
+        breadcrumb.innerHTML = `<span class="breadcrumb-item">${pageTitles[currentPage]}</span>`;
+    }
+
+    // Мобильное меню
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const sidebar = document.getElementById('sidebar');
+    
+    if (mobileMenuToggle && sidebar) {
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('mobile-open');
+        });
+
+        // Закрытие при клике вне меню
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth < 768 && 
+                !sidebar.contains(e.target) && 
+                !mobileMenuToggle.contains(e.target) &&
+                sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('mobile-open');
+            }
+        });
+    }
+
+    // Загрузка статистики для хедера
+    async function loadHeaderStats() {
+        try {
+            const response = await fetch('/api/stats');
+            if (response.ok) {
+                const data = await response.json();
+                const statsContainer = document.getElementById('headerStats');
+                if (statsContainer && (data.totalDonations || data.totalFrags)) {
+                    statsContainer.style.display = 'flex';
+                    if (data.totalDonations) {
+                        document.getElementById('headerDonations').textContent = data.totalDonations;
+                    }
+                    if (data.totalFrags) {
+                        document.getElementById('headerFrags').textContent = data.totalFrags;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки статистики:', error);
+        }
+    }
+
+    // Загружаем статистику после отрисовки меню, чтобы не тормозить открытие страницы
+    if (document.getElementById('headerStats')) {
+        setTimeout(loadHeaderStats, 300);
+        setInterval(loadHeaderStats, 30000);
+    }
+
+    // Меню входа (заглушка под будущую авторизацию)
+    const loginBtn = document.getElementById('headerLoginBtn');
+    if (loginBtn) {
+        loginBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Вход в систему будет доступен в следующем обновлении.');
+        });
+    }
+})();
+</script>

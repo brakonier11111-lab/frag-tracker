@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Улучшенная полоска донатов для OBS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@400;600;700;900&family=Press+Start+2P&family=Rajdhani:wght@400;500;600;700&family=Russo+One&family=Bebas+Neue&family=Exo+2:wght@400;600;700;800&family=Audiowide&family=Montserrat:wght@400;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: transparent;
+            font-family: 'Inter', sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* ========== ГОРИЗОНТАЛЬНАЯ С АНИМАЦИЯМИ ========== */
+        .bar-horizontal {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .bar-horizontal .bar-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 3px 6px rgba(0,0,0,0.8);
+            animation: textGlow 3s ease-in-out infinite;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .bar-horizontal .progress-wrapper {
+            position: relative;
+            padding: 25px 0;
+        }
+
+        /* Внешнее свечение */
+        .bar-horizontal .progress-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: linear-gradient(45deg, 
+                rgba(102, 126, 234, 0.15), 
+                rgba(118, 75, 162, 0.15), 
+                rgba(79, 172, 254, 0.15), 
+                rgba(0, 242, 254, 0.15)
+            );
+            border-radius: 35px;
+            z-index: -1;
+            animation: outerGlow 3s ease-in-out infinite;
+        }
+
+        /* Подложка под полоской */
+        .bar-horizontal .progress-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 40px;
+            background: radial-gradient(ellipse, rgba(102, 126, 234, 0.25) 0%, transparent 70%);
+            z-index: -2;
+            animation: backgroundPulse 4s ease-in-out infinite;
+        }
+
+        .bar-horizontal .progress-bar {
+            width: 100%;
+            height: 35px;
+            background: linear-gradient(135deg, 
+                rgba(0, 0, 0, 0.9) 0%, 
+                rgba(10, 10, 20, 0.95) 30%,
+                rgba(20, 20, 30, 0.9) 70%,
+                rgba(0, 0, 0, 0.9) 100%
+            );
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 
+                inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                0 0 30px rgba(0, 0, 0, 0.5),
+                0 0 60px rgba(102, 126, 234, 0.2),
+                0 0 100px rgba(102, 126, 234, 0.1);
+            border: 3px solid rgba(74, 85, 104, 0.4);
+            animation: progressBarGlow 6s ease-in-out infinite;
+        }
+
+        /* Свечение на фоне полоски */
+        .bar-horizontal .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.08) 50%, transparent 70%);
+            animation: progressGlowMove 3.5s ease-in-out infinite;
+        }
+
+        .bar-horizontal .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, 
+                #4a5568 0%, 
+                #2d3748 15%, 
+                #1a202c 30%, 
+                #2d3748 45%,
+                #4a5568 60%,
+                #2d3748 75%,
+                #1a202c 90%,
+                #4a5568 100%
+            );
+            background-size: 300% 300%;
+            border-radius: 30px;
+            position: relative;
+            transition: width 4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            overflow: hidden;
+            box-shadow: 
+                0 0 20px rgba(74, 85, 104, 0.6),
+                0 0 40px rgba(74, 85, 104, 0.4),
+                0 0 60px rgba(74, 85, 104, 0.2),
+                inset 0 3px 6px rgba(255, 255, 255, 0.2);
+            animation: gradientShift 12s ease-in-out infinite, fillGlow 6s ease-in-out infinite;
+        }
+
+        /* Переливы внутри заполнения */
+        .bar-horizontal .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.25) 50%, transparent 70%);
+            animation: pulse 2.2s ease-in-out infinite;
+        }
+
+        .bar-horizontal .progress-text {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .bar-horizontal .progress-text span {
+            background: rgba(0,0,0,0.6);
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Частицы */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: var(--particles-size, 4px);
+            height: var(--particles-size, 4px);
+            background: var(--particles-color, rgba(102, 126, 234, 0.7));
+            opacity: calc(var(--particles-opacity, 70) / 100);
+            border-radius: 50%;
+            animation: float calc(var(--particles-speed, 1) * 5s) ease-in-out infinite;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 1s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 2s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 3s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 4s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 5s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 1.5s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 2.5s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 3.5s; }
+
+        /* ===== ВЕРТИКАЛЬНАЯ ===== */
+        .bar-vertical .progress-wrapper {
+            position: relative;
+            height: 100%;
+        }
+
+        .bar-vertical .progress-bar {
+            width: 50px;
+            height: 400px;
+            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(10,10,20,0.95) 50%, rgba(0,0,0,0.9) 100%);
+            border-radius: 25px;
+            overflow: hidden;
+            position: relative;
+            border: 3px solid rgba(74, 85, 104, 0.4);
+            box-shadow: inset 0 6px 12px rgba(0,0,0,0.7), 0 0 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        .bar-vertical .progress-fill {
+            width: 100%;
+            background: linear-gradient(0deg, #4a5568 0%, #2d3748 50%, #4a5568 100%);
+            background-size: 100% 300%;
+            transition: height 4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            animation: gradientShiftVertical 12s ease-in-out infinite;
+        }
+
+        /* ===== КРУГОВАЯ ===== */
+        .bar-circular svg {
+            transform: rotate(-90deg);
+        }
+
+        .bar-circular .progress-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.1);
+            stroke-width: 15;
+        }
+
+        .bar-circular .progress-ring {
+            fill: none;
+            stroke: #667eea;
+            stroke-width: 15;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            filter: drop-shadow(0 0 10px #667eea);
+            animation: ringGlow 3s ease-in-out infinite;
+        }
+
+        .bar-circular .progress-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        /* ===== ГЕОМЕТРИЧЕСКИЕ ФИГУРЫ ===== */
+        .hexagon-shape, .diamond-shape, .star-shape {
+            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(30,30,50,0.9) 100%);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 
+                0 0 30px rgba(102, 126, 234, 0.2),
+                inset 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        .hexagon-fill, .diamond-fill, .star-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            transition: height 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background-size: 100% 300%;
+            animation: gradientShiftVertical 10s ease-in-out infinite;
+        }
+
+        .hexagon-fill {
+            background: linear-gradient(0deg, #667eea 0%, #2d3748 50%, #764ba2 100%);
+        }
+
+        .diamond-fill {
+            background: linear-gradient(0deg, #4facfe 0%, #2d3748 50%, #00f2fe 100%);
+        }
+
+        .star-fill {
+            background: linear-gradient(0deg, #FFD700 0%, #ff7f00 50%, #FFA500 100%);
+        }
+
+        /* Шестиугольник */
+        .hexagon-shape {
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+
+        /* Ромб */
+        .diamond-shape {
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        }
+
+        /* Звезда */
+        .star-shape {
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+        }
+
+        /* ===== СЕРДЦЕ ===== */
+        .heart-shape {
+            position: relative;
+            width: 200px;
+            height: 180px;
+            margin: 0 auto;
+        }
+
+        .heart-shape::before,
+        .heart-shape::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 100px;
+            height: 160px;
+            background: rgba(0,0,0,0.9);
+            border-radius: 100px 100px 0 0;
+        }
+
+        .heart-shape::before {
+            left: 50px;
+            transform: rotate(-45deg);
+            transform-origin: 0 100%;
+        }
+
+        .heart-shape::after {
+            left: 0;
+            transform: rotate(45deg);
+            transform-origin: 100% 100%;
+        }
+
+        .heart-fill::before,
+        .heart-fill::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 100px;
+            height: 160px;
+            background: linear-gradient(0deg, #ff6b6b 0%, #ee5a24 100%);
+            border-radius: 100px 100px 0 0;
+        }
+
+        .heart-fill::before {
+            left: 50px;
+            transform: rotate(-45deg);
+            transform-origin: 0 100%;
+        }
+
+        .heart-fill::after {
+            left: 0;
+            transform: rotate(45deg);
+            transform-origin: 100% 100%;
+        }
+
+        /* ===== ВОЛНА ===== */
+        .bar-wave .wave-container {
+            width: 100%;
+            height: 150px;
+            position: relative;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 2px solid rgba(79, 172, 254, 0.3);
+        }
+
+        .bar-wave .wave-fill {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(0deg, #4facfe 0%, #00f2fe 100%);
+            transition: height 2s ease;
+        }
+
+        .bar-wave .wave-fill::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 0;
+            width: 200%;
+            height: 40px;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120'%3E%3Cpath d='M0,60 Q150,0 300,60 T600,60 T900,60 T1200,60 L1200,120 L0,120 Z' fill='%234facfe'/%3E%3C/svg%3E");
+            animation: wave 3s linear infinite;
+        }
+
+        /* ===== КАСТОМНОЕ ИЗОБРАЖЕНИЕ ===== */
+        .bar-custom-image .custom-image-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            margin: 0 auto;
+        }
+
+        .bar-custom-image .custom-bg-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0.3;
+            filter: grayscale(100%);
+        }
+
+        .bar-custom-image .custom-fill-wrapper {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 0%;
+            overflow: hidden;
+            transition: height 2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .bar-custom-image .custom-fill-image {
+            width: 100%;
+            height: 300px;
+            object-fit: contain;
+            position: absolute;
+            bottom: 0;
+            filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.8));
+        }
+
+        /* ===== ОБЩИЕ ЭЛЕМЕНТЫ ===== */
+        .bar-amount, .bar-percentage {
+            text-align: center;
+            font-weight: 700;
+            margin-top: 15px;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        .bar-amount {
+            font-size: 1.2rem;
+        }
+
+        .bar-percentage {
+            font-size: 0.9rem;
+        }
+
+        .progress-amount-inside {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.6);
+            z-index: 10;
+            font-size: 1.1rem;
+            animation: amountGlow 2s ease-in-out infinite;
+        }
+
+        /* ===== АНИМАЦИИ ===== */
+        @keyframes progressBarGlow {
+            0%, 100% { 
+                border-color: rgba(74, 85, 104, 0.4);
+                box-shadow: 
+                    inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                    0 0 30px rgba(0, 0, 0, 0.5),
+                    0 0 60px rgba(74, 85, 104, 0.2);
+            }
+            50% { 
+                border-color: rgba(74, 85, 104, 0.7);
+                box-shadow: 
+                    inset 0 6px 12px rgba(0, 0, 0, 0.7),
+                    0 0 40px rgba(0, 0, 0, 0.6),
+                    0 0 80px rgba(74, 85, 104, 0.4);
+            }
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes gradientShiftVertical {
+            0%, 100% { background-position: 50% 0%; }
+            50% { background-position: 50% 100%; }
+        }
+
+        @keyframes fillGlow {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 20px rgba(74, 85, 104, 0.6),
+                    0 0 40px rgba(74, 85, 104, 0.4),
+                    inset 0 3px 6px rgba(255, 255, 255, 0.2);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 30px rgba(74, 85, 104, 0.8),
+                    0 0 60px rgba(74, 85, 104, 0.6),
+                    inset 0 3px 6px rgba(255, 255, 255, 0.3);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.03); }
+        }
+
+        @keyframes progressGlowMove {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.8; }
+        }
+
+        @keyframes textGlow {
+            0%, 100% { text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 3px 6px rgba(0,0,0,0.8); }
+            50% { text-shadow: 0 0 30px rgba(255,255,255,1), 0 4px 8px rgba(0,0,0,1); }
+        }
+
+        @keyframes amountGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.6); }
+            50% { text-shadow: 0 0 15px rgba(0,0,0,1), 0 0 30px rgba(0,0,0,0.8); }
+        }
+
+        @keyframes outerGlow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.08); }
+        }
+
+        @keyframes backgroundPulse {
+            0%, 100% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.35; transform: translate(-50%, -50%) scale(1.15); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(80px) scale(0); opacity: 0; }
+            10% { opacity: 1; transform: translateY(70px) scale(1); }
+            90% { opacity: 1; transform: translateY(-10px) scale(1); }
+        }
+
+        @keyframes wave {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @keyframes ringGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px #667eea); }
+            50% { filter: drop-shadow(0 0 20px #667eea); }
+        }
+
+        /* ===== ТЕМЫ ===== */
+
+        /* Киберпанк */
+        .theme-cyberpunk {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .theme-cyberpunk .bar-title {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #ff00ff;
+            animation: cyberpunkGlow 2s ease-in-out infinite;
+        }
+
+        .theme-cyberpunk .hexagon-fill,
+        .theme-cyberpunk .diamond-fill,
+        .theme-cyberpunk .star-fill,
+        .theme-cyberpunk .progress-fill {
+            background: linear-gradient(0deg, #00ffff 0%, #ff00ff 50%, #00ffff 100%);
+            background-size: 100% 300%;
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.8);
+        }
+
+        @keyframes cyberpunkGlow {
+            0%, 100% { text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff, 0 0 40px #ff00ff; }
+            50% { text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 60px #00ffff, 0 0 80px #ff00ff; }
+        }
+
+        /* Ретро 8-бит */
+        .theme-retro {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .theme-retro .bar-title {
+            color: #00ff00;
+            text-shadow: 2px 2px 0 #000;
+            font-size: 1rem;
+        }
+
+        .theme-retro .hexagon-fill,
+        .theme-retro .diamond-fill,
+        .theme-retro .star-fill,
+        .theme-retro .progress-fill {
+            background: repeating-linear-gradient(0deg, #00ff00 0px, #00ff00 4px, #008800 4px, #008800 8px);
+            image-rendering: pixelated;
+        }
+
+        /* Неоновый город */
+        .theme-neon-city .hexagon-shape,
+        .theme-neon-city .diamond-shape,
+        .theme-neon-city .star-shape {
+            background: rgba(10, 10, 40, 0.9);
+            box-shadow: 0 0 30px rgba(255, 0, 255, 0.5), inset 0 0 30px rgba(0, 255, 255, 0.2);
+        }
+
+        .theme-neon-city .hexagon-fill,
+        .theme-neon-city .diamond-fill,
+        .theme-neon-city .star-fill {
+            background: linear-gradient(0deg, #ff00ff 0%, #00ffff 50%, #ff00ff 100%);
+            background-size: 100% 300%;
+            box-shadow: 0 0 40px rgba(255, 0, 255, 0.8);
+            animation: gradientShiftVertical 8s ease-in-out infinite;
+        }
+
+        /* Огонь */
+        .theme-fire {
+            animation: fireFlicker 0.15s infinite;
+        }
+
+        @keyframes fireFlicker {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.1); }
+        }
+
+        .theme-fire .star-fill,
+        .theme-fire .hexagon-fill,
+        .theme-fire .diamond-fill,
+        .theme-fire .progress-fill {
+            background: linear-gradient(0deg, #ff0000 0%, #ff7f00 25%, #ffff00 50%, #ff7f00 75%, #ff0000 100%);
+            background-size: 100% 400%;
+            animation: fireMove 1.5s linear infinite;
+        }
+
+        @keyframes fireMove {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 0% 100%; }
+        }
+
+        /* Космос */
+        .theme-space {
+            background: radial-gradient(ellipse at center, #1a0033 0%, #000000 100%);
+        }
+
+        .theme-space .star-shape,
+        .theme-space .hexagon-shape,
+        .theme-space .diamond-shape {
+            background: rgba(0, 0, 20, 0.9);
+            box-shadow: inset 0 0 50px rgba(100, 100, 255, 0.3), 0 0 50px rgba(100, 100, 255, 0.2);
+        }
+
+        .theme-space .star-fill,
+        .theme-space .hexagon-fill,
+        .theme-space .diamond-fill {
+            background: linear-gradient(0deg, #4a00e0 0%, #8e2de2 50%, #ffffff 100%);
+            background-size: 100% 300%;
+            animation: starPulse 2s ease-in-out infinite, gradientShiftVertical 10s ease-in-out infinite;
+        }
+
+        @keyframes starPulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+        }
+
+        /* Матрица */
+        .theme-matrix {
+            font-family: 'Courier New', monospace;
+            background: #000;
+        }
+
+        .theme-matrix .bar-title {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            animation: matrixGlitch 0.5s infinite;
+        }
+
+        @keyframes matrixGlitch {
+            0%, 90%, 100% { transform: translate(0); }
+            95% { transform: translate(-2px, 2px); }
+        }
+
+        .theme-matrix .hexagon-fill,
+        .theme-matrix .diamond-fill,
+        .theme-matrix .star-fill,
+        .theme-matrix .progress-fill {
+            background: #00ff00;
+            box-shadow: 0 0 20px #00ff00;
+        }
+
+        /* Кристалл */
+        .theme-crystal .diamond-shape,
+        .theme-crystal .hexagon-shape,
+        .theme-crystal .star-shape {
+            background: linear-gradient(135deg, rgba(200, 200, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .theme-crystal .diamond-fill,
+        .theme-crystal .hexagon-fill,
+        .theme-crystal .star-fill {
+            background: linear-gradient(0deg, rgba(100, 150, 255, 0.8) 0%, rgba(200, 200, 255, 0.9) 50%, rgba(255, 255, 255, 1) 100%);
+            background-size: 100% 300%;
+            animation: crystalShine 3s ease-in-out infinite, gradientShiftVertical 10s ease-in-out infinite;
+        }
+
+        @keyframes crystalShine {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.5); }
+        }
+
+        /* Отключение эффектов */
+        .no-wrapper-effects::before,
+        .no-wrapper-effects::after {
+            display: none !important;
+        }
+
+        .no-glow {
+            animation: none !important;
+        }
+
+        .no-shimmer .progress-fill::after {
+            display: none !important;
+        }
+        
+        /* Класс для отключения движущегося градиента */
+        .no-gradient-move .progress-fill {
+            animation: none !important;
+            background-attachment: fixed !important;
+        }
+        
+        /* Разные типы анимаций заполнения */
+        
+        /* 1. Волна - горизонтальная синусоида */
+        .fill-animation-waves .progress-fill {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            background-size: 200% 100%;
+            border-radius: 0;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            animation: waveHorizontal 3s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+        
+        /* 2. Свечение - пятна света */
+        .fill-animation-glow .progress-fill {
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 50%, rgba(118, 75, 162, 1) 0%, transparent 50%),
+                linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            animation: glowSpots 4s ease-in-out infinite;
+            filter: brightness(1.2);
+        }
+        
+        /* 3. Переливы - сегменты */
+        .fill-animation-prism .progress-fill {
+            background: 
+                linear-gradient(45deg, #667eea 0%, #667eea 25%, 
+                                    #764ba2 25%, #764ba2 50%,
+                                    #f093fb 50%, #f093fb 75%,
+                                    #4facfe 75%, #4facfe 100%);
+            background-size: 100px 100%;
+            animation: prismSegments 6s ease-in-out infinite;
+        }
+        
+        /* 4. Калыхание - вертикальное покачивание */
+        .fill-animation-sway .progress-fill {
+            background: repeating-linear-gradient(
+                0deg,
+                #667eea 0px,
+                #667eea 10px,
+                #764ba2 10px,
+                #764ba2 20px
+            );
+            background-size: 100% 200%;
+            animation: swayVertical 5s ease-in-out infinite;
+            filter: blur(1px);
+        }
+        
+        /* 5. Блики - световые полосы */
+        .fill-animation-glimmer .progress-fill {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+            overflow: hidden;
+            mask: linear-gradient(to right, transparent, black 30%, black 70%, transparent);
+        }
+        
+        .fill-animation-glimmer .progress-fill::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.1) 25%,
+                rgba(255, 255, 255, 0.6) 50%,
+                rgba(255, 255, 255, 0.1) 75%,
+                transparent 100%
+            );
+            animation: glimmerShine 2.5s ease-in-out infinite;
+        }
+        
+        /* 6. Энергия - взрывы */
+        .fill-animation-energy .progress-fill {
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(255, 107, 107, 1), transparent 30%),
+                radial-gradient(circle at 70% 70%, rgba(254, 202, 87, 1), transparent 30%),
+                linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            animation: energyExplosions 1.8s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.6);
+        }
+        
+        @keyframes waveHorizontal {
+            0%, 100% { 
+                background-position: 0% 50%;
+                transform: translateY(0);
+            }
+            25% { 
+                transform: translateY(-3px);
+            }
+            50% { 
+                background-position: 100% 50%;
+                transform: translateY(0);
+            }
+            75% { 
+                transform: translateY(3px);
+            }
+        }
+        
+        @keyframes glowSpots {
+            0% { 
+                background-position: 0% 50%, 100% 50%, 0% 50%;
+                filter: brightness(1);
+            }
+            33% { 
+                background-position: 50% 50%, 0% 50%, 50% 50%;
+                filter: brightness(1.15);
+            }
+            66% { 
+                background-position: 100% 50%, 0% 50%, 100% 50%;
+                filter: brightness(1);
+            }
+            100% { 
+                background-position: 0% 50%, 100% 50%, 0% 50%;
+                filter: brightness(1);
+            }
+        }
+        
+        @keyframes prismSegments {
+            0% { 
+                background-position: 0 0;
+                filter: hue-rotate(0deg);
+            }
+            50% { 
+                background-position: 50px 0;
+                filter: hue-rotate(180deg);
+            }
+            100% { 
+                background-position: 100px 0;
+                filter: hue-rotate(360deg);
+            }
+        }
+        
+        @keyframes swayVertical {
+            0% { 
+                background-position: 0 0;
+                transform: skewY(0deg);
+                filter: blur(1px);
+            }
+            50% { 
+                background-position: 0 100%;
+                transform: skewY(2deg);
+                filter: blur(1.5px);
+            }
+            100% { 
+                background-position: 0 0;
+                transform: skewY(0deg);
+                filter: blur(1px);
+            }
+        }
+        
+        @keyframes glimmerShine {
+            0% { 
+                left: -100%; 
+                opacity: 0;
+            }
+            25% { 
+                opacity: 1;
+            }
+            75% { 
+                opacity: 1;
+            }
+            100% { 
+                left: 100%; 
+                opacity: 0;
+            }
+        }
+        
+        @keyframes energyExplosions {
+            0% { 
+                filter: brightness(1) saturate(1);
+                transform: scale(1);
+            }
+            33% { 
+                filter: brightness(1.3) saturate(1.3);
+                transform: scale(1.02);
+            }
+            66% { 
+                filter: brightness(1.5) saturate(1.5);
+                transform: scale(1.05);
+            }
+            100% { 
+                filter: brightness(1) saturate(1);
+                transform: scale(1);
+            }
+        }
+
+        /* Скрытие */
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="container">
+        <!-- Контент генерируется динамически -->
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        const config = {
+            // Форма и геометрия
+            shape: urlParams.get('shape') || 'horizontal',
+            barHeight: urlParams.get('barHeight') || '35',
+            borderRadius: urlParams.get('borderRadius') || '30',
+            
+            // Тип анимации заполнения
+            fillAnimation: urlParams.get('fillAnimation') || 'gradient',
+            
+            // Тема
+            theme: urlParams.get('theme') || 'default',
+            customImage: decodeURIComponent(urlParams.get('customImage') || ''),
+            
+            // Цвета фона
+            bgColor1: urlParams.get('bgColor1') || '000000',
+            bgColor2: urlParams.get('bgColor2') || '141428',
+            bgOpacity: urlParams.get('bgOpacity') || '90',
+            
+            // Цвета заполнения
+            gradientColor1: urlParams.get('gradientColor1') || '4a5568',
+            gradientColor2: urlParams.get('gradientColor2') || '2d3748',
+            gradientColor3: urlParams.get('gradientColor3') || '1a202c',
+            
+            // Граница и свечение
+            borderColor: urlParams.get('borderColor') || '4a5568',
+            glowColor: urlParams.get('glowColor') || '667eea',
+            glowIntensity: urlParams.get('glowIntensity') || '50',
+            
+            // Анимации и эффекты
+            animSpeed: urlParams.get('animSpeed') || '1',
+            effectGlow: urlParams.get('effectGlow') !== 'false',
+            effectShimmer: urlParams.get('effectShimmer') !== 'false',
+            effectGradientMove: urlParams.get('effectGradientMove') !== 'false',
+            effectBackgroundPulse: urlParams.get('effectBackgroundPulse') !== 'false',
+            effectOuterGlow: urlParams.get('effectOuterGlow') !== 'false',
+            effectFillGlow: urlParams.get('effectFillGlow') !== 'false',
+            
+            // Частицы
+            particles: urlParams.get('particles') !== 'false',
+            particlesCount: urlParams.get('particlesCount') || '9',
+            particlesSize: urlParams.get('particlesSize') || '4',
+            particlesSpeed: urlParams.get('particlesSpeed') || '1',
+            particlesColor: urlParams.get('particlesColor') || '667eea',
+            particlesOpacity: urlParams.get('particlesOpacity') || '70',
+            
+            // Шрифт и текст
+            font: urlParams.get('font') || 'Inter',
+            fontSize: urlParams.get('fontSize') || '100',
+            textColor: urlParams.get('textColor') || 'ffffff',
+            
+            // Видимость
+            showTitle: urlParams.get('showTitle') !== 'false',
+            showProgressNumbers: urlParams.get('showProgressNumbers') !== 'false',
+            amountFormat: urlParams.get('amountFormat') || 'current'
+        };
+
+        let donationGoal = {
+            title: 'Сбор на новый контент',
+            targetAmount: 10000,
+            currentAmount: 0
+        };
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadGoalData();
+            renderBar();
+            startAutoUpdate();
+            setupURLUpdateListener();
+        });
+
+        async function loadGoalData() {
+            try {
+                const response = await fetch('/api/donation-goal');
+                if (response.ok) {
+                    const data = await response.json();
+                    donationGoal = { ...donationGoal, ...data };
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+            }
+        }
+
+        function renderBar() {
+            const container = document.getElementById('container');
+            container.className = `container fade-in theme-${config.theme}`;
+            container.style.fontFamily = `'${config.font}', sans-serif`;
+            
+            let html = '';
+            
+            switch(config.shape) {
+                case 'horizontal':
+                    html = createHorizontalBar();
+                    break;
+                case 'vertical':
+                    html = createVerticalBar();
+                    break;
+                case 'circular':
+                    html = createCircularBar();
+                    break;
+                case 'hexagon':
+                    html = createHexagonBar();
+                    break;
+                case 'diamond':
+                    html = createDiamondBar();
+                    break;
+                case 'star':
+                    html = createStarBar();
+                    break;
+                case 'heart':
+                    html = createHeartBar();
+                    break;
+                case 'wave':
+                    html = createWaveBar();
+                    break;
+                case 'custom-image':
+                    html = createCustomImageBar();
+                    break;
+                default:
+                    html = createHorizontalBar();
+            }
+            
+            container.innerHTML = html;
+            updateDisplay();
+        }
+
+        function createHorizontalBar() {
+            // Применяем кастомные цвета заполнения
+            const c1 = '#' + config.gradientColor1;
+            const c2 = '#' + config.gradientColor2;
+            const c3 = '#' + config.gradientColor3;
+            const fillStyle = `background: linear-gradient(135deg, ${c1} 0%, ${c2} 15%, ${c3} 30%, ${c2} 45%, ${c1} 60%, ${c2} 75%, ${c3} 90%, ${c1} 100%);`;
+            
+            // Применяем кастомные цвета фона
+            const bgC1 = '#' + config.bgColor1;
+            const bgC2 = '#' + config.bgColor2;
+            const bgOpacity = config.bgOpacity / 100;
+            const bgStyle = `background: linear-gradient(135deg, rgba(${hexToRgb(bgC1)}, ${bgOpacity}) 0%, rgba(${hexToRgb(bgC2)}, ${bgOpacity}) 100%);`;
+            
+            // Применяем кастомную высоту и скругление
+            const barHeight = config.barHeight + 'px';
+            const borderRadius = config.borderRadius + 'px';
+            
+            // Цвет границы
+            const borderColor = '#' + config.borderColor;
+            
+            // Параметры частиц
+            const particlesHtml = config.particles ? `
+                <div class="particles" style="--particles-count: ${config.particlesCount}; --particles-size: ${config.particlesSize}px; --particles-speed: ${config.particlesSpeed}; --particles-color: #${config.particlesColor}; --particles-opacity: ${config.particlesOpacity};">
+                    ${Array.from({length: parseInt(config.particlesCount)}, () => '<div class="particle"></div>').join('')}
+                </div>
+            ` : '';
+
+            // Классы для эффектов
+            const wrapperClass = !config.effectOuterGlow && !config.effectBackgroundPulse ? 'no-wrapper-effects' : '';
+            const barClass = !config.effectGlow ? 'no-glow' : '';
+            const fillClass = !config.effectShimmer ? 'no-shimmer' : '';
+            const gradientMoveClass = !config.effectGradientMove ? 'no-gradient-move' : '';
+            const animationClass = config.fillAnimation ? `fill-animation-${config.fillAnimation}` : '';
+
+            // Определяем что показывать внутри полоски
+            let amountInsideText = '';
+            if (config.amountFormat === 'percentage') {
+                const percentage = donationGoal.targetAmount > 0 ? Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100).toFixed(0) : 0;
+                amountInsideText = `${percentage}%`;
+            } else if (config.amountFormat === 'both') {
+                amountInsideText = `${formatCurrency(donationGoal.currentAmount)} / ${formatCurrency(donationGoal.targetAmount)}`;
+            } else {
+                amountInsideText = formatCurrency(donationGoal.currentAmount);
+            }
+            
+            // Данные под полоской (блок с 0 ₽ и целевой суммой)
+            let progressTextHtml = '';
+            if (config.showProgressNumbers) {
+                progressTextHtml = `<div class="progress-text" style="color: #${config.textColor};">
+                    <span>0 ₽</span>
+                    <span id="target">${formatCurrency(donationGoal.targetAmount)}</span>
+                </div>`;
+            }
+            
+            return `
+                <div class="bar-horizontal">
+                    ${config.showTitle ? `<div class="bar-title" style="color: #${config.textColor}; font-size: ${config.fontSize}%;">${donationGoal.title}</div>` : ''}
+                    <div class="progress-wrapper ${wrapperClass} ${animationClass}" style="${!config.effectOuterGlow ? 'padding: 10px 0;' : ''}">
+                        ${particlesHtml}
+                        <div class="progress-bar ${barClass}" style="height: ${barHeight}; border-radius: ${borderRadius}; border: 2px solid ${borderColor}; ${bgStyle}">
+                            <div class="progress-fill ${fillClass} ${gradientMoveClass}" id="fill" style="width: 0%; ${fillStyle}"></div>
+                            <div class="progress-amount-inside" id="amount-inside" style="color: #${config.textColor};">${amountInsideText}</div>
+                        </div>
+                        ${progressTextHtml}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Вспомогательная функция для конвертации HEX в RGB
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '0, 0, 0';
+        }
+
+        function createVerticalBar() {
+            return `
+                <div class="bar-vertical">
+                    ${config.showTitle ? `<div class="bar-title">${donationGoal.title}</div>` : ''}
+                    <div class="progress-wrapper">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="fill" style="height: 0%"></div>
+                        </div>
+                    </div>
+                    ${config.showAmount ? `<div class="bar-amount" id="amount">${formatCurrency(donationGoal.currentAmount)}</div>` : ''}
+                    ${config.showPercentage ? `<div class="bar-percentage" id="percentage">0%</div>` : ''}
+                </div>
+            `;
+        }
+
+        function createCircularBar() {
+            return `
+                <div class="bar-circular">
+                    ${config.showTitle ? `<div class="bar-title">${donationGoal.title}</div>` : ''}
+                    <svg viewBox="0 0 200 200" style="width: 250px; height: 250px;">
+                        <circle class="progress-bg" cx="100" cy="100" r="80"/>
+                        <circle class="progress-ring" id="fill" cx="100" cy="100" r="80" 
+                            stroke-dasharray="502" stroke-dashoffset="502"/>
+                    </svg>
+                    <div class="progress-center">
+                        ${config.showPercentage ? `<div class="bar-percentage" id="percentage">0%</div>` : ''}
+                        ${config.showAmount ? `<div class="bar-amount" id="amount">${formatCurrency(donationGoal.currentAmount)}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createHexagonBar() {
+            return `
+                <div class="bar-hexagon">
+                    ${config.showTitle ? `<div class="bar-title">${donationGoal.title}</div>` : ''}
+                    <div class="hexagon-shape">
+                        <div class="hexagon-fill" id="fill"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                            ${config.showPercentage ? `<div class="bar-percentage" id="percentage">0%</div>` : ''}
+                            ${config.showAmount ? `<div class="bar-amount" id="amount">${formatCurrency(donationGoal.currentAmount)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createDiamondBar() {
+            return `
+                <div class="bar-diamond">
+                    ${config.showTitle ? `<div class="bar-title">${donationGoal.title}</div>` : ''}
+                    <div class="diamond-shape">
+                        <div class="diamond-fill" id="fill"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                            ${config.showPercentage ? `<div class="bar-percentage" id="percentage">0%</div>` : ''}
+                            ${config.showAmount ? `<div class="bar-amount" id="amount">${formatCurrency(donationGoal.currentAmount)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createStarBar() {
+            return `
+                <div class="bar-star">
+                    ${config.showTitle ? `<div class="bar-title">${donationGoal.title}</div>` : ''}
+                    <div class="star-shape">
+                        <div class="star-fill" id="fill"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                            ${config.showPercentage ? `<div class="bar-percentage" id="percentage">0%</div>` : ''}
+                            ${config.showAmount ? `<div class="bar-amount" id="amount">${formatCurrency(donationGoal.currentAmount)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createHeartBar() {
+            return `
+                <div class="bar-heart">
+                    ${config.showTitle ? `<div class="bar-title" style="margin-bottom: 20px;">${donationGoal.title}</div>` : ''}
+                    <div class="heart-shape">
+                        <div class="heart-fill" id="fill" style="position: absolute; bottom: 0; left: 0; right: 0; height: 0%; background: linear-gradient(0deg, #ff6b6b 0%, #ee5a24 100%); transition: height 2s ease;"></div>
+                    </div>
+                    ${config.showAmount ? `<div class="bar-amount" id="amount">${formatCurrency(donationGoal.currentAmount)}</div>` : ''}
+                    ${config.showPercentage ? `<div class="bar-percentage" id="percentage">0%</div>` : ''}
+                </div>
+            `;
+        }
+
+        function createWaveBar() {
+            return `
+                <div class="bar-wave">
+                    ${config.showTitle ? `<div class="bar-title">${donationGoal.title}</div>` : ''}
+                    <div class="wave-container">
+                        <div class="wave-fill" id="fill" style="height: 0%"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                            ${config.showPercentage ? `<div class="bar-percentage" id="percentage">0%</div>` : ''}
+                            ${config.showAmount ? `<div class="bar-amount" id="amount">${formatCurrency(donationGoal.currentAmount)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createCustomImageBar() {
+            if (!config.customImage) {
+                return createHorizontalBar();
+            }
+            
+            return `
+                <div class="bar-custom-image">
+                    ${config.showTitle ? `<div class="bar-title">${donationGoal.title}</div>` : ''}
+                    <div class="custom-image-wrapper">
+                        <img src="${config.customImage}" class="custom-bg-image" alt="Background" onerror="this.style.display='none'">
+                        <div class="custom-fill-wrapper" id="fill">
+                            <img src="${config.customImage}" class="custom-fill-image" alt="Fill" onerror="this.parentElement.style.display='none'">
+                        </div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                            ${config.showPercentage ? `<div class="bar-percentage" id="percentage">0%</div>` : ''}
+                            ${config.showAmount ? `<div class="bar-amount" id="amount">${formatCurrency(donationGoal.currentAmount)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateDisplay() {
+            const percentage = donationGoal.targetAmount > 0 ? 
+                Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100) : 0;
+            
+            const fill = document.getElementById('fill');
+            const percentageEl = document.getElementById('percentage');
+            const amountEl = document.getElementById('amount');
+            const amountInsideEl = document.getElementById('amount-inside');
+            
+            if (fill) {
+                if (config.shape === 'horizontal') {
+                    fill.style.width = percentage + '%';
+                } else if (config.shape === 'vertical' || config.shape === 'hexagon' || 
+                           config.shape === 'diamond' || config.shape === 'star' || 
+                           config.shape === 'heart' || config.shape === 'wave' || config.shape === 'custom-image') {
+                    fill.style.height = percentage + '%';
+                } else if (config.shape === 'circular') {
+                    const circumference = 502;
+                    const offset = circumference - (percentage / 100) * circumference;
+                    fill.style.strokeDashoffset = offset;
+                }
+            }
+            
+            if (percentageEl) {
+                percentageEl.textContent = Math.round(percentage) + '%';
+            }
+            
+            if (amountEl) {
+                amountEl.textContent = formatCurrency(donationGoal.currentAmount);
+            }
+
+            if (amountInsideEl) {
+                if (config.amountFormat === 'percentage') {
+                    const percentage = donationGoal.targetAmount > 0 ? Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100).toFixed(0) : 0;
+                    amountInsideEl.textContent = `${percentage}%`;
+                } else if (config.amountFormat === 'both') {
+                    amountInsideEl.textContent = `${formatCurrency(donationGoal.currentAmount)} / ${formatCurrency(donationGoal.targetAmount)}`;
+                } else {
+                    amountInsideEl.textContent = formatCurrency(donationGoal.currentAmount);
+                }
+            }
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ru-RU').format(Math.round(amount)) + ' ₽';
+        }
+
+        function startAutoUpdate() {
+            setInterval(async () => {
+                await loadGoalData();
+                updateDisplay();
+            }, 5000);
+        }
+        
+        // Автоматическое обновление при изменении параметров
+        function setupURLUpdateListener() {
+            let lastParams = window.location.search;
+            let lastLocalStorage = '';
+            
+            // Для OBS: проверяем изменения каждую секунду
+            setInterval(() => {
+                const currentParams = window.location.search;
+                const currentLocalStorage = localStorage.getItem('donationBarCustomSettings') || '';
+                
+                // Проверяем изменения в URL
+                if (currentParams !== lastParams) {
+                    lastParams = currentParams;
+                    updateConfigFromURL();
+                }
+                
+                // Проверяем изменения в localStorage (для связи между страницами)
+                if (currentLocalStorage !== lastLocalStorage && currentLocalStorage) {
+                    lastLocalStorage = currentLocalStorage;
+                    
+                    try {
+                        const settings = JSON.parse(currentLocalStorage);
+                        
+                        // Сохраняем старую конфигурацию
+                        const oldConfig = JSON.stringify(config);
+                        
+                        // Применяем настройки из localStorage
+                        config.shape = settings.shape || config.shape;
+                        config.fillAnimation = settings.fillAnimation || config.fillAnimation;
+                        if (settings.barHeight) config.barHeight = settings.barHeight;
+                        if (settings.borderRadius) config.borderRadius = settings.borderRadius;
+                        if (settings.gradientColor1) config.gradientColor1 = settings.gradientColor1.replace('#', '');
+                        if (settings.gradientColor2) config.gradientColor2 = settings.gradientColor2.replace('#', '');
+                        if (settings.gradientColor3) config.gradientColor3 = settings.gradientColor3.replace('#', '');
+                        if (settings.bgColor1) config.bgColor1 = settings.bgColor1.replace('#', '');
+                        if (settings.bgColor2) config.bgColor2 = settings.bgColor2.replace('#', '');
+                        if (settings.bgOpacity) config.bgOpacity = settings.bgOpacity;
+                        if (settings.borderColor) config.borderColor = settings.borderColor.replace('#', '');
+                        if (settings.glowColor) config.glowColor = settings.glowColor.replace('#', '');
+                        if (settings.glowIntensity) config.glowIntensity = settings.glowIntensity;
+                        if (settings.animSpeed) config.animSpeed = settings.animSpeed;
+                        config.effectGlow = settings.effectGlow !== false;
+                        config.effectShimmer = settings.effectShimmer !== false;
+                        config.effectGradientMove = settings.effectGradientMove !== false;
+                        config.effectBackgroundPulse = settings.effectBackgroundPulse !== false;
+                        config.effectOuterGlow = settings.effectOuterGlow !== false;
+                        config.effectFillGlow = settings.effectFillGlow !== false;
+                        config.particles = settings.showParticles !== false;
+                        config.showProgressNumbers = settings.showProgressNumbers !== false;
+                        const newAmountFormat = settings.amountFormat || config.amountFormat;
+                        
+                        // Если amountFormat изменился, обновляем только текст
+                        if (newAmountFormat !== config.amountFormat) {
+                            config.amountFormat = newAmountFormat;
+                            updateDisplay();
+                        }
+                        
+                        // Пересоздаем полоску если параметры изменились
+                        const newConfig = JSON.stringify(config);
+                        if (oldConfig !== newConfig) {
+                            renderBar();
+                        }
+                    } catch (e) {
+                        console.error('Ошибка парсинга localStorage:', e);
+                    }
+                }
+            }, 1000);
+        }
+        
+        // Обновление конфига из URL параметров
+        function updateConfigFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            config.shape = urlParams.get('shape') || config.shape;
+            config.fillAnimation = urlParams.get('fillAnimation') || config.fillAnimation;
+            config.barHeight = urlParams.get('barHeight') || config.barHeight;
+            config.borderRadius = urlParams.get('borderRadius') || config.borderRadius;
+            config.gradientColor1 = urlParams.get('gradientColor1') || config.gradientColor1;
+            config.gradientColor2 = urlParams.get('gradientColor2') || config.gradientColor2;
+            config.gradientColor3 = urlParams.get('gradientColor3') || config.gradientColor3;
+            config.bgColor1 = urlParams.get('bgColor1') || config.bgColor1;
+            config.bgColor2 = urlParams.get('bgColor2') || config.bgColor2;
+            config.bgOpacity = urlParams.get('bgOpacity') || config.bgOpacity;
+            config.borderColor = urlParams.get('borderColor') || config.borderColor;
+            config.glowColor = urlParams.get('glowColor') || config.glowColor;
+            config.glowIntensity = urlParams.get('glowIntensity') || config.glowIntensity;
+            config.effectGlow = urlParams.get('effectGlow') !== 'false';
+            config.effectShimmer = urlParams.get('effectShimmer') !== 'false';
+            config.effectGradientMove = urlParams.get('effectGradientMove') !== 'false';
+            config.particles = urlParams.get('particles') !== 'false';
+            
+            renderBar();
+        }
+    </script>
+</body>
+</html>

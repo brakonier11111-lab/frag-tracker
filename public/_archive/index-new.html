@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная | ФРАГ-ТРЕКЕР</title>
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <style>
+        /* Стили для главной страницы */
+        .hero-section {
+            text-align: center;
+            padding: var(--spacing-2xl) 0;
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .hero-title {
+            font-size: clamp(3rem, 10vw, 6rem);
+            margin-bottom: var(--spacing-md);
+            background: var(--gradient-neon);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(255, 0, 60, 0.5);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1rem, 2.5vw, 1.5rem);
+            color: var(--color-neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-2xl);
+        }
+
+        .stat-card-overview {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            text-align: center;
+            transition: all var(--transition-base);
+        }
+
+        .stat-card-overview:hover {
+            transform: translateY(-4px);
+            border-color: var(--color-neon-blue);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-blue);
+        }
+
+        .stat-value-overview {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .stat-label-overview {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--spacing-xl);
+        }
+
+        .mode-card {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all var(--transition-base);
+        }
+
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.1), 
+                transparent
+            );
+            transition: left 0.5s;
+        }
+
+        .mode-card:hover::before {
+            left: 100%;
+        }
+
+        .mode-icon {
+            font-size: 4rem;
+            margin-bottom: var(--spacing-md);
+            filter: drop-shadow(0 0 20px currentColor);
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .mode-card:nth-child(1) .mode-icon { animation-delay: 0s; color: var(--color-neon-red); }
+        .mode-card:nth-child(2) .mode-icon { animation-delay: 0.5s; color: var(--color-neon-blue); }
+        .mode-card:nth-child(3) .mode-icon { animation-delay: 1s; color: var(--color-neon-green); }
+        .mode-card:nth-child(4) .mode-icon { animation-delay: 1.5s; color: var(--color-neon-yellow); }
+        .mode-card:nth-child(5) .mode-icon { animation-delay: 2s; color: var(--color-neon-purple); }
+        .mode-card:nth-child(6) .mode-icon { animation-delay: 2.5s; color: var(--color-neon-blue); }
+        .mode-card:nth-child(7) .mode-icon { animation-delay: 3s; color: var(--color-neon-red); }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .mode-title {
+            font-family: var(--font-display);
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .mode-card.mode1 .mode-title { color: var(--color-neon-red); }
+        .mode-card.mode2 .mode-title { color: var(--color-neon-blue); }
+        .mode-card.mode3 .mode-title { color: var(--color-neon-green); }
+        .mode-card.mode4 .mode-title { color: var(--color-neon-yellow); }
+
+        .mode-description {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: var(--spacing-md);
+            line-height: 1.6;
+        }
+
+        .mode-features {
+            list-style: none;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .mode-features li {
+            padding: var(--spacing-xs) 0;
+            padding-left: var(--spacing-lg);
+            position: relative;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .mode-features li::before {
+            content: '▶';
+            position: absolute;
+            left: 0;
+            color: var(--color-neon-blue);
+            font-size: 0.8rem;
+        }
+
+        .mode-card.mode1 {
+            border-color: rgba(255, 0, 60, 0.3);
+        }
+
+        .mode-card.mode1:hover {
+            border-color: var(--color-neon-red);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-red);
+        }
+
+        .mode-card.mode2 {
+            border-color: rgba(0, 240, 255, 0.3);
+        }
+
+        .mode-card.mode2:hover {
+            border-color: var(--color-neon-blue);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-blue);
+        }
+
+        .mode-card.mode3 {
+            border-color: rgba(0, 255, 71, 0.3);
+        }
+
+        .mode-card.mode3:hover {
+            border-color: var(--color-neon-green);
+            box-shadow: var(--shadow-xl), var(--shadow-glow-green);
+        }
+
+        .mode-card.mode4 {
+            border-color: rgba(255, 255, 0, 0.3);
+        }
+
+        .mode-card.mode4:hover {
+            border-color: var(--color-neon-yellow);
+            box-shadow: var(--shadow-xl), 0 0 30px rgba(255, 255, 0, 0.4);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; filter: brightness(1); }
+            50% { opacity: 0.9; filter: brightness(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Боковое меню -->
+        <div id="sidebar-placeholder"></div>
+        
+        <!-- Верхняя панель -->
+        <div id="header-placeholder"></div>
+        
+        <!-- Основной контент -->
+        <main class="app-main">
+            <!-- Hero секция -->
+            <div class="hero-section">
+                <h1 class="hero-title">ФРАГ-ТРЕКЕР</h1>
+                <p class="hero-subtitle">Выберите режим работы</p>
+            </div>
+
+            <!-- Статистика -->
+            <div class="stats-overview" id="statsOverview" style="display: none;">
+                <div class="stat-card-overview">
+                    <div class="stat-value-overview" id="statDonations">0</div>
+                    <div class="stat-label-overview">Всего донатов</div>
+                </div>
+                <div class="stat-card-overview">
+                    <div class="stat-value-overview" id="statFrags">0</div>
+                    <div class="stat-label-overview">Всего фрагов</div>
+                </div>
+                <div class="stat-card-overview">
+                    <div class="stat-value-overview" id="statBattles">0</div>
+                    <div class="stat-label-overview">Всего боев</div>
+                </div>
+            </div>
+
+            <!-- Сетка режимов -->
+            <div class="mode-grid">
+                <!-- Режим 1: Фраг-трекер -->
+                <div class="card mode-card mode1" onclick="window.location.href='/mode1-frag-tracker.html'">
+                    <div class="mode-icon">🎯</div>
+                    <h3 class="mode-title">ФРАГ-ТРЕКЕР</h3>
+                    <p class="mode-description">
+                        Отслеживание фрагов с донатами и автоматическим списанием
+                    </p>
+                    <ul class="mode-features">
+                        <li>Интеграция с DonationAlerts</li>
+                        <li>Поддержка DonatePay</li>
+                        <li>Автосписание фрагов из Lesta Games</li>
+                        <li>Real-time обновления</li>
+                    </ul>
+                    <button class="btn btn-primary">НАЧАТЬ ТРЕКИНГ</button>
+                </div>
+
+                <!-- Режим 2: Таймер -->
+                <div class="card mode-card mode2" onclick="window.location.href='/mode2-timer.html'">
+                    <div class="mode-icon">⏱️</div>
+                    <h3 class="mode-title">ТАЙМЕР</h3>
+                    <p class="mode-description">
+                        Обратный отсчет времени с возможностью доната
+                    </p>
+                    <ul class="mode-features">
+                        <li>Настраиваемые интервалы</li>
+                        <li>Донаты для продления</li>
+                        <li>Визуальные эффекты</li>
+                        <li>Гибкие настройки</li>
+                    </ul>
+                    <button class="btn btn-primary">ЗАПУСТИТЬ ТАЙМЕР</button>
+                </div>
+
+                <!-- Режим 3: Кастомный трекер -->
+                <div class="card mode-card mode3" onclick="window.location.href='/mode3-custom.html'">
+                    <div class="mode-icon">⚙️</div>
+                    <h3 class="mode-title">КАСТОМНЫЙ</h3>
+                    <p class="mode-description">
+                        Создайте свой собственный трекер с любыми параметрами
+                    </p>
+                    <ul class="mode-features">
+                        <li>Полная кастомизация</li>
+                        <li>Собственные метрики</li>
+                        <li>Гибкие настройки</li>
+                        <li>Уникальный дизайн</li>
+                    </ul>
+                    <button class="btn btn-primary">СОЗДАТЬ ТРЕКЕР</button>
+                </div>
+
+                <!-- Очередь танков -->
+                <div class="card mode-card mode1" onclick="window.location.href='/tank-queue.html'">
+                    <div class="mode-icon">🚗</div>
+                    <h3 class="mode-title">ОЧЕРЕДЬ ТАНКОВ</h3>
+                    <p class="mode-description">
+                        Управление очередью заказанных танков с ранжированием по цене
+                    </p>
+                    <ul class="mode-features">
+                        <li>Ранжирование по стоимости</li>
+                        <li>Отслеживание текущего боя</li>
+                        <li>Дополнительные условия заказа</li>
+                        <li>Красивые анимации</li>
+                    </ul>
+                    <button class="btn btn-primary">ОТКРЫТЬ ОЧЕРЕДЬ</button>
+                </div>
+
+                <!-- Управление донатами -->
+                <div class="card mode-card mode4" onclick="window.location.href='/donation-management.html'">
+                    <div class="mode-icon">💰</div>
+                    <h3 class="mode-title">УПРАВЛЕНИЕ ДОНАТАМИ</h3>
+                    <p class="mode-description">
+                        Единый центр управления донатами с кастомизацией полосок
+                    </p>
+                    <ul class="mode-features">
+                        <li>12 готовых тем и форм полосок</li>
+                        <li>Кастомные изображения и фигуры</li>
+                        <li>Настройка сбора и статистика</li>
+                        <li>Превью в реальном времени</li>
+                    </ul>
+                    <button class="btn btn-primary">ОТКРЫТЬ УПРАВЛЕНИЕ</button>
+                </div>
+
+                <!-- Интеграции стримов -->
+                <div class="card mode-card mode2" onclick="window.location.href='/stream-integrations.html'">
+                    <div class="mode-icon">📡</div>
+                    <h3 class="mode-title">ИНТЕГРАЦИИ СТРИМОВ</h3>
+                    <p class="mode-description">
+                        Авторизация и сбор метрик с YouTube и VK Play Live
+                    </p>
+                    <ul class="mode-features">
+                        <li>Авторизация OAuth</li>
+                        <li>Онлайн и лайки</li>
+                        <li>Чат в реальном времени</li>
+                        <li>Проверка подключения</li>
+                    </ul>
+                    <button class="btn btn-primary">ОТКРЫТЬ ИНТЕГРАЦИИ</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Загрузка компонентов
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
+        });
+
+        // Загрузка статистики
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                if (response.ok) {
+                    const data = await response.json();
+                    const statsContainer = document.getElementById('statsOverview');
+                    if (statsContainer && (data.totalDonations || data.totalFrags || data.totalBattles)) {
+                        statsContainer.style.display = 'grid';
+                        if (data.totalDonations) {
+                            document.getElementById('statDonations').textContent = data.totalDonations;
+                        }
+                        if (data.totalFrags) {
+                            document.getElementById('statFrags').textContent = data.totalFrags;
+                        }
+                        if (data.totalBattles) {
+                            document.getElementById('statBattles').textContent = data.totalBattles;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadStats);
+    </script>
+</body>
+</html>

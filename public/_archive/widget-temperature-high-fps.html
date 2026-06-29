@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature High FPS Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: transparent;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .high-fps-widget {
+            position: relative;
+            width: 300px;
+            height: 420px;
+            border-radius: 15px;
+            overflow: hidden;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.5s ease-out;
+        }
+
+        .high-fps-widget.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Видео/GIF фон */
+        .media-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* Fallback контент */
+        .fallback-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(5, 5, 15, 0.95) 0%, 
+                rgba(8, 8, 20, 0.9) 50%, 
+                rgba(12, 12, 25, 0.85) 100%
+            );
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ff4400;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 68, 0, 0.8);
+            z-index: 2;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .fallback-content.hidden {
+            display: none;
+        }
+
+        .fallback-title {
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .fallback-info {
+            font-size: 1.2rem;
+            color: #ffffff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+        }
+
+        /* Анимация для fallback */
+        .fallback-content {
+            animation: fallbackGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes fallbackGlow {
+            0% {
+                box-shadow: inset 0 0 20px rgba(255, 68, 0, 0.3);
+            }
+            100% {
+                box-shadow: inset 0 0 40px rgba(255, 68, 0, 0.6);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="high-fps-widget" id="highFpsWidget">
+        <!-- Fallback контент -->
+        <div class="fallback-content" id="fallbackContent">
+            <div class="fallback-title">ПЕРЕГРЕВ ТАЙМЕРА</div>
+            <div class="fallback-info">
+                Режим температуры активен<br>
+                Медиа загружается...
+            </div>
+        </div>
+        
+        <!-- WebM видео (лучше для высокого FPS) -->
+        <video class="media-background" id="webmElement" autoplay muted loop playsinline preload="auto" style="display: none;">
+            <source src="/assets/aFTER.webm" type="video/webm">
+            <source src="/assets/Widget Peregrev.webm" type="video/webm">
+            <source src="/assets/Widget Peregrev.mp4" type="video/mp4">
+        </video>
+
+        <!-- GIF с высоким FPS -->
+        <img class="media-background" id="gifElement" src="/assets/2025-06-24-11-42-45.gif" alt="Temperature Animation" style="display: none;">
+        
+        <!-- Оригинальное MOV видео -->
+        <video class="media-background" id="movElement" autoplay muted loop playsinline preload="auto" style="display: none;">
+            <source src="/assets/Widget Peregrev.mov" type="video/quicktime">
+        </video>
+    </div>
+
+    <script>
+        let temperatureMode = {
+            active: false,
+            currentAmount: 0,
+            targetAmount: 10000,
+            coolingRate: 50,
+            peakRewardMinutes: 5
+        };
+
+        let ws = null;
+        let mediaLoaded = false;
+        let currentMediaType = 'none';
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            
+            console.log('🔗 Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                console.log('✅ WebSocket connected');
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 WebSocket message received:', data);
+                    
+                    switch(data.type) {
+                        case 'INIT_STATE':
+                            console.log('🔄 Initial state received:', data.state);
+                            updateTemperatureMode(data.state.temperatureMode || temperatureMode);
+                            break;
+                        case 'temperature_mode_toggle':
+                            temperatureMode.active = data.active;
+                            temperatureMode.currentAmount = data.currentAmount || 0;
+                            temperatureMode.targetAmount = data.targetAmount || 10000;
+                            temperatureMode.coolingRate = data.coolingRate || 50;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_update':
+                            temperatureMode.currentAmount = data.currentAmount;
+                            temperatureMode.targetAmount = data.targetAmount || temperatureMode.targetAmount;
+                            temperatureMode.coolingRate = data.coolingRate || temperatureMode.coolingRate;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || temperatureMode.peakRewardMinutes;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_peak':
+                            showTemperaturePeak(data);
+                            break;
+                        default:
+                            console.log('📨 Other WebSocket message type:', data.type);
+                    }
+                } catch (e) {
+                    console.error('Error parsing WebSocket message:', e);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('❌ WebSocket disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('❌ WebSocket error:', error);
+            };
+        }
+
+        function updateTemperatureMode(data) {
+            temperatureMode.active = data.active;
+            temperatureMode.currentAmount = data.currentAmount || 0;
+            temperatureMode.targetAmount = data.targetAmount || 10000;
+            temperatureMode.coolingRate = data.coolingRate || 50;
+            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+            
+            const highFpsWidgetEl = document.getElementById('highFpsWidget');
+            const fallbackContent = document.getElementById('fallbackContent');
+            
+            if (temperatureMode.active) {
+                // Показываем виджет при включении режима температуры
+                highFpsWidgetEl.classList.add('show');
+                console.log('🎬 High FPS widget activated - temperature mode ON');
+                
+                // Скрываем fallback контент если медиа загружено
+                if (mediaLoaded) {
+                    fallbackContent.classList.add('hidden');
+                }
+                
+                // Обновляем информацию в fallback
+                updateFallbackInfo();
+            } else {
+                // Скрываем виджет при выключении режима температуры
+                highFpsWidgetEl.classList.remove('show');
+                console.log('🎬 High FPS widget deactivated - temperature mode OFF');
+            }
+        }
+
+        function updateFallbackInfo() {
+            const fallbackInfo = document.querySelector('.fallback-info');
+            if (fallbackInfo) {
+                const heatPercentage = (temperatureMode.currentAmount / temperatureMode.targetAmount) * 100;
+                const clampedPercentage = Math.min(100, heatPercentage);
+                const temperatureCelsius = Math.round(clampedPercentage);
+                
+                fallbackInfo.innerHTML = `
+                    Температура: ${temperatureCelsius}°C<br>
+                    Прогресс: ${Math.round(clampedPercentage)}%<br>
+                    До перегрева: ${Math.round(Math.max(0, temperatureMode.targetAmount - temperatureMode.currentAmount))}₽<br>
+                    Медиа: ${currentMediaType}
+                `;
+            }
+        }
+
+        function showTemperaturePeak(data) {
+            console.log('🔥 Temperature peak reached!', data);
+        }
+
+        function tryLoadMedia() {
+            console.log('🔄 Пробуем загрузить медиа с высоким FPS...');
+            
+            // Приоритет: WebM > MP4 > GIF > MOV
+            tryWebM();
+        }
+
+        function tryWebM() {
+            const webmElement = document.getElementById('webmElement');
+            const fallbackContent = document.getElementById('fallbackContent');
+            
+            if (webmElement) {
+                webmElement.addEventListener('loadeddata', function() {
+                    console.log('✅ WebM видео загружено успешно');
+                    mediaLoaded = true;
+                    currentMediaType = 'WebM';
+                    webmElement.style.display = 'block';
+                    fallbackContent.classList.add('hidden');
+                    
+                    webmElement.play().catch(error => {
+                        console.error('❌ Не удалось запустить WebM:', error);
+                        tryGif();
+                    });
+                });
+                
+                webmElement.addEventListener('error', function(e) {
+                    console.error('❌ Ошибка загрузки WebM:', e);
+                    console.log('🔄 Пробуем загрузить GIF...');
+                    tryGif();
+                });
+                
+                // Пробуем запустить WebM
+                webmElement.play().catch(error => {
+                    console.error('❌ Не удалось запустить WebM:', error);
+                    tryGif();
+                });
+            }
+        }
+
+        function tryGif() {
+            const gifElement = document.getElementById('gifElement');
+            const fallbackContent = document.getElementById('fallbackContent');
+            
+            if (gifElement) {
+                gifElement.addEventListener('load', function() {
+                    console.log('✅ GIF загружен успешно');
+                    mediaLoaded = true;
+                    currentMediaType = 'GIF';
+                    gifElement.style.display = 'block';
+                    fallbackContent.classList.add('hidden');
+                });
+                
+                gifElement.addEventListener('error', function(e) {
+                    console.error('❌ Ошибка загрузки GIF:', e);
+                    console.log('🔄 Пробуем загрузить MOV...');
+                    tryMOV();
+                });
+            }
+        }
+
+        function tryMOV() {
+            const movElement = document.getElementById('movElement');
+            const fallbackContent = document.getElementById('fallbackContent');
+            
+            if (movElement) {
+                movElement.addEventListener('loadeddata', function() {
+                    console.log('✅ MOV видео загружено успешно');
+                    mediaLoaded = true;
+                    currentMediaType = 'MOV';
+                    movElement.style.display = 'block';
+                    fallbackContent.classList.add('hidden');
+                    
+                    movElement.play().catch(error => {
+                        console.error('❌ Не удалось запустить MOV:', error);
+                        console.log('🔄 Используем только fallback контент');
+                        mediaLoaded = false;
+                        currentMediaType = 'fallback';
+                    });
+                });
+                
+                movElement.addEventListener('error', function(e) {
+                    console.error('❌ Ошибка загрузки MOV:', e);
+                    console.log('🔄 Используем только fallback контент');
+                    mediaLoaded = false;
+                    currentMediaType = 'fallback';
+                });
+                
+                // Пробуем запустить MOV
+                movElement.play().catch(error => {
+                    console.error('❌ Не удалось запустить MOV:', error);
+                    console.log('🔄 Используем только fallback контент');
+                    mediaLoaded = false;
+                    currentMediaType = 'fallback';
+                });
+            }
+        }
+
+        // Подключаемся к WebSocket при загрузке страницы
+        connectWebSocket();
+
+        // Пробуем загрузить медиа при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            tryLoadMedia();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конструктор Виджетов - Frag Tracker</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            height: 100vh;
+        }
+
+        .sidebar {
+            border-right: 1px solid var(--panel-border);
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+        }
+
+        .widget-list {
+            padding: 15px;
+        }
+
+        .widget-item {
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .widget-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: translateX(5px);
+        }
+
+        .widget-item h4 {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .widget-item p {
+            font-size: 12px;
+            color: rgba(245, 245, 245, 0.7);
+        }
+
+        .canvas {
+            background: rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: auto;
+        }
+
+        .canvas-inner {
+            min-width: 1920px;
+            min-height: 1080px;
+            position: relative;
+        }
+
+        .widget-preview {
+            position: absolute;
+            border: 2px dashed var(--neon-blue);
+            background: rgba(8, 8, 20, 0.95);
+            cursor: move;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .widget-preview.selected {
+            border-color: var(--neon-green);
+            border-style: solid;
+            box-shadow: 0 0 0 3px rgba(0, 255, 71, 0.2);
+        }
+
+        .properties-panel {
+            border-left: 1px solid var(--panel-border);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .properties-panel h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .toolbar {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--panel-border);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .toolbar h1 {
+            font-size: 18px;
+            flex: 1;
+        }
+
+        .element-item {
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+
+        .element-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: scale(1.02);
+        }
+
+        .element-item:active {
+            cursor: grabbing;
+        }
+
+        .help-text {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-style: italic;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body class="theme-neon">
+    <div class="app-container">
+        <!-- Боковая панель: Шаблоны виджетов -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>🎨 Шаблоны виджетов</h2>
+            </div>
+            <div class="widget-list">
+                <div class="widget-item" onclick="createFromTemplate('mode1')">
+                    <h4>📊 Трекер фрагов</h4>
+                    <p>Прогресс по фрагам</p>
+                </div>
+                <div class="widget-item" onclick="createFromTemplate('mode2')">
+                    <h4>⏱️ Таймер</h4>
+                    <p>Обратный отсчет времени</p>
+                </div>
+                <div class="widget-item" onclick="createFromTemplate('mode3')">
+                    <h4>🎯 Кастомная цель</h4>
+                    <p>Собственный трекер</p>
+                </div>
+                <div class="widget-item" onclick="createFromTemplate('donation_goal')">
+                    <h4>💰 Цель сбора</h4>
+                    <p>Прогресс донатов</p>
+                </div>
+                <div class="widget-item" onclick="createFromTemplate('custom')">
+                    <h4>✨ Пустой виджет</h4>
+                    <p>Создать с нуля</p>
+                </div>
+            </div>
+
+            <div style="padding: 15px;">
+                <h3 style="font-size: 14px; color: #333; margin-bottom: 10px;">Элементы</h3>
+                <div class="element-item" draggable="true" data-type="text">
+                    📝 Текст
+                </div>
+                <div class="element-item" draggable="true" data-type="progress_bar">
+                    📊 Прогресс-бар
+                </div>
+                <div class="element-item" draggable="true" data-type="image">
+                    🖼️ Изображение
+                </div>
+                <div class="element-item" draggable="true" data-type="timer">
+                    ⏱️ Таймер
+                </div>
+            </div>
+
+            <p class="help-text" style="padding: 0 15px;">
+                Перетащите элементы на холст для создания виджета
+            </p>
+        </div>
+
+        <!-- Центральная область: Холст -->
+        <div>
+            <div class="toolbar">
+                <h1>Конструктор виджетов</h1>
+                <button class="btn btn-success" style="width: auto;" onclick="saveWidget()">
+                    💾 Сохранить
+                </button>
+                <button class="btn btn-primary" style="width: auto;" onclick="previewWidget()">
+                    👁️ Просмотр
+                </button>
+            </div>
+            <div class="canvas" id="canvas">
+                <div class="canvas-inner" id="canvas-inner">
+                    <div style="text-align: center; padding: 100px; color: #999;">
+                        <h2>Выберите шаблон или перетащите элементы</h2>
+                        <p>Холст 1920x1080px</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая панель: Свойства -->
+        <div class="properties-panel">
+            <h3>⚙️ Свойства виджета</h3>
+            
+            <div class="form-group">
+                <label>Название виджета</label>
+                <input type="text" id="widget-name" placeholder="Мой виджет" value="Новый виджет">
+            </div>
+
+            <div class="form-group">
+                <label>Тип</label>
+                <select id="widget-type">
+                    <option value="mode1">Трекер фрагов</option>
+                    <option value="mode2">Таймер</option>
+                    <option value="mode3">Кастомная цель</option>
+                    <option value="donation_goal">Цель сбора</option>
+                    <option value="custom">Кастомный</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ширина (px)</label>
+                <input type="number" id="widget-width" value="800">
+            </div>
+
+            <div class="form-group">
+                <label>Высота (px)</label>
+                <input type="number" id="widget-height" value="200">
+            </div>
+
+            <div class="form-group">
+                <label>Фон</label>
+                <input type="color" id="widget-bg" value="#ffffff">
+            </div>
+
+            <div class="form-group">
+                <label>Прозрачность фона</label>
+                <input type="range" id="widget-opacity" min="0" max="1" step="0.1" value="1">
+            </div>
+
+            <hr style="margin: 20px 0;">
+
+            <div id="element-properties">
+                <p style="color: #999; font-size: 13px; text-align: center;">
+                    Выберите элемент для редактирования
+                </p>
+            </div>
+
+            <hr style="margin: 20px 0;">
+
+            <button class="btn btn-primary" onclick="generateCode()">
+                📝 Сгенерировать код
+            </button>
+            
+            <button class="btn btn-success" onclick="saveWidget()">
+                💾 Сохранить виджет
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentWidget = {
+            name: 'Новый виджет',
+            type: 'custom',
+            config: {
+                width: 800,
+                height: 200,
+                backgroundColor: '#ffffff',
+                opacity: 1
+            },
+            elements: []
+        };
+
+        let selectedElement = null;
+
+        // Drag and drop для элементов
+        document.querySelectorAll('.element-item').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('elementType', item.dataset.type);
+            });
+        });
+
+        const canvas = document.getElementById('canvas-inner');
+        canvas.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        canvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const elementType = e.dataTransfer.getData('elementType');
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            addElement(elementType, x, y);
+        });
+
+        function addElement(type, x, y) {
+            const element = {
+                id: Date.now(),
+                type,
+                position_x: x,
+                position_y: y,
+                width: 200,
+                height: 50,
+                styles: {},
+                data: {}
+            };
+
+            currentWidget.elements.push(element);
+            renderCanvas();
+        }
+
+        function renderCanvas() {
+            const inner = document.getElementById('canvas-inner');
+            
+            // Очищаем
+            inner.querySelectorAll('.widget-preview').forEach(el => el.remove());
+            
+            // Рендерим элементы
+            currentWidget.elements.forEach(element => {
+                const div = document.createElement('div');
+                div.className = 'widget-preview';
+                div.style.left = element.position_x + 'px';
+                div.style.top = element.position_y + 'px';
+                div.style.width = element.width + 'px';
+                div.style.height = element.height + 'px';
+                div.textContent = `${getElementIcon(element.type)} ${element.type}`;
+                div.onclick = () => selectElement(element);
+                
+                // Drag для перемещения
+                div.draggable = true;
+                div.ondragstart = (e) => {
+                    e.dataTransfer.setData('elementId', element.id);
+                };
+                
+                inner.appendChild(div);
+            });
+        }
+
+        function getElementIcon(type) {
+            const icons = {
+                text: '📝',
+                progress_bar: '📊',
+                image: '🖼️',
+                timer: '⏱️'
+            };
+            return icons[type] || '📦';
+        }
+
+        function selectElement(element) {
+            selectedElement = element;
+            
+            // Подсветка
+            document.querySelectorAll('.widget-preview').forEach(el => {
+                el.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            // Показываем свойства
+            showElementProperties(element);
+        }
+
+        function showElementProperties(element) {
+            const panel = document.getElementById('element-properties');
+            panel.innerHTML = `
+                <h4 style="margin-bottom: 10px;">Свойства элемента</h4>
+                <div class="form-group">
+                    <label>Тип</label>
+                    <input type="text" value="${element.type}" disabled>
+                </div>
+                <div class="form-group">
+                    <label>X позиция</label>
+                    <input type="number" value="${element.position_x}" onchange="updateElement('position_x', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Y позиция</label>
+                    <input type="number" value="${element.position_y}" onchange="updateElement('position_y', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Ширина</label>
+                    <input type="number" value="${element.width}" onchange="updateElement('width', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Высота</label>
+                    <input type="number" value="${element.height}" onchange="updateElement('height', this.value)">
+                </div>
+                <button class="btn btn-danger" onclick="deleteElement()">🗑️ Удалить</button>
+            `;
+        }
+
+        function updateElement(property, value) {
+            if (selectedElement) {
+                selectedElement[property] = parseFloat(value) || value;
+                renderCanvas();
+            }
+        }
+
+        function deleteElement() {
+            if (selectedElement) {
+                currentWidget.elements = currentWidget.elements.filter(e => e.id !== selectedElement.id);
+                selectedElement = null;
+                renderCanvas();
+                document.getElementById('element-properties').innerHTML = '<p style="color: #999;">Выберите элемент</p>';
+            }
+        }
+
+        function createFromTemplate(type) {
+            currentWidget.type = type;
+            document.getElementById('widget-type').value = type;
+            
+            // Очищаем элементы
+            currentWidget.elements = [];
+            
+            // Добавляем базовые элементы в зависимости от типа
+            if (type === 'mode1') {
+                addElement('text', 50, 50);
+                addElement('progress_bar', 50, 120);
+            } else if (type === 'mode2') {
+                addElement('timer', 300, 80);
+            }
+            
+            renderCanvas();
+        }
+
+        async function saveWidget() {
+            const name = document.getElementById('widget-name').value;
+            const type = document.getElementById('widget-type').value;
+            const width = document.getElementById('widget-width').value;
+            const height = document.getElementById('widget-height').value;
+            
+            const config = {
+                width: parseInt(width),
+                height: parseInt(height),
+                backgroundColor: document.getElementById('widget-bg').value,
+                opacity: parseFloat(document.getElementById('widget-opacity').value)
+            };
+
+            try {
+                const response = await fetch('/api/widgets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        type,
+                        config
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Виджет сохранен! ID: ' + result.data.id);
+                }
+            } catch (error) {
+                console.error('Error saving widget:', error);
+                alert('Ошибка сохранения виджета');
+            }
+        }
+
+        function generateCode() {
+            alert('Функция генерации кода в разработке. Используйте API /api/widgets/{id}/code');
+        }
+
+        function previewWidget() {
+            const url = `/widget/custom?width=${currentWidget.config.width}&height=${currentWidget.config.height}`;
+            window.open(url, 'Widget Preview', `width=${currentWidget.config.width},height=${currentWidget.config.height}`);
+        }
+    </script>
+</body>
+</html>
+
+
+
+

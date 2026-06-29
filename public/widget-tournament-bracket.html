@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Bracket Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-yellow: #ffff00;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --widget-bg-opacity: 0.95;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .bracket-widget {
+            background: linear-gradient(135deg,
+                rgba(5, 5, 15, var(--widget-bg-opacity)) 0%,
+                rgba(8, 8, 20, var(--widget-bg-opacity)) 50%,
+                rgba(12, 12, 25, var(--widget-bg-opacity)) 100%
+            );
+            border-radius: 14px;
+            padding: 16px 20px;
+            min-width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .bracket-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--neon-yellow);
+            text-align: center;
+            margin-bottom: 16px;
+            text-shadow:
+                0 0 15px rgba(255, 255, 0, 0.8),
+                0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .bracket-container {
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .bracket {
+            display: flex;
+            gap: 30px;
+            min-width: fit-content;
+        }
+
+        .bracket-round {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 180px;
+        }
+
+        .bracket-round-title {
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--neon-blue);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+        }
+
+        .match {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 160px;
+        }
+
+        .match.completed {
+            border-color: var(--neon-green);
+            background: rgba(0, 255, 71, 0.1);
+        }
+
+        .match-team {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 0.9rem;
+        }
+
+        .match-team.winner {
+            background: rgba(0, 255, 71, 0.2);
+            border: 1px solid var(--neon-green);
+            font-weight: 700;
+            color: var(--neon-green);
+            text-shadow: 0 0 8px rgba(0, 255, 71, 0.6);
+        }
+
+        .match-team-name {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .match-score {
+            width: 32px;
+            text-align: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .bracket-empty {
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.5);
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bracket-widget" id="bracketWidget">
+        <div class="bracket-title" id="bracketTitle">ТУРНИРНАЯ СЕТКА</div>
+        <div class="bracket-container">
+            <div class="bracket" id="bracket">
+                <div class="bracket-empty">Турнир не создан</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const titleEl = document.getElementById('bracketTitle');
+        const bracketEl = document.getElementById('bracket');
+
+        let tournament = {
+            title: 'Турнир',
+            teams: [],
+            bracket: [],
+            currentRound: 0,
+            status: 'inactive'
+        };
+
+        function renderBracket() {
+            if (!tournament.bracket || tournament.bracket.length === 0) {
+                bracketEl.innerHTML = '<div class="bracket-empty">Турнир не создан</div>';
+                return;
+            }
+
+            bracketEl.innerHTML = '';
+            
+            tournament.bracket.forEach((round, roundIndex) => {
+                const roundDiv = document.createElement('div');
+                roundDiv.className = 'bracket-round';
+                
+                const roundTitle = document.createElement('div');
+                roundTitle.className = 'bracket-round-title';
+                if (roundIndex === tournament.bracket.length - 1) {
+                    roundTitle.textContent = 'Финал';
+                } else if (roundIndex === tournament.bracket.length - 2) {
+                    roundTitle.textContent = 'Полуфинал';
+                } else {
+                    roundTitle.textContent = `Раунд ${roundIndex + 1}`;
+                }
+                roundDiv.appendChild(roundTitle);
+                
+                round.forEach(match => {
+                    const matchDiv = document.createElement('div');
+                    matchDiv.className = 'match' + (match.completed ? ' completed' : '');
+                    
+                    const team1Div = document.createElement('div');
+                    team1Div.className = 'match-team' + (match.winner === 1 ? ' winner' : '');
+                    team1Div.innerHTML = `
+                        <span class="match-team-name">${match.team1 ? match.team1.name : '—'}</span>
+                        <span class="match-score">${match.score1 !== null ? match.score1 : '—'}</span>
+                    `;
+                    
+                    const team2Div = document.createElement('div');
+                    team2Div.className = 'match-team' + (match.winner === 2 ? ' winner' : '');
+                    team2Div.innerHTML = `
+                        <span class="match-team-name">${match.team2 ? match.team2.name : '—'}</span>
+                        <span class="match-score">${match.score2 !== null ? match.score2 : '—'}</span>
+                    `;
+                    
+                    matchDiv.appendChild(team1Div);
+                    matchDiv.appendChild(team2Div);
+                    roundDiv.appendChild(matchDiv);
+                });
+                
+                bracketEl.appendChild(roundDiv);
+            });
+        }
+
+        async function loadTournament() {
+            try {
+                const res = await fetch(`/api/tournament?t=${Date.now()}`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Ошибка загрузки турнира');
+                
+                tournament = data.tournament || tournament;
+                titleEl.textContent = (tournament.title || 'Турнир').toUpperCase();
+                renderBracket();
+            } catch (err) {
+                console.error(err);
+                titleEl.textContent = 'ТУРНИРНАЯ СЕТКА';
+                bracketEl.innerHTML = '<div class="bracket-empty">Ошибка загрузки</div>';
+            }
+        }
+
+        // WebSocket для обновлений в реальном времени
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+        let ws = null;
+
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    console.log('✅ WebSocket подключен для виджета турнира');
+                    ws.send(JSON.stringify({ type: 'CLIENT_TYPE', clientType: 'WIDGET' }));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        if (message.type === 'TOURNAMENT_UPDATE') {
+                            tournament = message.tournament || tournament;
+                            titleEl.textContent = (tournament.title || 'Турнир').toUpperCase();
+                            renderBracket();
+                        }
+                    } catch (e) {
+                        console.error('Ошибка парсинга сообщения:', e);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('❌ WebSocket ошибка:', error);
+                };
+
+                ws.onclose = () => {
+                    console.log('⚠️ WebSocket отключен, переподключение через 3 секунды...');
+                    setTimeout(connectWebSocket, 3000);
+                };
+            } catch (error) {
+                console.error('❌ Ошибка подключения WebSocket:', error);
+                setTimeout(connectWebSocket, 3000);
+            }
+        }
+
+        loadTournament();
+        connectWebSocket();
+        
+        // Обновляем каждые 5 секунд на случай проблем с WebSocket
+        setInterval(loadTournament, 5000);
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест рекламных виджетов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #00d4ff;
+            margin-bottom: 30px;
+        }
+        
+        .widgets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .widget-preview {
+            background: #333;
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #555;
+        }
+        
+        .widget-preview h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .widget-frame {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #666;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .widget-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        
+        .widget-links {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .widget-links a {
+            color: #00d4ff;
+            text-decoration: none;
+            margin: 0 10px;
+            padding: 5px 10px;
+            border: 1px solid #00d4ff;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .widget-links a:hover {
+            background: #00d4ff;
+            color: #000;
+        }
+        
+        .copy-btn {
+            background: #ff0040;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        
+        .copy-btn:hover {
+            background: #ff0066;
+        }
+        
+        .instructions {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        
+        .instructions h2 {
+            color: #ffff00;
+            margin-bottom: 15px;
+        }
+        
+        .instructions ul {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Тест рекламных виджетов для стрима</h1>
+        
+        <div class="widgets-grid">
+            <!-- Полноценный виджет -->
+            <div class="widget-preview">
+                <h3>📱 Полноценный виджет</h3>
+                <div class="widget-frame">
+                    <iframe src="/widget-modes-ad.html"></iframe>
+                </div>
+                <div class="widget-info">
+                    <strong>Размер:</strong> 300x200px<br>
+                    <strong>Особенности:</strong> Полное описание режимов, анимации, индикаторы
+                </div>
+                <div class="widget-links">
+                    <a href="/widget-modes-ad.html" target="_blank">Открыть</a>
+                    <button class="copy-btn" onclick="copyUrl('/widget-modes-ad.html')">Копировать URL</button>
+                </div>
+            </div>
+            
+            <!-- Компактный виджет -->
+            <div class="widget-preview">
+                <h3>📦 Компактный виджет</h3>
+                <div class="widget-frame">
+                    <iframe src="/widget-modes-compact.html"></iframe>
+                </div>
+                <div class="widget-info">
+                    <strong>Размер:</strong> 300x150px<br>
+                    <strong>Особенности:</strong> Минималистичный дизайн, только иконка и название
+                </div>
+                <div class="widget-links">
+                    <a href="/widget-modes-compact.html" target="_blank">Открыть</a>
+                    <button class="copy-btn" onclick="copyUrl('/widget-modes-compact.html')">Копировать URL</button>
+                </div>
+            </div>
+            
+            <!-- Полоска режимов -->
+            <div class="widget-preview">
+                <h3>📏 Полоска режимов</h3>
+                <div class="widget-frame">
+                    <iframe src="/widget-modes-strip.html"></iframe>
+                </div>
+                <div class="widget-info">
+                    <strong>Размер:</strong> 300x80px<br>
+                    <strong>Особенности:</strong> Горизонтальная полоска, минимальный текст
+                </div>
+                <div class="widget-links">
+                    <a href="/widget-modes-strip.html" target="_blank">Открыть</a>
+                    <button class="copy-btn" onclick="copyUrl('/widget-modes-strip.html')">Копировать URL</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>📋 Инструкции по использованию</h2>
+            <ul>
+                <li><strong>Полноценный виджет</strong> - для крупных сцен, показывает полную информацию о режимах</li>
+                <li><strong>Компактный виджет</strong> - для средних сцен, баланс между информативностью и размером</li>
+                <li><strong>Полоска режимов</strong> - для маленьких сцен или как дополнительный элемент</li>
+                <li>Все виджеты автоматически переключают режимы каждые 2.5-4 секунды</li>
+                <li>При наведении мыши ротация останавливается</li>
+                <li>Клик по индикаторам переключает режим вручную</li>
+                <li>Все виджеты имеют прозрачный фон для OBS</li>
+            </ul>
+            
+            <h3>🎮 Для OBS:</h3>
+            <ul>
+                <li>Добавьте источник "Browser Source"</li>
+                <li>Вставьте URL нужного виджета</li>
+                <li>Установите размер в соответствии с рекомендациями</li>
+                <li>Включите "Shutdown source when not visible" для экономии ресурсов</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyUrl(url) {
+            const fullUrl = `http://localhost:3000${url}`;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                alert('URL скопирован в буфер обмена!');
+            }).catch(err => {
+                console.error('Ошибка копирования:', err);
+                prompt('Скопируйте URL вручную:', fullUrl);
+            });
+        }
+        
+        // Автоматическое обновление iframe каждые 30 секунд для демонстрации
+        setInterval(() => {
+            document.querySelectorAll('iframe').forEach(iframe => {
+                const src = iframe.src;
+                iframe.src = '';
+                setTimeout(() => {
+                    iframe.src = src;
+                }, 100);
+            });
+        }, 30000);
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

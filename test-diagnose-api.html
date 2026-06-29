@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест API диагностики</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #f5f5f5;
+        }
+        .container {
+            background: #0a0a14;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #00f0ff;
+        }
+        button {
+            background: #00f0ff;
+            color: #0a0a14;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #00d4e6;
+        }
+        .result {
+            background: #1a1a2e;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border: 1px solid #333;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error {
+            border-color: #ff003c;
+            color: #ff003c;
+        }
+        .success {
+            border-color: #00ff00;
+            color: #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Тест API диагностики статистики фрагов</h1>
+        
+        <button onclick="testDiagnoseAPI()">🧪 Тестировать API диагностики</button>
+        <button onclick="testStatusAPI()">📊 Тестировать API статуса</button>
+        <button onclick="testFragStatsAPI()">🎯 Тестировать API статистики фрагов</button>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function showResult(content, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = content;
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            resultDiv.style.display = 'block';
+        }
+
+        async function testDiagnoseAPI() {
+            showResult('🔍 Тестирование API диагностики...', false);
+            
+            try {
+                const response = await fetch('/api/frag-stats/diagnose');
+                const data = await response.json();
+                
+                if (data.success) {
+                    let result = '✅ API диагностики работает!\n\n';
+                    result += `📅 Дата: ${data.date}\n`;
+                    result += `📊 Всего боев: ${data.totalBattles}\n`;
+                    result += `🎯 Всего фрагов: ${data.totalFrags}\n`;
+                    result += `✅ Боев с фрагами: ${data.battlesWithFrags}\n`;
+                    result += `❌ Боев без фрагов: ${data.battlesWithoutFrags}\n`;
+                    result += `📈 Среднее фрагов за бой: ${data.avgFragsPerBattle}\n\n`;
+                    
+                    if (data.battles && data.battles.length > 0) {
+                        result += '📋 Детали боев:\n';
+                        data.battles.forEach((battle, index) => {
+                            result += `   ${index + 1}. ID: ${battle.id}, Фраги: ${battle.frags}, Тип: ${battle.type}\n`;
+                        });
+                    }
+                    
+                    if (data.duplicates && data.duplicates.length > 0) {
+                        result += '\n⚠️ Найдены дубликаты:\n';
+                        data.duplicates.forEach((duplicate, index) => {
+                            result += `   ${index + 1}. Время: ${duplicate.time}\n`;
+                        });
+                    }
+                    
+                    showResult(result, false);
+                } else {
+                    showResult(`❌ Ошибка API: ${data.message}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка подключения: ${error.message}`, true);
+            }
+        }
+
+        async function testStatusAPI() {
+            showResult('📊 Тестирование API статуса...', false);
+            
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                let result = '✅ API статуса работает!\n\n';
+                result += `📅 Время: ${new Date(data.timestamp).toLocaleString()}\n`;
+                result += `🖥️ Сервер: ${data.server ? 'Работает' : 'Не работает'}\n`;
+                result += `🔗 DonationAlerts: ${data.donationAlerts ? 'Подключен' : 'Не подключен'}\n`;
+                result += `💰 DonatePay: ${data.donatePay ? 'Настроен' : 'Не настроен'}\n`;
+                result += `🎮 Lesta Games: ${data.lestaGames ? 'Авторизован' : 'Не авторизован'}\n`;
+                result += `🔌 WebSocket: ${data.webSocket ? 'Подключен' : 'Отключен'}\n`;
+                
+                showResult(result, false);
+            } catch (error) {
+                showResult(`❌ Ошибка API статуса: ${error.message}`, true);
+            }
+        }
+
+        async function testFragStatsAPI() {
+            showResult('🎯 Тестирование API статистики фрагов...', false);
+            
+            try {
+                const response = await fetch('/api/frag-stats?period=day');
+                const data = await response.json();
+                
+                if (data.success) {
+                    let result = '✅ API статистики фрагов работает!\n\n';
+                    result += `📊 Всего боев: ${data.data.totalBattles}\n`;
+                    result += `🎯 Всего фрагов: ${data.data.totalFrags}\n`;
+                    result += `✅ Боев с фрагами: ${data.data.battlesWithFrags}\n`;
+                    result += `❌ Боев без фрагов: ${data.data.battlesWithoutFrags}\n`;
+                    result += `📈 Среднее фрагов за бой: ${data.data.avgFragsPerBattle}\n`;
+                    result += `🏆 Лучший час: ${data.data.bestHour}\n`;
+                    
+                    showResult(result, false);
+                } else {
+                    showResult(`❌ Ошибка API статистики: ${data.message}`, true);
+                }
+            } catch (error) {
+                showResult(`❌ Ошибка API статистики: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>
+

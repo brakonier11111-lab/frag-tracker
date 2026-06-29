@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replay Summary Carousel — OBS</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/replay-summary.css?v=94">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+body{font-family:'Exo 2',sans-serif;color:#fff;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+.viewport-root{
+  width:100%;height:100%;overflow:hidden;
+  display:flex;align-items:flex-start;justify-content:center;
+}
+.viewport-scaler{transform-origin:top center;flex:none;will-change:transform;backface-visibility:hidden}
+.stage{
+  opacity:0;transform:translateY(12px);
+  transition:opacity .45s ease,transform .45s ease;pointer-events:none;
+}
+.stage.visible{opacity:1;transform:translateY(0)}
+.hidden{display:none!important}
+.summary-panel{width:820px;min-width:820px;max-width:none;background:transparent;border:none;box-shadow:none;overflow:visible;--rs-carousel-w:400px}
+</style>
+<script src="/replay-summary-ui.js?v=96"></script>
+</head>
+<body>
+<div class="viewport-root" id="viewportRoot">
+  <div class="viewport-scaler" id="viewportScaler">
+    <div class="stage hidden" id="stage">
+      <div class="summary-panel" id="summaryPanel"></div>
+    </div>
+  </div>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+const demoMode = params.get('demo') === '1';
+const slideSec = Math.max(2, Math.min(60, Number(params.get('sec')) || 10));
+const renderScale = Math.max(1, Math.min(3, Number(params.get('scale')) || 2));
+
+const viewportRoot = document.getElementById('viewportRoot');
+const viewportScaler = document.getElementById('viewportScaler');
+const stage = document.getElementById('stage');
+const panel = document.getElementById('summaryPanel');
+
+let viewportFit = null;
+let lastKey = '';
+let carouselCtl = null;
+let demoRetries = 0;
+
+document.documentElement.style.setProperty('--rs-carousel-ms', slideSec * 1000 + 'ms');
+
+if (demoMode) {
+  document.title = 'Replay Summary Carousel — DEMO';
+}
+
+function initViewportFit() {
+  if (!window.ReplaySummaryUI || !window.ReplaySummaryUI.bindViewportFit) return;
+  viewportFit = window.ReplaySummaryUI.bindViewportFit({
+    fitHost: viewportRoot,
+    wrap: viewportScaler,
+    getContent: function () { return panel; },
+    designWidth: 820,
+    designHeight: 680,
+    fallbackWidth: 820,
+    fallbackHeight: 680,
+    maxScale: renderScale,
+    renderScale: renderScale,
+    padding: 8,
+    pollMs: 300,
+    anchorTop: true
+  });
+}
+
+function updateViewportFit() {
+  if (stage.classList.contains('hidden')) {
+    viewportScaler.style.transform = 'none';
+    return;
+  }
+  if (!viewportFit) initViewportFit();
+  if (!viewportFit) return;
+  if (viewportFit.scheduleUpdates) viewportFit.scheduleUpdates();
+  else viewportFit.update(true);
+}
+
+function hideSummary() {
+  if (carouselCtl) carouselCtl.stop();
+  carouselCtl = null;
+  lastKey = '';
+  panel.innerHTML = '';
+  stage.classList.remove('visible');
+  stage.classList.add('hidden');
+  viewportScaler.style.transform = 'none';
+}
+
+function renderSummary(summary) {
+  if (!summary || !summary.visible) {
+    hideSummary();
+    return;
+  }
+
+  stage.classList.remove('hidden');
+
+  const key = summary.replayKey || summary.replayFile || '';
+  const isNew = key !== lastKey;
+  if (isNew) {
+    lastKey = key;
+    stage.classList.remove('visible');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { stage.classList.add('visible'); });
+    });
+  } else {
+    stage.classList.add('visible');
+  }
+
+  if (!window.ReplaySummaryUI) return;
+
+  if (isNew) {
+    if (carouselCtl) carouselCtl.stop();
+    panel.innerHTML = window.ReplaySummaryUI.renderSummaryCarouselHtml(summary, {
+      intervalMs: slideSec * 1000
+    });
+    carouselCtl = window.ReplaySummaryUI.initCarousels(panel, {
+      intervalMs: slideSec * 1000
+    });
+    if (!viewportFit) initViewportFit();
+    if (viewportFit && viewportFit.scheduleUpdates) viewportFit.scheduleUpdates();
+    else updateViewportFit();
+  }
+}
+
+function runDemo() {
+  if (!window.ReplaySummaryUI || !window.ReplaySummaryUI.demoSummary) {
+    if (demoRetries++ < 40) {
+      setTimeout(runDemo, 50);
+      return;
+    }
+    return;
+  }
+  renderSummary(window.ReplaySummaryUI.demoSummary());
+}
+
+async function poll() {
+  if (demoMode) {
+    runDemo();
+    return;
+  }
+  try {
+    const r = await fetch('/api/replay-live', { cache: 'no-store' });
+    const j = await r.json();
+    if (j.success && j.data) renderSummary(j.data.replayEndSummary);
+  } catch (_) { /* retry */ }
+}
+
+poll();
+if (!demoMode) setInterval(poll, 800);
+window.addEventListener('load', initViewportFit);
+</script>
+</body>
+</html>

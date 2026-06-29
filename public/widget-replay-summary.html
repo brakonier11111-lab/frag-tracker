@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replay Summary — OBS</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/replay-summary.css?v=86">
+<style>
+:root{--muted:rgba(255,255,255,.55)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+body{font-family:'Exo 2',sans-serif;color:#fff;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+.viewport-root{
+  width:100%;height:100%;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.viewport-scaler{transform-origin:center center;flex:none}
+.stage{
+  opacity:0;transform:translateY(24px);
+  transition:opacity .55s ease,transform .55s cubic-bezier(.2,.9,.2,1);pointer-events:none;
+}
+.stage.visible{opacity:1;transform:translateY(0)}
+.hidden{display:none!important}
+.summary-panel{width:960px;background:transparent;border:none;box-shadow:none}
+.waiting{width:780px;padding:40px;text-align:center;color:var(--muted);font-size:.9rem;font-weight:600;line-height:1.6;background:#1e1e1e;border-radius:4px;border:1px solid rgba(255,255,255,.08)}
+.waiting .hint{font-size:.78rem;color:rgba(255,255,255,.35);margin-top:10px}
+.waiting .hint a{color:#ffcc00}
+.waiting .ver{font-size:.62rem;color:rgba(255,204,0,.45);margin-top:6px;letter-spacing:.08em}
+</style>
+<script src="/replay-summary-ui.js?v=86"></script>
+</head>
+<body>
+<div class="viewport-root" id="viewportRoot">
+  <div class="viewport-scaler" id="viewportScaler">
+    <div class="stage hidden" id="stage">
+      <div class="summary-panel" id="summaryPanel"></div>
+    </div>
+    <div class="waiting" id="waiting">
+      Ждём окончания реплея…
+      <div class="hint">Превью нового UI: <a href="?demo=1" style="color:#37d6ff">?demo=1</a></div>
+      <div class="ver" id="waitVersion"></div>
+    </div>
+  </div>
+</div>
+<script>
+const UI_ASSET_VER = '86';
+const params = new URLSearchParams(location.search);
+const demoMode = params.get('demo') === '1';
+const renderScale = Math.max(1, Math.min(3, Number(params.get('scale')) || 2));
+
+const viewportRoot = document.getElementById('viewportRoot');
+const viewportScaler = document.getElementById('viewportScaler');
+const stage = document.getElementById('stage');
+const waiting = document.getElementById('waiting');
+const panel = document.getElementById('summaryPanel');
+const waitVersion = document.getElementById('waitVersion');
+
+let viewportFit = null;
+let lastKey = '';
+
+if (waitVersion) {
+  waitVersion.textContent = 'assets v' + UI_ASSET_VER + ' · sharp ' + renderScale + '×'
+    + (window.ReplaySummaryUI && window.ReplaySummaryUI.UI_VERSION
+      ? ' · render ' + window.ReplaySummaryUI.UI_VERSION : '');
+}
+
+function activeContent() {
+  return stage.classList.contains('hidden') ? waiting : panel;
+}
+
+function initViewportFit() {
+  if (!window.ReplaySummaryUI || !window.ReplaySummaryUI.bindViewportFit) return;
+  viewportFit = window.ReplaySummaryUI.bindViewportFit({
+    fitHost: viewportRoot,
+    wrap: viewportScaler,
+    getContent: activeContent,
+    fallbackWidth: 960,
+    fallbackHeight: 540,
+    renderScale: renderScale,
+    padding: 10,
+    pollMs: 300
+  });
+}
+
+function updateViewportFit() {
+  if (!viewportFit) initViewportFit();
+  if (!viewportFit) return;
+  viewportScaler.style.transform = 'none';
+  viewportFit.update();
+}
+
+function renderSummary(summary) {
+  if (!summary || !summary.visible) {
+    stage.classList.remove('visible');
+    stage.classList.add('hidden');
+    waiting.classList.remove('hidden');
+    if (!demoMode) waiting.querySelector('.hint').style.display = '';
+    updateViewportFit();
+    return;
+  }
+
+  const key = summary.replayKey || summary.replayFile || '';
+  if (key !== lastKey) {
+    lastKey = key;
+    stage.classList.remove('visible');
+    requestAnimationFrame(function () {
+      stage.classList.remove('hidden');
+      waiting.classList.add('hidden');
+      requestAnimationFrame(function () { stage.classList.add('visible'); });
+    });
+  } else {
+    stage.classList.remove('hidden');
+    waiting.classList.add('hidden');
+    stage.classList.add('visible');
+  }
+
+  if (!window.ReplaySummaryUI) {
+    panel.innerHTML = '<div class="waiting">replay-summary-ui.js не загрузился</div>';
+    updateViewportFit();
+    return;
+  }
+  panel.innerHTML = window.ReplaySummaryUI.renderSummaryHtml(summary);
+  requestAnimationFrame(function () {
+    requestAnimationFrame(updateViewportFit);
+  });
+}
+
+async function poll() {
+  if (demoMode && window.ReplaySummaryUI && window.ReplaySummaryUI.demoSummary) {
+    renderSummary(window.ReplaySummaryUI.demoSummary());
+    return;
+  }
+  try {
+    const r = await fetch('/api/replay-live', { cache: 'no-store' });
+    const j = await r.json();
+    if (j.success && j.data) renderSummary(j.data.replayEndSummary);
+  } catch (_) { /* retry */ }
+}
+
+poll();
+if (!demoMode) setInterval(poll, 800);
+window.addEventListener('load', function () {
+  initViewportFit();
+  updateViewportFit();
+});
+</script>
+</body>
+</html>

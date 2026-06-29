@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Instruction Widget</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-green: #00ff47;
+            --neon-blue: #00f0ff;
+            --neon-orange: #ff4400;
+            --neon-yellow: #ffff00;
+            --neon-purple: #ff00ff;
+            --neon-red: #ff0000;
+            --widget-bg-opacity: 0.95;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: #ffffff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .instruction-widget {
+            position: relative;
+            width: 350px; /* Уменьшаем ширину */
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 68, 0, 0.3);
+            border-radius: 10px;
+            padding: 12px; /* Уменьшаем отступы */
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.8) translateY(50px);
+            transition: all 0.5s ease-out;
+        }
+
+        .instruction-widget.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .temperature-instruction-title {
+            color: #ff4400;
+            font-size: 1rem; /* Уменьшаем размер заголовка */
+            font-weight: bold;
+            margin-bottom: 8px; /* Уменьшаем отступ */
+            text-shadow: 0 0 10px rgba(255, 68, 0, 0.6);
+        }
+
+        .temperature-instruction-text {
+            color: #ffffff; /* Улучшаем читаемость - белый текст */
+            font-size: 0.85rem; /* Уменьшаем размер текста */
+            line-height: 1.3; /* Улучшаем межстрочный интервал */
+            margin-bottom: 0; /* Убираем отступ снизу */
+            font-weight: 500; /* Добавляем вес шрифта */
+        }
+
+        .temperature-info {
+            background: rgba(255, 68, 0, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .temperature-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .temperature-info-label {
+            color: #ccc;
+        }
+
+        .temperature-info-value {
+            color: #ff4400;
+            font-weight: bold;
+        }
+
+        .temperature-reward {
+            text-align: center;
+            background: rgba(0, 255, 71, 0.1);
+            border: 1px solid rgba(0, 255, 71, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .temperature-reward-title {
+            color: #00ff47;
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .temperature-reward-value {
+            color: #ffffff;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 71, 0.6);
+            margin-bottom: 10px;
+        }
+
+        .temperature-reward-value:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="instruction-widget" id="instructionWidget">
+        <div class="temperature-instruction-title">РЕЖИМ ПЕРЕГРЕВА ТАЙМЕРА</div>
+        <div class="temperature-instruction-text">
+            Донаты нагревают Таймер<br>
+            При перегреве таймер увеличивается<br>
+            Термометр остывает без донатов
+        </div>
+        
+    </div>
+
+    <script>
+        let temperatureMode = {
+            active: false,
+            currentAmount: 0,
+            targetAmount: 10000,
+            coolingRate: 50,
+            peakRewardMinutes: 5
+        };
+
+        let ws = null;
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=widget`;
+            
+            console.log('🔗 Connecting to WebSocket:', wsUrl);
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                console.log('✅ WebSocket connected');
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('📨 WebSocket message received:', data);
+                    
+                    switch(data.type) {
+                        case 'INIT_STATE':
+                            console.log('🔄 Initial state received:', data.state);
+                            updateTemperatureMode(data.state.temperatureMode || temperatureMode);
+                            break;
+                        case 'temperature_mode_toggle':
+                            temperatureMode.active = data.active;
+                            temperatureMode.currentAmount = data.currentAmount || 0;
+                            temperatureMode.targetAmount = data.targetAmount || 10000;
+                            temperatureMode.coolingRate = data.coolingRate || 50;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_update':
+                            temperatureMode.currentAmount = data.currentAmount;
+                            temperatureMode.targetAmount = data.targetAmount || temperatureMode.targetAmount;
+                            temperatureMode.coolingRate = data.coolingRate || temperatureMode.coolingRate;
+                            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || temperatureMode.peakRewardMinutes;
+                            updateTemperatureMode(temperatureMode);
+                            break;
+                        case 'temperature_peak':
+                            showTemperaturePeak(data);
+                            break;
+                        default:
+                            console.log('📨 Other WebSocket message type:', data.type);
+                    }
+                } catch (e) {
+                    console.error('Error parsing WebSocket message:', e);
+                }
+            };
+
+            ws.onclose = function() {
+                console.log('❌ WebSocket disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = function(error) {
+                console.error('❌ WebSocket error:', error);
+            };
+        }
+
+        function updateTemperatureMode(data) {
+            temperatureMode.active = data.active;
+            temperatureMode.currentAmount = data.currentAmount || 0;
+            temperatureMode.targetAmount = data.targetAmount || 10000;
+            temperatureMode.coolingRate = data.coolingRate || 50;
+            temperatureMode.peakRewardMinutes = data.peakRewardMinutes || 5;
+            
+            const instructionWidgetEl = document.getElementById('instructionWidget');
+            
+            if (temperatureMode.active) {
+                instructionWidgetEl.classList.add('show');
+            } else {
+                instructionWidgetEl.classList.remove('show');
+            }
+        }
+
+        function showTemperaturePeak(data) {
+            console.log('🔥 Temperature peak reached!', data);
+            // Можно добавить дополнительную анимацию пика
+        }
+
+        // Подключаемся к WebSocket при загрузке страницы
+        connectWebSocket();
+    </script>
+</body>
+</html>

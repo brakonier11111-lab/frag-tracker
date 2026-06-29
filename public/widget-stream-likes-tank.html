@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<title>Лайки с танком — виджет</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		html, body {
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+		body {
+			background: transparent;
+			color: #fff;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+		}
+
+		.widget {
+			display: inline-flex;
+			align-items: center;
+			gap: 14px;
+			padding: 8px 14px;
+			border-radius: 999px;
+			background: radial-gradient(circle at 0% 0%, rgba(0,255,163,0.25), transparent 55%),
+			            radial-gradient(circle at 100% 100%, rgba(255,99,132,0.25), transparent 55%),
+			            rgba(5,8,15,0.9);
+			border: 1px solid rgba(255,255,255,0.2);
+			box-shadow:
+				0 0 24px rgba(0,0,0,0.8),
+				0 0 18px rgba(0,255,163,0.4);
+		}
+
+		.tank-like-wrap {
+			display: inline-flex;
+			align-items: center;
+			gap: 10px;
+			position: relative;
+		}
+
+		/* Танчик слева */
+		.tank {
+			position: relative;
+			width: 58px;
+			height: 32px;
+		}
+		.tank-body {
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			width: 52px;
+			height: 18px;
+			background: linear-gradient(135deg,#1bce6f,#0b8f4e);
+			border-radius: 6px;
+			box-shadow: 0 0 10px rgba(0,255,163,0.6);
+		}
+		.tank-top {
+			position: absolute;
+			bottom: 14px;
+			left: 10px;
+			width: 26px;
+			height: 12px;
+			background: linear-gradient(135deg,#0b8f4e,#06663a);
+			border-radius: 6px;
+		}
+		.tank-barrel {
+			position: absolute;
+			bottom: 19px;
+			left: 30px;
+			width: 28px;
+			height: 4px;
+			background: #0fffb0;
+			border-radius: 3px;
+			transform-origin: 0% 50%;
+		}
+		.tank-track {
+			position: absolute;
+			bottom: -4px;
+			left: 2px;
+			width: 48px;
+			height: 10px;
+			background: rgba(0,0,0,0.9);
+			border-radius: 8px;
+			display: flex;
+			align-items: center;
+			justify-content: space-evenly;
+		}
+		.tank-wheel {
+			width: 7px;
+			height: 7px;
+			border-radius: 50%;
+			background: #2f3542;
+			box-shadow: inset 0 0 4px rgba(0,0,0,0.9);
+		}
+
+		/* Значок лайка справа */
+		.like-wrap {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
+		.like-icon {
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			background: radial-gradient(circle at 30% 30%, #fff 0, #ff3b6b 35%, #b0003c 80%);
+			box-shadow:
+				0 0 14px rgba(255,59,107,0.9),
+				0 0 26px rgba(255,255,255,0.6);
+			mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="white" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>') center/70% no-repeat;
+		}
+		.likes-count {
+			font-family: 'Orbitron', sans-serif;
+			font-size: 22px;
+			font-weight: 700;
+			text-shadow:
+				0 0 12px rgba(255,59,107,0.9),
+				0 0 24px rgba(255,255,255,0.5);
+		}
+
+		/* Анимации выстрела */
+		.widget.shoot .tank-barrel {
+			animation: barrel-kick 0.4s ease-out;
+		}
+		.widget.shoot .tank-body {
+			animation: tank-recoil 0.4s ease-out;
+		}
+		.widget.shoot .like-icon {
+			animation: like-hit 0.45s ease-out;
+		}
+		.widget.shoot .likes-count {
+			animation: likes-pop 0.4s ease-out;
+		}
+
+		@keyframes barrel-kick {
+			0% { transform: translateX(0); opacity: 1; }
+			20% { transform: translateX(4px); }
+			60% { transform: translateX(-2px); opacity: 1; }
+			100% { transform: translateX(0); opacity: 1; }
+		}
+		@keyframes tank-recoil {
+			0% { transform: translateX(0); }
+			20% { transform: translateX(-3px); }
+			100% { transform: translateX(0); }
+		}
+		@keyframes like-hit {
+			0% { transform: scale(1) translateX(0); filter: brightness(1); }
+			20% { transform: scale(1.1) translateX(2px); filter: brightness(1.4); }
+			60% { transform: scale(0.95) translateX(-1px); filter: brightness(1.2); }
+			100% { transform: scale(1) translateX(0); filter: brightness(1); }
+		}
+		@keyframes likes-pop {
+			0% { transform: scale(1); }
+			25% { transform: scale(1.2); }
+			100% { transform: scale(1); }
+		}
+
+		.status-text {
+			font-size: 10px;
+			color: rgba(255,255,255,0.6);
+			margin-top: 2px;
+			text-align: right;
+		}
+	</style>
+</head>
+<body>
+	<div class="widget" id="widget-root">
+		<div class="tank-like-wrap">
+			<div class="tank">
+				<div class="tank-body"></div>
+				<div class="tank-top"></div>
+				<div class="tank-barrel"></div>
+				<div class="tank-track">
+					<div class="tank-wheel"></div>
+					<div class="tank-wheel"></div>
+					<div class="tank-wheel"></div>
+					<div class="tank-wheel"></div>
+				</div>
+			</div>
+			<div class="like-wrap">
+				<div class="like-icon"></div>
+				<div class="likes-count" id="likes-total">—</div>
+			</div>
+		</div>
+		<div class="status-text" id="status-text">ожидание данных...</div>
+	</div>
+
+	<script>
+		let lastLikes = null;
+
+		function triggerShot() {
+			const root = document.getElementById('widget-root');
+			if (!root) return;
+			root.classList.remove('shoot');
+			// Перезапускаем анимацию
+			void root.offsetWidth;
+			root.classList.add('shoot');
+			setTimeout(() => {
+				root.classList.remove('shoot');
+			}, 500);
+		}
+
+		async function refreshLikes() {
+			const totalEl = document.getElementById('likes-total');
+			const statusEl = document.getElementById('status-text');
+
+			try {
+				const [ytRes, vkRes] = await Promise.all([
+					fetch('/integrations/youtube/status').then(r => r.json()).catch(() => null),
+					fetch('/integrations/vkplay/status').then(r => r.json()).catch(() => null)
+				]);
+
+				const ytConnected = ytRes && ytRes.connected;
+				const vkConnected = vkRes && vkRes.connected;
+
+				const ytLikes = ytConnected && typeof ytRes.likes !== 'undefined' ? (ytRes.likes || 0) : 0;
+				const vkLikes = vkConnected && typeof vkRes.likes !== 'undefined' ? (vkRes.likes || 0) : 0;
+				const total = ytLikes + vkLikes;
+
+				if (ytConnected || vkConnected) {
+					totalEl.textContent = total;
+					if (lastLikes !== null && total > lastLikes) {
+						triggerShot();
+					}
+					lastLikes = total;
+
+					if (ytConnected && vkConnected) {
+						statusEl.textContent = 'YouTube + VK Play';
+					} else if (ytConnected) {
+						statusEl.textContent = 'Только YouTube';
+					} else if (vkConnected) {
+						statusEl.textContent = 'Только VK Play';
+					} else {
+						statusEl.textContent = 'интеграции не подключены';
+					}
+				} else {
+					statusEl.textContent = 'интеграции не подключены';
+					totalEl.textContent = '—';
+					lastLikes = null;
+				}
+			} catch (e) {
+				console.warn('Ошибка танкового виджета лайков:', e);
+				statusEl.textContent = 'ошибка';
+				totalEl.textContent = '—';
+				lastLikes = null;
+			}
+		}
+
+		refreshLikes();
+		setInterval(refreshLikes, 5000);
+	</script>
+</body>
+</html>
+

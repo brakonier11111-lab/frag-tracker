@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ФРАГ-ТРЕКЕР | РАСПИСАНИЕ</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        :root {
+            --card-bg: rgba(20, 20, 30, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 80px;
+        }
+
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .menu-logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .menu-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .menu-item.active {
+            background: var(--neon-purple);
+            color: var(--dark);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 15px 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .title {
+            font-size: 2.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .panel {
+            background: linear-gradient(135deg,
+                rgba(5, 5, 15, 0.95) 0%,
+                rgba(8, 8, 20, 0.9) 50%,
+                rgba(12, 12, 25, 0.85) 100%
+            );
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+            box-shadow:
+                0 4px 16px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .field-group {
+            margin-bottom: 16px;
+        }
+
+        .field-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 6px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.2);
+        }
+
+        .slots-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .slots-title {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--neon-blue);
+        }
+
+        .slots-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .slot-row {
+            display: grid;
+            grid-template-columns: 80px 80px 1fr 60px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .slot-row input[type="text"] {
+            padding: 8px 10px;
+            font-size: 0.9rem;
+        }
+
+        .slot-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: stretch;
+        }
+
+        .slot-actions .btn-small {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            box-shadow: none;
+        }
+
+        .slot-time {
+            text-align: center;
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, #00f0ff 0%, #b300ff 100%);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 12px rgba(0, 240, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 240, 255, 0.45);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff003c 0%, #ff7700 100%);
+            box-shadow: 0 4px 12px rgba(255, 0, 60, 0.4);
+        }
+
+        .actions {
+            margin-top: 18px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .hint {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.65);
+            margin-top: 6px;
+        }
+
+        .notification {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: rgba(0, 0, 0, 0.95);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            font-size: 0.9rem;
+            display: none;
+            z-index: 2000;
+        }
+
+        .notification.error {
+            border-color: rgba(255, 86, 86, 0.7);
+        }
+
+        @media (max-width: 720px) {
+            .slot-row {
+                grid-template-columns: 70px 70px 1fr 52px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-menu">
+        <div class="menu-container">
+            <a href="/index.html" class="menu-logo">
+                🎯 ФРАГ-ТРЕКЕР
+            </a>
+            <div class="menu-nav">
+                <a href="/index.html" class="menu-item">🏠 Главная</a>
+                <a href="/mode1-frag-tracker.html" class="menu-item">🎯 Фраг-трекер</a>
+                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
+                <a href="/mode3-custom.html" class="menu-item">⚙️ Кастом</a>
+                <a href="/donation-management.html" class="menu-item">💰 Управление донатами</a>
+                <a href="/donation-goal-widget.html" class="menu-item">📊 Сбор донатов</a>
+                <a href="/frag-stats.html" class="menu-item">📊 Статистика</a>
+                <a href="/lesta-stats.html" class="menu-item">🏆 Lesta Games</a>
+                <a href="/admin.html" class="menu-item">🔧 Админ</a>
+                <a href="/donations-dashboard.html" class="menu-item">📚 Донаты</a>
+                <a href="/analytics.html" class="menu-item">📈 Аналитика</a>
+                <a href="/schedule.html" class="menu-item active">🗓 Расписание</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Расписание</h1>
+            <p class="subtitle">Настрой, что будет происходить на стриме сегодня по времени — виджет в OBS обновится автоматически.</p>
+        </div>
+
+        <section class="panel">
+            <div class="field-group">
+                <div class="field-label">Заголовок виджета</div>
+                <input type="text" id="scheduleTitleInput" placeholder="Расписание">
+                <div class="hint">Этот текст появится в заголовке OBS‑виджета расписания.</div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="slots-header">
+                <div class="slots-title">Пункты расписания на сегодня</div>
+                <button class="btn btn-secondary" id="addSlotBtn">+ Добавить пункт</button>
+            </div>
+            <div class="slots-list" id="slotsList"></div>
+            <div class="hint">Время указываем в формате 24 часа (например, 14:00 – 16:00). Виджет сам зачеркнёт уже прошедшие пункты.</div>
+        </section>
+
+        <section class="panel">
+            <div class="slots-header">
+                <div class="slots-title">Ссылка на виджет для OBS</div>
+            </div>
+            <div class="hint">Скопируй эту ссылку в OBS (Browser Source), чтобы показать расписание на стриме.</div>
+            <div class="slots-list">
+                <input type="text" id="scheduleWidgetLink" readonly style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.25); background:rgba(0,0,0,0.4); color:#fff; font-size:0.85rem;">
+            </div>
+        </section>
+
+        <div class="actions">
+            <button class="btn btn-secondary" id="resetSlotsBtn">Сбросить</button>
+            <button class="btn" id="saveScheduleBtn">Сохранить расписание</button>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>
+        const titleInput = document.getElementById('scheduleTitleInput');
+        const slotsListEl = document.getElementById('slotsList');
+        const addSlotBtn = document.getElementById('addSlotBtn');
+        const saveBtn = document.getElementById('saveScheduleBtn');
+        const resetBtn = document.getElementById('resetSlotsBtn');
+        const notificationEl = document.getElementById('notification');
+        const widgetLinkInput = document.getElementById('scheduleWidgetLink');
+
+        let slots = [];
+        let autoSaveTimeout = null;
+
+        function showNotification(text, isError = false) {
+            notificationEl.textContent = text;
+            notificationEl.classList.toggle('error', isError);
+            notificationEl.style.display = 'block';
+            setTimeout(() => {
+                notificationEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function scheduleAutoSave() {
+            if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                saveSchedule(true);
+            }, 800);
+        }
+
+        function renderSlots() {
+            if (!slots || slots.length === 0) {
+                slotsListEl.innerHTML = '<div class="hint">Добавь первый пункт — например, 14:00–16:00 «Рейды».</div>';
+                return;
+            }
+            slotsListEl.innerHTML = '';
+            slots.forEach((slot, index) => {
+                const row = document.createElement('div');
+                row.className = 'slot-row';
+                row.innerHTML = `
+                    <input class="slot-time" type="text" placeholder="14:00" value="${slot.start || ''}" data-field="start">
+                    <input class="slot-time" type="text" placeholder="16:00" value="${slot.end || ''}" data-field="end">
+                    <input type="text" placeholder="Описание (что делаем)" value="${slot.text || ''}" data-field="text">
+                    <div class="slot-actions">
+                        <button class="btn btn-secondary btn-small" data-action="insert-before" title="Добавить пункт выше">＋</button>
+                        <button class="btn btn-danger btn-small" data-action="remove" title="Удалить">✕</button>
+                    </div>
+                `;
+                row.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('input', (e) => {
+                        const field = e.target.dataset.field;
+                        slots[index][field] = e.target.value;
+                        scheduleAutoSave();
+                    });
+                });
+                const removeBtn = row.querySelector('button[data-action="remove"]');
+                const insertBeforeBtn = row.querySelector('button[data-action="insert-before"]');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', () => {
+                        slots.splice(index, 1);
+                        renderSlots();
+                        scheduleAutoSave();
+                    });
+                }
+                if (insertBeforeBtn) {
+                    insertBeforeBtn.addEventListener('click', () => {
+                        const now = new Date();
+                        const startHour = String(now.getHours()).padStart(2, '0');
+                        const nextHour = String((now.getHours() + 1) % 24).padStart(2, '0');
+                        slots.splice(index, 0, {
+                            start: `${startHour}:00`,
+                            end: `${nextHour}:00`,
+                            text: ''
+                        });
+                        renderSlots();
+                        scheduleAutoSave();
+                    });
+                }
+                slotsListEl.appendChild(row);
+            });
+        }
+
+        addSlotBtn.addEventListener('click', () => {
+            const now = new Date();
+            const startHour = String(now.getHours()).padStart(2, '0');
+            const nextHour = String((now.getHours() + 1) % 24).padStart(2, '0');
+            slots.push({
+                start: `${startHour}:00`,
+                end: `${nextHour}:00`,
+                text: ''
+            });
+            renderSlots();
+            scheduleAutoSave();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (!confirm('Сбросить расписание на сегодня?')) return;
+            titleInput.value = 'Расписание';
+            slots = [];
+            renderSlots();
+            scheduleAutoSave();
+        });
+
+        async function loadSchedule() {
+            try {
+                const res = await fetch('/api/schedule');
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Не удалось загрузить расписание');
+                titleInput.value = data.title || 'Расписание';
+                slots = Array.isArray(data.slots) ? data.slots : [];
+                renderSlots();
+            } catch (err) {
+                console.error(err);
+                showNotification(err.message || 'Ошибка загрузки расписания', true);
+                titleInput.value = 'Расписание';
+                slots = [];
+                renderSlots();
+            }
+
+            // Обновляем ссылку на виджет
+            if (widgetLinkInput) {
+                const base = window.location.origin || '';
+                // Добавляем версию, чтобы обойти кэш OBS при обновлениях логики виджета
+                const url = `${base}/widget-schedule.html?v=3`;
+                widgetLinkInput.value = url;
+            }
+        }
+
+        async function saveSchedule(isAuto = false) {
+            const payload = {
+                title: titleInput.value.trim() || 'Расписание',
+                slots: (slots || []).map(s => ({
+                    start: (s.start || '').trim(),
+                    end: (s.end || '').trim(),
+                    text: (s.text || '').trim()
+                })).filter(s => s.start && s.end && s.text)
+            };
+            try {
+                const res = await fetch('/api/schedule', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Ошибка сохранения');
+                if (!isAuto) {
+                    showNotification('Расписание сохранено');
+                }
+            } catch (err) {
+                console.error(err);
+                showNotification(err.message || 'Ошибка сохранения расписания', true);
+            }
+        }
+
+        saveBtn.addEventListener('click', saveSchedule);
+
+        document.addEventListener('DOMContentLoaded', loadSchedule);
+    </script>
+</body>
+</html>
+
+

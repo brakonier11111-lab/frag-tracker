@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест анимаций виджета</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #0056b3; }
+        button.active { background: #28a745; }
+        .widget-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            margin: 20px auto;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #1e3a8a, #1e40af);
+            overflow: visible;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+        }
+        .info {
+            background: #222;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .info li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Тест анимаций виджета</h1>
+        
+        <div class="controls">
+            <button id="normalMode" class="active">🔄 Обычный режим</button>
+            <button id="discountMode">💰 Режим скидки</button>
+            <button id="slowdownMode">❄️ Режим замедления</button>
+            <button id="bothModes">🎭 Оба режима</button>
+            <button id="stopAnimations">⏹️ Остановить анимации</button>
+        </div>
+        
+        <div class="status" id="status">
+            Режим: Обычный | Анимации: Выключены
+        </div>
+        
+        <div class="widget-container">
+            <iframe id="widgetFrame" src="http://localhost:3000/widget-mode2-copy.html"></iframe>
+        </div>
+        
+        <div class="info">
+            <h3>📋 Инструкции по тестированию:</h3>
+            <ul>
+                <li><strong>Обычный режим:</strong> Виджет без анимаций</li>
+                <li><strong>Режим скидки:</strong> Иконки процентов летают вокруг виджета</li>
+                <li><strong>Режим замедления:</strong> Снежинки летают вокруг виджета</li>
+                <li><strong>Оба режима:</strong> Одновременно иконки и снежинки</li>
+                <li><strong>Остановить анимации:</strong> Принудительно остановить все эффекты</li>
+            </ul>
+            
+            <h3>🎯 Что проверить:</h3>
+            <ul>
+                <li>Элементы должны летать <strong>вокруг всего виджета</strong>, а не только в углу</li>
+                <li>Анимация должна быть <strong>плавной и красивой</strong></li>
+                <li>Элементы не должны <strong>перекрывать основной контент</strong></li>
+                <li>Количество элементов должно быть <strong>достаточным</strong> для эффекта</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = 'normal';
+        let ws = null;
+
+        function updateStatus(mode, animations) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = `Режим: ${mode} | Анимации: ${animations}`;
+        }
+
+        function connectWebSocket() {
+            if (ws && ws.readyState === WebSocket.OPEN) return;
+            
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws?type=dashboard`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('✅ WebSocket подключен для тестирования');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('📨 Получено сообщение:', data.type);
+            };
+            
+            ws.onclose = () => {
+                console.log('❌ WebSocket отключен, переподключение...');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('❌ Ошибка WebSocket:', error);
+            };
+        }
+
+        async function setMode(mode) {
+            try {
+                let updates = {};
+                
+                if (mode === 'discount' || mode === 'both') {
+                    updates.timer_discount = 50; // 50 рублей скидка
+                    updates.timer_discount_until_ts = Math.floor(Date.now() / 1000) + 300; // 5 минут
+                } else {
+                    updates.timer_discount = 0;
+                    updates.timer_discount_until_ts = 0;
+                }
+                
+                if (mode === 'slowdown' || mode === 'both') {
+                    updates.timer_slowdown_active = 1;
+                    updates.timer_slowdown_factor = 0.5; // замедление в 2 раза
+                    updates.timer_slowdown_until_ts = Math.floor(Date.now() / 1000) + 300; // 5 минут
+                } else {
+                    updates.timer_slowdown_active = 0;
+                    updates.timer_slowdown_factor = 1.0;
+                    updates.timer_slowdown_until_ts = 0;
+                }
+                
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updates)
+                });
+                
+                if (response.ok) {
+                    currentMode = mode;
+                    updateStatus(getModeName(mode), 'Включены');
+                    updateButtonStates();
+                    console.log(`✅ Режим ${mode} установлен`);
+                } else {
+                    console.error('❌ Ошибка установки режима:', response.status);
+                }
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+            }
+        }
+
+        function getModeName(mode) {
+            const names = {
+                'normal': 'Обычный',
+                'discount': 'Скидка',
+                'slowdown': 'Замедление',
+                'both': 'Оба режима'
+            };
+            return names[mode] || mode;
+        }
+
+        function updateButtonStates() {
+            document.querySelectorAll('.controls button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            const modeButtons = {
+                'normal': 'normalMode',
+                'discount': 'discountMode',
+                'slowdown': 'slowdownMode',
+                'both': 'bothModes'
+            };
+            
+            const activeButton = document.getElementById(modeButtons[currentMode]);
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+        }
+
+        async function stopAnimations() {
+            try {
+                const updates = {
+                    timer_discount: 0,
+                    timer_discount_until_ts: 0,
+                    timer_slowdown_active: 0,
+                    timer_slowdown_factor: 1.0,
+                    timer_slowdown_until_ts: 0
+                };
+                
+                const response = await fetch('/api/state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updates)
+                });
+                
+                if (response.ok) {
+                    currentMode = 'normal';
+                    updateStatus('Обычный', 'Выключены');
+                    updateButtonStates();
+                    console.log('✅ Анимации остановлены');
+                }
+            } catch (error) {
+                console.error('❌ Ошибка остановки анимаций:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('normalMode').addEventListener('click', () => setMode('normal'));
+        document.getElementById('discountMode').addEventListener('click', () => setMode('discount'));
+        document.getElementById('slowdownMode').addEventListener('click', () => setMode('slowdown'));
+        document.getElementById('bothModes').addEventListener('click', () => setMode('both'));
+        document.getElementById('stopAnimations').addEventListener('click', stopAnimations);
+
+        // Initialize
+        window.addEventListener('load', () => {
+            connectWebSocket();
+            updateButtonStates();
+            updateStatus('Обычный', 'Выключены');
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

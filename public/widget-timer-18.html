@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ДНК Спираль</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-green: #00ff47;
+            --neon-purple: #b300ff;
+            --neon-red: #ff003c;
+            --neon-yellow: #ffff00;
+            --neon-orange: #ff6600;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: transparent;
+            color: white;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dna-widget {
+            width: 200px;
+            height: 400px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dna-container {
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid var(--neon-green);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 0 30px var(--neon-green),
+                inset 0 0 30px rgba(0, 255, 71, 0.1);
+        }
+
+        .dna-container.discount-active {
+            border-color: var(--neon-orange);
+            box-shadow: 
+                0 0 30px var(--neon-orange),
+                inset 0 0 30px rgba(255, 102, 0, 0.1);
+        }
+
+        .dna-container.slowdown-active {
+            border-color: var(--neon-red);
+            box-shadow: 
+                0 0 30px var(--neon-red),
+                inset 0 0 30px rgba(255, 0, 60, 0.1);
+        }
+
+        .dna-helix {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, 
+                var(--neon-green) 0%,
+                var(--neon-blue) 50%,
+                var(--neon-green) 100%
+            );
+            animation: helixRotate 4s linear infinite;
+        }
+
+        .dna-container.discount-active .dna-helix {
+            background: linear-gradient(to bottom, 
+                var(--neon-orange) 0%,
+                var(--neon-yellow) 50%,
+                var(--neon-orange) 100%
+            );
+        }
+
+        .dna-container.slowdown-active .dna-helix {
+            background: linear-gradient(to bottom, 
+                var(--neon-red) 0%,
+                var(--neon-purple) 50%,
+                var(--neon-red) 100%
+            );
+        }
+
+        @keyframes helixRotate {
+            0% { transform: translateX(-50%) rotateY(0deg); }
+            100% { transform: translateX(-50%) rotateY(360deg); }
+        }
+
+        .dna-strands {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .strand {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: var(--neon-green);
+            border-radius: 1px;
+            animation: strandPulse 2s ease-in-out infinite;
+        }
+
+        .strand.strand-1 {
+            left: 30%;
+            animation-delay: 0s;
+        }
+
+        .strand.strand-2 {
+            right: 30%;
+            animation-delay: 1s;
+        }
+
+        @keyframes strandPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .dna-container.discount-active .strand {
+            background: var(--neon-orange);
+        }
+
+        .dna-container.slowdown-active .strand {
+            background: var(--neon-red);
+        }
+
+        .dna-bases {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .base {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--neon-blue);
+            border-radius: 50%;
+            animation: baseGlow 3s ease-in-out infinite;
+        }
+
+        .base.base-a {
+            background: var(--neon-green);
+        }
+
+        .base.base-t {
+            background: var(--neon-red);
+        }
+
+        .base.base-g {
+            background: var(--neon-yellow);
+        }
+
+        .base.base-c {
+            background: var(--neon-blue);
+        }
+
+        @keyframes baseGlow {
+            0%, 100% { 
+                opacity: 0.6;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--neon-green);
+        }
+
+        .timer-numbers {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .timer-label {
+            font-size: 0.6rem;
+            color: #ffffff;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .cost-display {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--neon-green);
+            text-shadow: 0 0 8px var(--neon-green);
+            font-weight: 600;
+        }
+
+        .dna-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            animation: particleFloat 6s linear infinite;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(100%) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100%) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .dna-container.discount-active .particle {
+            background: var(--neon-orange);
+        }
+
+        .dna-container.slowdown-active .particle {
+            background: var(--neon-red);
+        }
+
+        @keyframes timeAddedGlow {
+            0% {
+                text-shadow: 0 0 10px var(--neon-green);
+                transform: scale(1);
+            }
+            50% {
+                text-shadow: 0 0 20px var(--neon-blue);
+                transform: scale(1.1);
+                color: var(--neon-blue);
+            }
+            100% {
+                text-shadow: 0 0 10px var(--neon-green);
+                transform: scale(1);
+            }
+        }
+
+        .timer-numbers.time-added {
+            animation: timeAddedGlow 2s ease-out;
+        }
+
+        .dna-helix.time-added {
+            animation: helixRotate 4s linear infinite, helixShake 2s ease-out;
+        }
+
+        @keyframes helixShake {
+            0%, 100% { transform: translateX(-50%) rotateY(0deg); }
+            25% { transform: translateX(-50%) rotateY(90deg); }
+            50% { transform: translateX(-50%) rotateY(180deg); }
+            75% { transform: translateX(-50%) rotateY(270deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="dna-widget" id="dnaWidget">
+        <div class="dna-container" id="dnaContainer">
+            <div class="dna-helix" id="dnaHelix"></div>
+            
+            <div class="dna-strands">
+                <div class="strand strand-1"></div>
+                <div class="strand strand-2"></div>
+            </div>
+            
+            <div class="dna-bases" id="dnaBases"></div>
+            <div class="dna-particles" id="dnaParticles"></div>
+            
+            <div class="timer-display">
+                <div class="timer-numbers" id="timerNumbers">01:00:00</div>
+                <div class="timer-label" id="timerLabel">ДО КОНЦА СТРИМА</div>
+            </div>
+            
+            <div class="cost-display" id="costText">1 минута = 50₽</div>
+        </div>
+    </div>
+
+    <script>
+        // Состояние виджета
+        let currentState = {
+            timer_seconds: 3600,
+            cost_per_minute: 50,
+            timer_discount: 0,
+            timer_discount_until_ts: 0,
+            timer_slowdown_active: false,
+            timer_slowdown_factor: 1.0,
+            timer_slowdown_until_ts: 0
+        };
+
+        let timerInterval = null;
+        let lastUpdateTime = Date.now();
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎨 Виджет "ДНК Спираль" загружен');
+            createBases();
+            createParticles();
+            updateDisplay();
+            startTimer();
+            
+            // Уведомляем родительскую страницу о загрузке
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'WIDGET_LOADED' }, '*');
+            }
+        });
+
+        // Обработка сообщений от родительской страницы
+        window.addEventListener('message', function(event) {
+            switch(event.data.type) {
+                case 'UPDATE_STATE':
+                    updateState(event.data);
+                    break;
+                case 'SET_MODE':
+                    setMode(event.data.mode, event.data);
+                    break;
+                case 'TEST_DONATION':
+                    triggerTimeAddedAnimation(60);
+                    break;
+            }
+        });
+
+        function updateState(newState) {
+            Object.assign(currentState, newState);
+            updateDisplay();
+        }
+
+        function setMode(mode, data) {
+            const container = document.getElementById('dnaContainer');
+            container.classList.remove('discount-active', 'slowdown-active');
+            
+            switch(mode) {
+                case 'discount':
+                    container.classList.add('discount-active');
+                    currentState.timer_discount = parseInt(data.discount) || 20;
+                    currentState.timer_discount_until_ts = Date.now() + 300000;
+                    break;
+                case 'slowdown':
+                    container.classList.add('slowdown-active');
+                    currentState.timer_slowdown_active = true;
+                    currentState.timer_slowdown_factor = parseFloat(data.slowdown) || 0.5;
+                    currentState.timer_slowdown_until_ts = Date.now() + 300000;
+                    break;
+                default:
+                    currentState.timer_discount = 0;
+                    currentState.timer_slowdown_active = false;
+                    currentState.timer_slowdown_factor = 1.0;
+            }
+            
+            updateDisplay();
+        }
+
+        function createBases() {
+            const basesContainer = document.getElementById('dnaBases');
+            const bases = ['A', 'T', 'G', 'C'];
+            
+            // Создаем пары оснований
+            for (let i = 0; i < 20; i++) {
+                const base1 = document.createElement('div');
+                base1.className = `base base-${bases[i % 4].toLowerCase()}`;
+                base1.style.left = '30%';
+                base1.style.top = (i * 5) + '%';
+                base1.style.animationDelay = (i * 0.2) + 's';
+                
+                const base2 = document.createElement('div');
+                base2.className = `base base-${bases[(i + 2) % 4].toLowerCase()}`;
+                base2.style.right = '30%';
+                base2.style.top = (i * 5) + '%';
+                base2.style.animationDelay = (i * 0.2) + 's';
+                
+                basesContainer.appendChild(base1);
+                basesContainer.appendChild(base2);
+            }
+        }
+
+        function createParticles() {
+            const particlesContainer = document.getElementById('dnaParticles');
+            
+            setInterval(() => {
+                if (Math.random() < 0.3) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 2 + 's';
+                    particle.style.animationDuration = (4 + Math.random() * 4) + 's';
+                    
+                    particlesContainer.appendChild(particle);
+                    
+                    setTimeout(() => {
+                        if (particle.parentNode) {
+                            particle.parentNode.removeChild(particle);
+                        }
+                    }, 8000);
+                }
+            }, 400);
+        }
+
+        function updateDisplay() {
+            updateTimerDisplay();
+            updateCostDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const totalSeconds = currentState.timer_seconds;
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timerNumbers').textContent = timeString;
+        }
+
+        function updateCostDisplay() {
+            const baseCost = currentState.cost_per_minute;
+            const discount = currentState.timer_discount || 0;
+            const actualCost = Math.max(1, baseCost - discount);
+            
+            if (discount > 0) {
+                document.getElementById('costText').innerHTML = `
+                    <span style="text-decoration: line-through; opacity: 0.6;">${baseCost}₽</span> 
+                    <span style="color: var(--neon-orange);">${actualCost}₽</span>
+                `;
+            } else {
+                document.getElementById('costText').textContent = `1 минута = ${actualCost}₽`;
+            }
+        }
+
+        function startTimer() {
+            if (timerInterval) return;
+            
+            timerInterval = setInterval(() => {
+                if (currentState.timer_seconds > 0) {
+                    const factor = currentState.timer_slowdown_active ? 
+                        Math.max(0.1, currentState.timer_slowdown_factor) : 1.0;
+                    const currentTime = Date.now();
+                    const elapsedMs = currentTime - lastUpdateTime;
+                    const msPerLogicalSecond = 1000 * factor;
+                    
+                    if (elapsedMs >= msPerLogicalSecond) {
+                        currentState.timer_seconds--;
+                        lastUpdateTime = currentTime;
+                        updateDisplay();
+                    }
+                }
+            }, 100);
+        }
+
+        function triggerTimeAddedAnimation(timeEarned) {
+            console.log(`🎬 Анимация добавления времени: ${timeEarned} секунд`);
+            
+            const timerNumbers = document.getElementById('timerNumbers');
+            const dnaHelix = document.getElementById('dnaHelix');
+            
+            timerNumbers.classList.add('time-added');
+            dnaHelix.classList.add('time-added');
+            
+            setTimeout(() => {
+                timerNumbers.classList.remove('time-added');
+                dnaHelix.classList.remove('time-added');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Достижения донатеров</title>
+    <link rel="stylesheet" href="/styles/global.css">
+    <style>
+        :root {
+            --neon-orange: #ff7700;
+            --card-bg: rgba(20, 20, 30, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 80px;
+        }
+
+        .top-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(5, 5, 8, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+            padding: 10px 20px;
+        }
+
+        .menu-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .menu-logo {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--neon-green);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu-nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .menu-item {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
+        }
+
+        .menu-item.active {
+            background: var(--neon-purple);
+            border-color: var(--neon-purple);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: transparent;
+            border: none;
+            color: var(--light);
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            color: var(--neon-blue);
+        }
+
+        .tab.active {
+            color: var(--neon-blue);
+            border-bottom-color: var(--neon-blue);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .tier-view-section {
+            min-width: 280px;
+            max-width: 100%;
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .tier-view-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tier-view-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .tier-view-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .tier-view-description {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .donors-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .donors-list-container {
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .donor-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .donor-list-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--neon-blue);
+            transform: translateX(5px);
+        }
+
+        .donor-list-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .donor-list-icon {
+            font-size: 2rem;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .donor-list-icon img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .donor-list-details {
+            flex: 1;
+        }
+
+        .donor-list-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--light);
+            margin-bottom: 5px;
+        }
+
+        .donor-list-tier {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .donor-list-stats {
+            text-align: right;
+        }
+
+        .donor-list-time {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--neon-blue);
+            margin-bottom: 5px;
+        }
+
+        .donor-list-next {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .donor-list-next.highlight {
+            color: var(--neon-yellow);
+            font-weight: 600;
+        }
+
+        .donor-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border-left: 3px solid var(--neon-blue);
+        }
+
+        .donor-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .donor-time {
+            font-size: 0.85rem;
+            color: var(--neon-blue);
+        }
+
+        .achievement-card {
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-card:hover {
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            transform: translateY(-5px);
+        }
+
+        .achievement-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .achievement-icon {
+            font-size: 3rem;
+        }
+
+        .achievement-info h3 {
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .achievement-time {
+            color: var(--neon-blue);
+            font-size: 0.9rem;
+        }
+
+        .achievement-progress {
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-blue));
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .tier-settings {
+            display: grid;
+            gap: 20px;
+        }
+
+        .tier-item {
+            background: var(--card-bg);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .tier-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .tier-icon-input {
+            width: 60px;
+            height: 60px;
+            font-size: 2rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--light);
+        }
+
+        .tier-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .form-group input {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--light);
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: var(--neon-purple);
+            border: none;
+            border-radius: 6px;
+            color: var(--light);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            background: var(--neon-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--neon-blue);
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-menu">
+        <div class="menu-container">
+            <a href="/" class="menu-logo">🎯 ФРАГ-ТРЕКЕР</a>
+            <div class="menu-nav">
+                <a href="/" class="menu-item">🏠 Главная</a>
+                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
+                <a href="/donor-achievements.html" class="menu-item active">🏆 Достижения</a>
+                <a href="/admin.html" class="menu-item">⚙️ Админка</a>
+            </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">🏆 Достижения донатеров</h1>
+            <p>Система отслеживания достижений донатеров на основе добавленного времени</p>
+        </div>
+
+        <!-- Настройки - главная вкладка -->
+        <div id="settingsTab" class="tab-content active">
+            <div id="tiersSettings" class="tier-settings">
+                <div class="loading">Загрузка...</div>
+            </div>
+        </div>
+
+        <!-- Просмотр донатеров по достижениям -->
+        <div id="viewTab" style="display: block; margin-top: 40px; padding-top: 40px; border-top: 2px solid rgba(255, 255, 255, 0.1);">
+            <h2 style="margin-bottom: 30px; font-size: 2rem; text-align: center; color: var(--neon-blue);">👁️ Просмотр донатеров по достижениям</h2>
+            <div id="achievementsList" class="loading">Загрузка...</div>
+        </div>
+
+        <!-- Список донатеров с сортировкой по достижениям - внизу страницы -->
+        <div id="donorsListTab" style="display: block; margin-top: 40px; padding-top: 40px; border-top: 2px solid rgba(255, 255, 255, 0.1);">
+            <h2 style="margin-bottom: 30px; font-size: 2rem; text-align: center; color: var(--neon-blue);">📋 Список донатеров</h2>
+            <div id="donorsList" class="loading">Загрузка...</div>
+        </div>
+    </div>
+
+    <script>
+        let achievements = [];
+        let tiers = [];
+
+        // Настройки теперь главная вкладка, просмотр всегда виден внизу
+        function switchTab(tab) {
+            // Функция оставлена для совместимости, но не используется
+        }
+
+        async function loadAchievements() {
+            try {
+                const response = await fetch('/api/donor-achievements');
+                const data = await response.json();
+                
+                if (data.success) {
+                    achievements = data.achievements || [];
+                    renderAchievements();
+                    // Также обновляем список донатеров
+                    if (document.getElementById('donorsList')) {
+                        renderDonorsList();
+                    }
+                } else {
+                    document.getElementById('achievementsList').innerHTML = 
+                        '<div class="empty-state"><div class="empty-state-icon">😔</div><p>Ошибка загрузки достижений</p></div>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки достижений:', error);
+                document.getElementById('achievementsList').innerHTML = 
+                    '<div class="empty-state"><div class="empty-state-icon">❌</div><p>Ошибка подключения к серверу</p></div>';
+            }
+        }
+
+        async function loadTiers() {
+            try {
+                const response = await fetch('/api/donor-achievement-tiers');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Убираем дубликаты на клиенте (дополнительная проверка)
+                    // Проверяем и по id, и по sort_order для надежности
+                    const uniqueTiers = [];
+                    const seenIds = new Set();
+                    const seenSortOrders = new Set();
+                    
+                    (data.tiers || []).forEach(tier => {
+                        const hasId = tier.id && !seenIds.has(tier.id);
+                        const hasSortOrder = tier.sort_order !== null && tier.sort_order !== undefined && !seenSortOrders.has(tier.sort_order);
+                        
+                        if (hasId && hasSortOrder) {
+                            seenIds.add(tier.id);
+                            seenSortOrders.add(tier.sort_order);
+                            uniqueTiers.push(tier);
+                        } else if (hasId) {
+                            // Если id уникален, но sort_order дублируется, все равно добавляем (приоритет id)
+                            seenIds.add(tier.id);
+                            uniqueTiers.push(tier);
+                        }
+                    });
+                    
+                    tiers = uniqueTiers;
+                    console.log(`📊 Загружено уровней: ${data.tiers?.length || 0}, уникальных: ${tiers.length}`);
+                    renderTiers();
+                    // После загрузки уровней загружаем достижения для просмотра
+                    // Используем setTimeout чтобы убедиться, что tiers уже установлены
+                    setTimeout(() => {
+                        if (document.getElementById('achievementsList')) {
+                            loadAchievements();
+                        }
+                        if (document.getElementById('donorsList')) {
+                            renderDonorsList();
+                        }
+                    }, 100);
+                } else {
+                    document.getElementById('tiersSettings').innerHTML = 
+                        '<div class="empty-state"><div class="empty-state-icon">😔</div><p>Ошибка загрузки уровней</p></div>';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки уровней:', error);
+                document.getElementById('tiersSettings').innerHTML = 
+                    '<div class="empty-state"><div class="empty-state-icon">❌</div><p>Ошибка подключения к серверу</p></div>';
+            }
+        }
+
+        function renderAchievements() {
+            const container = document.getElementById('achievementsList');
+            if (!container) {
+                console.warn('Контейнер achievementsList не найден');
+                return;
+            }
+            
+            // Ждем загрузки уровней
+            if (tiers.length === 0) {
+                container.innerHTML = 
+                    '<div class="empty-state"><div class="empty-state-icon">⏳</div><p>Загрузка уровней достижений...</p></div>';
+                return;
+            }
+
+            // Убираем дубликаты по normalized_username (дополнительная фильтрация на клиенте)
+            const uniqueAchievements = [];
+            const seenUsernames = new Set();
+            (achievements || []).forEach(achievement => {
+                const username = achievement.normalized_username || achievement.username;
+                if (username && !seenUsernames.has(username)) {
+                    seenUsernames.add(username);
+                    uniqueAchievements.push(achievement);
+                }
+            });
+
+            console.log('📊 Фильтрация достижений:', {
+                исходное: achievements?.length || 0,
+                уникальных: uniqueAchievements.length,
+                tiers: tiers.length
+            });
+
+            // Очищаем контейнер перед рендерингом
+            container.innerHTML = '<div class="achievements-grid"></div>';
+            const grid = container.querySelector('.achievements-grid');
+            if (!grid) {
+                console.error('Не удалось создать grid');
+                return;
+            }
+
+            // Сортируем уровни по sort_order
+            const sortedTiers = [...tiers].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+            console.log('📊 Рендеринг просмотра донатеров:', {
+                tiersCount: sortedTiers.length,
+                achievementsCount: uniqueAchievements.length,
+                uniqueUsernames: seenUsernames.size
+            });
+
+            // Создаем секцию для каждого уровня достижения (только один раз)
+            sortedTiers.forEach(tier => {
+                // Находим всех донатеров с этим уровнем
+                const tierDonors = uniqueAchievements.filter(a => {
+                    const tierId = a.current_tier_id || a.tier_id;
+                    return tierId === tier.id;
+                });
+                
+                console.log(`📦 Уровень "${tier.name}": ${tierDonors.length} донатеров`);
+                
+                const section = document.createElement('div');
+                section.className = 'tier-view-section';
+                
+                // Определяем, использовать ли загруженный значок или эмодзи
+                const iconDisplay = tier.custom_icon_url 
+                    ? `<img src="${tier.custom_icon_url}" alt="${tier.name}" style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px;">`
+                    : `<div class="tier-view-icon" style="color: ${tier.color || '#00f0ff'}">${tier.icon || '🏆'}</div>`;
+                
+                section.innerHTML = `
+                    <div class="tier-view-header">
+                        ${iconDisplay}
+                        <div class="tier-view-title" style="color: ${tier.color || '#00f0ff'}">${tier.name || 'Уровень'}</div>
+                        <div class="tier-view-description">${tier.description || ''}</div>
+                    </div>
+                    <div class="donors-list">
+                        ${tierDonors.length > 0 
+                            ? tierDonors.map(donor => `
+                                <div class="donor-item">
+                                    <div class="donor-name">${donor.username || donor.normalized_username || 'Аноним'}</div>
+                                    <div class="donor-time">${formatTime(donor.total_time_minutes || 0)}</div>
+                                </div>
+                            `).join('')
+                            : '<div style="text-align: center; color: rgba(255,255,255,0.5); padding: 20px;">Нет донатеров с этим достижением</div>'
+                        }
+                    </div>
+                `;
+                
+                grid.appendChild(section);
+            });
+            
+            console.log('✅ Рендеринг завершен, создано секций:', grid.children.length);
+        }
+
+        function renderDonorsList() {
+            const container = document.getElementById('donorsList');
+            if (!container) {
+                console.warn('Контейнер donorsList не найден');
+                return;
+            }
+            
+            // Ждем загрузки уровней и достижений
+            if (tiers.length === 0 || achievements.length === 0) {
+                container.innerHTML = 
+                    '<div class="empty-state"><div class="empty-state-icon">⏳</div><p>Загрузка данных...</p></div>';
+                return;
+            }
+
+            // Убираем дубликаты
+            const uniqueAchievements = [];
+            const seenUsernames = new Set();
+            (achievements || []).forEach(achievement => {
+                const username = achievement.normalized_username || achievement.username;
+                if (username && !seenUsernames.has(username)) {
+                    seenUsernames.add(username);
+                    uniqueAchievements.push(achievement);
+                }
+            });
+
+            // Сортируем уровни по sort_order
+            const sortedTiers = [...tiers].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+            // Создаем массив донатеров с информацией о следующем уровне
+            const donorsWithNextTier = uniqueAchievements.map(donor => {
+                const currentTierId = donor.current_tier_id || donor.tier_id;
+                const currentTier = sortedTiers.find(t => t.id === currentTierId);
+                const currentMinutes = donor.total_time_minutes || 0;
+                
+                // Находим следующий уровень
+                let nextTier = null;
+                if (currentTier) {
+                    const currentSortOrder = currentTier.sort_order || 0;
+                    nextTier = sortedTiers.find(t => (t.sort_order || 0) > currentSortOrder);
+                } else {
+                    // Если нет текущего уровня, берем первый
+                    nextTier = sortedTiers[0];
+                }
+                
+                // Вычисляем сколько времени не хватает до следующего уровня
+                let minutesNeeded = null;
+                if (nextTier) {
+                    const nextMinMinutes = nextTier.min_minutes || 0;
+                    minutesNeeded = Math.max(0, nextMinMinutes - currentMinutes);
+                }
+                
+                return {
+                    ...donor,
+                    currentTier: currentTier,
+                    nextTier: nextTier,
+                    minutesNeeded: minutesNeeded,
+                    currentMinutes: currentMinutes
+                };
+            });
+
+            // Сортируем донатеров по уровню достижения (по sort_order текущего уровня)
+            donorsWithNextTier.sort((a, b) => {
+                const aSort = a.currentTier ? (a.currentTier.sort_order || 0) : 0;
+                const bSort = b.currentTier ? (b.currentTier.sort_order || 0) : 0;
+                if (aSort !== bSort) {
+                    return bSort - aSort; // Сначала высшие уровни
+                }
+                // Если уровень одинаковый, сортируем по времени
+                return (b.currentMinutes || 0) - (a.currentMinutes || 0);
+            });
+
+            // Рендерим список
+            container.innerHTML = '<div class="donors-list-container"></div>';
+            const listContainer = container.querySelector('.donors-list-container');
+            
+            if (donorsWithNextTier.length === 0) {
+                listContainer.innerHTML = 
+                    '<div class="empty-state"><div class="empty-state-icon">📭</div><p>Нет донатеров</p></div>';
+                return;
+            }
+
+            donorsWithNextTier.forEach(donor => {
+                const item = document.createElement('div');
+                item.className = 'donor-list-item';
+                
+                // Определяем значок текущего уровня
+                const iconDisplay = donor.currentTier?.custom_icon_url 
+                    ? `<img src="${donor.currentTier.custom_icon_url}" alt="${donor.currentTier.name}">`
+                    : `<div style="color: ${donor.currentTier?.color || '#00f0ff'}">${donor.currentTier?.icon || '🏆'}</div>`;
+                
+                // Форматируем время
+                const timeStr = formatTime(donor.currentMinutes);
+                
+                // Форматируем время до следующего уровня
+                let nextTierInfo = '';
+                if (donor.nextTier && donor.minutesNeeded !== null && donor.minutesNeeded > 0) {
+                    const nextTimeStr = formatTime(donor.minutesNeeded);
+                    nextTierInfo = `До "${donor.nextTier.name}": ${nextTimeStr}`;
+                } else if (!donor.nextTier) {
+                    nextTierInfo = 'Максимальный уровень достигнут! 🎉';
+                } else {
+                    nextTierInfo = 'Достигнут максимальный уровень';
+                }
+                
+                item.innerHTML = `
+                    <div class="donor-list-info">
+                        <div class="donor-list-icon">${iconDisplay}</div>
+                        <div class="donor-list-details">
+                            <div class="donor-list-name">${donor.username || donor.normalized_username || 'Аноним'}</div>
+                            <div class="donor-list-tier" style="color: ${donor.currentTier?.color || '#00f0ff'}">
+                                ${donor.currentTier?.name || 'Без уровня'} ${donor.currentTier ? `(${donor.currentTier.description || ''})` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="donor-list-stats">
+                        <div class="donor-list-time">${timeStr}</div>
+                        <div class="donor-list-next ${donor.nextTier && donor.minutesNeeded > 0 ? 'highlight' : ''}">
+                            ${nextTierInfo}
+                        </div>
+                    </div>
+                `;
+                
+                listContainer.appendChild(item);
+            });
+            
+            console.log('✅ Список донатеров отрендерен:', donorsWithNextTier.length);
+        }
+
+        function renderTiers() {
+            const container = document.getElementById('tiersSettings');
+            if (!container) {
+                console.warn('Контейнер tiersSettings не найден');
+                return;
+            }
+            
+            if (tiers.length === 0) {
+                container.innerHTML = 
+                    '<div class="empty-state"><div class="empty-state-icon">📭</div><p>Нет уровней для настройки</p></div>';
+                return;
+            }
+
+            // Очищаем контейнер перед рендерингом
+            container.innerHTML = '';
+            
+            // Сортируем и создаем элементы для каждого уровня
+            tiers.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).forEach(tier => {
+                const item = document.createElement('div');
+                item.className = 'tier-item';
+                // Определяем, использовать ли загруженный значок или эмодзи
+                const iconPreview = tier.custom_icon_url 
+                    ? `<img src="${tier.custom_icon_url}" alt="${tier.name}" style="width: 60px; height: 60px; object-fit: contain; border-radius: 8px;">`
+                    : `<div style="font-size: 2rem; text-align: center; line-height: 60px;">${tier.icon || '🏆'}</div>`;
+                
+                item.innerHTML = `
+                    <div class="tier-header">
+                        <div style="position: relative; width: 60px; height: 60px; background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            ${iconPreview}
+                            <input type="file" accept="image/*" class="tier-icon-upload" 
+                                   data-id="${tier.id}" 
+                                   style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;"
+                                   onchange="uploadTierIcon(${tier.id}, this)">
+                        </div>
+                        <div style="flex: 1; margin-left: 15px;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                <input type="text" class="tier-icon-input" value="${tier.icon || '🏆'}" 
+                                       data-id="${tier.id}" data-field="icon" maxlength="2" 
+                                       style="width: 60px; height: 40px; font-size: 1.5rem; text-align: center; background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 6px; color: var(--light);">
+                                <span style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">или загрузите изображение</span>
+                            </div>
+                            <h3>${tier.name || 'Уровень'}</h3>
+                            <p style="color: rgba(255,255,255,0.5); font-size: 0.9rem;">${tier.description || ''}</p>
+                            ${tier.custom_icon_url ? `<button onclick="removeTierIcon(${tier.id})" style="margin-top: 5px; padding: 5px 10px; background: rgba(255, 0, 0, 0.2); border: 1px solid rgba(255, 0, 0, 0.5); border-radius: 4px; color: #ff4444; cursor: pointer; font-size: 0.8rem;">Удалить значок</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="tier-form">
+                        <div class="form-group">
+                            <label>Название</label>
+                            <input type="text" value="${tier.name || ''}" 
+                                   data-id="${tier.id}" data-field="name">
+                        </div>
+                        <div class="form-group">
+                            <label>Мин. минут</label>
+                            <input type="number" value="${tier.min_minutes || 0}" 
+                                   data-id="${tier.id}" data-field="min_minutes" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Макс. минут (null = без ограничений)</label>
+                            <input type="number" value="${tier.max_minutes || ''}" 
+                                   data-id="${tier.id}" data-field="max_minutes" 
+                                   placeholder="Оставьте пустым для последнего уровня" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Цвет (HEX)</label>
+                            <input type="text" value="${tier.color || '#00f0ff'}" 
+                                   data-id="${tier.id}" data-field="color" 
+                                   pattern="#[0-9A-Fa-f]{6}">
+                        </div>
+                        <div class="form-group">
+                            <label>Описание</label>
+                            <input type="text" value="${tier.description || ''}" 
+                                   data-id="${tier.id}" data-field="description">
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <button class="btn" onclick="saveTier(${tier.id})">💾 Сохранить</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function saveTier(tierId) {
+            const inputs = document.querySelectorAll(`[data-id="${tierId}"]`);
+            const updates = {};
+            
+            inputs.forEach(input => {
+                const field = input.dataset.field;
+                let value = input.value;
+                
+                if (field === 'min_minutes' || field === 'max_minutes') {
+                    value = value === '' ? null : parseInt(value);
+                } else if (field === 'icon') {
+                    value = value.trim();
+                }
+                
+                updates[field] = value;
+            });
+
+            try {
+                const response = await fetch(`/api/donor-achievement-tiers/${tierId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ Уровень сохранен!');
+                    await loadTiers();
+                    // Обновляем просмотр донатеров после сохранения
+                    setTimeout(() => loadAchievements(), 500);
+                } else {
+                    alert('❌ Ошибка сохранения: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения уровня:', error);
+                alert('❌ Ошибка подключения к серверу');
+            }
+        }
+
+        function formatTime(minutes) {
+            if (minutes < 60) {
+                return `${minutes} мин`;
+            } else if (minutes < 1440) {
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                return mins > 0 ? `${hours} ч ${mins} мин` : `${hours} ч`;
+            } else {
+                const days = Math.floor(minutes / 1440);
+                const hours = Math.floor((minutes % 1440) / 60);
+                return hours > 0 ? `${days} д ${hours} ч` : `${days} д`;
+            }
+        }
+
+        async function uploadTierIcon(tierId, input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            if (!file.type.startsWith('image/')) {
+                alert('❌ Пожалуйста, выберите изображение');
+                return;
+            }
+            
+            if (file.size > 2 * 1024 * 1024) { // 2MB
+                alert('❌ Размер файла не должен превышать 2MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const response = await fetch(`/api/donor-achievement-tiers/${tierId}/upload-icon`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            imageData: e.target.result
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('✅ Значок успешно загружен!');
+                        loadTiers();
+                        loadAchievements();
+                    } else {
+                        alert('❌ Ошибка загрузки: ' + (data.error || 'Неизвестная ошибка'));
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки значка:', error);
+                    alert('❌ Ошибка подключения к серверу');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function removeTierIcon(tierId) {
+            if (!confirm('Удалить загруженный значок?')) return;
+            
+            try {
+                const response = await fetch(`/api/donor-achievement-tiers/${tierId}/icon`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('✅ Значок удален!');
+                    loadTiers();
+                    // Обновляем просмотр донатеров после удаления значка
+                    setTimeout(() => loadAchievements(), 500);
+                } else {
+                    alert('❌ Ошибка удаления: ' + (data.error || 'Неизвестная ошибка'));
+                }
+            } catch (error) {
+                console.error('Ошибка удаления значка:', error);
+                alert('❌ Ошибка подключения к серверу');
+            }
+        }
+
+        // Загружаем данные при загрузке страницы
+        // Сначала загружаем уровни, затем достижения (чтобы renderAchievements мог использовать tiers)
+        document.addEventListener('DOMContentLoaded', () => {
+            // Сначала загружаем уровни
+            loadTiers();
+            // Затем загружаем достижения (они будут обновлены после загрузки уровней в loadTiers)
+            setTimeout(() => loadAchievements(), 300);
+        });
+    </script>
+</body>
+</html>
+

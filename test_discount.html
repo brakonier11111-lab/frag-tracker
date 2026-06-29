@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Discount API</title>
+</head>
+<body>
+    <h1>Test Discount API</h1>
+    <button onclick="testDiscountStart()">Start Discount</button>
+    <button onclick="testDiscountStop()">Stop Discount</button>
+    <button onclick="testGetState()">Get State</button>
+    <div id="result"></div>
+
+    <script>
+        async function testDiscountStart() {
+            try {
+                const response = await fetch('/api/timer-control', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'discount_start',
+                        discount_amount: 10,
+                        duration_seconds: 60
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 'Start Discount: ' + JSON.stringify(result);
+                console.log('Start Discount:', result);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+
+        async function testDiscountStop() {
+            try {
+                const response = await fetch('/api/timer-control', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'discount_stop'
+                    })
+                });
+                
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 'Stop Discount: ' + JSON.stringify(result);
+                console.log('Stop Discount:', result);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+
+        async function testGetState() {
+            try {
+                const response = await fetch('/api/state');
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 'State: ' + JSON.stringify(result, null, 2);
+                console.log('State:', result);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
+
+
+

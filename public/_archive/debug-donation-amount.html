@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностика суммы донатов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .success { color: #00ff88; }
+        .error { color: #ff4444; }
+        .info { color: #00d4ff; }
+        button {
+            background: #ff0040;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #ff0066; }
+        .widget-frame {
+            width: 100%;
+            height: 300px;
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Диагностика суммы донатов</h1>
+        
+        <div class="test-section">
+            <h2>📊 Тест API</h2>
+            <button onclick="testAPI()">🔄 Проверить API</button>
+            <div id="apiResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎯 Тест виджета</h2>
+            <button onclick="testWidget()">🔄 Проверить виджет</button>
+            <div id="widgetResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📱 Превью виджета</h2>
+            <div class="widget-frame">
+                <iframe id="widgetFrame" src="/widget-mode2-copy.html"></iframe>
+            </div>
+            <button onclick="refreshWidget()">🔄 Обновить виджет</button>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 Исправление</h2>
+            <button onclick="fixTotalDonated()">🔧 Исправить total_donated</button>
+            <div id="fixResult"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            element.appendChild(div);
+            console.log(message);
+        }
+
+        async function testAPI() {
+            log('apiResult', '🔄 Тестируем API /api/donations-stats...', 'info');
+            
+            try {
+                const response = await fetch('/api/donations-stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('apiResult', `✅ API работает! Сумма: ${data.totalAmount.toLocaleString()} RUB`, 'success');
+                    log('apiResult', `✅ Количество: ${data.totalCount} донатов`, 'success');
+                } else {
+                    log('apiResult', `❌ Ошибка API: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log('apiResult', `❌ Ошибка запроса: ${error.message}`, 'error');
+            }
+        }
+
+        async function testWidget() {
+            log('widgetResult', '🎯 Тестируем загрузку в виджете...', 'info');
+            
+            try {
+                // Проверяем, что виджет загружен
+                const iframe = document.getElementById('widgetFrame');
+                const widgetDoc = iframe.contentDocument || iframe.contentWindow.document;
+                
+                if (widgetDoc) {
+                    const donationAmount = widgetDoc.getElementById('donationAmount');
+                    if (donationAmount) {
+                        log('widgetResult', `📱 Виджет показывает: ${donationAmount.textContent}`, 'info');
+                        
+                        // Проверяем, есть ли функция loadDonationStats
+                        const widgetWindow = iframe.contentWindow;
+                        if (widgetWindow && typeof widgetWindow.loadDonationStats === 'function') {
+                            log('widgetResult', '✅ Функция loadDonationStats найдена', 'success');
+                            
+                            // Вызываем функцию
+                            await widgetWindow.loadDonationStats();
+                            log('widgetResult', '🔄 Функция loadDonationStats вызвана', 'info');
+                            
+                            // Проверяем результат
+                            setTimeout(() => {
+                                const newAmount = widgetDoc.getElementById('donationAmount');
+                                if (newAmount) {
+                                    log('widgetResult', `📱 После обновления: ${newAmount.textContent}`, 'success');
+                                }
+                            }, 1000);
+                        } else {
+                            log('widgetResult', '❌ Функция loadDonationStats не найдена', 'error');
+                        }
+                    } else {
+                        log('widgetResult', '❌ Элемент donationAmount не найден', 'error');
+                    }
+                } else {
+                    log('widgetResult', '❌ Не удалось получить доступ к документу виджета', 'error');
+                }
+            } catch (error) {
+                log('widgetResult', `❌ Ошибка тестирования виджета: ${error.message}`, 'error');
+            }
+        }
+
+        async function fixTotalDonated() {
+            log('fixResult', '🔧 Исправляем total_donated...', 'info');
+            
+            try {
+                const response = await fetch('/api/fix-total-donated', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    log('fixResult', `✅ Исправление выполнено!`, 'success');
+                    log('fixResult', `📊 Старое значение: ${data.oldValue}`, 'info');
+                    log('fixResult', `📊 Новое значение: ${data.newValue}`, 'success');
+                    
+                    // Обновляем виджет
+                    setTimeout(() => {
+                        refreshWidget();
+                        testWidget();
+                    }, 2000);
+                } else {
+                    log('fixResult', `❌ Ошибка исправления: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log('fixResult', `❌ Ошибка запроса: ${error.message}`, 'error');
+            }
+        }
+
+        function refreshWidget() {
+            const iframe = document.getElementById('widgetFrame');
+            const src = iframe.src;
+            iframe.src = '';
+            setTimeout(() => {
+                iframe.src = src;
+            }, 100);
+        }
+
+        // Автоматический тест при загрузке
+        window.addEventListener('load', () => {
+            setTimeout(testAPI, 1000);
+            setTimeout(testWidget, 3000);
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
