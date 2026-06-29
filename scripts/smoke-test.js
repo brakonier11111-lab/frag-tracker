@@ -124,6 +124,27 @@ check('POST /api/test-donation', async () => {
     if (!json.success) throw new Error('expected success: ' + JSON.stringify(json));
 });
 
+check('GET /api/donation-driven-widget', async () => {
+    const res = await fetch(`${BASE_URL}/api/donation-driven-widget`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.current_value === 'undefined') throw new Error('no current_value: ' + JSON.stringify(json));
+});
+
+check('POST /api/donation-driven-widget/add', async () => {
+    const res = await fetch(`${BASE_URL}/api/donation-driven-widget/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 100 })
+    });
+    if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
+check('POST /api/donation-driven-widget/reset', async () => {
+    const res = await fetch(`${BASE_URL}/api/donation-driven-widget/reset`, { method: 'POST' });
+    if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
 check('POST /api/force-check-donations', async () => {
     const res = await fetch(`${BASE_URL}/api/force-check-donations`, { method: 'POST' });
     if (res.status !== 200) throw new Error('status ' + res.status);
