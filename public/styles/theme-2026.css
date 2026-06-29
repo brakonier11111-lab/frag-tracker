@@ -411,6 +411,36 @@ body.theme-2026 > #menu-container { position: relative; z-index: 1; }
 }
 .theme-2026 .input-field:focus { border-color: var(--t-accent-2) !important; outline: none !important; }
 
+/* Убрать неоновые полоски-псевдоэлементы у панелей (admin/analytics и пр.) */
+.theme-2026 .panel::before, .theme-2026 .panel::after { content: none !important; display: none !important; }
+
+/* Заголовок .title → hero-градиент (общий) */
+.theme-2026 .title {
+    font-family: 'Inter', sans-serif !important; text-transform: none !important;
+    font-weight: 800 !important; letter-spacing: -1px !important;
+    background: var(--t-grad-orange) !important; -webkit-background-clip: text !important; background-clip: text !important;
+    color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important;
+}
+.theme-2026 .subtitle { color: var(--t-text-dim) !important; text-transform: none !important; letter-spacing: 0 !important; }
+
+/* Заголовки h2/h3 — Inter, белые, без капса */
+.theme-2026 h2, .theme-2026 h3 {
+    font-family: 'Inter', sans-serif !important; color: var(--t-text) !important; text-transform: none !important;
+    letter-spacing: -.3px !important; -webkit-text-fill-color: var(--t-text) !important; text-shadow: none !important;
+}
+
+/* Карточки .stat-item (как .stat-card) */
+.theme-2026 .stat-item {
+    background: radial-gradient(120% 80% at 100% 0%, rgba(255,94,126,.07), transparent 55%), var(--t-surface) !important;
+    border: 1px solid rgba(255,255,255,.08) !important; border-radius: 16px !important; box-shadow: none !important;
+}
+.theme-2026 .stat-item .stat-value {
+    font-weight: 800 !important; letter-spacing: -.5px !important;
+    background: var(--t-grad-orange) !important; -webkit-background-clip: text !important; background-clip: text !important;
+    color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important;
+}
+.theme-2026 .stat-item .stat-label { color: var(--t-text-dim) !important; }
+
 /* Утилиты градиентных акцентов */
 .t-accent-orange { background: var(--t-grad-orange); }
 .t-accent-blue   { background: var(--t-grad-blue); }
