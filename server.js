@@ -1,6 +1,9 @@
 const { APP_ROOT, USER_DATA, loadEnv, resolveDbPath } = require('./src/bootstrap/paths');
 loadEnv();
 
+const logger = require('./src/utils/logger');
+const console = { log: logger.info, warn: logger.warn, error: logger.error };
+
 const path = require('path');
 const fs = require('fs');
 
