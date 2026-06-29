@@ -414,8 +414,8 @@ body.theme-2026 > #menu-container { position: relative; z-index: 1; }
 /* Убрать неоновые полоски-псевдоэлементы у панелей (admin/analytics и пр.) */
 .theme-2026 .panel::before, .theme-2026 .panel::after { content: none !important; display: none !important; }
 
-/* Заголовок .title → hero-градиент (общий) */
-.theme-2026 .title {
+/* Заголовок .title / h1 → hero-градиент (общий) */
+.theme-2026 .title, .theme-2026 .page-title, .theme-2026 h1 {
     font-family: 'Inter', sans-serif !important; text-transform: none !important;
     font-weight: 800 !important; letter-spacing: -1px !important;
     background: var(--t-grad-orange) !important; -webkit-background-clip: text !important; background-clip: text !important;
