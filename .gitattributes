@@ -1,0 +1,30 @@
+# Нормализация концов строк при переносе Windows <-> macOS/Linux.
+# Текстовые файлы хранятся в репозитории с LF, при выгрузке git подставляет
+# нужный формат под текущую ОС.
+* text=auto eol=lf
+
+# Windows-скрипты должны оставаться в CRLF, иначе не запускаются на Windows.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Бинарные файлы git не трогает.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.mp3 binary
+*.mp4 binary
+*.webm binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+*.pyc binary
+*.pfx binary
