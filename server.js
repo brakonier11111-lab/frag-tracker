@@ -6492,16 +6492,6 @@ function getBroadcastState(fullState) {
 
 // Управление таймером
 // API для принудительной проверки донатов
-app.post('/api/force-check-donations', async (req, res) => {
-    try {
-        await forceCheckDonations();
-        res.json({ success: true, message: 'Проверка донатов выполнена' });
-    } catch (error) {
-        console.error('❌ Ошибка принудительной проверки:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
 // Диагностика опроса донатов
 app.get('/api/diagnose-polling', async (req, res) => {
     try {
@@ -11588,58 +11578,6 @@ app.get('/api/donors/top/today', (req, res) => {
 });
 
 // Ручное добавление доната (для добавления записей в топ)
-app.post('/api/manual-donation', (req, res) => {
-    const { username, amount, time_earned, message } = req.body;
-    
-    if (!username || !amount) {
-        return res.status(400).json({ success: false, error: 'Требуется username и amount' });
-    }
-    
-    const normalized = normalizeUsername(username);
-    const donationId = require('crypto').randomUUID();
-    const timeEarned = time_earned || Math.round(amount / 50 * 60); // По умолчанию 50р за минуту
-    
-    const stmt = db.prepare(`
-        INSERT INTO donations (
-            id, username, normalized_username, amount, time_earned, 
-            message, currency, is_realtime, frags_earned, 
-            custom_units_earned, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    
-    stmt.run(
-        donationId,
-        username,
-        normalized,
-        amount,
-        timeEarned,
-        message || '',
-        'RUB',
-        0,
-        0,
-        0,
-        new Date().toISOString()
-    , (err) => {
-        if (err) {
-            console.error('❌ Ошибка добавления доната:', err);
-            return res.status(500).json({ success: false, error: err.message });
-        }
-        
-        console.log(`✅ Ручной донат добавлен: ${username} - ${amount}₽, ${timeEarned} сек`);
-        res.json({ 
-            success: true, 
-            donation: {
-                id: donationId,
-                username,
-                amount,
-                time_earned: timeEarned
-            }
-        });
-    });
-    
-    stmt.finalize();
-});
-
 // Очистка истории донатов
 app.post('/api/clear-donations', (req, res) => {
     db.run('DELETE FROM donations', (err) => {
