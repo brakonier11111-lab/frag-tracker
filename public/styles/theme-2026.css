@@ -40,6 +40,46 @@
     --t-shadow: 0 18px 40px -20px rgba(0, 0, 0, .7);
 }
 
+/* --- Переопределение старой неоновой палитры ---
+   Перекрашивает все элементы, использующие var(--neon-*)/var(--dark*),
+   в спокойную палитру 2026. body — более близкий предок, чем :root,
+   поэтому эти значения побеждают локальные :root страниц. */
+body.theme-2026 {
+    --color-neon-red: #ff5e7e;
+    --color-neon-blue: #4be0ff;
+    --color-neon-purple: #8a5cff;
+    --color-neon-green: #19c37d;
+    --color-neon-yellow: #ffc24b;
+    --neon-red: #ff5e7e;
+    --neon-blue: #4be0ff;
+    --neon-purple: #8a5cff;
+    --neon-green: #19c37d;
+    --neon-yellow: #ffc24b;
+
+    --color-dark: #14141a;
+    --color-darker: #0e0e12;
+    --dark: #14141a;
+    --darker: #0e0e12;
+
+    --gradient-primary: var(--t-grad-orange);
+    --gradient-success: var(--t-grad-green);
+    --gradient-danger:  var(--t-grad-orange);
+    --gradient-warning: var(--t-grad-gold);
+    --gradient-neon:    var(--t-grad-orange);
+
+    --glass-bg: rgba(255, 255, 255, 0.035);
+    --glass-bg-hover: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.07);
+    --glass-border-hover: rgba(255, 255, 255, 0.14);
+}
+
+/* Гасим тяжёлые неоновые свечения, оставшиеся на старых страницах */
+body.theme-2026 [style*="text-shadow"],
+body.theme-2026 .title,
+body.theme-2026 .mode-title {
+    text-shadow: none !important;
+}
+
 /* Применяем тему ТОЛЬКО когда у <body> есть класс .theme-2026,
    чтобы случайно не задеть прозрачные OBS-виджеты. */
 body.theme-2026 {
@@ -124,6 +164,100 @@ body.theme-2026 {
     color: transparent;
 }
 .theme-2026 ::placeholder { color: var(--t-text-mut); }
+
+/* =====================================================================
+   Структурная прокачка распространённых блоков старых страниц.
+   Целимся в часто встречающиеся классы, чтобы поднять вид всех
+   панелей разом, а не только перекрасить.
+   ===================================================================== */
+
+/* Карточки/панели/секции/графики/статы → единое «стекло» */
+.theme-2026 .stat-card,
+.theme-2026 .chart-container,
+.theme-2026 .section-card,
+.theme-2026 .glass-card,
+.theme-2026 .info-card,
+.theme-2026 .settings-section,
+.theme-2026 .control-section,
+.theme-2026 .form-section {
+    background:
+        radial-gradient(120% 80% at 100% 0%, rgba(255, 94, 126, 0.06), transparent 55%),
+        var(--t-surface) !important;
+    border: 1px solid var(--t-border) !important;
+    border-radius: var(--t-radius-lg) !important;
+    box-shadow: var(--t-shadow) !important;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    transition: transform var(--t-ease), box-shadow var(--t-ease), border-color var(--t-ease);
+}
+.theme-2026 .stat-card:hover,
+.theme-2026 .chart-container:hover,
+.theme-2026 .section-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--t-border-2) !important;
+    box-shadow: 0 24px 44px -22px rgba(0,0,0,.8), 0 0 50px -24px rgba(255, 94, 126, .4) !important;
+}
+
+/* Крупные значения статистики — градиентом */
+.theme-2026 .stat-value {
+    background: var(--t-grad-orange);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.5px;
+}
+.theme-2026 .stat-card:nth-child(2) .stat-value { background: var(--t-grad-blue);   -webkit-background-clip: text; background-clip: text; }
+.theme-2026 .stat-card:nth-child(3) .stat-value { background: var(--t-grad-green);  -webkit-background-clip: text; background-clip: text; }
+.theme-2026 .stat-card:nth-child(4) .stat-value { background: var(--t-grad-purple); -webkit-background-clip: text; background-clip: text; }
+.theme-2026 .stat-label { color: var(--t-text-dim) !important; }
+
+/* Заголовок страницы → hero */
+.theme-2026 .container > .header .title,
+.theme-2026 .container > .header > .title,
+.theme-2026 .page-header .title {
+    font-weight: 800 !important;
+    letter-spacing: -1px !important;
+    background: var(--t-grad-orange);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+}
+.theme-2026 .subtitle { color: var(--t-text-dim) !important; }
+
+/* ---- Верхнее меню (menu.html) ---- */
+.theme-2026 .top-menu,
+body.theme-2026 .top-menu {
+    background: rgba(14, 14, 18, 0.72) !important;
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--t-border) !important;
+}
+.theme-2026 .menu-logo {
+    background: var(--t-grad-orange);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent !important;
+    font-weight: 800 !important;
+}
+.theme-2026 .menu-item {
+    background: var(--t-surface) !important;
+    border: 1px solid var(--t-border) !important;
+    border-radius: 10px !important;
+    color: var(--t-text-dim) !important;
+    transition: all var(--t-ease);
+}
+.theme-2026 .menu-item:hover {
+    background: var(--t-surface-2) !important;
+    color: var(--t-text) !important;
+    border-color: var(--t-border-2) !important;
+    transform: translateY(-1px);
+}
+.theme-2026 .menu-item.active {
+    border-color: transparent !important;
+    background: var(--t-grad-orange) !important;
+    color: #fff !important;
+}
 
 /* Утилиты градиентных акцентов */
 .t-accent-orange { background: var(--t-grad-orange); }
