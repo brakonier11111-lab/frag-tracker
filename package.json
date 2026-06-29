@@ -9,6 +9,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "init-db": "node init-db.js",
+    "smoke-test": "node scripts/smoke-test.js",
     "stagewise": "stagewise",
     "electron": "electron .",
     "electron:dev": "electron .",

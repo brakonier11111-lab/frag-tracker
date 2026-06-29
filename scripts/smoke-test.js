@@ -1,0 +1,173 @@
+'use strict';
+/**
+ * Smoke-test для server.js: поднимает сервер на отдельном порту с временной
+ * копией БД и бьёт по ключевым эндпоинтам, чтобы поймать явные регрессии
+ * после рефакторинга. Не подменяет нормальные тесты, но дёшево ловит
+ * "сервер не стартует" / "роут отвалился" / "JSON сломан".
+ *
+ * Запуск: node scripts/smoke-test.js
+ */
+
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+const APP_ROOT = path.join(__dirname, '..');
+const PORT = process.env.SMOKE_PORT || 3999;
+const BASE_URL = `http://localhost:${PORT}`;
+
+function makeTmpUserData() {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frag-smoke-'));
+    const srcDb = path.join(APP_ROOT, 'frag_tracker.db');
+    const dstDb = path.join(dir, 'frag_tracker.db');
+    if (fs.existsSync(srcDb)) {
+        fs.copyFileSync(srcDb, dstDb);
+    }
+    return dir;
+}
+
+function startServer(userDataDir) {
+    return spawn(process.execPath, ['server.js'], {
+        cwd: APP_ROOT,
+        env: {
+            ...process.env,
+            PORT: String(PORT),
+            FRAG_USER_DATA: userDataDir,
+            NODE_ENV: 'test'
+        },
+        stdio: ['ignore', 'pipe', 'pipe']
+    });
+}
+
+function waitForReady(child, timeoutMs = 20000) {
+    return new Promise((resolve, reject) => {
+        let buf = '';
+        const timer = setTimeout(() => {
+            reject(new Error('Сервер не вышел на готовность за ' + timeoutMs + 'мс. Вывод:\n' + buf));
+        }, timeoutMs);
+
+        child.stdout.on('data', (chunk) => {
+            buf += chunk.toString();
+            if (buf.includes('FRAG_SERVER_READY:')) {
+                clearTimeout(timer);
+                resolve();
+            }
+        });
+        child.stderr.on('data', (chunk) => {
+            buf += chunk.toString();
+        });
+        child.on('exit', (code) => {
+            clearTimeout(timer);
+            reject(new Error('Сервер завершился раньше готовности, код ' + code + '. Вывод:\n' + buf));
+        });
+    });
+}
+
+const checks = [];
+function check(name, fn) {
+    checks.push({ name, fn });
+}
+
+check('GET /healthz', async () => {
+    const res = await fetch(`${BASE_URL}/healthz`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.ok !== true) throw new Error('unexpected body ' + JSON.stringify(json));
+});
+
+check('GET /api/donation-goal', async () => {
+    const res = await fetch(`${BASE_URL}/api/donation-goal`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json !== 'object' || json === null) throw new Error('not an object');
+});
+
+check('PUT /api/donation-goal', async () => {
+    const res = await fetch(`${BASE_URL}/api/donation-goal`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Smoke Test Goal', targetAmount: 12345 })
+    });
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.goal && !json.title) throw new Error('no goal in response: ' + JSON.stringify(json));
+});
+
+check('GET /api/donation-goal/history', async () => {
+    const res = await fetch(`${BASE_URL}/api/donation-goal/history`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
+check('GET /api/donation-goal/export', async () => {
+    const res = await fetch(`${BASE_URL}/api/donation-goal/export`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
+check('POST /api/donation-goal/manual-donation', async () => {
+    const res = await fetch(`${BASE_URL}/api/donation-goal/manual-donation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 100 })
+    });
+    if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
+check('POST /api/test-donation', async () => {
+    const res = await fetch(`${BASE_URL}/api/test-donation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'SmokeTest', amount: 50 })
+    });
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.success) throw new Error('expected success: ' + JSON.stringify(json));
+});
+
+check('POST /api/force-check-donations', async () => {
+    const res = await fetch(`${BASE_URL}/api/force-check-donations`, { method: 'POST' });
+    if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
+check('GET / (главная страница)', async () => {
+    const res = await fetch(`${BASE_URL}/`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
+async function main() {
+    const userDataDir = makeTmpUserData();
+    const child = startServer(userDataDir);
+
+    let exitCode = 0;
+    try {
+        await waitForReady(child);
+        console.log(`✅ Сервер поднялся на ${BASE_URL}\n`);
+
+        for (const { name, fn } of checks) {
+            try {
+                await fn();
+                console.log(`  ✅ ${name}`);
+            } catch (err) {
+                exitCode = 1;
+                console.log(`  ❌ ${name} — ${err.message}`);
+            }
+        }
+    } catch (err) {
+        console.error('❌ ' + err.message);
+        exitCode = 1;
+    } finally {
+        child.kill();
+        // Windows не сразу отпускает файл sqlite после kill — даём время.
+        await new Promise((r) => setTimeout(r, 1000));
+        try {
+            fs.rmSync(userDataDir, { recursive: true, force: true });
+        } catch (cleanupErr) {
+            console.warn('⚠️ Не удалось удалить temp-папку:', cleanupErr.message);
+        }
+    }
+
+    console.log(exitCode === 0 ? '\nSMOKE TEST: PASS' : '\nSMOKE TEST: FAIL');
+    process.exit(exitCode);
+}
+
+main();
