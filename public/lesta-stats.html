@@ -767,6 +767,35 @@
         }
     </style>
     <link rel="stylesheet" href="/styles/theme-2026.css">
+    <style>
+    /* ГЛУБОКИЙ РЕДИЗАЙН Lesta Games */
+    body.theme-neon.theme-2026 { background:#0e0e12 !important; }
+    body.theme-neon.theme-2026::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+        background: radial-gradient(45% 35% at 90% 4%, rgba(255,90,120,.12), transparent 60%), radial-gradient(40% 35% at 4% 98%, rgba(110,90,255,.10), transparent 60%); }
+    .theme-2026 .player-header { position:relative; z-index:1; margin-top:140px !important; background:var(--t-surface) !important; border:1px solid var(--t-border) !important; border-radius:22px !important; box-shadow:var(--t-shadow) !important; }
+    .theme-2026 .player-name { font-weight:800 !important; letter-spacing:-1px !important; background:var(--t-grad-orange) !important; -webkit-background-clip:text !important; background-clip:text !important; color:transparent !important; -webkit-text-fill-color:transparent !important; text-shadow:none !important; }
+    .theme-2026 .player-id { color:var(--t-text-dim) !important; }
+    /* вкладки */
+    .theme-2026 .tab-btn { background:transparent !important; border:1px solid transparent !important; color:var(--t-text-dim) !important; border-radius:11px !important; font-weight:600 !important; box-shadow:none !important; transition:all var(--t-ease) !important; }
+    .theme-2026 .tab-btn:hover { color:var(--t-text) !important; background:var(--t-surface-2) !important; }
+    .theme-2026 .tab-btn.active { background:var(--t-grad-orange) !important; color:#fff !important; box-shadow:0 10px 24px -12px rgba(255,80,110,.8) !important; }
+    /* период */
+    .theme-2026 .period-btn { background:var(--t-surface) !important; border:1px solid var(--t-border) !important; color:var(--t-text-dim) !important; border-radius:10px !important; box-shadow:none !important; transition:all var(--t-ease) !important; }
+    .theme-2026 .period-btn:hover { color:var(--t-text) !important; border-color:var(--t-border-2) !important; }
+    .theme-2026 .period-btn.active { background:var(--t-grad-blue) !important; color:#06212b !important; border-color:transparent !important; }
+    /* блоки/карточки */
+    .theme-2026 .stat-block, .theme-2026 .main-stat-item, .theme-2026 .period-metric {
+        background:var(--t-surface) !important; border:1px solid var(--t-border) !important; border-radius:16px !important; box-shadow:none !important;
+    }
+    .theme-2026 .stat-block-title { color:var(--t-text) !important; -webkit-text-fill-color:var(--t-text) !important; text-shadow:none !important; }
+    .theme-2026 .main-stat-value { font-weight:800 !important; background:var(--t-grad-orange) !important; -webkit-background-clip:text !important; background-clip:text !important; color:transparent !important; -webkit-text-fill-color:transparent !important; text-shadow:none !important; }
+    .theme-2026 .main-stat-label, .theme-2026 .metric-cell-label, .theme-2026 .period-metric-label { color:var(--t-text-dim) !important; }
+    /* ячейки метрик */
+    .theme-2026 .metric-cell { background:var(--t-bg-soft) !important; border:1px solid var(--t-border) !important; border-radius:12px !important; }
+    .theme-2026 .metric-cell-value, .theme-2026 .period-metric-value { color:var(--t-text) !important; -webkit-text-fill-color:var(--t-text) !important; font-weight:700 !important; text-shadow:none !important; }
+    /* таблица танков */
+    .theme-2026 .tank-table-header { background:var(--t-surface-2) !important; color:var(--t-text-dim) !important; }
+    </style>
 </head>
 <body class="theme-neon theme-2026">
     <!-- Верхнее меню -->
