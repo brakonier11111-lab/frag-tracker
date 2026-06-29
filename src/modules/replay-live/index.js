@@ -905,13 +905,6 @@ function createReplayLiveModule(deps) {
 
     function pickFreshestTouchedExtraDirZip(maxAgeMs) {
         const limit = maxAgeMs != null ? maxAgeMs : ZIP_JUST_OPENED_MS;
-        // Петля обратной связи: файл, который модуль уже крутит / закреплён в
-        // playbackReplayPath, он же постоянно перечитывает — его atime искусственно
-        // «свежий». Исключаем его из выбора «самого свежего», иначе он на старте
-        // всегда выигрывает у реально только что открытого пользователем реплея.
-        const selfReadKey = replayBasenameKey(path.basename(
-            currentExclusivePlaybackPath() || (config.playbackReplayPath || '')
-        ));
         let best = null;
         for (const dir of normalizeExtraReplaysDirs(config.extraReplaysDirs)) {
             if (!fs.existsSync(dir)) continue;
@@ -923,7 +916,6 @@ function createReplayLiveModule(deps) {
             }
             for (const name of names) {
                 if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
-                if (selfReadKey && replayBasenameKey(name) === selfReadKey) continue;
                 const full = path.join(dir, name);
                 if (!replayPathExists(full)) continue;
                 const act = getReplayFileActivity(full);
@@ -987,14 +979,7 @@ function createReplayLiveModule(deps) {
         if (!currentPath) return null;
         const currentKey = replayBasenameKey(path.basename(currentPath));
         const currentAct = getReplayFileActivity(currentPath);
-        // ВАЖНО (петля обратной связи): модуль сам постоянно перечитывает играющий
-        // реплей, из-за чего его atime искусственно держится «сейчас». Если брать его
-        // живой atime как базу, то реально только что открытый ДРУГОЙ файл всегда
-        // выглядит «старее» и переключение не происходит. Поэтому базой берём момент
-        // выбора текущего реплея (replaySelectedAt) — он не загрязняется самочтением.
-        const selectedAt = playbackSession.replaySelectedAt || lastActivePlaybackAt || 0;
-        const liveTouch = currentAct.lastTouchMs || 0;
-        const currentTouch = selectedAt ? Math.min(liveTouch, selectedAt) : liveTouch;
+        const currentTouch = currentAct.lastTouchMs || 0;
         const scanned = scanLiveExtraDirZips({
             excludeBasenameKeys: new Set([currentKey])
         });
