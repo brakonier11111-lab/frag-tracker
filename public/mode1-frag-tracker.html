@@ -701,6 +701,55 @@
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles/theme-2026.css">
+    <style>
+    /* ГЛУБОКИЙ РЕДИЗАЙН mode1 */
+    body.theme-neon.theme-2026 { background: #0e0e12 !important; }
+    body.theme-neon.theme-2026::before {
+        content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+        background: radial-gradient(45% 35% at 90% 4%, rgba(255,90,120,.13), transparent 60%),
+                    radial-gradient(40% 35% at 4% 98%, rgba(110,90,255,.11), transparent 60%);
+    }
+    .theme-2026 .container { position: relative; z-index: 1; max-width: 1440px !important; margin: 0 auto !important; padding: 150px 28px 60px !important; }
+    .theme-2026 .header { background: none !important; border: none !important; box-shadow: none !important; margin-bottom: 18px !important; }
+    .theme-2026 .header .title {
+        font-size: clamp(1.9rem, 4vw, 2.8rem) !important; font-weight: 800 !important; letter-spacing: -1px !important;
+        background: var(--t-grad-orange) !important; -webkit-background-clip: text !important; background-clip: text !important;
+        color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important;
+    }
+    /* навигационные пиллы */
+    .theme-2026 .nav-link {
+        background: var(--t-surface) !important; border: 1px solid var(--t-border) !important; border-radius: 11px !important;
+        color: var(--t-text-dim) !important; padding: 9px 15px !important; font-weight: 600 !important; text-shadow: none !important;
+        transition: all var(--t-ease) !important; box-shadow: none !important;
+    }
+    .theme-2026 .nav-link:hover { background: var(--t-surface-2) !important; color: var(--t-text) !important; border-color: var(--t-border-2) !important; transform: translateY(-1px); }
+    /* панели — заголовки белыми, без неона */
+    .theme-2026 .panel h2, .theme-2026 .panel h3 { color: var(--t-text) !important; text-shadow: none !important; -webkit-text-fill-color: var(--t-text) !important; }
+    .theme-2026 .panel-success, .theme-2026 .panel-warning, .theme-2026 .panel-danger { border-left: 3px solid transparent !important; }
+    .theme-2026 .panel-success { box-shadow: inset 3px 0 0 0 #19c37d, var(--t-shadow) !important; }
+    .theme-2026 .panel-warning { box-shadow: inset 3px 0 0 0 #ffc24b, var(--t-shadow) !important; }
+    .theme-2026 .panel-danger  { box-shadow: inset 3px 0 0 0 #ff5e7e, var(--t-shadow) !important; }
+    /* кнопки */
+    .theme-2026 .btn {
+        border-radius: 12px !important; font-weight: 600 !important; border: 1px solid var(--t-border-2) !important;
+        background: var(--t-surface-2) !important; color: var(--t-text) !important; text-shadow: none !important;
+        box-shadow: none !important; transition: all var(--t-ease) !important;
+    }
+    .theme-2026 .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .theme-2026 .btn-success, .theme-2026 .frag-btn { background: var(--t-grad-green) !important; border-color: transparent !important; color:#fff !important; }
+    .theme-2026 .btn-warning { background: var(--t-grad-gold) !important; border-color: transparent !important; color:#1a1205 !important; }
+    .theme-2026 .btn-danger  { background: var(--t-grad-orange) !important; border-color: transparent !important; color:#fff !important; }
+    /* поля */
+    .theme-2026 .input-field {
+        background: var(--t-bg-soft) !important; border: 1px solid var(--t-border) !important; border-radius: 12px !important;
+        color: var(--t-text) !important;
+    }
+    .theme-2026 .input-field:focus { border-color: var(--t-accent-2) !important; outline: none !important; }
+    /* цвета цифр статистики */
+    .theme-2026 .stat-value.stat-frags  { background: var(--t-grad-orange) !important; -webkit-background-clip:text !important; background-clip:text !important; -webkit-text-fill-color:transparent !important; color:transparent !important; }
+    .theme-2026 .stat-value.stat-done    { background: var(--t-grad-green) !important; -webkit-background-clip:text !important; background-clip:text !important; -webkit-text-fill-color:transparent !important; color:transparent !important; }
+    .theme-2026 .stat-value.stat-donated { background: var(--t-grad-blue) !important; -webkit-background-clip:text !important; background-clip:text !important; -webkit-text-fill-color:transparent !important; color:transparent !important; }
+    </style>
 </head>
 <body class="theme-neon theme-2026">
     <!-- Верхнее меню -->
