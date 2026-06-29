@@ -66,6 +66,13 @@
 .logo-text {
     transition: opacity var(--transition-base);
     white-space: nowrap;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, #ff8a3d 0%, #ff2d6f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
 }
 
 .sidebar-toggle {
