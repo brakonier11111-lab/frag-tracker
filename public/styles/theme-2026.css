@@ -1,0 +1,134 @@
+/* =====================================================================
+   Frag Tracker — единая тёмная тема 2026
+   Спокойный почти-чёрный фон + дозированные градиентные акценты.
+   Подключай ПОСЛЕ собственных стилей страницы, чтобы привести её
+   к общему виду:  <link rel="stylesheet" href="/styles/theme-2026.css">
+   ===================================================================== */
+
+:root {
+    /* База */
+    --t-bg:        #0e0e12;
+    --t-bg-soft:   #14141a;
+    --t-surface:   rgba(255, 255, 255, 0.035);
+    --t-surface-2: rgba(255, 255, 255, 0.06);
+    --t-surface-3: rgba(255, 255, 255, 0.09);
+    --t-border:    rgba(255, 255, 255, 0.07);
+    --t-border-2:  rgba(255, 255, 255, 0.14);
+    --t-text:      #f3f3f6;
+    --t-text-dim:  #8b8b97;
+    --t-text-mut:  #5f5f6b;
+
+    /* Дозированные градиентные акценты */
+    --t-grad-orange: linear-gradient(135deg, #ff8a3d 0%, #ff2d6f 100%);
+    --t-grad-pink:   linear-gradient(135deg, #ff5e7e 0%, #c248ff 100%);
+    --t-grad-purple: linear-gradient(135deg, #7b5cff 0%, #b14bff 100%);
+    --t-grad-blue:   linear-gradient(135deg, #3b9dff 0%, #4be0ff 100%);
+    --t-grad-green:  linear-gradient(135deg, #19c37d 0%, #11d6a4 100%);
+    --t-grad-gold:   linear-gradient(135deg, #ffc24b 0%, #ff8a3d 100%);
+
+    /* Сплошные акценты (для иконок/границ) */
+    --t-accent:        #ff5e7e;
+    --t-accent-2:      #4be0ff;
+    --t-positive:      #19c37d;
+    --t-negative:      #ff4d6d;
+    --t-warning:       #ffc24b;
+
+    --t-radius:    18px;
+    --t-radius-sm: 12px;
+    --t-radius-lg: 24px;
+    --t-ease: 260ms cubic-bezier(.2, .7, .3, 1);
+    --t-shadow: 0 18px 40px -20px rgba(0, 0, 0, .7);
+}
+
+/* Применяем тему ТОЛЬКО когда у <body> есть класс .theme-2026,
+   чтобы случайно не задеть прозрачные OBS-виджеты. */
+body.theme-2026 {
+    background:
+        radial-gradient(900px 600px at 85% -10%, rgba(255, 80, 120, 0.07), transparent 60%),
+        radial-gradient(800px 600px at 0% 110%, rgba(90, 110, 255, 0.06), transparent 60%),
+        var(--t-bg) !important;
+    color: var(--t-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Карточки / панели ---- */
+.theme-2026 .t-card,
+.theme-2026 .card,
+.theme-2026 .panel,
+.theme-2026 .section-card {
+    background: var(--t-surface);
+    border: 1px solid var(--t-border);
+    border-radius: var(--t-radius);
+    box-shadow: var(--t-shadow);
+}
+
+/* ---- Кнопки ---- */
+.theme-2026 .t-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: var(--t-radius-sm);
+    border: 1px solid var(--t-border-2);
+    background: transparent;
+    color: var(--t-text);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all var(--t-ease);
+}
+.theme-2026 .t-btn:hover {
+    background: var(--t-surface-2);
+    border-color: var(--t-border-2);
+    transform: translateY(-1px);
+}
+.theme-2026 .t-btn-primary {
+    border-color: transparent;
+    background: var(--t-grad-orange);
+    color: #fff;
+}
+.theme-2026 .t-btn-primary:hover {
+    filter: brightness(1.08);
+}
+
+/* ---- Поля ввода ---- */
+.theme-2026 input:not([type=checkbox]):not([type=radio]):not([type=range]),
+.theme-2026 select,
+.theme-2026 textarea {
+    background: var(--t-bg-soft);
+    border: 1px solid var(--t-border);
+    border-radius: var(--t-radius-sm);
+    color: var(--t-text);
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color var(--t-ease);
+}
+.theme-2026 input:focus,
+.theme-2026 select:focus,
+.theme-2026 textarea:focus {
+    border-color: var(--t-accent-2);
+}
+
+/* ---- Заголовки секций ---- */
+.theme-2026 .t-title {
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--t-text);
+}
+.theme-2026 .t-accent {
+    background: var(--t-grad-orange);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.theme-2026 ::placeholder { color: var(--t-text-mut); }
+
+/* Утилиты градиентных акцентов */
+.t-accent-orange { background: var(--t-grad-orange); }
+.t-accent-blue   { background: var(--t-grad-blue); }
+.t-accent-green  { background: var(--t-grad-green); }
+.t-accent-purple { background: var(--t-grad-purple); }
+.t-accent-gold   { background: var(--t-grad-gold); }
+.t-accent-pink   { background: var(--t-grad-pink); }
