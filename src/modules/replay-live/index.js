@@ -100,6 +100,11 @@ const GAME_CACHE_OPEN_MS = 45 * 1000;
 const GAME_CACHE_STALE_MS = 3 * 60 * 1000;
 const HOT_ZIP_ACCESS_MS = 60 * 1000;
 const ZIP_LIVE_MS = 3000;
+// Окно «недавно добавленного» реплея: файл, созданный (скопированный) в папку не
+// позднее этого срока, считается тем, что пользователь только что закинул смотреть.
+// birthtime (время создания) — чистый сигнал: не врёт как atime и не загрязняется
+// перечитыванием файла самим модулем.
+const BIRTHTIME_PICK_WINDOW_MS = 30 * 60 * 1000;
 const ZIP_PAUSE_MS = 90 * 1000;
 const ZIP_PAUSE_IGNORE_MS = 60 * 60 * 1000;
 const CLOCK_SYNC_DELTA_SEC = 0.35;
@@ -903,6 +908,71 @@ function createReplayLiveModule(deps) {
         return candidates;
     }
 
+    // Время создания файла (когда он появился в папке). На NTFS надёжно и НЕ меняется
+    // при чтении файла — поэтому, в отличие от atime, не загрязняется самочтением модуля.
+    function replayBirthtimeMs(replayPath) {
+        try {
+            const st = fs.statSync(replayPath);
+            return st.birthtimeMs || st.ctimeMs || 0;
+        } catch (_) {
+            return 0;
+        }
+    }
+
+    // Самый недавно ДОБАВЛЕННЫЙ в extra dir реплей (по birthtime). Это «тот, что
+    // пользователь только что закинул смотреть» — чистый сигнал без петли atime и
+    // без мусора game cache.
+    function newestBirthtimeExtraDirReplay() {
+        let best = null;
+        for (const dir of normalizeExtraReplaysDirs(config.extraReplaysDirs)) {
+            if (!fs.existsSync(dir)) continue;
+            let names;
+            try {
+                names = fs.readdirSync(dir);
+            } catch (_) {
+                continue;
+            }
+            for (const name of names) {
+                if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
+                const full = path.join(dir, name);
+                if (!replayPathExists(full)) continue;
+                const birth = replayBirthtimeMs(full);
+                if (!birth) continue;
+                if (!best || birth > best.birth) {
+                    best = { path: full, birth };
+                }
+            }
+        }
+        return best;
+    }
+
+    // Приоритетный выбор: реплей, добавленный в папку позже текущего и недавно.
+    // Возвращает pick только когда есть смысл переключаться (другой файл, новее по
+    // birthtime, в пределах окна, ещё не досмотрен).
+    function pickNewestDroppedExtraDirReplay() {
+        const newest = newestBirthtimeExtraDirReplay();
+        if (!newest) return null;
+        if (Date.now() - newest.birth > BIRTHTIME_PICK_WINDOW_MS) return null;
+        if (isFinishedReplayPath(newest.path) && !shouldAllowReplayRestart(newest.path)) return null;
+
+        const current = currentExclusivePlaybackPath();
+        if (current) {
+            if (replayBasenameKey(newest.path) === replayBasenameKey(current)) return null;
+            // переключаемся только на файл, добавленный ПОЗЖЕ текущего — birthtime строго
+            // упорядочен, поэтому старый файл не может перебить новый (нет мелькания).
+            const currentBirth = replayBirthtimeMs(current);
+            if (currentBirth && newest.birth <= currentBirth + 1000) return null;
+        }
+
+        const entry = readGameCacheEntry(newest.path);
+        return {
+            path: newest.path,
+            metaHex: entry ? entry.metaHex : '',
+            reason: 'newest_drop',
+            source: 'birthtime'
+        };
+    }
+
     function pickFreshestTouchedExtraDirZip(maxAgeMs) {
         const limit = maxAgeMs != null ? maxAgeMs : ZIP_JUST_OPENED_MS;
         let best = null;
@@ -1168,6 +1238,15 @@ function createReplayLiveModule(deps) {
             return Object.assign({}, pick, {
                 cacheMtimeMs: cache ? cache.mtimeMs : 0
             });
+        }
+
+        // ПРИОРИТЕТ: реплей, который пользователь только что закинул в папку
+        // (самый свежий по birthtime). Чистый сигнал — не подвержен петле atime и
+        // мусору game cache, которые делали выбор «не тем реплеем». Если ничего
+        // недавно не добавляли — проваливаемся в прежний каскад.
+        const droppedPick = pickNewestDroppedExtraDirReplay();
+        if (droppedPick) {
+            return pack(droppedPick);
         }
 
         const current = currentExclusivePlaybackPath();
