@@ -471,6 +471,41 @@
         }
     </style>
     <link rel="stylesheet" href="/styles/theme-2026.css">
+    <style>
+    /* ГЛУБОКИЙ РЕДИЗАЙН Админки */
+    body.theme-neon.theme-2026 { background:#0e0e12 !important; }
+    body.theme-neon.theme-2026::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+        background: radial-gradient(45% 35% at 90% 4%, rgba(255,90,120,.12), transparent 60%), radial-gradient(40% 35% at 4% 98%, rgba(110,90,255,.10), transparent 60%); }
+    .theme-2026 .container { position:relative; z-index:1; max-width:1280px !important; margin:0 auto !important; padding:150px 28px 60px !important; }
+    /* убрать неоновые полоски-псевдоэлементы */
+    .theme-2026 .panel::before, .theme-2026 .panel::after { content:none !important; display:none !important; }
+    /* hero-заголовок */
+    .theme-2026 .title {
+        font-family:'Inter',sans-serif !important; text-transform:none !important;
+        font-size:clamp(2rem,4vw,3rem) !important; font-weight:800 !important; letter-spacing:-1.2px !important;
+        background:var(--t-grad-orange) !important; -webkit-background-clip:text !important; background-clip:text !important;
+        color:transparent !important; -webkit-text-fill-color:transparent !important; text-shadow:none !important;
+    }
+    .theme-2026 .subtitle { color:var(--t-text-dim) !important; text-transform:none !important; letter-spacing:0 !important; }
+    /* заголовки секций — белые, без Orbitron-капса */
+    .theme-2026 h2 {
+        font-family:'Inter',sans-serif !important; color:var(--t-text) !important; text-transform:none !important;
+        letter-spacing:-.3px !important; -webkit-text-fill-color:var(--t-text) !important;
+    }
+    /* панели — стекло + цветной акцент слева */
+    .theme-2026 .panel { background:var(--t-surface) !important; border:1px solid var(--t-border) !important; border-radius:18px !important; }
+    .theme-2026 .panel-info { box-shadow: inset 3px 0 0 0 #8a5cff, var(--t-shadow) !important; }
+    /* кнопки-цвета */
+    .theme-2026 .btn-primary { background:var(--t-grad-orange) !important; border-color:transparent !important; color:#fff !important; }
+    .theme-2026 .btn-info { background:var(--t-grad-blue) !important; border-color:transparent !important; color:#06212b !important; }
+    /* статус-блоки */
+    .theme-2026 .status-item { background:var(--t-surface) !important; border:1px solid var(--t-border) !important; border-radius:14px !important; }
+    .theme-2026 .status-label { color:var(--t-text-dim) !important; }
+    .theme-2026 .status-value.connected { color:#19c37d !important; }
+    .theme-2026 .status-value.disconnected { color:#ff5e7e !important; }
+    /* поля */
+    .theme-2026 .form-input { background:var(--t-bg-soft) !important; border:1px solid var(--t-border) !important; border-radius:12px !important; color:var(--t-text) !important; }
+    </style>
 </head>
 <body class="theme-2026">
     <!-- Верхнее меню -->
