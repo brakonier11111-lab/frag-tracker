@@ -312,6 +312,21 @@ body.theme-2026 .top-menu {
     color: var(--t-text) !important; font-weight: 700 !important; letter-spacing: -.3px !important;
     text-shadow: none !important; -webkit-text-fill-color: var(--t-text) !important;
 }
+/* «Дорогой» ховер панелей */
+.theme-2026 .section, .theme-2026 .panel {
+    position: relative;
+    transition: transform var(--t-ease), box-shadow var(--t-ease), border-color var(--t-ease) !important;
+}
+.theme-2026 .section:hover, .theme-2026 .panel:hover {
+    transform: translateY(-3px);
+    border-color: var(--t-border-2) !important;
+    box-shadow: 0 26px 50px -26px rgba(0,0,0,.85), 0 0 60px -28px rgba(255,94,126,.35) !important;
+}
+.theme-2026 .section::after, .theme-2026 .panel::after {
+    content: ''; position: absolute; inset: 0 0 auto 0; height: 1px; border-radius: inherit;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);
+    pointer-events: none;
+}
 
 /* Карточки статистики */
 .theme-2026 .stat-card {
@@ -422,6 +437,18 @@ body.theme-2026 > #menu-container { position: relative; z-index: 1; }
     color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important;
 }
 .theme-2026 .subtitle { color: var(--t-text-dim) !important; text-transform: none !important; letter-spacing: 0 !important; }
+
+/* Заголовки-исключения: div.h1 (chat-stats) и h1.section-title (vkplay) */
+.theme-2026 .h1, body.theme-2026 h1.section-title {
+    font-family: 'Inter', sans-serif !important; text-transform: none !important;
+    font-weight: 800 !important; letter-spacing: -1px !important;
+    background: var(--t-grad-orange) !important; -webkit-background-clip: text !important; background-clip: text !important;
+    color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important;
+}
+/* Подзаголовки секций (schedule и пр.) — белые */
+.theme-2026 .slots-title, .theme-2026 .block-title, .theme-2026 .card-title {
+    color: var(--t-text) !important; -webkit-text-fill-color: var(--t-text) !important; text-shadow: none !important;
+}
 
 /* Заголовки h2/h3 — Inter, белые, без капса */
 .theme-2026 h2, .theme-2026 h3 {
