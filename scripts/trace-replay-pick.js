@@ -111,19 +111,39 @@ function main() {
     console.log('\nGame cache:', cacheDir, cacheFiles.length ? `(свежесть ${fmtAge(Date.now() - cacheMtimeMs)})` : '(не найден)');
 
     // 3. Таблица кандидатов
+    // metaTs (байты 8-11 meta) — похоже на Unix-секунды; интерпретируем как метку
+    // времени, когда игра трогала запись. Не подвержено петле atime (модуль кэш не пишет).
+    function metaTsAge(metaTs) {
+        if (!metaTs) return null;
+        // пробуем как Unix-секунды
+        const asSec = Date.now() / 1000 - metaTs;
+        if (asSec > 0 && asSec < 86400 * 400) return asSec * 1000; // в пределах ~год — правдоподобно
+        return null;
+    }
+
     console.log('\n=== Кандидаты в extra dir (сортировка по свежести atime) ===');
-    console.log('  age(touch) | atime>mtime? | в cache? | sessionKey | feedbackLoop? | файл');
+    console.log('  age(touch) | atime>mtime? | в cache? | sessionKey | metaTs-age | feedbackLoop? | файл');
     for (const f of files.slice(0, 15)) {
         const cacheRow = cacheByKey.get(f.baseKey);
         const atimeFresherThanMtime = f.atimeMs > f.mtimeMs + 1000;
-        // Подозрение на петлю: atime свежий (<HOT), но mtime древний И в cache нет свежей meta.
         const hot = f.ageMs != null && f.ageMs <= HOT_ZIP_ACCESS_MS;
         const mtimeOld = (Date.now() - f.mtimeMs) > 10 * 60 * 1000;
         const feedbackLoop = hot && atimeFresherThanMtime && mtimeOld;
+        const mAge = cacheRow ? metaTsAge(cacheRow.metaTs) : null;
         console.log(
-            `  ${fmtAge(f.ageMs).padEnd(9)} | ${String(atimeFresherThanMtime).padEnd(11)} | ${(cacheRow ? 'да' : 'нет').padEnd(7)} | ${String(cacheRow ? cacheRow.sessionKey : '-').padEnd(10)} | ${(feedbackLoop ? 'ДА ⚠️' : 'нет').padEnd(8)} | ${f.name.slice(0, 44)}`
+            `  ${fmtAge(f.ageMs).padEnd(9)} | ${String(atimeFresherThanMtime).padEnd(11)} | ${(cacheRow ? 'да' : 'нет').padEnd(7)} | ${String(cacheRow ? cacheRow.sessionKey : '-').padEnd(10)} | ${(mAge != null ? fmtAge(mAge) : 'n/a').padEnd(10)} | ${(feedbackLoop ? 'ДА ⚠️' : 'нет').padEnd(8)} | ${f.name.slice(0, 44)}`
         );
     }
+
+    // Кто свежее всех по metaTs (потенциальный чистый сигнал «что игра открыла последним»)
+    let freshestMeta = null;
+    for (const [, row] of cacheByKey) {
+        const a = metaTsAge(row.metaTs);
+        if (a == null) continue;
+        if (!freshestMeta || a < freshestMeta.age) freshestMeta = { row, age: a };
+    }
+    console.log('\n• Самый свежий по metaTs (игра трогала последним):');
+    console.log('    →', freshestMeta ? path.basename(freshestMeta.row.replayPath).slice(0, 50) + '  (' + fmtAge(freshestMeta.age) + ' назад)' : '(n/a — metaTs не похож на timestamp)');
 
     // 4. Что выбрал бы каждый тир
     console.log('\n=== Что выберет каждый сигнал ===');
