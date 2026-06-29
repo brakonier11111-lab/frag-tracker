@@ -24,7 +24,7 @@ function readMetaFromZip(zipPath) {
             '-c',
             'import zipfile,json,sys; print(zipfile.ZipFile(sys.argv[1]).read("meta.json").decode())',
             zipPath
-        ], { encoding: 'utf8', timeout: 8000 });
+        ], { encoding: 'utf8', timeout: 4000 }); // было 8000 — синхронный spawnSync блокирует event loop, держим короче
         if (py.status === 0 && py.stdout) {
             return JSON.parse(py.stdout.trim());
         }
@@ -65,7 +65,7 @@ function parseBattleResultsWithPython(zipPath, pythonPath) {
     const script = path.join(__dirname, 'parse_battle_results.py');
     if (!fs.existsSync(script)) return null;
     const cmd = pythonPath || 'python';
-    const run = spawnSync(cmd, [script, zipPath], { encoding: 'utf8', timeout: 8000 });
+    const run = spawnSync(cmd, [script, zipPath], { encoding: 'utf8', timeout: 4000 }); // было 8000 — синхронный spawnSync блокирует event loop
     if (run.status !== 0 || !run.stdout) return null;
     try {
         const parsed = JSON.parse(run.stdout.trim());

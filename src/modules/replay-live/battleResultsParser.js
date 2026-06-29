@@ -255,7 +255,7 @@ function readBattleResultsProtobufFromPath(filePath) {
                 const py = spawnSync('python', [
                     path.join(__dirname, 'parse_battle_results.py'),
                     filePath
-                ], { encoding: 'utf8', timeout: 12000 });
+                ], { encoding: 'utf8', timeout: 5000 }); // было 12000 — синхронный spawnSync блокирует event loop
                 if (py.status === 0 && py.stdout) {
                     const parsed = JSON.parse(py.stdout.trim());
                     if (parsed.success && parsed.players) {
@@ -421,7 +421,7 @@ function extractViaPythonFallback(zipPath, cacheDir) {
             zipPath,
             cached,
             entryMarker
-        ], { timeout: 30000 });
+        ], { timeout: 8000 }); // было 30000 — синхронный spawnSync морозит весь event loop, 8с с запасом хватает на распаковку одного zip-члена
         if (cmd.status !== 0) return null;
         fs.writeFileSync(marker, String(stat.mtimeMs), 'utf8');
         return fs.readFileSync(cached);

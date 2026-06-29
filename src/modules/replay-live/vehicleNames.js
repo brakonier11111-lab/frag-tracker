@@ -103,35 +103,19 @@ async function prefetchVehicleNames(vehicleIds, cacheDir) {
     saveDiskCache();
 }
 
+// ВНИМАНИЕ: имя оставлено как было ради совместимости с местом вызова в index.js,
+// но функция БОЛЬШЕ НЕ БЛОКИРУЮЩАЯ. Раньше тут был синхронный execSync('curl ...')
+// с таймаутом 12с — он морозил ВЕСЬ event loop Node на время сетевого запроса к
+// Lesta API. При тормозящем API (а он периодически отдаёт ECONNRESET/timeout) это
+// были полные 12с фриза, на которые зависали все вкладки приложения. Теперь HP
+// читается из дискового кэша синхронно (быстро), а недостающие значения
+// дотягиваются асинхронно через prefetch (axios, не блокирует поток). На горячем
+// пути (раз в секунду при просмотре реплея) HP нового танка появится через
+// цикл-другой вместо заморозки всего сервера.
 function ensureVehicleHpBlocking(vehicleIds, cacheDir) {
     loadDiskCache(cacheDir);
-    const missing = [...new Set((vehicleIds || []).filter((id) => id > 0 && !hpCache.has(id)))];
-    if (!missing.length) return;
-
-    try {
-        const { execSync } = require('child_process');
-        const url = `${API_URL}?application_id=${LESTA_APP_ID}`
-            + `&fields=tank_id,name,default_profile.hp&language=ru&tank_id=${missing.join(',')}`;
-        const raw = execSync(`curl -s "${url}"`, {
-            encoding: 'utf8',
-            timeout: 12000,
-            windowsHide: true
-        });
-        const json = JSON.parse(raw);
-        if (json.status === 'ok' && json.data) {
-            missing.forEach((id) => {
-                const row = json.data[String(id)];
-                if (row && row.name) memoryCache.set(id, row.name);
-                if (row && row.default_profile && Number(row.default_profile.hp) > 0) {
-                    hpCache.set(id, Number(row.default_profile.hp));
-                }
-            });
-            saveDiskCache();
-            return;
-        }
-    } catch (_) { /* fall through */ }
-
-    schedulePrefetch(vehicleIds, cacheDir);
+    const hasMissing = (vehicleIds || []).some((id) => id > 0 && !hpCache.has(id));
+    if (hasMissing) schedulePrefetch(vehicleIds, cacheDir);
 }
 
 function schedulePrefetch(vehicleIds, cacheDir) {
