@@ -73,10 +73,12 @@ body.theme-2026 {
     --glass-border-hover: rgba(255, 255, 255, 0.14);
 }
 
-/* Гасим тяжёлые неоновые свечения, оставшиеся на старых страницах */
-body.theme-2026 [style*="text-shadow"],
-body.theme-2026 .title,
-body.theme-2026 .mode-title {
+/* Гасим ВСЕ неоновые свечения текста на страницах с темой.
+   OBS-виджеты (без класса .theme-2026) не затрагиваются — им свечение нужно. */
+body.theme-2026,
+body.theme-2026 *,
+body.theme-2026 *::before,
+body.theme-2026 *::after {
     text-shadow: none !important;
 }
 
