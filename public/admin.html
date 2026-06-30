@@ -504,7 +504,33 @@
     .theme-2026 .status-value.connected { color:#19c37d !important; }
     .theme-2026 .status-value.disconnected { color:#ff5e7e !important; }
     /* поля */
-    .theme-2026 .form-input { background:var(--t-bg-soft) !important; border:1px solid var(--t-border) !important; border-radius:12px !important; color:var(--t-text) !important; }
+    .theme-2026 .form-input { background:var(--t-bg-soft) !important; border:1px solid var(--t-border) !important; border-radius:12px !important; color:var(--t-text) !important; padding:11px 14px !important; width:100%; }
+    .theme-2026 .form-input:focus { border-color:#4be0ff !important; outline:none; }
+
+    /* --- новые блоки админки --- */
+    .theme-2026 .admin-hint { color:var(--t-text-dim) !important; font-size:.88rem !important; line-height:1.5; margin:6px 0 16px; max-width:760px; }
+    .theme-2026 .admin-hint code { background:rgba(255,255,255,.07); padding:2px 6px; border-radius:6px; font-size:.85em; color:#e6e6ee; }
+    .theme-2026 .admin-actions { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .theme-2026 .admin-group { padding:16px 0; border-top:1px solid var(--t-border); margin-top:8px; }
+    .theme-2026 .admin-group:first-of-type { border-top:none; }
+    .theme-2026 .admin-group h3, .theme-2026 .panel h3 { font-size:1rem !important; font-weight:700 !important; color:var(--t-text) !important; margin:14px 0 4px; -webkit-text-fill-color:var(--t-text) !important; }
+    .theme-2026 .cfg-wrap { display:grid; gap:18px; margin:8px 0 18px; }
+    .theme-2026 .cfg-group { background:rgba(255,255,255,.025); border:1px solid var(--t-border); border-radius:16px; padding:18px; }
+    .theme-2026 .cfg-group h3 { margin-top:0; margin-bottom:14px; }
+    .theme-2026 .cfg-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:14px; }
+    .theme-2026 .cfg-field { display:flex; flex-direction:column; gap:6px; }
+    .theme-2026 .cfg-field label { font-size:.82rem; color:var(--t-text-dim); font-weight:600; }
+    .theme-2026 .admin-collapse { cursor:pointer; user-select:none; display:flex; align-items:center; gap:10px; }
+    .theme-2026 .admin-caret { font-size:.8em; color:var(--t-text-dim); -webkit-text-fill-color:var(--t-text-dim); }
+    /* кнопки в админке — ровные, со смыслом цвета */
+    .theme-2026 .panel .btn { border-radius:11px !important; font-weight:600 !important; padding:10px 16px !important; border:1px solid var(--t-border-2) !important; box-shadow:none !important; text-transform:none !important; transition:all .2s ease !important; }
+    .theme-2026 .panel .btn:hover { transform:translateY(-1px); filter:brightness(1.08); }
+    .theme-2026 .panel .btn-success { background:var(--t-grad-green) !important; border-color:transparent !important; color:#06231a !important; }
+    .theme-2026 .panel .btn-primary { background:var(--t-grad-orange) !important; border-color:transparent !important; color:#fff !important; }
+    .theme-2026 .panel .btn-warning { background:transparent !important; border-color:var(--t-warning) !important; color:var(--t-warning) !important; }
+    .theme-2026 .panel .btn-info { background:var(--t-surface-2) !important; border-color:var(--t-border-2) !important; color:var(--t-text) !important; }
+    .theme-2026 .panel .btn-danger { background:var(--t-grad-orange) !important; border-color:transparent !important; color:#fff !important; }
+    .theme-2026 .panel-danger .btn-danger { background:#ff4d6d !important; }
     </style>
 </head>
 <body class="theme-2026">
@@ -531,13 +557,14 @@
     
     <div class="container">
         <div class="header">
-            <h1 class="title">АДМИНКА</h1>
-            <p class="subtitle">Панель управления</p>
+            <h1 class="title">Админка</h1>
+            <p class="subtitle">Настройки интеграций и управление трекером в одном месте</p>
         </div>
 
         <!-- Статус подключений -->
         <div class="panel panel-info">
-            <h2>📊 СТАТУС СИСТЕМЫ</h2>
+            <h2>📡 Статус подключений</h2>
+            <p class="admin-hint">Видно, какие сервисы подключены прямо сейчас. Обновляется автоматически.</p>
             <div class="status-grid">
                 <div class="status-item">
                     <div class="status-label">DonationAlerts</div>
@@ -556,119 +583,161 @@
                     <div class="status-value" id="wsStatus">Проверка...</div>
                 </div>
             </div>
-            </div>
-
-        <!-- Настройки DonationAlerts -->
-        <div class="panel panel-warning">
-            <h2>🔗 DONATIONALERTS</h2>
-            <p>Настройка интеграции с DonationAlerts</p>
-            <div style="background: rgba(255,255,0,0.1); border: 1px solid #ff0; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 0.9rem;">
-                <strong>📋 Инструкция по настройке:</strong>
-                <ol>
-                    <li>Зайдите на <a href="https://www.donationalerts.com/application" target="_blank">DonationAlerts Applications</a></li>
-                    <li>Создайте новое приложение или используйте существующее</li>
-                    <li>Установите Redirect URI: <code>http://localhost:3000/auth/callback</code></li>
-                    <li>Скопируйте Client ID и Client Secret</li>
-                    <li>Настройте переменные окружения DA_CLIENT_ID и DA_CLIENT_SECRET</li>
-                </ol>
-            </div>
-            <br>
-            <button class="btn btn-primary" onclick="setupDA()">🔑 НАСТРОИТЬ DA</button>
-            <button class="btn btn-primary" onclick="testDA()">🧪 ТЕСТ DA</button>
-            <button class="btn btn-warning" onclick="forceCheckDonations()">🔄 ПРОВЕРИТЬ ДОНАТЫ</button>
-            <button class="btn btn-danger" onclick="debugDonations()">🔍 ДИАГНОСТИКА ДОНАТОВ</button>
-            <button class="btn btn-danger" onclick="removeOneZeroBattle()">🗑️ УДАЛИТЬ ОДИН БОЙ БЕЗ ФРАГОВ</button>
-            <button class="btn btn-info" onclick="diagnoseFragStats()">🔍 ДИАГНОСТИКА СТАТИСТИКИ ФРАГОВ</button>
-            <button class="btn btn-success" onclick="startAutoRefresh()">🚀 ЗАПУСТИТЬ АВТООБНОВЛЕНИЕ</button>
-            <button class="btn btn-warning" onclick="stopAutoRefresh()">⏹️ ОСТАНОВИТЬ АВТООБНОВЛЕНИЕ</button>
-            <button class="btn btn-primary" onclick="forceRefreshFragStats()">🔄 ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ</button>
-            <button class="btn btn-info" onclick="testBattleFragLogic()">🧪 ТЕСТ ЛОГИКИ БОЕВ И ФРАГОВ</button>
-            <button class="btn btn-success" onclick="initializeStartingStats()">🚀 ИНИЦИАЛИЗАЦИЯ СТАРТОВЫХ ЗНАЧЕНИЙ</button>
-            <button class="btn btn-warning" onclick="editStatsManually()">✏️ РЕДАКТИРОВАТЬ СТАТИСТИКУ</button>
-            <button class="btn btn-danger" onclick="addBattleForce()">🔨 ПРИНУДИТЕЛЬНО ДОБАВИТЬ БОЙ</button>
-            <button class="btn btn-info" onclick="syncLestaState()">🔄 СИНХРОНИЗИРОВАТЬ С LESTA GAMES</button>
-            <button class="btn btn-warning" onclick="diagnosePolling()">🔍 ДИАГНОСТИКА ОПРОСА ДОНАТОВ</button>
-            <button class="btn btn-danger" onclick="forceCheckNewDonations()">🔄 ПРИНУДИТЕЛЬНАЯ ПРОВЕРКА НОВЫХ ДОНАТОВ</button>
-            <button class="btn btn-warning" onclick="resetLastSeenId()">🔄 СБРОС LAST SEEN ID</button>
-            <br><br>
-            <a href="/donation-alerts-test.html" class="btn btn-success" target="_blank">🔍 ДИАГНОСТИКА DA</a>
         </div>
 
-        <!-- Настройки DonatePay -->
+        <!-- НАСТРОЙКИ ИНТЕГРАЦИЙ (реальные поля config.env) -->
         <div class="panel panel-warning">
-            <h2>💰 DONATEPAY</h2>
-            <p>Настройка интеграции с DonatePay</p>
-            <br>
-            <button class="btn btn-primary" onclick="setupDonatePay()">🔗 НАСТРОИТЬ DONATEPAY</button>
-            <button class="btn btn-info" onclick="testDonatePay()">🧪 ТЕСТ DONATEPAY</button>
-            <button class="btn btn-warning" onclick="resetDonatePay429()">🔄 СБРОСИТЬ ОШИБКУ 429</button>
-            <p style="margin-top: 10px; font-size: 0.8rem; color: #aaa;">
-                Webhook URL: <code>http://localhost:3000/webhook/donatepay</code><br>
-                Real-time уведомления через Centrifugo
+            <h2>🔑 Ключи и токены интеграций</h2>
+            <p class="admin-hint">
+                Здесь хранятся ключи доступа к сервисам. Поля-секреты показывают только хвост уже
+                сохранённого значения — оставьте поле пустым, если менять не нужно.
+                После сохранения ключей интеграций перезапустите сервер, чтобы они применились.
             </p>
-                </div>
-
-        <!-- Настройки Lesta Games -->
-        <div class="panel panel-success">
-            <h2>🎮 LESTA GAMES</h2>
-            <p>Настройка интеграции с World of Tanks Blitz</p>
-            <br>
-            <button class="btn btn-warning" onclick="setupLestaGames()">🎮 НАСТРОИТЬ LESTA GAMES</button>
-            <button class="btn btn-warning" onclick="authLestaGames()">🔑 АВТОРИЗОВАТЬ LESTA</button>
-            <button class="btn btn-warning" onclick="syncLestaStats()">🔄 СИНХРОНИЗИРОВАТЬ LESTA</button>
-            <button class="btn btn-info" onclick="searchLestaPlayer()">🔍 НАЙТИ ИГРОКА</button>
+            <div id="settings-forms" class="cfg-wrap">
+                <div class="admin-hint">Загрузка настроек…</div>
             </div>
-
-        <!-- Управление режимами -->
-        <div class="panel panel-danger">
-            <h2>⚙️ УПРАВЛЕНИЕ РЕЖИМАМИ</h2>
-            <p>Быстрые действия для управления трекерами</p>
-            <br>
-            <button class="btn btn-success" onclick="window.location.href='/mode1-frag-tracker'">🎯 РЕЖИМ 1</button>
-            <button class="btn btn-success" onclick="window.location.href='/mode2-timer'">⏱️ РЕЖИМ 2</button>
-            <button class="btn btn-success" onclick="window.location.href='/mode3-custom'">⚙️ РЕЖИМ 3</button>
-            <button class="btn btn-info" onclick="window.location.href='/lesta-stats'">🎮 LESTA СТАТИСТИКА</button>
-            <button class="btn btn-info" onclick="window.location.href='/analytics'">📊 АНАЛИТИКА</button>
+            <div class="admin-actions">
+                <button class="btn btn-success" onclick="saveAdminConfig()">💾 Сохранить настройки</button>
+                <button class="btn btn-info" onclick="loadAdminConfig()">↻ Обновить</button>
+            </div>
         </div>
 
-        <!-- Управление полоской сбора донатов -->
+        <!-- ПОДКЛЮЧЕНИЕ / АВТОРИЗАЦИЯ -->
         <div class="panel panel-info">
-            <h2>📊 ПОЛОСКА СБОРА ДОНАТОВ</h2>
-            <p>Управление упрощенным виджетом полоски сбора донатов</p>
-            <br>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Название полоски:</label>
-                    <input type="text" id="bar-title" class="form-input" placeholder="Сбор донатов" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff;">
-                </div>
-                <div>
-                    <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Целевая сумма (₽):</label>
-                    <input type="number" id="bar-target" class="form-input" placeholder="1000" min="1" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff;">
+            <h2>🔌 Подключение сервисов</h2>
+            <p class="admin-hint">Авторизация и быстрая проверка связи с каждым сервисом.</p>
+
+            <div class="admin-group">
+                <h3>DonationAlerts</h3>
+                <p class="admin-hint">Авторизуйтесь, чтобы получать донаты. «Проверить» — разовый опрос новых донатов.</p>
+                <div class="admin-actions">
+                    <button class="btn btn-primary" onclick="setupDA()">🔑 Авторизоваться</button>
+                    <button class="btn btn-info" onclick="forceCheckDonations()">🔄 Проверить донаты</button>
                 </div>
             </div>
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">Текущая сумма (₽):</label>
-                <input type="number" id="bar-current" class="form-input" placeholder="0" min="0" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff;">
+
+            <div class="admin-group">
+                <h3>DonatePay</h3>
+                <p class="admin-hint">Webhook: <code>http://localhost:3000/webhook/donatepay</code>. «Сбросить 429» — снять блокировку при превышении лимита запросов.</p>
+                <div class="admin-actions">
+                    <button class="btn btn-primary" onclick="setupDonatePay()">🔗 Настроить</button>
+                    <button class="btn btn-info" onclick="testDonatePay()">🧪 Тест связи</button>
+                    <button class="btn btn-warning" onclick="resetDonatePay429()">♻️ Сбросить 429</button>
+                </div>
             </div>
-            <button class="btn btn-success" onclick="saveDonationBar()">💾 Сохранить настройки</button>
-            <button class="btn btn-primary" onclick="loadDonationBar()">🔄 Загрузить текущее состояние</button>
-            <button class="btn btn-warning" onclick="resetDonationBar()">🔄 Обнулить сумму</button>
-            <br><br>
-            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-                <label style="display: block; margin-bottom: 5px; font-size: 0.9rem;">🔗 Ссылка для OBS:</label>
-                <input type="text" id="bar-url" class="form-input" value="http://localhost:3000/widget/donation-bar" readonly style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 0.85rem;">
-                <button class="btn btn-info" onclick="copyBarUrl()" style="margin-top: 5px;">📋 Копировать ссылку</button>
+
+            <div class="admin-group">
+                <h3>Lesta Games (Tanks Blitz)</h3>
+                <p class="admin-hint">Источник статистики боёв и фрагов. Авторизуйтесь и синхронизируйте, чтобы подтянуть данные игрока.</p>
+                <div class="admin-actions">
+                    <button class="btn btn-primary" onclick="authLestaGames()">🔑 Авторизовать</button>
+                    <button class="btn btn-info" onclick="syncLestaStats()">🔄 Синхронизировать</button>
+                    <button class="btn btn-info" onclick="searchLestaPlayer()">🔍 Найти игрока</button>
+                </div>
             </div>
         </div>
 
-        <!-- Системные действия -->
+        <!-- ОПРОС ДОНАТОВ -->
+        <div class="panel panel-info">
+            <h2>💸 Опрос донатов</h2>
+            <p class="admin-hint">Если донаты не появляются — здесь принудительная проверка и сброс позиции опроса.</p>
+            <div class="admin-actions">
+                <button class="btn btn-primary" onclick="forceCheckNewDonations()">🔄 Проверить новые донаты</button>
+                <button class="btn btn-info" onclick="diagnosePolling()">🩺 Диагностика опроса</button>
+                <button class="btn btn-warning" onclick="resetLastSeenId()">⏮️ Сбросить «последний донат»</button>
+            </div>
+        </div>
+
+        <!-- ФРАГИ И БОИ -->
+        <div class="panel panel-info">
+            <h2>🎯 Статистика фрагов и боёв</h2>
+            <p class="admin-hint">Управление подсчётом фрагов: обновить, задать стартовые значения, поправить вручную.</p>
+            <div class="admin-actions">
+                <button class="btn btn-primary" onclick="forceRefreshFragStats()">🔄 Обновить статистику</button>
+                <button class="btn btn-success" onclick="initializeStartingStats()">🎬 Задать стартовые значения</button>
+                <button class="btn btn-warning" onclick="editStatsManually()">✏️ Редактировать вручную</button>
+                <button class="btn btn-info" onclick="syncLestaState()">🔄 Синхронизировать с Lesta</button>
+            </div>
+            <h3>Бои</h3>
+            <p class="admin-hint">Ручные правки списка боёв — на случай сбоя автоподсчёта.</p>
+            <div class="admin-actions">
+                <button class="btn btn-warning" onclick="addBattleForce()">➕ Добавить бой вручную</button>
+                <button class="btn btn-warning" onclick="removeOneZeroBattle()">➖ Удалить пустой бой (0 фрагов)</button>
+            </div>
+        </div>
+
+        <!-- АВТООБНОВЛЕНИЕ -->
+        <div class="panel panel-info">
+            <h2>⏱️ Автообновление статистики</h2>
+            <p class="admin-hint">Фоновое обновление статистики фрагов каждые 30 секунд. Включайте на время стрима.</p>
+            <div class="admin-actions">
+                <button class="btn btn-success" onclick="startAutoRefresh()">▶️ Включить</button>
+                <button class="btn btn-warning" onclick="stopAutoRefresh()">⏸️ Выключить</button>
+            </div>
+        </div>
+
+        <!-- ПОЛОСКА СБОРА -->
+        <div class="panel panel-info">
+            <h2>📊 Полоска сбора донатов</h2>
+            <p class="admin-hint">Быстрая настройка виджета-полоски для OBS: название, цель и текущая сумма.</p>
+            <div class="cfg-grid">
+                <div class="cfg-field">
+                    <label>Название полоски</label>
+                    <input type="text" id="bar-title" class="form-input" placeholder="Сбор донатов">
+                </div>
+                <div class="cfg-field">
+                    <label>Целевая сумма (₽)</label>
+                    <input type="number" id="bar-target" class="form-input" placeholder="1000" min="1">
+                </div>
+                <div class="cfg-field">
+                    <label>Текущая сумма (₽)</label>
+                    <input type="number" id="bar-current" class="form-input" placeholder="0" min="0">
+                </div>
+            </div>
+            <div class="admin-actions">
+                <button class="btn btn-success" onclick="saveDonationBar()">💾 Сохранить</button>
+                <button class="btn btn-info" onclick="loadDonationBar()">↻ Загрузить текущее</button>
+                <button class="btn btn-warning" onclick="resetDonationBar()">0️⃣ Обнулить сумму</button>
+            </div>
+            <div class="cfg-field" style="margin-top:16px;">
+                <label>🔗 Ссылка для OBS (Browser Source)</label>
+                <input type="text" id="bar-url" class="form-input" value="http://localhost:3000/widget/donation-bar" readonly>
+                <div class="admin-actions"><button class="btn btn-info" onclick="copyBarUrl()">📋 Копировать ссылку</button></div>
+            </div>
+        </div>
+
+        <!-- БЫСТРЫЕ ПЕРЕХОДЫ -->
+        <div class="panel panel-info">
+            <h2>🧭 Быстрые переходы</h2>
+            <p class="admin-hint">Открыть рабочие экраны трекера.</p>
+            <div class="admin-actions">
+                <button class="btn btn-info" onclick="window.location.href='/mode1-frag-tracker'">🎯 Фраг-трекер</button>
+                <button class="btn btn-info" onclick="window.location.href='/mode2-timer'">⏱️ Таймер</button>
+                <button class="btn btn-info" onclick="window.location.href='/lesta-stats'">🎮 Lesta статистика</button>
+                <button class="btn btn-info" onclick="window.location.href='/analytics'">📈 Аналитика</button>
+            </div>
+        </div>
+
+        <!-- ДИАГНОСТИКА (свёрнуто) -->
+        <div class="panel panel-info">
+            <h2 class="admin-collapse" onclick="toggleAdminBlock('diagBlock', this)">🩺 Диагностика <span class="admin-caret">▸</span></h2>
+            <div id="diagBlock" style="display:none;">
+                <p class="admin-hint">Технические инструменты для отладки. Обычно не нужны.</p>
+                <div class="admin-actions">
+                    <button class="btn btn-info" onclick="debugDonations()">🔍 Debug донатов</button>
+                    <button class="btn btn-info" onclick="diagnoseFragStats()">🔍 Диагностика фрагов</button>
+                    <button class="btn btn-info" onclick="testBattleFragLogic()">🧪 Тест логики боёв</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ОПАСНАЯ ЗОНА -->
         <div class="panel panel-danger">
-            <h2>🚨 СИСТЕМНЫЕ ДЕЙСТВИЯ</h2>
-            <p>Опасные операции - используйте с осторожностью</p>
-            <br>
-            <button class="btn btn-danger" onclick="resetAll()">🗑️ СБРОС ВСЕХ ДАННЫХ</button>
-            <button class="btn btn-danger" onclick="clearDonations()">🧹 ОЧИСТИТЬ ДОНАТЫ</button>
-            <button class="btn btn-danger" onclick="restartServer()">🔄 ПЕРЕЗАПУСТИТЬ СЕРВЕР</button>
+            <h2>🚨 Опасная зона</h2>
+            <p class="admin-hint">Необратимые операции. Удаляют данные без возможности отмены.</p>
+            <div class="admin-actions">
+                <button class="btn btn-danger" onclick="clearDonations()">🧹 Очистить историю донатов</button>
+            </div>
         </div>
     </div>
 
@@ -753,6 +822,73 @@
                 notification.classList.remove('show');
             }, 3000);
         }
+
+        // ---- Реальные настройки интеграций (config.env) ----
+        async function loadAdminConfig() {
+            const wrap = document.getElementById('settings-forms');
+            if (!wrap) return;
+            wrap.innerHTML = '<div class="admin-hint">Загрузка настроек…</div>';
+            try {
+                const res = await fetch('/api/admin/config');
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Ошибка');
+                const groups = {};
+                data.fields.forEach(f => { (groups[f.group] ||= []).push(f); });
+                wrap.innerHTML = Object.entries(groups).map(([group, fields]) => `
+                    <div class="cfg-group">
+                        <h3>${group}</h3>
+                        <div class="cfg-grid">
+                            ${fields.map(f => `
+                                <div class="cfg-field">
+                                    <label>${f.label}${f.secret ? ' 🔒' : ''}</label>
+                                    <input type="${f.secret ? 'password' : 'text'}"
+                                           data-key="${f.key}"
+                                           class="form-input"
+                                           value="${f.secret ? '' : (f.value || '').replace(/"/g, '&quot;')}"
+                                           placeholder="${f.secret ? (f.isSet ? 'Задано (' + f.hint + ') — пусто = не менять' : 'Не задано') : 'Не задано'}">
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                wrap.innerHTML = `<div class="admin-hint" style="color:#ff6b81">Не удалось загрузить настройки: ${e.message}</div>`;
+            }
+        }
+
+        async function saveAdminConfig() {
+            const inputs = document.querySelectorAll('#settings-forms input[data-key]');
+            const payload = {};
+            inputs.forEach(i => { const v = i.value.trim(); if (v) payload[i.dataset.key] = v; });
+            if (Object.keys(payload).length === 0) {
+                showNotification('Нет изменений для сохранения');
+                return;
+            }
+            try {
+                const res = await fetch('/api/admin/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Ошибка');
+                showNotification('✅ Сохранено: ' + (data.changed.join(', ') || '—'));
+                loadAdminConfig();
+            } catch (e) {
+                showNotification('Ошибка сохранения: ' + e.message, true);
+            }
+        }
+
+        function toggleAdminBlock(id, head) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const open = el.style.display === 'none';
+            el.style.display = open ? 'block' : 'none';
+            const caret = head && head.querySelector('.admin-caret');
+            if (caret) caret.textContent = open ? '▾' : '▸';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadAdminConfig);
 
         function showModal(title, content) {
             // Создаем модальное окно с glass-morphism стилем

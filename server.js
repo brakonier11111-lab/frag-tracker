@@ -2656,6 +2656,116 @@ app.get('/api/status', (req, res) => {
     });
 });
 
+// ============================================================
+//  НАСТРОЙКИ: чтение/запись config.env прямо из админки
+// ============================================================
+const ADMIN_CONFIG_FIELDS = [
+    { group: 'DonationAlerts', key: 'DA_CLIENT_ID',           label: 'Client ID',      secret: false },
+    { group: 'DonationAlerts', key: 'DA_CLIENT_SECRET',       label: 'Client Secret',  secret: true  },
+    { group: 'DonationAlerts', key: 'DA_REDIRECT_URI',        label: 'Redirect URI',   secret: false },
+    { group: 'DonatePay',      key: 'DP_API_KEY',             label: 'API ключ',       secret: true  },
+    { group: 'DonatePay',      key: 'DP_WEBHOOK_SECRET',      label: 'Webhook Secret', secret: true  },
+    { group: 'Lesta Games',    key: 'LESTA_APPLICATION_ID',   label: 'Application ID', secret: false },
+    { group: 'Lesta Games',    key: 'LESTA_ACCESS_TOKEN',     label: 'Access Token',   secret: true  },
+    { group: 'YouTube',        key: 'YT_CLIENT_ID',           label: 'Client ID',      secret: false },
+    { group: 'YouTube',        key: 'YT_CLIENT_SECRET',       label: 'Client Secret',  secret: true  },
+    { group: 'YouTube',        key: 'YT_REDIRECT_URI',        label: 'Redirect URI',   secret: false },
+    { group: 'VK Play',        key: 'VKPLAY_CLIENT_ID',       label: 'Client ID',      secret: false },
+    { group: 'VK Play',        key: 'VKPLAY_CLIENT_SECRET',   label: 'Client Secret',  secret: true  },
+    { group: 'VK Play',        key: 'VKPLAY_REDIRECT_URI',    label: 'Redirect URI',   secret: false },
+    { group: 'VK Play Bot',    key: 'VKPLAY_BOT_CLIENT_ID',   label: 'Bot Client ID',  secret: false },
+    { group: 'VK Play Bot',    key: 'VKPLAY_BOT_CLIENT_SECRET', label: 'Bot Secret',   secret: true  },
+    { group: 'VK Play Bot',    key: 'VKPLAY_BOT_REDIRECT_URI', label: 'Bot Redirect URI', secret: false },
+];
+
+function resolveConfigEnvPath() {
+    const candidates = [
+        process.env.FRAG_USER_DATA ? path.join(process.env.FRAG_USER_DATA, 'config.env') : null,
+        path.join(__dirname, 'config.env'),
+    ].filter(Boolean);
+    for (const p of candidates) {
+        if (fs.existsSync(p)) return p;
+    }
+    return path.join(__dirname, 'config.env');
+}
+
+// GET — отдать текущие настройки (секреты маскируются)
+app.get('/api/admin/config', (req, res) => {
+    try {
+        const fields = ADMIN_CONFIG_FIELDS.map(f => {
+            const raw = process.env[f.key] || '';
+            const isSet = raw.length > 0;
+            return {
+                key: f.key,
+                group: f.group,
+                label: f.label,
+                secret: f.secret,
+                isSet,
+                // секрет наружу не отдаём — только факт, что задан, и хвост
+                value: f.secret ? '' : raw,
+                hint: f.secret && isSet ? ('••••' + raw.slice(-4)) : '',
+            };
+        });
+        res.json({ success: true, fields });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+// POST — сохранить изменённые настройки в config.env
+app.post('/api/admin/config', (req, res) => {
+    try {
+        const updates = req.body || {};
+        const allowed = new Set(ADMIN_CONFIG_FIELDS.map(f => f.key));
+        const secretKeys = new Set(ADMIN_CONFIG_FIELDS.filter(f => f.secret).map(f => f.key));
+
+        // что реально меняем: только разрешённые ключи с непустым значением
+        const toWrite = {};
+        for (const [k, v] of Object.entries(updates)) {
+            if (!allowed.has(k)) continue;
+            const val = typeof v === 'string' ? v.trim() : '';
+            if (val === '') continue; // пусто = «не менять» (особенно для секретов)
+            toWrite[k] = val;
+        }
+
+        if (Object.keys(toWrite).length === 0) {
+            return res.json({ success: true, changed: [], message: 'Нет изменений' });
+        }
+
+        const envPath = resolveConfigEnvPath();
+        let lines = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8').split(/\r?\n/) : [];
+        const seen = new Set();
+        lines = lines.map(line => {
+            const m = line.match(/^([A-Z0-9_]+)=/);
+            if (m && toWrite[m[1]] !== undefined) {
+                seen.add(m[1]);
+                return `${m[1]}=${toWrite[m[1]]}`;
+            }
+            return line;
+        });
+        // новые ключи, которых не было в файле
+        for (const [k, v] of Object.entries(toWrite)) {
+            if (!seen.has(k)) lines.push(`${k}=${v}`);
+        }
+        fs.writeFileSync(envPath, lines.join('\n'), 'utf8');
+
+        // применяем «на горячую» в текущий процесс
+        for (const [k, v] of Object.entries(toWrite)) {
+            process.env[k] = v;
+        }
+
+        const changed = Object.keys(toWrite).map(k => secretKeys.has(k) ? `${k} (секрет)` : k);
+        console.log('🔧 Настройки обновлены через админку:', changed.join(', '));
+        res.json({
+            success: true,
+            changed,
+            note: 'Часть параметров (порты, ключи интеграций) применится после перезапуска сервера.'
+        });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // API для проверки статуса Centrifugo DonatePay
 app.get('/api/dp-centrifugo-status', (req, res) => {
     const status = {
