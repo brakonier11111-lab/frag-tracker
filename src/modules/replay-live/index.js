@@ -187,13 +187,6 @@ function createReplayLiveModule(deps) {
     let lastSeenGameCacheMtimeMs = 0;
     let lastGameCacheActivePath = '';
     const lastMetaHexByBasename = new Map();
-    // Детектор «реального открытия реплея в игре»: отдельный, самодостаточный трекер
-    // metaHex записей game cache по basename. Не путать с lastMetaHexByBasename, который
-    // мутируется кучей функций как сайд-эффект (из-за этого старый meta-детект был
-    // ненадёжен). Этот трогаем ТОЛЬКО в detectGameOpenedReplay.
-    const gameOpenMetaByKey = new Map();
-    let gameOpenDetectMtime = 0;
-    let gameOpenBootstrapped = false;
     const PLAYBACK_IDLE_GRACE_MS = 15_000;
     const STICKY_META_SILENCE_MS = 4 * 60 * 1000;
     const STICKY_SESSION_MAX_MS = 60 * 60 * 1000;
@@ -1167,81 +1160,9 @@ function createReplayLiveModule(deps) {
         };
     }
 
-    // Чистый детектор «реального открытия реплея в игре». Игра при открытии реплея
-    // перезаписывает свою запись в game cache (replay_*.dat) — ловим именно изменение
-    // этой записи. Иммунно к загрязнению atime приложением и к мусору «самого свежего
-    // zip». Возвращает pick только когда игра реально открыла ДРУГОЙ реплей.
-    function detectGameOpenedReplay(cache) {
-        if (!cache || !cache.buf) return null;
-
-        // Файлы из extra dir, у которых есть запись в game cache (по basename).
-        const extraKeyToPath = new Map();
-        for (const dir of normalizeExtraReplaysDirs(config.extraReplaysDirs)) {
-            if (!fs.existsSync(dir)) continue;
-            let names;
-            try { names = fs.readdirSync(dir); } catch (_) { continue; }
-            for (const name of names) {
-                if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
-                extraKeyToPath.set(replayBasenameKey(name), path.join(dir, name));
-            }
-        }
-        const curMeta = new Map();
-        for (const row of parseCacheEntries(cache.buf)) {
-            const key = replayBasenameKey(path.basename(row.replayPath));
-            if (extraKeyToPath.has(key)) curMeta.set(key, row.metaHex);
-        }
-
-        // Бутстрап: первый проход просто запоминает состояние, ничего не запускает.
-        if (!gameOpenBootstrapped) {
-            for (const [k, h] of curMeta) gameOpenMetaByKey.set(k, h);
-            gameOpenDetectMtime = cache.mtimeMs || 0;
-            gameOpenBootstrapped = true;
-            return null;
-        }
-
-        // Реагируем только когда game cache реально перезаписан (= открытие/сохранение).
-        if ((cache.mtimeMs || 0) === gameOpenDetectMtime) {
-            for (const [k, h] of curMeta) if (!gameOpenMetaByKey.has(k)) gameOpenMetaByKey.set(k, h);
-            return null;
-        }
-        gameOpenDetectMtime = cache.mtimeMs || 0;
-
-        const changed = [];
-        for (const [key, hex] of curMeta) {
-            const prev = gameOpenMetaByKey.get(key);
-            if (prev !== undefined && prev !== hex) changed.push(key);
-            gameOpenMetaByKey.set(key, hex);
-        }
-        if (!changed.length) return null;
-
-        // Не переключаемся на уже играющий и на только что игравший (его «финальная»
-        // запись тоже меняется при свитче A->B — нам нужен B).
-        const current = currentExclusivePlaybackPath();
-        const curKey = current ? replayBasenameKey(path.basename(current)) : '';
-        const lastKey = lastResolvedPlaybackPath
-            ? replayBasenameKey(path.basename(lastResolvedPlaybackPath)) : '';
-        let candidates = changed.filter((k) => k !== curKey);
-        if (candidates.length > 1) {
-            const narrowed = candidates.filter((k) => k !== lastKey);
-            if (narrowed.length) candidates = narrowed;
-        }
-        if (!candidates.length) return null;
-
-        const pickPath = extraKeyToPath.get(candidates[0]);
-        if (!pickPath || !replayPathExists(pickPath)) return null;
-        if (isFinishedReplayPath(pickPath) && !shouldAllowReplayRestart(pickPath)) return null;
-
-        const entry = readGameCacheEntry(pickPath);
-        return {
-            path: pickPath,
-            metaHex: entry ? entry.metaHex : (curMeta.get(candidates[0]) || ''),
-            reason: 'game_open',
-            source: 'game_cache'
-        };
-    }
-
     function resolveExclusiveExtraDirPick(signals) {
         const cache = readGameCacheBuffer();
+        const cacheSig = signals && signals.cache;
 
         function pack(pick) {
             return Object.assign({}, pick, {
@@ -1249,23 +1170,92 @@ function createReplayLiveModule(deps) {
             });
         }
 
-        // ГЛАВНЫЙ сигнал: реальное открытие реплея в игре. НЕ угадываем по времени
-        // файлов (atime врёт — его пишет и само приложение) и не по «самому свежему
-        // zip» (из-за этого включались рандомные реплеи и срабатывало простое
-        // копирование файла в папку). Переключаемся только на реально открытый.
-        const openedPick = detectGameOpenedReplay(cache);
-        if (openedPick) return pack(openedPick);
-
         const current = currentExclusivePlaybackPath();
-
-        // Что-то уже играет, события открытия не было — держим текущий реплей.
-        if (current) {
-            const held = tryContinueExclusiveExtraPlayback();
-            if (held) return pack(held);
-            return null;
+        if (!current) {
+            const freshZip = pickFreshestTouchedExtraDirZip();
+            if (freshZip) {
+                return pack({
+                    path: freshZip.path,
+                    metaHex: freshZip.metaHex,
+                    reason: 'zip_open',
+                    source: 'extra_dir'
+                });
+            }
         }
 
-        // Простаиваем. Уважаем ручной выбор; иначе ждём реального открытия в игре.
+        if (cache && cache.buf) {
+            const metaPick = pickMetaChangedExtraDirReplay(cache);
+            if (metaPick) {
+                return pack(metaPick);
+            }
+        }
+
+        const cacheDiffPick = pickCacheDiffExtraDirReplay(signals, cache);
+        if (cacheDiffPick) {
+            return pack(cacheDiffPick);
+        }
+
+        const justOpened = pickJustOpenedExtraDirZipNotCurrent(current);
+        if (justOpened) {
+            return pack({
+                path: justOpened.path,
+                metaHex: justOpened.metaHex,
+                reason: 'zip_open',
+                source: 'extra_dir'
+            });
+        }
+
+        const directPick = pickLiveExtraDirZipDirect(cache, signals);
+        if (directPick) {
+            if (!current
+                || replayBasenameKey(directPick.path) !== replayBasenameKey(current)) {
+                return pack({
+                    path: directPick.path,
+                    metaHex: directPick.metaHex,
+                    reason: 'zip_live',
+                    source: 'extra_dir'
+                });
+            }
+        }
+
+        if (cache && cache.buf) {
+            const livePick = pickLiveExtraDirReplayFromCache(cache.buf, cache, signals);
+            if (livePick) {
+                if (!current
+                    || replayBasenameKey(livePick.path) !== replayBasenameKey(current)) {
+                    return pack({
+                        path: livePick.path,
+                        metaHex: livePick.metaHex,
+                        reason: 'zip_live',
+                        source: 'game_cache'
+                    });
+                }
+            }
+        }
+
+        const spikePick = pickAccessSpikeExtraReplay(signals, cache);
+        if (spikePick) {
+            return pack({
+                path: spikePick.path,
+                metaHex: spikePick.metaHex,
+                reason: spikePick.reason || 'access_spike',
+                source: 'access_spike'
+            });
+        }
+
+        if (cacheSig && cacheSig.replayPath) {
+            const extraPath = mapGameCachePathToExtraDir(cacheSig.replayPath);
+            if (extraPath && replayPathExists(extraPath) && isZipActiveForPlayback(extraPath)) {
+                const entry = readGameCacheEntry(cacheSig.replayPath);
+                return pack({
+                    path: extraPath,
+                    metaHex: entry ? entry.metaHex : '',
+                    reason: cacheSig.reason || 'cache_active',
+                    source: 'game_cache'
+                });
+            }
+        }
+
         const manualReasons = new Set(['manual_play', 'manual_path', 'config_manual_path']);
         const manualPath = (config.playbackReplayPath || '').trim();
         if (manualPath
@@ -1278,6 +1268,11 @@ function createReplayLiveModule(deps) {
                 reason: playbackSession.lastDetectReason,
                 cacheMtimeMs: cache ? cache.mtimeMs : 0
             };
+        }
+
+        const held = tryContinueExclusiveExtraPlayback();
+        if (held) {
+            return pack(held);
         }
 
         return null;
