@@ -2766,6 +2766,22 @@ app.post('/api/admin/config', (req, res) => {
     }
 });
 
+// Статус подключений для админки (читает реальное состояние из БД)
+app.get('/api/admin/status', (req, res) => {
+    db.get('SELECT da_access_token, dp_api_key, lesta_access_token FROM app_state WHERE id = 1', (err, row) => {
+        if (err) {
+            return res.status(500).json({ success: false, error: err.message });
+        }
+        row = row || {};
+        res.json({
+            success: true,
+            da:    !!row.da_access_token,
+            dp:    !!row.dp_api_key,
+            lesta: !!row.lesta_access_token
+        });
+    });
+});
+
 // API для проверки статуса Centrifugo DonatePay
 app.get('/api/dp-centrifugo-status', (req, res) => {
     const status = {

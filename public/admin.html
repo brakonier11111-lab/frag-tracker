@@ -750,7 +750,7 @@
 
         function connectWebSocket() {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}`);
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
                 
             ws.onopen = function() {
                     console.log('✅ WebSocket подключен');
@@ -888,7 +888,30 @@
             if (caret) caret.textContent = open ? '▾' : '▸';
         }
 
-        document.addEventListener('DOMContentLoaded', loadAdminConfig);
+        // ---- Активный опрос статуса подключений ----
+        async function refreshStatuses() {
+            try {
+                const res = await fetch('/api/admin/status');
+                const d = await res.json();
+                if (d.success) {
+                    updateStatus('daStatus', d.da ? 'Подключен' : 'Не подключен', d.da ? 'connected' : 'disconnected');
+                    updateStatus('dpStatus', d.dp ? 'Настроен' : 'Не настроен', d.dp ? 'connected' : 'disconnected');
+                    updateStatus('lestaStatus', d.lesta ? 'Авторизован' : 'Не авторизован', d.lesta ? 'connected' : 'disconnected');
+                }
+            } catch (e) {
+                updateStatus('daStatus', 'Нет ответа', 'disconnected');
+                updateStatus('dpStatus', 'Нет ответа', 'disconnected');
+                updateStatus('lestaStatus', 'Нет ответа', 'disconnected');
+            }
+            const wsOk = ws && ws.readyState === WebSocket.OPEN;
+            updateStatus('wsStatus', wsOk ? 'Подключен' : 'Отключен', wsOk ? 'connected' : 'disconnected');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAdminConfig();
+            refreshStatuses();
+            setInterval(refreshStatuses, 10000);
+        });
 
         function showModal(title, content) {
             // Создаем модальное окно с glass-morphism стилем
