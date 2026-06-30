@@ -13,9 +13,9 @@
     
     <div class="header-right">
         <div class="header-auth">
-            <a href="#" class="header-login-btn" id="headerLoginBtn" title="Вход">
-                <span class="header-login-icon">👤</span>
-                <span class="header-login-text">Вход</span>
+            <a href="/admin.html" class="header-login-btn" id="headerLoginBtn" title="Админ-панель">
+                <span class="header-login-icon">🔧</span>
+                <span class="header-login-text">Админка</span>
             </a>
         </div>
         <div class="header-stats" id="headerStats" style="display: none;">
@@ -115,13 +115,6 @@
         setInterval(loadHeaderStats, 30000);
     }
 
-    // Меню входа (заглушка под будущую авторизацию)
-    const loginBtn = document.getElementById('headerLoginBtn');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Вход в систему будет доступен в следующем обновлении.');
-        });
-    }
+    // Кнопка «Админка» — обычная ссылка на /admin.html (обработчик не нужен)
 })();
 </script>
