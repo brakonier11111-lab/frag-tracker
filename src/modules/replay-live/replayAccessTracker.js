@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { isReplayArchiveName } = require('./replayCache');
 function normalizeReplayDirs(replaysDirOrDirs) {
     if (Array.isArray(replaysDirOrDirs)) {
         return replaysDirOrDirs.filter(Boolean);
@@ -14,7 +15,7 @@ function listReplayZipFiles(replaysDirOrDirs) {
     for (const replaysDir of normalizeReplayDirs(replaysDirOrDirs)) {
         if (!fs.existsSync(replaysDir)) continue;
         for (const name of fs.readdirSync(replaysDir)) {
-            if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
+            if (!isReplayArchiveName(name)) continue;
             const full = path.join(replaysDir, name);
             try {
                 const stat = fs.statSync(full);

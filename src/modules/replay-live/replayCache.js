@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PATH_RE = /C:[/\\]Users[/\\][^/\0\n\r]+[/\\]Documents[/\\]TanksBlitz[/\\]replays[/\\][^\0\n\r]{5,220}?\.tbrepla(?:y)?/gi;
-const CACHE_PATH_RE = /C:\/Users\/[^\0\n\r]+?\.tbreplay/g;
+const CACHE_PATH_RE = /C:\/Users\/[^\0\n\r]+?\.tbreplay(?:\.bin)?/g;
 
 function parseCacheEntryMap(buf) {
     return new Map(parseCacheEntries(buf).map((row) => [row.replayPath, row.metaHex]));
@@ -16,7 +16,7 @@ function parseCacheEntries(buf) {
     CACHE_PATH_RE.lastIndex = 0;
     while ((match = CACHE_PATH_RE.exec(buf.toString('latin1'))) !== null) {
         const replayPath = normalizeReplayPath(match[0]);
-        if (!/\.tbreplay$/i.test(replayPath)) continue;
+        if (!isReplayArchivePath(replayPath)) continue;
         const end = match.index + match[0].length;
         const metaBuf = buf.subarray(end, end + 48);
         entries.push({
@@ -140,9 +140,27 @@ function normalizeReplayPath(raw) {
 
 function replayBasenameKey(name) {
     return String(name || '').toLowerCase()
+        .replace(/\.tbreplay\.bin$/i, '')
         .replace(/\.tbreplay$/i, '')
         .replace(/\s*\(\d+\)\s*$/, '')
         .trim();
+}
+
+function isReplayArchiveName(name) {
+    const n = String(name || '').toLowerCase();
+    if (!n || n.startsWith('recording_')) return false;
+    return n.endsWith('.tbreplay') || n.endsWith('.tbreplay.bin');
+}
+
+function isReplayArchivePath(replayPath) {
+    return isReplayArchiveName(path.basename(String(replayPath || '')));
+}
+
+function replayArchiveBasename(replayPath) {
+    let base = path.basename(String(replayPath || ''));
+    base = base.replace(/\.tbreplay\.bin$/i, '');
+    base = base.replace(/\.tbreplay$/i, '');
+    return base;
 }
 
 function replayPathExists(replayPath) {
@@ -177,7 +195,7 @@ function extractReplayPaths(buf) {
     PATH_RE.lastIndex = 0;
     while ((match = PATH_RE.exec(text)) !== null) {
         const replayPath = normalizeReplayPath(match[0]);
-        if (/\.tbreplay$/i.test(replayPath)) paths.push(replayPath);
+        if (isReplayArchivePath(replayPath)) paths.push(replayPath);
     }
     return paths;
 }
@@ -234,7 +252,7 @@ function findRecentlyAccessedReplay(replaysDir, accessMs, options) {
     }
 
     for (const name of names) {
-        if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
+        if (!isReplayArchiveName(name)) continue;
         const full = path.join(replaysDir, name);
         try {
             const stat = fs.statSync(full);
@@ -681,6 +699,9 @@ function diffMetaReplayPosition(oldMetaHex, newMetaHex, replayDurationSec) {
 
 module.exports = {
     replayBasenameKey,
+    isReplayArchiveName,
+    isReplayArchivePath,
+    replayArchiveBasename,
     replayCacheDir,
     listReplayCacheFiles,
     readLastReplayFromCache,

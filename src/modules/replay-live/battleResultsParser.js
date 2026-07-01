@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const { replayArchiveBasename, isReplayArchivePath } = require('./replayCache');
 const { mergePlayerDamage } = require('./replayParser');
 const { extractZipEntryFromCentral, extractDataReplayFromZipNative, detectReplayDataEntryInZip, REPLAY_DATA_ZIP_ENTRIES } = require('./zipExtract');
 
@@ -240,7 +241,7 @@ function unpickleSecondElement(buf) {
 function readBattleResultsProtobufFromPath(filePath) {
     if (!filePath || !fs.existsSync(filePath)) return null;
     try {
-        if (filePath.toLowerCase().endsWith('.tbreplay')) {
+        if (isReplayArchivePath(filePath)) {
             let raw = null;
             const AdmZip = tryRequireAdmZip();
             if (AdmZip) {
@@ -354,7 +355,7 @@ function extractDataReplayFromZip(zipPath, cacheDir) {
     try {
         fs.mkdirSync(cacheDir, { recursive: true });
         const stat = fs.statSync(zipPath);
-        const cached = path.join(cacheDir, `${path.basename(zipPath, '.tbreplay')}.data.replay`);
+        const cached = path.join(cacheDir, `${replayArchiveBasename(zipPath)}.data.replay`);
         const marker = `${cached}.mtime`;
         const entryMarker = `${cached}.entry`;
         if (fs.existsSync(cached) && fs.existsSync(marker)) {
@@ -392,7 +393,7 @@ function extractDataReplayFromZip(zipPath, cacheDir) {
 function writeCachedReplayExtract(zipPath, cacheDir, buf, entryName) {
     try {
         const stat = fs.statSync(zipPath);
-        const cached = path.join(cacheDir, `${path.basename(zipPath, '.tbreplay')}.data.replay`);
+        const cached = path.join(cacheDir, `${replayArchiveBasename(zipPath)}.data.replay`);
         const marker = `${cached}.mtime`;
         const entryMarker = `${cached}.entry`;
         fs.mkdirSync(cacheDir, { recursive: true });
@@ -406,7 +407,7 @@ function writeCachedReplayExtract(zipPath, cacheDir, buf, entryName) {
 function extractViaPythonFallback(zipPath, cacheDir) {
     try {
         const stat = fs.statSync(zipPath);
-        const cached = path.join(cacheDir, `${path.basename(zipPath, '.tbreplay')}.data.replay`);
+        const cached = path.join(cacheDir, `${replayArchiveBasename(zipPath)}.data.replay`);
         const marker = `${cached}.mtime`;
         const entryMarker = `${cached}.entry`;
         const cmd = spawnSync('python', [
