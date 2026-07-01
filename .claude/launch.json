@@ -17,7 +17,7 @@
         "scripts/preview-server.js"
       ],
       "port": 3993,
-      "autoPort": false
+      "autoPort": true
     }
   ]
 }
