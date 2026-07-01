@@ -152,6 +152,7 @@
 </head>
 <body>
     <div class="app-layout">
+        <script>if(localStorage.getItem('sidebarCollapsed')==='true'){document.body.classList.add('sidebar-collapsed');}</script>
         <div id="sidebar-placeholder"></div>
         <div id="header-placeholder"></div>
 
@@ -189,6 +190,26 @@
                         <div class="mode-title">Полоска сбора донатов</div>
                         <div class="mode-description">
                             Старый виджет сбора. Актуальная версия — в разделе «Управление донатами».
+                        </div>
+                        <button class="mode-btn">Открыть</button>
+                    </div>
+
+                    <div class="mode-card" onclick="window.location.href='/rewards-manager.html'">
+                        <div class="mode-icon">🎁</div>
+                        <div class="mode-badge">Архив · не работает</div>
+                        <div class="mode-title">Управление наградами (старое)</div>
+                        <div class="mode-description">
+                            Заброшенный прототип из несостоявшегося рефакторинга бэкенда. Дергает /api/rewards, которого нет в текущем сервере — страница откроется, но данные не загрузятся. Актуальная версия — «Управление наградами VK Play».
+                        </div>
+                        <button class="mode-btn">Открыть</button>
+                    </div>
+
+                    <div class="mode-card" onclick="window.location.href='/widget-builder.html'">
+                        <div class="mode-icon">🎨</div>
+                        <div class="mode-badge">Архив · не работает</div>
+                        <div class="mode-title">Конструктор виджетов</div>
+                        <div class="mode-description">
+                            Тоже часть несостоявшегося рефакторинга. Дергает /api/widgets, которого нет в текущем сервере — функция генерации кода никогда не была закончена.
                         </div>
                         <button class="mode-btn">Открыть</button>
                     </div>

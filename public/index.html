@@ -231,40 +231,8 @@
             font-size: 1.18rem;
             font-weight: 700;
             letter-spacing: -0.2px;
-            margin-bottom: 10px;
+            margin-bottom: 22px;
             color: var(--text);
-        }
-
-        .mode-description {
-            font-size: 0.92rem;
-            color: var(--text-dim);
-            margin-bottom: 18px;
-            line-height: 1.5;
-        }
-
-        .mode-features {
-            list-style: none;
-            margin-bottom: 24px;
-            display: grid;
-            gap: 9px;
-        }
-
-        .mode-features li {
-            font-size: 0.85rem;
-            color: var(--text-dim);
-            padding-left: 22px;
-            position: relative;
-        }
-
-        .mode-features li::before {
-            content: '';
-            position: absolute;
-            left: 4px;
-            top: 0.5em;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--accent, var(--grad-orange));
         }
 
         .mode-btn {
@@ -314,6 +282,7 @@
     <div class="bg-fx"><div class="mesh"></div><div class="grain"></div></div>
     <div class="app-layout">
         <!-- Боковое меню -->
+        <script>if(localStorage.getItem('sidebarCollapsed')==='true'){document.body.classList.add('sidebar-collapsed');}</script>
         <div id="sidebar-placeholder"></div>
 
         <!-- Верхняя панель -->
@@ -334,12 +303,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">🎯</div>
                         <div class="mode-title">Фраг-трекер</div>
-                        <ul class="mode-features">
-                            <li>Интеграция с DonationAlerts</li>
-                            <li>Поддержка DonatePay</li>
-                            <li>Автосписание фрагов из Lesta Games</li>
-                            <li>Real-time обновления</li>
-                        </ul>
                         <button class="mode-btn">Начать трекинг <span class="arrow">→</span></button>
                     </div>
 
@@ -348,12 +311,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">⏱️</div>
                         <div class="mode-title">Таймер</div>
-                        <ul class="mode-features">
-                            <li>Настраиваемые интервалы</li>
-                            <li>Донаты для продления</li>
-                            <li>Визуальные эффекты</li>
-                            <li>Гибкие настройки</li>
-                        </ul>
                         <button class="mode-btn">Запустить таймер <span class="arrow">→</span></button>
                     </div>
 
@@ -362,12 +319,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">🚗</div>
                         <div class="mode-title">Очередь танков</div>
-                        <ul class="mode-features">
-                            <li>Ранжирование по стоимости</li>
-                            <li>Отслеживание текущего боя</li>
-                            <li>Дополнительные условия заказа</li>
-                            <li>Красивые анимации</li>
-                        </ul>
                         <button class="mode-btn">Открыть очередь <span class="arrow">→</span></button>
                     </div>
 
@@ -376,12 +327,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">💰</div>
                         <div class="mode-title">Управление донатами</div>
-                        <ul class="mode-features">
-                            <li>12 готовых тем и форм полосок</li>
-                            <li>Кастомные изображения и фигуры</li>
-                            <li>Настройка сбора и статистика</li>
-                            <li>Превью в реальном времени</li>
-                        </ul>
                         <button class="mode-btn">Открыть управление <span class="arrow">→</span></button>
                     </div>
 
@@ -390,12 +335,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">📡</div>
                         <div class="mode-title">Интеграции стримов</div>
-                        <ul class="mode-features">
-                            <li>Авторизация OAuth</li>
-                            <li>Онлайн и лайки</li>
-                            <li>Чат в реальном времени</li>
-                            <li>Проверка подключения</li>
-                        </ul>
                         <button class="mode-btn">Открыть интеграции <span class="arrow">→</span></button>
                     </div>
 
@@ -404,12 +343,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">📼</div>
                         <div class="mode-title">Replay Live</div>
-                        <ul class="mode-features">
-                            <li>Чтение recording_*.tbreplay/data.replay</li>
-                            <li>Обновление каждую секунду в бою</li>
-                            <li>Итоги последнего боя после финализации</li>
-                            <li>OBS-виджет с прозрачным фоном</li>
-                        </ul>
                         <button class="mode-btn">Открыть Replay Live <span class="arrow">→</span></button>
                     </div>
 
@@ -418,12 +351,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">🎵</div>
                         <div class="mode-title">Яндекс Музыка</div>
-                        <ul class="mode-features">
-                            <li>Исполнитель и название трека</li>
-                            <li>Работает с Яндекс Музыка.exe</li>
-                            <li>OBS-виджет с прозрачным фоном</li>
-                            <li>Без логина и API-ключей</li>
-                        </ul>
                         <button class="mode-btn">Открыть виджет <span class="arrow">→</span></button>
                     </div>
 
@@ -432,12 +359,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">⚔️</div>
                         <div class="mode-title">Tanks Blitz Challenge</div>
-                        <ul class="mode-features">
-                            <li>Win Rate, Урон и Медали как цели</li>
-                            <li>Донаты повышают сложность</li>
-                            <li>Кинематографичные эффекты и victory-экран</li>
-                            <li>OBS-виджет в реальном времени</li>
-                        </ul>
                         <button class="mode-btn">Открыть челлендж <span class="arrow">→</span></button>
                     </div>
 
@@ -446,12 +367,6 @@
                         <span class="spot"></span>
                         <div class="mode-icon">🎮</div>
                         <div class="mode-title">Lesta Games</div>
-                        <ul class="mode-features">
-                            <li>Автоматический подсчёт фрагов</li>
-                            <li>Статистика боёв и побед</li>
-                            <li>Синхронизация с донатами</li>
-                            <li>Real-time обновления</li>
-                        </ul>
                         <button class="mode-btn">Посмотреть статистику <span class="arrow">→</span></button>
                     </div>
 
