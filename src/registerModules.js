@@ -7,7 +7,6 @@ const { registerRouletteRoutes } = require('./modules/roulette');
 const { createRazblogModule } = require('./modules/razblog');
 const { createDonorAchievementsModule } = require('./modules/donor-achievements');
 const { createChatStatsModule } = require('./modules/chat-stats');
-const { createRutonyChatModule } = require('./modules/rutony-chat');
 const { createYoutubeIntegrationModule } = require('./modules/youtube-integration');
 const { createVkplayIntegrationModule } = require('./modules/vkplay-integration');
 const { createLestaOAuthModule } = require('./modules/lesta-oauth');
@@ -15,7 +14,7 @@ const { createDonationsAnalyticsModule } = require('./modules/donations-analytic
 
 /**
  * Подключает вынесенные модули к Express-приложению.
- * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube, vkplay, lestaOAuth, donationsAnalytics }}
+ * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, youtube, vkplay, lestaOAuth, donationsAnalytics }}
  */
 function registerModules(app, deps, config) {
     const blitz = createBlitzChallengeModule(deps);
@@ -44,9 +43,6 @@ function registerModules(app, deps, config) {
     const chatStats = createChatStatsModule(deps);
     chatStats.registerRoutes(app);
 
-    const rutonyChat = createRutonyChatModule(deps);
-    rutonyChat.registerRoutes(app);
-
     const youtube = createYoutubeIntegrationModule(deps);
     youtube.registerRoutes(app);
     youtube.startPolling();
@@ -62,7 +58,7 @@ function registerModules(app, deps, config) {
     const donationsAnalytics = createDonationsAnalyticsModule(deps);
     donationsAnalytics.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube, vkplay, lestaOAuth, donationsAnalytics };
+    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, youtube, vkplay, lestaOAuth, donationsAnalytics };
 }
 
 module.exports = { registerModules };

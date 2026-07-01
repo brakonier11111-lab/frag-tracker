@@ -10827,7 +10827,6 @@ const moduleConfig = {
 const modules = registerModules(app, moduleDeps, moduleConfig);
 blitzModule = modules.blitz;
 razblogModuleRef = modules.razblog;
-const rutonyChatModule = modules.rutonyChat;
 
 function updateBlitzChallenge(amount, donation) {
     if (blitzModule) blitzModule.updateBlitzChallenge(amount, donation);
@@ -10944,12 +10943,6 @@ FRAG_SERVER_READY:${port}
         console.log('🔄 Запуск автообновления статистики фрагов...');
         startAutoRefresh();
     }, 5000); // Задержка 5 секунд после запуска опроса донатов
-
-    // Подключение к локальному Rutony Chat
-    setTimeout(() => {
-        console.log('🔌 Подключение к Rutony Chat...');
-        rutonyChatModule.startRutonyChat();
-    }, 1500);
 });
 
 // Простой HTTPS с самоподписанным сертификатом для VK Play

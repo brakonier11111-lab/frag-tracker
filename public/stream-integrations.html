@@ -5,6 +5,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Интеграции стримов — YouTube и VK Play</title>
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/styles/design-system.css">
+	<link rel="stylesheet" href="/styles/layout.css">
 	<style>
 		:root {
 			--bg: #0b0f17;
@@ -19,10 +21,21 @@
 		}
 
 		* { margin: 0; padding: 0; box-sizing: border-box; }
-		body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+		body {
+			font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+			background: var(--bg);
+			color: var(--text);
+			padding-top: 70px;
+			padding-left: 280px;
+			transition: padding-left var(--transition-base, 0.3s);
+		}
+		body.sidebar-collapsed { padding-left: 80px; }
+		@media (max-width: 768px) {
+			body { padding-left: 0; }
+		}
 
 		.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
-		.h1 { font-size: 28px; font-weight: 800; letter-spacing: .2px; margin: 86px 0 16px; }
+		.h1 { font-size: 28px; font-weight: 800; letter-spacing: .2px; margin: 0 0 16px; }
 		.sub { color: var(--muted); margin-bottom: 24px; }
 
 		.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
@@ -137,7 +150,8 @@
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
 </head>
 <body class="theme-2026">
-	<div id="menu-container"></div>
+	<div id="sidebar-placeholder"></div>
+	<div id="header-placeholder"></div>
 	<div class="page">
 		<div class="h1">Интеграции стримов</div>
 		<div class="sub">Авторизуйтесь в YouTube и VK Play, чтобы собирать: онлайн, лайки, сообщения чата в реальном времени.</div>
@@ -233,29 +247,6 @@
 				</div>
 			</div>
 
-			<!-- Rutony Chat -->
-			<div class="card" id="card-rutony">
-				<h2>Rutony Chat</h2>
-				<p>Подключение к локальному чату Rutony через WebSocket ws://localhost:8383.</p>
-				<div class="kv"><div>Статус</div><span id="rutony-status" class="badge err">Не подключено</span></div>
-				<div class="hr"></div>
-				<div class="row">
-					<a class="btn ghost" href="http://localhost:8383/themes/default-by-ywnklme/template.html?sm=false&aic=false" target="_blank">Открыть шаблон чата</a>
-					<button class="btn ghost" id="btn-rutony-chat" onclick="toggleRutonyChat()" style="display:none;">Показать чат</button>
-				</div>
-				<div class="small">Если Rutony запущен, чат будет подключён автоматически и сообщения попадут в общий лог.</div>
-				<div class="chat-section" id="rutony-chat-section" style="display:none;">
-					<div class="chat-header">
-						<h3>💬 Чат Rutony</h3>
-						<button class="btn ghost" onclick="toggleRutonyChat()">Скрыть чат</button>
-					</div>
-					<div class="chat-messages" id="rutony-chat-messages"></div>
-					<div class="chat-footer">
-						<span class="chat-info">Сообщения подтягиваются из общей БД чата</span>
-					</div>
-				</div>
-			</div>
-
 			<!-- DonationAlerts -->
 			<div class="card" id="card-da">
 				<h2>DonationAlerts</h2>
@@ -288,13 +279,13 @@
 	</div>
 
 	<script>
-		async function loadMenu() {
-			try {
-				const res = await fetch('/menu.html');
-				document.getElementById('menu-container').innerHTML = await res.text();
-			} catch(e) { console.warn('menu load fail', e); }
-		}
-		loadMenu();
+		Promise.all([
+			fetch('/components/sidebar.html').then(r => r.text()),
+			fetch('/components/header.html').then(r => r.text())
+		]).then(([sidebar, header]) => {
+			document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+			document.getElementById('header-placeholder').innerHTML = header;
+		});
 
 		// Helpers
 		function setBadge(id, ok, extra = {}) {
@@ -558,14 +549,6 @@
 				setBadge('dp-status', !!(dp && dp.success));
 			} catch (e) {}
 
-			// Rutony status
-			try {
-				const rt = await api('/integrations/rutony/status');
-				setBadge('rutony-status', !!(rt && rt.connected));
-				const btn = document.getElementById('btn-rutony-chat');
-				btn.style.display = rt && rt.connected ? 'inline-block' : 'none';
-				if (rt && rt.connected) loadRutonyChatMessages();
-			} catch (e) {}
 		}
 		
 		// Переключение видимости чата
@@ -677,51 +660,6 @@
 				}
 			} catch (e) {
 				console.warn('Ошибка загрузки чата YouTube:', e);
-			}
-		}
-
-		function toggleRutonyChat() {
-			const chatSection = document.getElementById('rutony-chat-section');
-			const chatBtn = document.getElementById('btn-rutony-chat');
-			if (chatSection.style.display === 'none') {
-				chatSection.style.display = 'block';
-				chatBtn.textContent = 'Скрыть чат';
-				loadRutonyChatMessages();
-			} else {
-				chatSection.style.display = 'none';
-				chatBtn.textContent = 'Показать чат';
-			}
-		}
-
-		async function loadRutonyChatMessages() {
-			try {
-				const response = await api('/api/chat/messages?platform=rutony&limit=50');
-				if (response && response.messages) {
-					const chatContainer = document.getElementById('rutony-chat-messages');
-					chatContainer.innerHTML = '';
-					response.messages.reverse().forEach(msg => {
-						const messageDiv = document.createElement('div');
-						messageDiv.className = 'chat-message';
-						const time = new Date(msg.created_at).toLocaleTimeString();
-						const username = msg.username || 'Аноним';
-						const isModerator = msg.is_moderator;
-						const isOwner = msg.is_owner;
-						let usernameClass = '';
-						if (isOwner) usernameClass = 'owner';
-						else if (isModerator) usernameClass = 'moderator';
-						messageDiv.innerHTML = `
-							<div class="chat-message-header">
-								<span class="chat-username ${usernameClass}">${username}</span>
-								<span class="chat-time">${time}</span>
-							</div>
-							<div class="chat-message-text">${msg.message || ''}</div>
-						`;
-						chatContainer.appendChild(messageDiv);
-					});
-					chatContainer.scrollTop = chatContainer.scrollHeight;
-				}
-			} catch (e) {
-				console.warn('Ошибка загрузки чата Rutony:', e);
 			}
 		}
 
