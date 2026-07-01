@@ -10,10 +10,11 @@ const { createChatStatsModule } = require('./modules/chat-stats');
 const { createRutonyChatModule } = require('./modules/rutony-chat');
 const { createYoutubeIntegrationModule } = require('./modules/youtube-integration');
 const { createVkplayIntegrationModule } = require('./modules/vkplay-integration');
+const { createLestaOAuthModule } = require('./modules/lesta-oauth');
 
 /**
  * Подключает вынесенные модули к Express-приложению.
- * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube, vkplay }}
+ * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube, vkplay, lestaOAuth }}
  */
 function registerModules(app, deps, config) {
     const blitz = createBlitzChallengeModule(deps);
@@ -53,7 +54,11 @@ function registerModules(app, deps, config) {
     vkplay.registerRoutes(app);
     vkplay.startPolling();
 
-    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube, vkplay };
+    const lestaOAuth = createLestaOAuthModule(deps);
+    lestaOAuth.registerPages(app);
+    lestaOAuth.registerRoutes(app);
+
+    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube, vkplay, lestaOAuth };
 }
 
 module.exports = { registerModules };

@@ -2508,144 +2508,7 @@ app.get('/oauth/donationalerts/callback', async (req, res) => {
 });
 
 // OAuth авторизация Lesta Games
-app.get('/auth/lesta', (req, res) => {
-    if (!LESTA_CONFIG.applicationId) {
-        return res.status(400).send(`
-            <h3 style="color: red;">Ошибка настройки</h3>
-            <p>Application ID Lesta Games не настроен. Настройте его в админке.</p>
-        `);
-    }
-    
-    // Согласно документации Lesta Games, используем правильный URL
-    const redirectUri = `http://localhost:${port}/auth/lesta/callback`;
-    // prompt=login — попытка показать форму входа, а не подставить сохранённую сессию Lesta
-    const authUrl = `${LESTA_CONFIG.openIdUrl}?application_id=${LESTA_CONFIG.applicationId}&redirect_uri=${encodeURIComponent(redirectUri)}&prompt=login`;
-    
-    console.log('🔗 Авторизация Lesta Games:');
-    console.log('   Application ID:', LESTA_CONFIG.applicationId);
-    console.log('   Redirect URI:', redirectUri);
-    console.log('   Auth URL:', authUrl);
-    
-    res.redirect(authUrl);
-});
-
-app.get('/auth/lesta/callback', async (req, res) => {
-    try {
-        const { status, access_token, account_id, nickname, expires_at, code, message } = req.query;
-        
-        console.log('📥 Получен Lesta Games OAuth ответ:', { 
-            status: status || 'НЕ УКАЗАН',
-            access_token: access_token ? 'ЕСТЬ' : 'ОТСУТСТВУЕТ',
-            account_id: account_id ? 'ЕСТЬ' : 'ОТСУТСТВУЕТ',
-            nickname: nickname || 'НЕ УКАЗАН',
-            expires_at: expires_at || 'НЕ УКАЗАН',
-            code: code || 'НЕТ',
-            message: message || 'НЕТ'
-        });
-        
-        // Проверяем статус авторизации
-        if (status === 'error') {
-            // Специальный кейс для протухшей сессии AUTH_EXPIRED — сразу даём понятный текст и кнопку "повторить"
-            if (code === 'AUTH_EXPIRED') {
-                return res.status(200).send(`
-                    <h3 style="color: red; text-align: center; margin-top: 40px;">Ошибка авторизации Lesta Games</h3>
-                    <p style="text-align: center; max-width: 520px; margin: 10px auto; line-height: 1.5;">
-                        Сессия авторизации истекла (код: AUTH_EXPIRED, 403).<br>
-                        Это нормальная ситуация, если окно авторизации было открыто слишком долго.
-                    </p>
-                    <p style="text-align: center; margin-top: 20px;">
-                        <a href="/auth/lesta" style="display: inline-block; padding: 10px 18px; border-radius: 6px; background: #0ea5e9; color: #fff; text-decoration: none; font-weight: 600;">
-                            🔁 Попробовать авторизоваться ещё раз
-                        </a>
-                    </p>
-                    <p style="text-align: center; margin-top: 10px; font-size: 13px; color: #666;">
-                        Если ошибка повторяется сразу, проверьте системное время и попробуйте позже.
-                    </p>
-                `);
-            }
-
-            return res.status(200).send(`
-                <h3 style="color: red; text-align: center; margin-top: 40px;">Ошибка авторизации Lesta Games</h3>
-                <p style="text-align: center; max-width: 520px; margin: 10px auto; line-height: 1.5;">
-                    Ошибка авторизации: ${message || 'Неизвестная ошибка'}${code ? ` (код: ${code})` : ''}.
-                </p>
-                <p style="text-align: center; margin-top: 20px;">
-                    <a href="/auth/lesta" style="display: inline-block; padding: 10px 18px; border-radius: 6px; background: #0ea5e9; color: #fff; text-decoration: none; font-weight: 600;">
-                        🔁 Попробовать ещё раз
-                    </a>
-                </p>
-            `);
-        }
-        
-        if (status !== 'ok') {
-            return res.status(200).send(`
-                <h3 style="color: red; text-align: center; margin-top: 40px;">Неожиданный статус авторизации Lesta Games</h3>
-                <p style="text-align: center; max-width: 520px; margin: 10px auto; line-height: 1.5;">
-                    Статус: ${status || 'не указан'}.
-                </p>
-                <p style="text-align: center; margin-top: 20px;">
-                    <a href="/auth/lesta" style="display: inline-block; padding: 10px 18px; border-radius: 6px; background: #0ea5e9; color: #fff; text-decoration: none; font-weight: 600;">
-                        🔁 Попробовать ещё раз
-                    </a>
-                </p>
-            `);
-        }
-        
-        if (!account_id) {
-            throw new Error('ID аккаунта не получен');
-        }
-
-        LESTA_CONFIG.accessToken = access_token || null;
-        LESTA_CONFIG.accountId = account_id;
-        LESTA_CONFIG.nickname = nickname || 'Неизвестный игрок';
-        LESTA_CONFIG.tokenExpiresAt = expires_at ? parseInt(expires_at) : null;
-        
-        console.log('✅ Lesta Games OAuth успешно!');
-        console.log('   Игрок:', LESTA_CONFIG.nickname);
-        console.log('   Account ID:', LESTA_CONFIG.accountId);
-        console.log('   Access Token:', LESTA_CONFIG.accessToken ? 'ЕСТЬ' : 'ОТСУТСТВУЕТ');
-        console.log('   Истекает:', expires_at ? new Date(expires_at * 1000).toLocaleString('ru-RU') : 'НЕ УКАЗАН');
-        
-        // Сохраняем только поля Lesta (не spread всего state — иначе дублируется updated_at в SQL)
-        updateAppState({
-            lesta_access_token: LESTA_CONFIG.accessToken,
-            lesta_token_expires_at: LESTA_CONFIG.tokenExpiresAt,
-            lesta_account_id: LESTA_CONFIG.accountId,
-            lesta_nickname: LESTA_CONFIG.nickname
-        }, (err) => {
-            if (err) {
-                console.error('❌ Ошибка сохранения данных Lesta Games:', err);
-            } else {
-                console.log('✅ Данные Lesta Games сохранены в БД');
-                if (typeof broadcastStateUpdate === 'function') broadcastStateUpdate();
-            }
-        });
-        
-        // Запускаем автосинхронизацию
-        startLestaAutoSync();
-        
-        res.send(`
-            <script>
-                window.opener.postMessage({ type: 'LESTA_OAUTH_SUCCESS' }, '*');
-            </script>
-            <h3 style="text-align: center; margin-top: 50px; color: green;">
-                ✅ Авторизация Lesta Games успешна!<br><br>
-                <strong>Игрок:</strong> ${LESTA_CONFIG.nickname}<br>
-                <strong>Account ID:</strong> ${LESTA_CONFIG.accountId}<br>
-                <strong>Access Token:</strong> ${LESTA_CONFIG.accessToken ? 'Получен' : 'Не получен'}<br>
-                <strong>Истекает:</strong> ${expires_at ? new Date(expires_at * 1000).toLocaleString('ru-RU') : 'Не указано'}<br><br>
-                Вы можете закрыть это окно вручную.
-            </h3>
-        `);
-    } catch (error) {
-        console.error('❌ Lesta Games OAuth ошибка:', error.message);
-        res.status(500).send(`
-            <h3 style="color: red;">Ошибка авторизации Lesta Games</h3>
-            <p>${error.message}</p>
-            <p>Попробуйте еще раз или обратитесь к администратору.</p>
-        `);
-    }
-});
+// /auth/lesta, /auth/lesta/callback вынесены в src/modules/lesta-oauth
 
 // API эндпоинты для диагностики
 app.get('/api/status', (req, res) => {
@@ -7325,20 +7188,10 @@ app.get('/analytics', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'analytics.html'));
 });
 
-app.get('/lesta-test', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'lesta-test.html'));
-});
-
-app.get('/lesta-api-test', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'lesta-api-test.html'));
-});
+// /lesta-test, /lesta-api-test, /lesta-stats вынесены в src/modules/lesta-oauth
 
 app.get('/donatepay-test', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'donatepay-test.html'));
-});
-
-app.get('/lesta-stats', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'lesta-stats.html'));
 });
 
 app.get('/dashboard/:mode', (req, res) => {
@@ -8073,47 +7926,8 @@ app.get('/api/lesta-stats', async (req, res) => {
     }
 });
 
-// API для поиска игрока Lesta Games по никнейму
-app.get('/api/lesta-search', async (req, res) => {
-    const { nickname } = req.query;
-    
-    if (!nickname) {
-        return res.status(400).json({ success: false, error: 'Никнейм не указан' });
-    }
-    
-    if (!LESTA_CONFIG.applicationId) {
-        return res.status(400).json({ success: false, error: 'Application ID не настроен' });
-    }
-    
-    try {
-        console.log('🔍 Поиск игрока Lesta Games:', nickname);
-        
-        const response = await axios.get(`${LESTA_CONFIG.apiUrl}/account/list/`, {
-            params: {
-                application_id: LESTA_CONFIG.applicationId,
-                search: nickname,
-                fields: 'account_id,nickname',
-                type: 'startswith',
-                limit: 100
-            },
-            timeout: 10000
-        });
-        
-        console.log('📊 Ответ поиска Lesta Games:', response.data);
-        
-        if (response.data.status === 'ok' && response.data.data) {
-            const players = response.data.data;
-            res.json({ success: true, players });
-        } else {
-            res.status(404).json({ success: false, error: 'Игрок не найден' });
-        }
-    } catch (error) {
-        console.error('❌ Ошибка поиска игрока Lesta Games:', error.response?.data || error.message);
-        res.status(500).json({ success: false, error: 'Ошибка поиска игрока' });
-    }
-});
+// /api/lesta-search вынесен в src/modules/lesta-oauth
 
-// API для ручной синхронизации Lesta Games
 // API для сброса статистики фрагов
 app.delete('/api/frag-stats', async (req, res) => {
     try {
@@ -11832,7 +11646,10 @@ const moduleDeps = {
     saveIntegration,
     loadIntegration,
     withApiQueue,
-    wss
+    wss,
+    lestaConfig: LESTA_CONFIG,
+    broadcastStateUpdate,
+    startLestaAutoSync
 };
 const moduleConfig = {
     razblogEnabled: RAZBLOG_ENABLED,

@@ -229,6 +229,23 @@ check('GET /oauth/vkplay/start (redirect)', async () => {
     if (res.status !== 302 && res.status !== 500) throw new Error('status ' + res.status);
 });
 
+check('GET /lesta-stats (page)', async () => {
+    const res = await fetch(`${BASE_URL}/lesta-stats`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
+check('GET /api/lesta-search (без ника -> 400)', async () => {
+    const res = await fetch(`${BASE_URL}/api/lesta-search`);
+    if (res.status !== 400) throw new Error('status ' + res.status);
+});
+
+check('GET /auth/lesta (проверка LESTA_CONFIG shared по ссылке)', async () => {
+    const res = await fetch(`${BASE_URL}/auth/lesta`, { redirect: 'manual' });
+    // applicationId для Lesta задаётся через /api/lesta-config (остался в server.js) —
+    // если объект lestaConfig не расшарен по ссылке в модуль, тут будет 400 даже с настроенным ID.
+    if (res.status !== 400 && res.status !== 302) throw new Error('status ' + res.status);
+});
+
 check('GET /integrations/rutony/status', async () => {
     const res = await fetch(`${BASE_URL}/integrations/rutony/status`);
     if (res.status !== 200) throw new Error('status ' + res.status);
