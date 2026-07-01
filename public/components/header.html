@@ -28,14 +28,6 @@
                 <span class="stat-value" id="headerFrags">0</span>
             </div>
         </div>
-        <div class="header-actions">
-            <button class="header-action-btn" title="Настройки">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5"/>
-                    <path d="M15.6066 12.5C15.4797 12.7504 15.3969 13.0197 15.3623 13.2971L14.6408 13.1786C14.4213 13.1411 14.1951 13.1834 13.9998 13.3007C13.8045 13.418 13.6502 13.6044 13.5608 13.8286L12.8393 15.2714C12.6054 15.7128 12.2338 16.0662 11.7814 16.2771C11.329 16.488 10.8209 16.5453 10.3314 16.4393L9.66864 16.3107C9.17914 16.2047 8.67102 16.262 8.21864 16.4729C7.76626 16.6838 7.39464 17.0372 7.16075 17.4786L6.43925 18.9214C6.20536 19.3628 5.76626 19.6838 5.26864 19.4729C4.77102 19.262 4.42914 18.8206 4.33139 18.3107L4.16075 17.4786C4.06299 16.9686 3.76626 16.512 3.33139 16.1893C2.89652 15.8666 2.35414 15.7007 1.80075 15.7214L0.5 15.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                </svg>
-            </button>
-        </div>
     </div>
 </header>
 
@@ -47,7 +39,6 @@
         'index': 'Главная',
         'mode1-frag-tracker': 'Фраг-трекер',
         'mode2-timer': 'Таймер',
-        'mode3-custom': 'Кастомный',
         'donation-management': 'Управление донатами',
         'donation-driven-widget': 'Параметр от донатов',
         'donation-goal': 'Сбор донатов',
@@ -59,7 +50,8 @@
         'tank-queue': 'Очередь танков',
         'schedule': 'Расписание',
         'donor-achievements': 'Достижения',
-        'tournament': 'Турнир'
+        'tournament': 'Турнир',
+        'archive': 'Архив'
     };
 
     const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
