@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/smoke-test.js*)",
+      "Bash(npm run smoke-test*)",
+      "Bash(node -c server.js)",
+      "Bash(node -c src/modules/replay-live/index.js)"
+    ]
+  }
+}
