@@ -203,6 +203,32 @@ check('GET /oauth/youtube/start (без client id -> 500)', async () => {
     if (res.status !== 500 && res.status !== 302) throw new Error('status ' + res.status);
 });
 
+check('GET /integrations/vkplay/status', async () => {
+    const res = await fetch(`${BASE_URL}/integrations/vkplay/status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.connected !== 'boolean') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /integrations/vkplay-bot/status', async () => {
+    const res = await fetch(`${BASE_URL}/integrations/vkplay-bot/status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.connected !== 'boolean') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/vkplay/reward-roles', async () => {
+    const res = await fetch(`${BASE_URL}/api/vkplay/reward-roles`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!Array.isArray(json.rewardRoles)) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /oauth/vkplay/start (redirect)', async () => {
+    const res = await fetch(`${BASE_URL}/oauth/vkplay/start`, { redirect: 'manual' });
+    if (res.status !== 302 && res.status !== 500) throw new Error('status ' + res.status);
+});
+
 check('GET /integrations/rutony/status', async () => {
     const res = await fetch(`${BASE_URL}/integrations/rutony/status`);
     if (res.status !== 200) throw new Error('status ' + res.status);

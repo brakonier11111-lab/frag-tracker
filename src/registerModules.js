@@ -9,10 +9,11 @@ const { createDonorAchievementsModule } = require('./modules/donor-achievements'
 const { createChatStatsModule } = require('./modules/chat-stats');
 const { createRutonyChatModule } = require('./modules/rutony-chat');
 const { createYoutubeIntegrationModule } = require('./modules/youtube-integration');
+const { createVkplayIntegrationModule } = require('./modules/vkplay-integration');
 
 /**
  * Подключает вынесенные модули к Express-приложению.
- * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube }}
+ * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube, vkplay }}
  */
 function registerModules(app, deps, config) {
     const blitz = createBlitzChallengeModule(deps);
@@ -48,7 +49,11 @@ function registerModules(app, deps, config) {
     youtube.registerRoutes(app);
     youtube.startPolling();
 
-    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube };
+    const vkplay = createVkplayIntegrationModule(deps);
+    vkplay.registerRoutes(app);
+    vkplay.startPolling();
+
+    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat, youtube, vkplay };
 }
 
 module.exports = { registerModules };
