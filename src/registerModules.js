@@ -7,10 +7,11 @@ const { registerRouletteRoutes } = require('./modules/roulette');
 const { createRazblogModule } = require('./modules/razblog');
 const { createDonorAchievementsModule } = require('./modules/donor-achievements');
 const { createChatStatsModule } = require('./modules/chat-stats');
+const { createRutonyChatModule } = require('./modules/rutony-chat');
 
 /**
  * Подключает вынесенные модули к Express-приложению.
- * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats }}
+ * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat }}
  */
 function registerModules(app, deps, config) {
     const blitz = createBlitzChallengeModule(deps);
@@ -39,7 +40,10 @@ function registerModules(app, deps, config) {
     const chatStats = createChatStatsModule(deps);
     chatStats.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats };
+    const rutonyChat = createRutonyChatModule(deps);
+    rutonyChat.registerRoutes(app);
+
+    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, rutonyChat };
 }
 
 module.exports = { registerModules };

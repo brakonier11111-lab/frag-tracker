@@ -178,6 +178,13 @@ check('GET /api/chat/stats', async () => {
     if (!Array.isArray(json.stats)) throw new Error('unexpected body: ' + JSON.stringify(json));
 });
 
+check('GET /integrations/rutony/status', async () => {
+    const res = await fetch(`${BASE_URL}/integrations/rutony/status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.connected !== 'boolean') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
 check('GET / (главная страница)', async () => {
     const res = await fetch(`${BASE_URL}/`);
     if (res.status !== 200) throw new Error('status ' + res.status);
