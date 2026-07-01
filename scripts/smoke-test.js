@@ -178,6 +178,31 @@ check('GET /api/chat/stats', async () => {
     if (!Array.isArray(json.stats)) throw new Error('unexpected body: ' + JSON.stringify(json));
 });
 
+check('GET /integrations/youtube/status', async () => {
+    const res = await fetch(`${BASE_URL}/integrations/youtube/status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.connected !== 'boolean') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('POST /integrations/youtube/video-id (без токена)', async () => {
+    const res = await fetch(`${BASE_URL}/integrations/youtube/video-id`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: 'dQw4w9WgXcQ' })
+    });
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.ok || json.videoId !== 'dQw4w9WgXcQ') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /oauth/youtube/start (без client id -> 500)', async () => {
+    const res = await fetch(`${BASE_URL}/oauth/youtube/start`, { redirect: 'manual' });
+    // Без YT_CLIENT_ID в тестовом окружении ожидаем 500 с понятным сообщением,
+    // а не падение процесса или 404 (роут не зарегистрирован).
+    if (res.status !== 500 && res.status !== 302) throw new Error('status ' + res.status);
+});
+
 check('GET /integrations/rutony/status', async () => {
     const res = await fetch(`${BASE_URL}/integrations/rutony/status`);
     if (res.status !== 200) throw new Error('status ' + res.status);
