@@ -7,6 +7,15 @@ const { safeJsonParse, clampNum, round2 } = require('../../core/utils');
 const { initBlitzChallengeSchema } = require('./schema');
 
 function createBlitzChallengeModule(deps) {
+    // Последние донаты челленджа для фида на странице управления (сбрасывается при рестарте/reset)
+    const FEED_LIMIT = 30;
+    let recentFeed = [];
+
+    function pushFeedItem(item) {
+        recentFeed.unshift(item);
+        if (recentFeed.length > FEED_LIMIT) recentFeed.length = FEED_LIMIT;
+    }
+
     function resolveBlitzHeaderTexts(row) {
         row = row || {};
         const active = row.active_type || 'winrate';
@@ -83,6 +92,18 @@ function createBlitzChallengeModule(deps) {
                 totalRequired,
                 totalEarned
             },
+            timers: {
+                countdown: {
+                    enabled: row.timer_countdown_enabled ? 1 : 0,
+                    durationSec: Math.max(0, Math.round(Number(row.timer_countdown_seconds) || 0)),
+                    startedAt: Number(row.timer_countdown_started_at) || 0
+                },
+                elapsed: {
+                    enabled: row.timer_elapsed_enabled ? 1 : 0,
+                    startedAt: Number(row.timer_elapsed_started_at) || 0
+                }
+            },
+            serverNow: Math.floor(Date.now() / 1000),
             updatedAt: row.updated_at || null
         };
     }
@@ -171,13 +192,14 @@ function createBlitzChallengeModule(deps) {
                     console.error('❌ Ошибка обновления blitz_challenge:', uErr);
                     return;
                 }
-                broadcastBlitzChallengeUpdate({
-                    lastDonation: {
-                        username: donation?.username || donation?.name || 'Аноним',
-                        amount: amt,
-                        contribution
-                    }
-                });
+                const feedItem = {
+                    username: donation?.username || donation?.name || 'Аноним',
+                    amount: amt,
+                    contribution,
+                    at: Math.floor(Date.now() / 1000)
+                };
+                pushFeedItem(feedItem);
+                broadcastBlitzChallengeUpdate({ lastDonation: feedItem });
             });
         });
     }
@@ -318,7 +340,18 @@ function createBlitzChallengeModule(deps) {
                         updates.push('medals_list = ?'); values.push(JSON.stringify(clean));
                     }
                 }
-        
+
+                if (b.timers && typeof b.timers === 'object') {
+                    const tc = b.timers.countdown, te = b.timers.elapsed;
+                    if (tc && typeof tc === 'object') {
+                        setBool('timer_countdown_enabled', tc.enabled);
+                        setNum('timer_countdown_seconds', tc.durationSec, 0, 86400 * 7);
+                    }
+                    if (te && typeof te === 'object') {
+                        setBool('timer_elapsed_enabled', te.enabled);
+                    }
+                }
+
                 if (!updates.length) return res.status(400).json({ success: false, error: 'Нет полей для обновления' });
                 updates.push('updated_at = CURRENT_TIMESTAMP');
         
@@ -339,8 +372,9 @@ function createBlitzChallengeModule(deps) {
                 if (err || !row) return res.status(500).json({ success: false, error: 'Ошибка сервера' });
                 // Обнуляем "взято" у медалей, сохраняя их список и требуемое количество
                 const list = safeJsonParse(row.medals_list, []).map(m => Object.assign({}, m, { earned: 0 }));
-                deps.db.run(`UPDATE blitz_challenge SET wr_current = wr_start, dmg_current = dmg_start, session_balance = 0, medals_list = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1`, [JSON.stringify(list)], (e) => {
+                deps.db.run(`UPDATE blitz_challenge SET wr_current = wr_start, dmg_current = dmg_start, session_balance = 0, medals_list = ?, timer_countdown_started_at = 0, timer_elapsed_started_at = 0, updated_at = CURRENT_TIMESTAMP WHERE id = 1`, [JSON.stringify(list)], (e) => {
                     if (e) return res.status(500).json({ success: false, error: 'Ошибка сброса' });
+                    recentFeed = [];
                     getBlitzChallengeRow((e2, r2) => {
                         const payload = normalizeBlitzRow(r2);
                         deps.broadcastToClients({ type: 'BLITZ_CHALLENGE_UPDATE', challenge: payload, reset: true });
@@ -364,6 +398,32 @@ function createBlitzChallengeModule(deps) {
         // Прогресс текущего боя/сессии
         app.get('/api/blitz-challenge/progress', (req, res) => {
             fetchBlitzBattleProgress((data) => res.json(data));
+        });
+
+        // История донат-фида челленджа (последние N, в памяти процесса)
+        app.get('/api/blitz-challenge/feed', (req, res) => {
+            res.json({ success: true, feed: recentFeed });
+        });
+
+        // Управление таймерами: start запускает от текущего момента, reset останавливает и обнуляет
+        app.post('/api/blitz-challenge/timer', (req, res) => {
+            const timer = String(req.body?.timer || '');
+            const action = String(req.body?.action || '');
+            const cols = { countdown: 'timer_countdown_started_at', elapsed: 'timer_elapsed_started_at' };
+            const targets = timer === 'both' ? ['countdown', 'elapsed'] : (cols[timer] ? [timer] : null);
+            if (!targets) return res.status(400).json({ success: false, error: 'Неизвестный таймер' });
+            if (action !== 'start' && action !== 'reset') return res.status(400).json({ success: false, error: 'Неизвестное действие' });
+            const value = action === 'start' ? Math.floor(Date.now() / 1000) : 0;
+            const updates = targets.map(t => `${cols[t]} = ?`);
+            const values = targets.map(() => value);
+            deps.db.run(`UPDATE blitz_challenge SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = 1`, values, (err) => {
+                if (err) return res.status(500).json({ success: false, error: 'Ошибка обновления' });
+                getBlitzChallengeRow((e, row) => {
+                    const payload = normalizeBlitzRow(row);
+                    deps.broadcastToClients({ type: 'BLITZ_CHALLENGE_UPDATE', challenge: payload });
+                    res.json({ success: true, challenge: payload });
+                });
+            });
         });
         
         // Ручная отметка полученных медалей (по конкретной медали)

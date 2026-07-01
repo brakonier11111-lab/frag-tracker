@@ -80,6 +80,12 @@ function initBlitzChallengeSchema(db) {
             db.run('UPDATE blitz_challenge SET header_texts = ?, header_text = ? WHERE id = 1', [JSON.stringify(seed), '']);
         });
     });
+    // Таймеры челленджа: обратный отсчёт (сколько времени дано) и секундомер (сколько уже выполняю)
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN timer_countdown_enabled INTEGER NOT NULL DEFAULT 0", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN timer_countdown_seconds INTEGER NOT NULL DEFAULT 3600", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN timer_countdown_started_at INTEGER NOT NULL DEFAULT 0", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN timer_elapsed_enabled INTEGER NOT NULL DEFAULT 0", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN timer_elapsed_started_at INTEGER NOT NULL DEFAULT 0", () => {});
     db.run(`CREATE TABLE IF NOT EXISTS blitz_challenge_presets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,

@@ -97,22 +97,33 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
 .stage-state{font-size:.72rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:6px 12px;border-radius:9px;background:rgba(255,255,255,0.06);color:var(--steel);}
 .stage-state.ok{background:rgba(0,255,120,0.14);color:#5dffb0;box-shadow:0 0 18px rgba(0,255,120,.25);}
 
-.gaugeflex{display:flex;align-items:center;gap:34px;flex-wrap:wrap;justify-content:center;}
-.gauge{position:relative;width:230px;height:230px;flex:none;}
-.gauge svg{transform:rotate(-90deg);}
-.gauge .ring-bg{fill:none;stroke:rgba(255,255,255,0.07);stroke-width:15;}
-.gauge .ring-fg{fill:none;stroke-width:15;stroke-linecap:round;transition:stroke-dashoffset 1s cubic-bezier(.16,1,.3,1);filter:drop-shadow(0 0 8px var(--accent));}
-.gauge .ring-live{fill:none;stroke-width:7;stroke-linecap:round;stroke:#fff;opacity:.92;transition:stroke-dashoffset 1s cubic-bezier(.16,1,.3,1);}
-.gauge .center{position:absolute;inset:0;display:grid;place-items:center;text-align:center;}
-.gauge .gval{font-family:'Orbitron',monospace;font-weight:900;font-size:2.4rem;line-height:1;background:linear-gradient(180deg,#fff,var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;}
-.gauge .gunit{font-size:1rem;}
-.gauge .gcap{font-size:.82rem;color:var(--steel);margin-top:6px;}
-.gauge-side{flex:1;min-width:240px;}
-.metric-line{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;color:var(--steel);margin:10px 2px;}
-.metric-line .big{font-family:'Orbitron',monospace;font-weight:900;font-size:1.5rem;color:#fff;}
-.progbar{height:13px;border-radius:9px;background:rgba(255,255,255,0.07);overflow:hidden;margin-top:10px;}
-.progbar > i{display:block;height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,var(--accent),#fff);transition:width 1s cubic-bezier(.16,1,.3,1);box-shadow:0 0 14px var(--accent);}
-.prog-cap{font-size:.74rem;color:var(--steel);margin-top:8px;}
+/* PROGRESS VIEW: живое значение против планки на одной шкале */
+.pv{display:flex;flex-direction:column;}
+.pv-nums{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.pv-cell{padding:14px 18px;border-radius:14px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.09);}
+.pv-lbl{font-size:.66rem;letter-spacing:1.6px;text-transform:uppercase;color:var(--steel);margin-bottom:7px;}
+.pv-num{font-family:'Orbitron',monospace;font-weight:900;font-size:1.9rem;line-height:1.05;color:#fff;font-variant-numeric:tabular-nums;}
+.pv-cell.live .pv-num{color:var(--accent);text-shadow:0 0 18px var(--accent-glow);}
+.pv-cell.target .pv-num{background:linear-gradient(180deg,#fff,var(--gold) 60%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.pv-cell.cap .pv-num{color:#aebbda;font-size:1.45rem;padding-top:5px;}
+.pv-track{position:relative;height:20px;border-radius:12px;background:rgba(255,255,255,0.07);margin:34px 4px 6px;}
+.pv-track .fill{position:absolute;top:0;bottom:0;left:0;width:0;border-radius:12px;background:linear-gradient(90deg,var(--accent),#fff);box-shadow:0 0 18px var(--accent-glow);transition:width 1s cubic-bezier(.16,1,.3,1);}
+.pv-track .mark{position:absolute;top:-8px;bottom:-8px;left:0;width:4px;border-radius:3px;background:var(--gold);box-shadow:0 0 12px var(--gold);transition:left 1s cubic-bezier(.16,1,.3,1);}
+.pv-track .mark::after{content:'ЦЕЛЬ';position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:.56rem;font-weight:800;letter-spacing:1.5px;color:var(--gold);white-space:nowrap;}
+.pv-axis{display:flex;justify-content:space-between;font-size:.74rem;color:var(--steel);margin:4px 4px 0;font-variant-numeric:tabular-nums;}
+.pv-note{margin-top:14px;font-size:.88rem;color:var(--steel);text-align:center;}
+.pv-note b{color:#fff;font-family:'Orbitron',monospace;font-weight:800;}
+.pv-note .good{color:#5dffb0;}
+
+/* TIMER CHIPS в сессионной панели */
+.timer-chip{display:inline-flex;align-items:center;gap:10px;padding:8px 12px;border-radius:11px;background:rgba(255,206,70,0.07);border:1px solid rgba(255,206,70,0.22);font-size:.8rem;color:var(--steel);}
+.timer-chip b{font-family:'Orbitron',monospace;color:#fff;font-variant-numeric:tabular-nums;}
+.timer-chip.run{border-color:rgba(0,255,120,.4);}
+.timer-chip.run b{color:#5dffb0;}
+.timer-chip.over{border-color:rgba(255,42,69,.6);background:rgba(255,42,69,.08);}
+.timer-chip.over b{color:#ff8fa0;}
+.mini-btn{width:27px;height:27px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;font-size:.78rem;display:inline-grid;place-items:center;transition:.15s;line-height:1;}
+.mini-btn:hover{background:rgba(255,255,255,.18);}
 
 /* MEDALS LIST */
 .medlist{display:flex;flex-direction:column;gap:12px;}
@@ -146,6 +157,7 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
 .feed-item.big{border-color:rgba(255,42,69,.6);box-shadow:0 0 36px rgba(255,42,69,.3);}
 .feed-av{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:900;font-family:'Orbitron',monospace;background:linear-gradient(135deg,#ffe08a,var(--gold-deep));color:#1a1206;flex:none;}
 .feed-main{flex:1;min-width:0;}.feed-name{font-weight:800;color:#fff;}
+.feed-time{font-size:.7rem;font-weight:600;color:var(--steel);margin-left:8px;}
 .feed-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
 .feed-tag{font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:7px;background:rgba(255,255,255,.07);color:#cdd9f2;}
 .feed-tag.wr{color:var(--electric);background:rgba(55,214,255,.12);}
@@ -248,6 +260,8 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
                 <div class="sess-status" id="sessStatus"><span class="ind"></span> <span id="sessText">Сессия не запущена</span></div>
                 <button class="btn btn-green" id="sessBtn" onclick="toggleSession()">▶ Старт сессии</button>
                 <div class="battle-chip" id="battleChip"><span>В бою:</span> <b id="battleState">нет данных</b></div>
+                <div class="timer-chip" id="cdCtl" style="display:none"><span>⏳</span><b id="cdCtlVal">--:--</b><button class="mini-btn" id="cdBtn" onclick="timerAction('countdown')" title="Старт/сброс">▶</button></div>
+                <div class="timer-chip" id="elCtl" style="display:none"><span>⏱</span><b id="elCtlVal">0:00</b><button class="mini-btn" id="elBtn" onclick="timerAction('elapsed')" title="Старт/сброс">▶</button></div>
                 <div class="sess-spacer"></div>
                 <button class="btn btn-ghost" onclick="testDonate(300)">🎯 Тест 300₽</button>
                 <button class="btn btn-danger" onclick="resetAll()">↺ Сбросить цели</button>
@@ -260,25 +274,19 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
                     <span class="stage-state" id="stState">Идёт</span>
                 </div>
 
-                <!-- gauge view (wr / dmg) -->
-                <div id="gaugeView" class="gaugeflex">
-                    <div class="gauge">
-                        <svg width="230" height="230" viewBox="0 0 230 230">
-                            <circle class="ring-bg" cx="115" cy="115" r="98"></circle>
-                            <circle class="ring-fg" id="ring" cx="115" cy="115" r="98"></circle>
-                            <circle class="ring-live" id="ringLive" cx="115" cy="115" r="80"></circle>
-                        </svg>
-                        <div class="center">
-                            <div class="gval"><span id="gVal">60</span><span class="gunit" id="gUnit">%</span></div>
-                            <div class="gcap">цель из <span id="gCap">85</span><span id="gCapUnit">%</span></div>
-                        </div>
+                <!-- progress view (wr / dmg) -->
+                <div id="gaugeView" class="pv">
+                    <div class="pv-nums">
+                        <div class="pv-cell live"><div class="pv-lbl">В бою сейчас</div><div class="pv-num" id="liveTxt">—</div></div>
+                        <div class="pv-cell target"><div class="pv-lbl">Текущая планка</div><div class="pv-num" id="reqTxt">—</div></div>
+                        <div class="pv-cell cap"><div class="pv-lbl">Потолок</div><div class="pv-num" id="capTxt">—</div></div>
                     </div>
-                    <div class="gauge-side">
-                        <div class="metric-line"><span>В бою сейчас</span><span class="big" id="liveTxt">—</span></div>
-                        <div class="progbar"><i id="liveBar"></i></div>
-                        <div class="prog-cap" id="capTxt">до потолка</div>
-                        <div class="metric-line" style="margin-top:18px"><span>Текущая планка</span><span class="big" id="reqTxt">—</span></div>
+                    <div class="pv-track">
+                        <i class="fill" id="liveBar"></i>
+                        <span class="mark" id="targetMark"></span>
                     </div>
+                    <div class="pv-axis"><span id="axisStart">старт</span><span id="axisCap">потолок</span></div>
+                    <div class="pv-note" id="pvNote">Ждём данные боя…</div>
                 </div>
 
                 <!-- medals view -->
@@ -314,6 +322,16 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
                 <input type="text" id="consTitle" placeholder="ЕСЛИ НЕ УДЕРЖУ" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px"></div>
             <div class="cfg-row" style="grid-template-columns:1fr"><label>«Если не удержу» — текст наказания<span class="hint">пусто = блок скрыт</span></label>
                 <input type="text" id="consText" placeholder="КРУЧУ ВСЮ МЕГАРАСПАКОВКУ" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px"></div>
+        </div>
+
+        <div style="margin-bottom:16px;padding:16px;border-radius:14px;background:rgba(255,255,255,0.02);border:1px solid var(--glass-border)">
+            <div style="font-weight:700;color:#cdd9f2;margin-bottom:10px">⏱ Таймеры на виджете</div>
+            <div class="cfg-row"><label>Обратный отсчёт<span class="hint">сколько времени даётся на челлендж</span></label>
+                <input type="checkbox" id="cdEnabled" style="width:20px;height:20px;accent-color:var(--gold)"></div>
+            <div class="cfg-row"><label>Длительность, минут</label><input type="number" id="cdMinutes" value="60" min="1" step="5"></div>
+            <div class="cfg-row"><label>Секундомер выполнения<span class="hint">сколько уже выполняю челлендж</span></label>
+                <input type="checkbox" id="elEnabled" style="width:20px;height:20px;accent-color:var(--gold)"></div>
+            <div class="cfg-row" style="grid-template-columns:1fr"><span class="hint">Запуск и сброс таймеров — кнопками ▶/↺ на панели сессии.</span></div>
         </div>
 
         <div class="cfg-tabs">
@@ -357,8 +375,7 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
 <div class="toast" id="toast"></div>
 
 <script>
-let CH=null, presets=[], lastProgress=null, uploadTargetRow=null;
-const R=98, RL=80, CIRC=2*Math.PI*R, CIRCL=2*Math.PI*RL;
+let CH=null, presets=[], lastProgress=null, uploadTargetRow=null, serverOffset=0;
 const TYPE_META={
     winrate:{cls:'wr',ico:'🎯',title:'Win Rate Challenge',unit:'%',defHeader:'УДЕРЖАТЬ % ПОБЕД ЗА СТРИМ'},
     damage:{cls:'dmg',ico:'💥',title:'Damage Challenge',unit:'',defHeader:'УДЕРЖАТЬ СРЕДНИЙ УРОН ЗА СТРИМ'},
@@ -371,11 +388,12 @@ document.addEventListener('DOMContentLoaded',()=>{
         .then(([s,h])=>{document.getElementById('sidebar-placeholder').innerHTML=s;document.getElementById('header-placeholder').innerHTML=h;});
     document.getElementById('obsUrl').textContent=location.origin+'/widget/tanks-blitz-challenge';
     document.getElementById('medalFile').addEventListener('change',onMedalFile);
-    initFx(); bindRanges(); loadChallenge(); loadProgress();
-    connectWS(); setInterval(loadProgress,15000);
+    initFx(); bindRanges(); loadChallenge(); loadProgress(); loadFeed();
+    connectWS(); setInterval(loadProgress,15000); setInterval(renderTimers,500);
 });
 
-function loadChallenge(){ fetch('/api/blitz-challenge').then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();} }); }
+function applyCH(ch){ CH=ch; if(ch&&ch.serverNow) serverOffset=ch.serverNow-Math.floor(Date.now()/1000); }
+function loadChallenge(){ fetch('/api/blitz-challenge').then(r=>r.json()).then(d=>{ if(d.success){applyCH(d.challenge);render();} }); }
 function loadProgress(){ fetch('/api/blitz-challenge/progress').then(r=>r.json()).then(d=>{ lastProgress=d; renderProgress(); renderSession(); }); }
 function fmt(n){ return Math.round(Number(n)||0).toLocaleString('ru-RU'); }
 
@@ -385,7 +403,7 @@ function selectType(t){
     const body={ activeType:t, enabled:true,
         winrate:{enabled:t==='winrate'}, damage:{enabled:t==='damage'}, medals:{enabled:t==='medals'} };
     fetch('/api/blitz-challenge',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-        .then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();toast('Челлендж: '+TYPE_META[t].title);} });
+        .then(r=>r.json()).then(d=>{ if(d.success){applyCH(d.challenge);render();toast('Челлендж: '+TYPE_META[t].title);} });
 }
 
 /* RENDER */
@@ -404,19 +422,25 @@ function render(){
     const gaugeView=document.getElementById('gaugeView'), medalsView=document.getElementById('medalsView');
     if(t==='medals'){ gaugeView.style.display='none'; medalsView.style.display='block'; renderMedals(); }
     else { gaugeView.style.display='flex'; medalsView.style.display='none'; renderGauge(t); }
-    renderProgress();
+    renderProgress(); renderTimers();
 }
 
+/* позиция значения на шкале старт→потолок (0..1) */
+function scalePos(v,o){
+    const lo=Number(o.start)||0, hi=Number(o.cap)||0;
+    if(hi>lo) return Math.max(0,Math.min(1,(v-lo)/(hi-lo)));
+    const alt=Math.max(Number(o.current)||0,1);
+    return Math.max(0,Math.min(1,v/alt));
+}
 function renderGauge(t){
     const o=t==='winrate'?CH.winrate:CH.damage;
     const isWr=t==='winrate';
-    document.getElementById('gVal').textContent=isWr?(Math.round(o.current*10)/10):fmt(o.current);
-    document.getElementById('gUnit').textContent=isWr?'%':'';
-    document.getElementById('gCap').textContent=isWr?o.cap:fmt(o.cap);
-    document.getElementById('gCapUnit').textContent=isWr?'%':'';
-    setRing(document.getElementById('ring'), o.cap>o.start?(o.current-o.start)/(o.cap-o.start):(o.current/Math.max(o.cap,1)));
-    document.getElementById('capTxt').textContent='до потолка '+(isWr?o.cap+'%':fmt(o.cap));
-    document.getElementById('reqTxt').textContent=isWr?(Math.round(o.current*10)/10)+'%':fmt(o.current);
+    const u=isWr?'%':'';
+    document.getElementById('reqTxt').textContent=(isWr?(Math.round(o.current*100)/100):fmt(o.current))+u;
+    document.getElementById('capTxt').textContent=(isWr?o.cap:fmt(o.cap))+u;
+    document.getElementById('axisStart').textContent='старт: '+(isWr?o.start+'%':fmt(o.start));
+    document.getElementById('axisCap').textContent='потолок: '+(isWr?o.cap+'%':fmt(o.cap));
+    document.getElementById('targetMark').style.left=(scalePos(o.current,o)*100)+'%';
 }
 
 function renderMedals(){
@@ -453,10 +477,17 @@ function renderProgress(){
         const live=t==='winrate'?liveWr:liveDmg;
         const isWr=t==='winrate';
         document.getElementById('liveTxt').textContent=live!=null?(isWr?live+'%':fmt(live)):'—';
-        const frac=live!=null&&o.current>0?live/o.current:0;
-        setRingLive(document.getElementById('ringLive'),frac);
-        document.getElementById('liveBar').style.width=Math.min(100,frac*100)+'%';
+        document.getElementById('liveBar').style.width=(live!=null?scalePos(live,o)*100:0)+'%';
+        const note=document.getElementById('pvNote');
+        if(live==null){
+            note.textContent=(p&&p.sessionActive)?'Сессия запущена — ждём первый бой':'Нет данных боя — запустите сессию или сыграйте бой';
+        } else {
+            const diff=o.current-live;
+            if(diff<=0) note.innerHTML='<span class="good">Цель выполняется — держим! 🔥</span>';
+            else note.innerHTML='До планки не хватает <b>'+(isWr?(Math.round(diff*100)/100)+'%':fmt(diff))+'</b>';
+        }
         const done=live!=null&&live>=o.current;
+        const frac=live!=null&&o.current>0?live/o.current:0;
         setStageDone(done); setStageNear(frac);
     } else {
         const md=CH.medals;
@@ -480,8 +511,41 @@ function renderSession(){
     }
 }
 
-function setRing(el,frac){frac=Math.max(0,Math.min(1,frac||0));el.setAttribute('stroke-dasharray',CIRC);el.setAttribute('stroke-dashoffset',CIRC*(1-frac));}
-function setRingLive(el,frac){frac=Math.max(0,Math.min(1,frac||0));el.setAttribute('stroke-dasharray',CIRCL);el.setAttribute('stroke-dashoffset',CIRCL*(1-frac));}
+/* ТАЙМЕРЫ */
+function fmtDur(s){ s=Math.max(0,Math.floor(s)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+    const p2=n=>String(n).padStart(2,'0'); return h>0?h+':'+p2(m)+':'+p2(sec):m+':'+p2(sec); }
+function renderTimers(){
+    if(!CH||!CH.timers) return;
+    const now=Math.floor(Date.now()/1000)+serverOffset;
+    const tc=CH.timers.countdown||{}, te=CH.timers.elapsed||{};
+    const cd=document.getElementById('cdCtl'), el=document.getElementById('elCtl');
+    if(tc.enabled){
+        cd.style.display='inline-flex';
+        const run=tc.startedAt>0;
+        document.getElementById('cdBtn').textContent=run?'↺':'▶';
+        let txt, over=false;
+        if(run){ const rem=tc.durationSec-(now-tc.startedAt); if(rem<=0){txt='ВРЕМЯ ВЫШЛО';over=true;} else txt=fmtDur(rem); }
+        else txt=fmtDur(tc.durationSec);
+        document.getElementById('cdCtlVal').textContent=txt;
+        cd.classList.toggle('run',run&&!over); cd.classList.toggle('over',over);
+    } else cd.style.display='none';
+    if(te.enabled){
+        el.style.display='inline-flex';
+        const run=te.startedAt>0;
+        document.getElementById('elBtn').textContent=run?'↺':'▶';
+        document.getElementById('elCtlVal').textContent=run?fmtDur(now-te.startedAt):'0:00';
+        el.classList.toggle('run',run);
+    } else el.style.display='none';
+}
+function timerAction(t){
+    const tm=CH&&CH.timers?(t==='countdown'?CH.timers.countdown:CH.timers.elapsed):null;
+    const action=(tm&&tm.startedAt>0)?'reset':'start';
+    fetch('/api/blitz-challenge/timer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({timer:t,action})})
+        .then(r=>r.json()).then(d=>{
+            if(d.success){ applyCH(d.challenge); render(); toast(action==='start'?'Таймер запущен':'Таймер сброшен'); }
+            else toast(d.error||'Ошибка');
+        });
+}
 function setStageDone(done){
     const s=document.getElementById('stage'), st=document.getElementById('stState');
     st.textContent=done?'Выполнено':'Идёт'; st.classList.toggle('ok',done);
@@ -502,11 +566,11 @@ function toggleSession(){
 /* ACTIONS */
 function medalEarned(id,delta){
     fetch('/api/blitz-challenge/medal-earned',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,delta})})
-        .then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();} });
+        .then(r=>r.json()).then(d=>{ if(d.success){applyCH(d.challenge);render();} });
 }
 function testDonate(a){ fetch('/api/blitz-challenge/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:a,username:'Тест'})}).then(r=>r.json()).then(()=>toast('Тест-донат '+a+'₽')); }
 function resetAll(){ if(!confirm('Сбросить цели к старту и обнулить баланс сессии?'))return;
-    fetch('/api/blitz-challenge/reset',{method:'POST'}).then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();toast('Цели сброшены');} }); }
+    fetch('/api/blitz-challenge/reset',{method:'POST'}).then(r=>r.json()).then(d=>{ if(d.success){applyCH(d.challenge);render();toast('Цели сброшены');} }); }
 
 /* SETTINGS */
 const CFG_TAB_MAP={wr:'winrate',dmg:'damage',med:'medals'};
@@ -534,6 +598,10 @@ function openSettings(){
     sv('wrStart',w.start);sv('wrCapIn',w.cap);sv('wrPer',w.perAmount);sv('wrStep',w.step);
     sv('dmgStart',dm.start);sv('dmgCapIn',dm.cap);sv('dmgPer',dm.perAmount);sv('dmgStep',dm.step);
     sv('medPer',md.perAmount);sv('medStep',md.step);sv('medCapIn',md.capPerMedal||10);
+    const tm=CH.timers||{};
+    document.getElementById('cdEnabled').checked=!!(tm.countdown&&tm.countdown.enabled);
+    document.getElementById('cdMinutes').value=Math.max(1,Math.round(((tm.countdown&&tm.countdown.durationSec)||3600)/60));
+    document.getElementById('elEnabled').checked=!!(tm.elapsed&&tm.elapsed.enabled);
     headerDraft=CH.headerTexts?{...CH.headerTexts}:{
         winrate:TYPE_META.winrate.defHeader,damage:TYPE_META.damage.defHeader,medals:TYPE_META.medals.defHeader
     };
@@ -605,8 +673,12 @@ function saveSettings(){
     cfg.headerTexts={...headerDraft};
     const ct=document.getElementById('consTitle').value||'', cx=document.getElementById('consText').value||'';
     cfg.consequenceText=(ct||cx)?(ct+'|||'+cx):'';
+    cfg.timers={
+        countdown:{enabled:document.getElementById('cdEnabled').checked,durationSec:Math.max(60,Math.round(nv('cdMinutes')*60))},
+        elapsed:{enabled:document.getElementById('elEnabled').checked}
+    };
     fetch('/api/blitz-challenge',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)})
-        .then(r=>r.json()).then(d=>{ if(d.success){CH=d.challenge;render();toast('Сохранено');closeSettings();} });
+        .then(r=>r.json()).then(d=>{ if(d.success){applyCH(d.challenge);render();toast('Сохранено');closeSettings();} });
 }
 
 /* PRESETS */
@@ -628,21 +700,34 @@ function delPreset(id){ fetch('/api/blitz-challenge/presets/'+id,{method:'DELETE
 function connectWS(){
     try{ const ws=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws');
         ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
-            if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){ CH=m.challenge; render(); if(m.lastDonation) onDonation(m.lastDonation); } };
+            if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){ applyCH(m.challenge); render(); if(m.lastDonation) onDonation(m.lastDonation); } };
         ws.onclose=()=>setTimeout(connectWS,3000);
     }catch(e){ setTimeout(connectWS,4000); }
 }
 function onDonation(ld){ addFeed(ld); flash(ld.amount); }
-function addFeed(ld){
-    const feed=document.getElementById('feed'); const empty=feed.querySelector('.feed-empty'); if(empty)empty.remove();
+function esc(s){ const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+function feedEl(ld){
     const big=ld.amount>=500; const c=ld.contribution||{}; const tags=[];
     if(c.winrate>0)tags.push(`<span class="feed-tag wr">+${Math.round(c.winrate*10)/10}% WR</span>`);
     if(c.damage>0)tags.push(`<span class="feed-tag dmg">+${fmt(c.damage)} урона</span>`);
     if(c.medals>0)tags.push(`<span class="feed-tag med">+${c.medals} к медали</span>`);
-    const nm=ld.username||'Аноним';
+    const nm=esc(ld.username||'Аноним');
+    const when=ld.at?new Date(ld.at*1000):new Date();
+    const time=when.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
     const item=document.createElement('div'); item.className='feed-item'+(big?' big':'');
-    item.innerHTML=`<div class="feed-av">${nm.slice(0,1).toUpperCase()}</div><div class="feed-main"><div class="feed-name">${nm}</div><div class="feed-tags">${tags.join('')||'<span class="feed-tag">поддержка</span>'}</div></div><div class="feed-amt">${fmt(ld.amount)} ₽</div>`;
-    feed.prepend(item); while(feed.children.length>30)feed.lastChild.remove();
+    item.innerHTML=`<div class="feed-av">${nm.slice(0,1).toUpperCase()}</div><div class="feed-main"><div class="feed-name">${nm}<span class="feed-time">${time}</span></div><div class="feed-tags">${tags.join('')||'<span class="feed-tag">поддержка</span>'}</div></div><div class="feed-amt">${fmt(ld.amount)} ₽</div>`;
+    return item;
+}
+function addFeed(ld){
+    const feed=document.getElementById('feed'); const empty=feed.querySelector('.feed-empty'); if(empty)empty.remove();
+    feed.prepend(feedEl(ld)); while(feed.children.length>30)feed.lastChild.remove();
+}
+function loadFeed(){
+    fetch('/api/blitz-challenge/feed').then(r=>r.json()).then(d=>{
+        if(!d.success||!Array.isArray(d.feed)||!d.feed.length) return;
+        const feed=document.getElementById('feed'); feed.innerHTML='';
+        d.feed.forEach(item=>feed.appendChild(feedEl(item))); // новые уже сверху
+    }).catch(()=>{});
 }
 
 /* FX */

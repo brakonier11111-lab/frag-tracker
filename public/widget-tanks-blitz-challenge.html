@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tanks Blitz Challenge — Widget</title>
+<title>Challenge Widget</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800;900&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{--gold:#ffce46;--gold-deep:#ff9d00;--crimson:#ff2a45;--electric:#37d6ff;--purple:#d066ff;--green:#36f5a0;--steel:#9fb4d8;}
@@ -18,7 +18,7 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 #fx{position:fixed;inset:0;pointer-events:none;z-index:31;}
 
 .scale{transform-origin:center;transform:scale(var(--s,1));}
-.card{position:relative;width:560px;padding:30px 34px 28px;
+.card{position:relative;width:560px;padding:26px 34px 0;
     --accent:var(--electric);--accent-rgb:55,214,255;
     background:linear-gradient(165deg,rgba(13,16,28,0.96),rgba(8,10,19,0.97));
     border-radius:18px;overflow:hidden;
@@ -40,14 +40,30 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 @keyframes sheen{0%,72%{left:-60%}100%{left:150%}}
 .inner{position:relative;z-index:4;}
 
-.kick{display:flex;align-items:center;justify-content:center;gap:8px;font-size:.62rem;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:10px;}
-.kick .dot{width:7px;height:7px;border-radius:50%;background:var(--crimson);box-shadow:0 0 9px var(--crimson);animation:liv 1.4s infinite;}
-@keyframes liv{0%,100%{opacity:1}50%{opacity:.3}}
-
-.header{text-align:center;font-family:'Exo 2';font-weight:900;text-transform:uppercase;letter-spacing:.14em;line-height:1.2;
-    font-size:1.5rem;margin-bottom:18px;
+.header{text-align:center;font-family:'Exo 2';font-weight:900;text-transform:uppercase;letter-spacing:.12em;line-height:1.22;
+    font-size:1.62rem;margin-bottom:14px;
     background:linear-gradient(92deg,#fff6da,var(--gold) 55%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;
     filter:drop-shadow(0 2px 0 rgba(0,0,0,.5));}
+
+/* TIMERS */
+.timers{display:none;justify-content:center;gap:12px;margin:-2px 0 16px;}
+.tchip{display:flex;align-items:center;gap:10px;padding:8px 16px;border-radius:12px;
+    background:rgba(0,0,0,0.5);border:1.5px solid rgba(255,255,255,0.14);
+    box-shadow:inset 0 1px 6px rgba(0,0,0,.5);transition:border-color .3s,box-shadow .3s;}
+.tchip .ic{font-size:1.25rem;line-height:1;filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.4));}
+.tchip .tl{font-size:.56rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.55);}
+.tchip .tv{font-family:'Orbitron';font-weight:800;font-size:1.22rem;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums;}
+.tchip.cd{border-color:rgba(255,206,70,.45);}
+.tchip.cd .tv{color:var(--gold);text-shadow:0 0 14px rgba(255,170,0,.35);}
+.tchip.el{border-color:rgba(55,214,255,.4);}
+.tchip.el .tv{color:var(--electric);text-shadow:0 0 14px rgba(55,214,255,.3);}
+.tchip.idle{opacity:.55;}
+.tchip.urgent{border-color:rgba(255,42,69,.75);animation:urgpulse 1s ease-in-out infinite;}
+.tchip.urgent .tv{color:var(--crimson);text-shadow:0 0 16px rgba(255,42,69,.55);}
+@keyframes urgpulse{0%,100%{box-shadow:inset 0 1px 6px rgba(0,0,0,.5)}50%{box-shadow:inset 0 1px 6px rgba(0,0,0,.5),0 0 22px rgba(255,42,69,.5)}}
+.tchip.over{border-color:var(--crimson);background:rgba(255,42,69,.12);}
+.tchip.over .tv{color:var(--crimson);font-size:.95rem;letter-spacing:.08em;animation:overblink 1.2s steps(2) infinite;}
+@keyframes overblink{50%{opacity:.45}}
 
 /* VALUE BOX */
 .vbox{position:relative;background:rgba(0,0,0,0.55);border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;
@@ -55,7 +71,7 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
     display:flex;flex-direction:column;align-items:center;}
 .vbox.cap-pulse{animation:capPulse .6s ease-out;}
 @keyframes capPulse{0%{transform:scale(1)}28%{transform:scale(1.06);box-shadow:inset 0 2px 14px rgba(0,0,0,.6),0 0 40px 6px rgba(var(--accent-rgb),.6)}100%{transform:scale(1)}}
-.val{font-family:'Orbitron',sans-serif;font-weight:900;line-height:1.05;font-size:3.4rem;white-space:nowrap;display:flex;align-items:baseline;gap:.06em;}
+.val{font-family:'Orbitron',sans-serif;font-weight:900;line-height:1.05;font-size:3.4rem;white-space:nowrap;display:flex;align-items:baseline;gap:.06em;font-variant-numeric:tabular-nums;}
 .val .live{color:var(--accent);text-shadow:0 0 18px rgba(var(--accent-rgb),.6),0 0 38px rgba(var(--accent-rgb),.28);transition:color .25s;}
 .val .slash{color:rgba(255,255,255,.55);font-size:.8em;}
 .val .target{background:linear-gradient(180deg,#fff,var(--gold) 65%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -65,27 +81,36 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 .vbox.done .tlabel .normal{display:none;}
 .vbox.done .tlabel .ok{display:inline-block;}
 
+/* анимация изменения числа: вверх — зелёная вспышка, вниз — красная */
+.bump-up{animation:bumpUp .7s cubic-bezier(.16,1,.3,1);}
+@keyframes bumpUp{0%{transform:translateY(0)}22%{transform:translateY(-7px) scale(1.09);filter:drop-shadow(0 0 18px rgba(54,245,160,.85)) brightness(1.35)}100%{transform:none;filter:none}}
+.bump-down{animation:bumpDown .7s cubic-bezier(.16,1,.3,1);}
+@keyframes bumpDown{0%{transform:translateY(0)}22%{transform:translateY(7px) scale(.94);filter:drop-shadow(0 0 18px rgba(255,42,69,.85)) brightness(1.2)}100%{transform:none;filter:none}}
+
 /* STEP + LIMIT */
 .step{margin:16px auto 0;width:fit-content;display:flex;align-items:center;gap:.5em;
     background:rgba(0,0,0,0.5);border:1.5px solid rgba(var(--accent-rgb),0.5);border-radius:10px;padding:9px 20px;
     font-family:'Orbitron';font-weight:800;font-size:1.2rem;box-shadow:inset 0 1px 6px rgba(0,0,0,.5),0 0 16px rgba(var(--accent-rgb),.12);}
 .step .a{color:#fff;}.step .arr{color:var(--accent);}.step .p{color:var(--gold);}
-.limit{text-align:center;margin-top:12px;font-size:1.02rem;font-weight:700;letter-spacing:.05em;color:rgba(255,255,255,.62);
-    padding-top:12px;border-top:1px solid rgba(255,255,255,0.12);}
+.limit{text-align:center;margin-top:12px;font-size:1.02rem;font-weight:700;letter-spacing:.05em;color:rgba(255,255,255,.62);}
 .limit b{font-family:'Orbitron';color:#fff;font-weight:900;text-shadow:0 0 10px rgba(255,255,255,.2);}
 
 /* MEDALS */
 .mlist{display:flex;flex-direction:column;gap:10px;}
-.mrow{display:flex;align-items:center;gap:13px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,206,70,0.28);border-radius:11px;padding:9px 12px;transition:.25s;}
+.mrow{display:flex;align-items:center;gap:13px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,206,70,0.28);border-radius:11px;padding:9px 12px;transition:border-color .3s,background .3s,box-shadow .3s;}
+.mrow.enter{animation:rowIn .5s cubic-bezier(.16,1,.3,1);}
+@keyframes rowIn{from{opacity:0;transform:translateX(-30px) scale(.95)}to{opacity:1;transform:none}}
+.mrow.exit{animation:rowOut .35s ease forwards;pointer-events:none;}
+@keyframes rowOut{to{opacity:0;transform:translateX(30px) scale(.92)}}
 .mrow.done{border-color:rgba(54,245,160,.6);background:rgba(54,245,160,.07);box-shadow:0 0 20px rgba(54,245,160,.18);}
 .mrow .mi{width:46px;height:46px;border-radius:11px;flex:none;display:grid;place-items:center;font-size:1.5rem;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid rgba(255,206,70,0.32);}
 .mrow .mi img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 5px rgba(255,170,0,.35));}
 .mrow .mb{flex:1;min-width:0;}
 .mrow .mn{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:.96rem;color:#fff;}
-.mrow .mn .q{font-family:'Orbitron';color:var(--gold);font-size:1.05rem;}
+.mrow .mn .q{font-family:'Orbitron';color:var(--gold);font-size:1.05rem;font-variant-numeric:tabular-nums;}
 .mrow.done .mn .q{color:var(--green);}
 .mrow .mp{height:7px;border-radius:6px;background:rgba(255,255,255,0.08);overflow:hidden;margin-top:7px;}
-.mrow .mp>i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),#ffe08a);box-shadow:0 0 10px var(--gold);transition:width .6s;}
+.mrow .mp>i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),#ffe08a);box-shadow:0 0 10px var(--gold);transition:width .7s cubic-bezier(.16,1,.3,1);}
 .mrow.done .mp>i{background:linear-gradient(90deg,#11c977,var(--green));}
 
 /* одна медаль — по центру */
@@ -96,7 +121,7 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 .medsolo .mi img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 10px rgba(255,170,0,.4));}
 .medsolo.done .mi{border-color:rgba(54,245,160,.7);box-shadow:0 0 36px rgba(54,245,160,.35);}
 .medsolo .mn{font-family:'Exo 2';font-weight:900;font-size:1.25rem;letter-spacing:.06em;text-transform:uppercase;color:#fff;}
-.medsolo .mc{font-family:'Orbitron';font-weight:900;font-size:2.6rem;margin-top:10px;line-height:1;
+.medsolo .mc{font-family:'Orbitron';font-weight:900;font-size:2.6rem;margin-top:10px;line-height:1;font-variant-numeric:tabular-nums;
     background:linear-gradient(180deg,#fff,#ffd86b 55%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;}
 .medsolo.done .mc{background:linear-gradient(180deg,#fff,var(--green));-webkit-background-clip:text;background-clip:text;color:transparent;}
 .medsolo .mc small{font-size:.45em;color:var(--steel);font-weight:700;}
@@ -113,6 +138,20 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 .cons .cx{font-weight:800;font-size:1.18rem;letter-spacing:.04em;line-height:1.3;
     background:linear-gradient(92deg,#fff,#ffd0d6);-webkit-background-clip:text;background-clip:text;color:transparent;}
 .cons.hide{display:none;}
+
+/* FOOT: сумма за стрим внизу */
+.foot{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;
+    margin:18px -34px 0;padding:13px 34px 15px;
+    background:rgba(0,0,0,0.35);border-top:1px solid rgba(255,255,255,0.1);}
+.foot .fl{display:flex;align-items:center;gap:8px;font-size:.64rem;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.6);}
+.foot .fl .dot{width:7px;height:7px;border-radius:50%;background:var(--crimson);box-shadow:0 0 9px var(--crimson);animation:liv 1.4s infinite;}
+@keyframes liv{0%,100%{opacity:1}50%{opacity:.3}}
+.foot .fv{font-family:'Orbitron';font-weight:900;font-size:1.55rem;line-height:1;font-variant-numeric:tabular-nums;
+    background:linear-gradient(180deg,#fff,#ffd86b 60%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 12px rgba(255,170,0,.25));}
+.fplus{position:absolute;right:34px;bottom:44px;font-family:'Orbitron';font-weight:900;font-size:1.15rem;color:var(--green);
+    text-shadow:0 0 14px rgba(54,245,160,.6);pointer-events:none;animation:fplus 1.4s ease forwards;}
+@keyframes fplus{0%{opacity:0;transform:translateY(6px)}15%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
 
 /* victory */
 #victory{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:40;}
@@ -133,8 +172,12 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
     <div class="card wr" id="card">
         <div class="sheen"></div>
         <div class="inner">
-            <div class="kick"><span class="dot"></span> Tanks Blitz · Live Challenge · <span id="balK">0</span> ₽</div>
             <div class="header" id="header">УДЕРЖАТЬ % ПОБЕД ЗА СТРИМ</div>
+
+            <div class="timers" id="timers">
+                <div class="tchip cd" id="cdChip" style="display:none"><span class="ic">⏳</span><div><div class="tl">Осталось</div><div class="tv" id="cdVal">--:--</div></div></div>
+                <div class="tchip el" id="elChip" style="display:none"><span class="ic">⏱</span><div><div class="tl">Выполняю</div><div class="tv" id="elVal">--:--</div></div></div>
+            </div>
 
             <!-- gauge/value view -->
             <div id="valueView">
@@ -162,6 +205,11 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
                 <div class="ct" id="consTitle">ЕСЛИ НЕ УДЕРЖУ</div>
                 <div class="cx" id="consText">КРУЧУ ВСЮ МЕГАРАСПАКОВКУ</div>
             </div>
+
+            <div class="foot">
+                <span class="fl"><span class="dot"></span> Собрано за стрим</span>
+                <span class="fv"><span id="balK">0</span> ₽</span>
+            </div>
         </div>
     </div>
 </div>
@@ -169,20 +217,48 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 <div id="victory"><div class="vbx"><div class="vt">ЦЕЛЬ ВЗЯТА!</div><div class="vs" id="vsub">Стример — бог войны 🔥</div></div></div>
 
 <script>
-let CH=null, prog=null; const animState={};
+let CH=null, prog=null, serverOffset=0;
 const META={
     winrate:{cls:'wr',def:'УДЕРЖАТЬ % ПОБЕД ЗА СТРИМ',unit:'%'},
     damage:{cls:'dmg',def:'УДЕРЖАТЬ СРЕДНИЙ УРОН ЗА СТРИМ',unit:''},
     medals:{cls:'med',def:'ВЗЯТЬ МЕДАЛИ ЗА СТРИМ',unit:''}
 };
-const DESIGN_W=640, DESIGN_H=620;
+const DESIGN_W=640, DESIGN_H=680;
 
-document.addEventListener('DOMContentLoaded',()=>{ scale(); addEventListener('resize',scale); initFx(); load(); loadProg(); connectWS(); setInterval(loadProg,15000); });
+document.addEventListener('DOMContentLoaded',()=>{ scale(); addEventListener('resize',scale); initFx(); load(); loadProg(); connectWS(); setInterval(loadProg,15000); setInterval(tickTimers,500); });
 function scale(){ const s=Math.min(innerWidth/DESIGN_W,innerHeight/DESIGN_H,1.6); document.getElementById('scale').style.setProperty('--s',s); }
-function load(){ fetch('/api/blitz-challenge').then(r=>r.json()).then(d=>{if(d.success){CH=d.challenge;render();}}); }
+function load(){ fetch('/api/blitz-challenge').then(r=>r.json()).then(d=>{if(d.success){applyChallenge(d.challenge);render();}}); }
 function loadProg(){ fetch('/api/blitz-challenge/progress').then(r=>r.json()).then(d=>{prog=d;render();}); }
+function applyChallenge(ch){ CH=ch; if(ch&&ch.serverNow){ serverOffset=ch.serverNow-Math.floor(Date.now()/1000); } }
 function fmt(n){ return Math.round(Number(n)||0).toLocaleString('ru-RU'); }
 function trim(n){ const x=Number(n); return (Math.round(x*100)/100).toString(); }
+
+/* ===== АНИМИРОВАННЫЕ ЧИСЛА =====
+   Плавный подсчёт + вспышка: зелёная при росте, красная при падении.
+   Первое появление значения — без анимации. */
+const numAnim={};
+function setNumber(key,el,value,opts){
+    opts=opts||{};
+    const decimals=opts.decimals||0, group=!!opts.group, dur=opts.dur||800, bumpEl=opts.bumpEl||el;
+    if(!el) return;
+    const target=Number(value)||0;
+    const fmtv=v=>{
+        if(decimals>0) return parseFloat(v.toFixed(decimals)).toLocaleString('ru-RU',{maximumFractionDigits:decimals});
+        return group?Math.round(v).toLocaleString('ru-RU'):String(Math.round(v));
+    };
+    const st=numAnim[key];
+    if(!st){ numAnim[key]={val:target,raf:0}; el.textContent=fmtv(target); return; }
+    if(Math.abs(st.val-target)<1e-9){ el.textContent=fmtv(target); return; }
+    const from=st.val; st.val=target;
+    bumpEl.classList.remove('bump-up','bump-down'); void bumpEl.offsetWidth;
+    bumpEl.classList.add(target>from?'bump-up':'bump-down');
+    if(st.raf) cancelAnimationFrame(st.raf);
+    const start=performance.now();
+    (function step(t){ const k=Math.min(1,(t-start)/dur), v=from+(target-from)*(1-Math.pow(1-k,3));
+        el.textContent=fmtv(v);
+        if(k<1) st.raf=requestAnimationFrame(step); else st.raf=0; })(start);
+}
+function setStatic(key,el,text){ delete numAnim[key]; if(el) el.textContent=text; }
 
 function render(){
     if(!CH) return;
@@ -191,7 +267,7 @@ function render(){
     card.classList.remove('hidden');
     const t=CH.activeType||'winrate', meta=META[t];
     card.className='card '+meta.cls;
-    animateNumber('balK',CH.sessionBalance,true);
+    setNumber('bal',document.getElementById('balK'),CH.sessionBalance,{group:true});
     const ht=(CH.headerTexts&&CH.headerTexts[t])||CH.headerText||meta.def;
     document.getElementById('header').textContent=ht;
 
@@ -219,20 +295,27 @@ function render(){
         document.getElementById('valueView').style.display='block';
         document.getElementById('medalsView').style.display='none';
         const o=t==='winrate'?CH.winrate:CH.damage; const isWr=t==='winrate'; const live=isWr?liveWr:liveDmg;
-        document.getElementById('liveVal').textContent=live!=null?(isWr?trim(live):fmt(live)):'—';
-        document.getElementById('targetVal').textContent=isWr?trim(o.current):fmt(o.current);
+        const liveEl=document.getElementById('liveVal');
+        if(live!=null) setNumber('live-'+t,liveEl,live,{decimals:isWr?2:0,group:!isWr});
+        else setStatic('live-'+t,liveEl,'—');
+        setNumber('target-'+t,document.getElementById('targetVal'),o.current,{decimals:isWr?2:0,group:!isWr});
         document.getElementById('unit').textContent=isWr?'%':'';
         document.getElementById('perAmt').textContent=fmt(o.perAmount);
         document.getElementById('stepAmt').textContent=trim(o.step);
         document.getElementById('stepUnit').textContent=isWr?'%':'';
         document.getElementById('limitVal').textContent=isWr?(trim(o.cap)+' %'):fmt(o.cap);
         const done=live!=null&&live>=o.current;
-        const frac=live!=null&&o.current>0?live/o.current:0;
         document.getElementById('vbox').classList.toggle('done',done);
-        markDone(done,frac);
+        markDone(done);
     }
+    tickTimers();
 }
 
+/* ===== МЕДАЛИ: diff-рендер, чтобы работали анимации входа/выхода и подсчёта ===== */
+function medalRowHtml(m){
+    const img=m.image?`<img src="${m.image}">`:(m.icon||'🏅');
+    return `<div class="mi">${img}</div><div class="mb"><div class="mn"><span class="lbl"></span><span class="q"><span class="qe">0</span>/<span class="qr">0</span></span></div><div class="mp"><i></i></div></div>`;
+}
 function renderMedals(){
     const list=CH.medals.list||[];
     const box=document.getElementById('mlist');
@@ -241,49 +324,116 @@ function renderMedals(){
         solo.classList.remove('show','done');
         box.style.display='flex';
         box.innerHTML='<div class="mrow" style="justify-content:center;opacity:.55">Нет медалей</div>';
-        markDone(false,0);
+        markDone(false);
         return;
     }
     if(list.length===1){
         const m=list[0];
         const done=m.earned>=m.required&&m.required>0;
-        box.style.display='none';
+        box.style.display='none'; box.innerHTML='';
         solo.classList.add('show');
         solo.classList.toggle('done',done);
         const imgEl=document.getElementById('soloImg');
-        if(m.image){ imgEl.innerHTML=`<img src="${m.image}" alt="">`; } else { imgEl.textContent=m.icon||'🏅'; }
+        const want=m.image?`<img src="${m.image}" alt="">`:(m.icon||'🏅');
+        if(imgEl.dataset.want!==want){ imgEl.innerHTML=want; imgEl.dataset.want=want; }
         document.getElementById('soloName').textContent=m.label||'Медаль';
-        document.getElementById('soloEarned').textContent=m.earned;
-        document.getElementById('soloReq').textContent=m.required;
-        markDone(done, m.required>0?m.earned/m.required:0);
+        setNumber('solo-e',document.getElementById('soloEarned'),m.earned,{bumpEl:solo.querySelector('.mc')});
+        setNumber('solo-r',document.getElementById('soloReq'),m.required,{bumpEl:solo.querySelector('.mc')});
+        markDone(done);
         return;
     }
     solo.classList.remove('show','done');
     box.style.display='flex';
-    box.innerHTML='';
+    if(box.firstElementChild&&!box.firstElementChild.dataset.id) box.innerHTML='';
+    const seen=new Set();
     list.slice(0,5).forEach(m=>{
+        const id=String(m.id); seen.add(id);
+        let el=box.querySelector(`.mrow[data-id="${CSS.escape(id)}"]`);
+        if(!el){
+            el=document.createElement('div'); el.className='mrow enter'; el.dataset.id=id;
+            el.innerHTML=medalRowHtml(m);
+            box.appendChild(el);
+            setTimeout(()=>el.classList.remove('enter'),550);
+        }
         const done=m.earned>=m.required&&m.required>0; const frac=m.required>0?Math.min(1,m.earned/m.required):0;
-        const img=m.image?`<img src="${m.image}">`:(m.icon||'🏅');
-        const el=document.createElement('div'); el.className='mrow'+(done?' done':'');
-        el.innerHTML=`<div class="mi">${img}</div><div class="mb"><div class="mn"><span>${m.label||'Медаль'}</span><span class="q">${m.earned}/${m.required}</span></div><div class="mp"><i style="width:${frac*100}%"></i></div></div>`;
-        box.appendChild(el);
+        el.classList.toggle('done',done);
+        const want=m.image?`<img src="${m.image}">`:(m.icon||'🏅');
+        const mi=el.querySelector('.mi');
+        if(mi.dataset.want!==want){ mi.innerHTML=want; mi.dataset.want=want; }
+        el.querySelector('.lbl').textContent=m.label||'Медаль';
+        setNumber('med-'+id+'-e',el.querySelector('.qe'),m.earned,{bumpEl:el.querySelector('.q')});
+        setNumber('med-'+id+'-r',el.querySelector('.qr'),m.required,{bumpEl:el.querySelector('.q')});
+        el.querySelector('.mp>i').style.width=(frac*100)+'%';
+        box.appendChild(el); // сохраняем порядок как в списке
+    });
+    [...box.querySelectorAll('.mrow[data-id]')].forEach(el=>{
+        if(!seen.has(el.dataset.id)&&!el.classList.contains('exit')){
+            el.classList.add('exit'); setTimeout(()=>el.remove(),380);
+        }
     });
     const md=CH.medals; const allDone=md.totalRequired>0&&md.totalEarned>=md.totalRequired;
-    markDone(allDone, md.totalRequired>0?md.totalEarned/md.totalRequired:0);
+    markDone(allDone);
+}
+
+/* ===== ТАЙМЕРЫ ===== */
+let cdWasOver=false;
+function fmtDur(s){ s=Math.max(0,Math.floor(s)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+    const p=n=>String(n).padStart(2,'0'); return h>0?h+':'+p(m)+':'+p(sec):m+':'+p(sec); }
+function tickTimers(){
+    if(!CH||!CH.timers){ document.getElementById('timers').style.display='none'; return; }
+    const now=Math.floor(Date.now()/1000)+serverOffset;
+    const tc=CH.timers.countdown||{}, te=CH.timers.elapsed||{};
+    const cdChip=document.getElementById('cdChip'), elChip=document.getElementById('elChip');
+    let any=false;
+    if(tc.enabled){
+        any=true; cdChip.style.display='flex';
+        const v=document.getElementById('cdVal');
+        if(tc.startedAt>0){
+            const rem=tc.durationSec-(now-tc.startedAt);
+            cdChip.classList.remove('idle');
+            if(rem<=0){
+                v.textContent='ВРЕМЯ ВЫШЛО';
+                cdChip.classList.add('over'); cdChip.classList.remove('urgent');
+                if(!cdWasOver){ cdWasOver=true; flash(true); }
+            } else {
+                cdWasOver=false;
+                v.textContent=fmtDur(rem);
+                cdChip.classList.remove('over');
+                cdChip.classList.toggle('urgent',rem<=60);
+            }
+        } else {
+            cdWasOver=false;
+            v.textContent=fmtDur(tc.durationSec);
+            cdChip.classList.add('idle'); cdChip.classList.remove('over','urgent');
+        }
+    } else cdChip.style.display='none';
+    if(te.enabled){
+        any=true; elChip.style.display='flex';
+        const v=document.getElementById('elVal');
+        if(te.startedAt>0){ elChip.classList.remove('idle'); v.textContent=fmtDur(now-te.startedAt); }
+        else { elChip.classList.add('idle'); v.textContent='0:00'; }
+    } else elChip.style.display='none';
+    document.getElementById('timers').style.display=any?'flex':'none';
 }
 
 let victoryShown=false;
-function markDone(done,frac){
+function markDone(done){
     if(done){ if(!victoryShown){victoryShown=true;showVictory();} } else victoryShown=false;
 }
 function showVictory(){ document.getElementById('victory').classList.add('show'); confettiRun(); setTimeout(()=>document.getElementById('victory').classList.remove('show'),7000); }
 
 function connectWS(){ try{ const ws=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws');
-    ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;} if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){CH=m.challenge;render();if(m.lastDonation)onDonation(m.lastDonation);} };
+    ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;} if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){applyChallenge(m.challenge);render();if(m.lastDonation)onDonation(m.lastDonation);} };
     ws.onclose=()=>setTimeout(connectWS,3000); }catch(e){ setTimeout(connectWS,4000); } }
 function onDonation(ld){
     const big=ld.amount>=500; flash(big);
     const vb=document.getElementById('vbox'); if(vb){ vb.classList.remove('cap-pulse'); void vb.offsetWidth; vb.classList.add('cap-pulse'); }
+    floatPlus(ld.amount);
+}
+function floatPlus(amount){
+    const foot=document.querySelector('.foot'); if(!foot) return;
+    const el=document.createElement('span'); el.className='fplus'; el.textContent='+'+fmt(amount)+' ₽';
+    foot.appendChild(el); setTimeout(()=>el.remove(),1500);
 }
 function flash(big){ const f=document.getElementById('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); burst(big?90:40,big);
     if(big){ const c=document.getElementById('card'); c.classList.add('shake'); setTimeout(()=>c.classList.remove('shake'),520);} }
@@ -302,9 +452,6 @@ function confettiRun(){ confStop=false; const cols=['#ffce46','#ff9d00','#37d6ff
     (function loop(){ if(confStop)return; cf.forEach(p=>{p.y+=p.vy;p.x+=p.vx;p.rot+=p.vr;if(p.y>innerHeight){p.y=-10;p.x=Math.random()*innerWidth;}
         ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=p.c;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore();}); requestAnimationFrame(loop); })();
     setTimeout(()=>{confStop=true;},7000); }
-function animateNumber(id,target,sep){ target=Number(target)||0; const el=document.getElementById(id); if(!el)return; const from=animState[id]||0,start=performance.now(),dur=700;
-    (function step(t){ const k=Math.min(1,(t-start)/dur),v=from+(target-from)*(1-Math.pow(1-k,3)); el.textContent=sep?Math.round(v).toLocaleString('ru-RU'):Math.round(v);
-        if(k<1)requestAnimationFrame(step); else animState[id]=target; })(start); }
 </script>
 </body>
 </html>
