@@ -5,12 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Управление наградами и ролями VK Play</title>
     <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
     <style>
+        body {
+            padding-left: 280px;
+            transition: padding-left var(--transition-base, 0.3s);
+        }
+
+        body.sidebar-collapsed {
+            padding-left: 80px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-left: 0;
+            }
+        }
+
         .rewards-container {
             max-width: 1200px;
             margin: 0 auto;
             padding: var(--spacing-xl);
-            padding-top: calc(80px + var(--spacing-xl));
+            padding-top: calc(70px + var(--spacing-xl));
         }
 
         .section {
@@ -262,7 +278,8 @@
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
 </head>
 <body class="theme-2026">
-    <div id="navbar-container"></div>
+    <div id="sidebar-placeholder"></div>
+    <div id="header-placeholder"></div>
 
     <div class="rewards-container">
         <h1 class="section-title">🎁 Управление наградами и ролями VK Play</h1>
@@ -651,12 +668,14 @@
             }, 3000);
         }
 
-        // Загрузка navbar
-        fetch('/components/navbar.html')
-            .then(res => res.text())
-            .then(html => {
-                document.getElementById('navbar-container').innerHTML = html;
-            });
+        // Загрузка сайдбара и хедера
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
+        });
 
         // История выдачи ролей
         let currentHistoryFilter = 'all';

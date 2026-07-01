@@ -6,6 +6,8 @@
     <title>Управление донатами - Единый центр</title>
     <link rel="stylesheet" href="/styles/global.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
     <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #00f0ff 0%, #ff00ff 100%);
@@ -31,10 +33,19 @@
             min-height: 100vh;
             color: var(--text-primary);
             overflow-x: hidden;
+            padding-top: 70px;
+            padding-left: 280px;
+            transition: padding-left var(--transition-base, 0.3s);
         }
 
-        .menu-container {
-            margin-top: 80px;
+        body.sidebar-collapsed {
+            padding-left: 80px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-left: 0;
+            }
         }
 
         .page-header {
@@ -1047,8 +1058,8 @@
     </style>
 </head>
 <body class="theme-neon theme-2026">
-    <!-- Включение меню -->
-    <div id="menu-container"></div>
+    <div id="sidebar-placeholder"></div>
+    <div id="header-placeholder"></div>
 
     <!-- Заголовок страницы -->
     <div class="page-header">
@@ -2005,9 +2016,12 @@
         // Загрузка меню
         async function loadMenu() {
             try {
-                const response = await fetch('/menu.html');
-                const menuHtml = await response.text();
-                document.getElementById('menu-container').innerHTML = menuHtml;
+                const [sidebar, header] = await Promise.all([
+                    fetch('/components/sidebar.html').then(r => r.text()),
+                    fetch('/components/header.html').then(r => r.text())
+                ]);
+                document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+                document.getElementById('header-placeholder').innerHTML = header;
             } catch (error) {
                 console.error('Ошибка загрузки меню:', error);
             }

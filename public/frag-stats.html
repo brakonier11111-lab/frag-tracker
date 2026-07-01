@@ -6,6 +6,8 @@
     <title>Статистика Фрагов - Frag Tracker</title>
     <link rel="stylesheet" href="/styles/global.css">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
     <style>
         :root {
             --card-bg: rgba(20, 20, 30, 0.9);
@@ -25,75 +27,19 @@
             min-height: 100vh;
             overflow-x: hidden;
             line-height: 1.6;
-            padding-top: 80px;
+            padding-top: 70px;
+            padding-left: 280px;
+            transition: padding-left var(--transition-base, 0.3s);
         }
 
-        .top-menu {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: rgba(5, 5, 8, 0.95);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            z-index: 1000;
-            padding: 10px 20px;
+        body.sidebar-collapsed {
+            padding-left: 80px;
         }
 
-        .menu-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .menu-logo {
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--neon-green);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .menu-nav {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .menu-item {
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 6px;
-            color: var(--light);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .menu-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--neon-purple);
-            box-shadow: 0 0 10px rgba(179, 0, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .menu-item.active {
-            background: var(--neon-purple);
-            color: var(--dark);
-            border-color: var(--neon-purple);
-            box-shadow: 0 0 15px rgba(179, 0, 255, 0.5);
+        @media (max-width: 768px) {
+            body {
+                padding-left: 0;
+            }
         }
 
         .container {
@@ -596,24 +542,8 @@
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
 </head>
 <body class="theme-neon theme-2026">
-    <!-- Верхнее меню -->
-    <nav class="top-menu">
-        <div class="menu-container">
-            <a href="/index.html" class="menu-logo">
-                🎯 ФРАГ-ТРЕКЕР
-            </a>
-            <div class="menu-nav">
-                <a href="/index.html" class="menu-item">🏠 Главная</a>
-                <a href="/mode1-frag-tracker.html" class="menu-item">🎯 Фраг-трекер</a>
-                <a href="/mode2-timer.html" class="menu-item">⏰ Таймер</a>
-                <a href="/mode3-custom.html" class="menu-item">⚙️ Кастом</a>
-                <a href="/frag-stats.html" class="menu-item active">📊 Статистика</a>
-                <a href="/lesta-stats.html" class="menu-item">🏆 Lesta Games</a>
-                <a href="/admin.html" class="menu-item">🔧 Админ</a>
-                <a href="/analytics.html" class="menu-item">📈 Аналитика</a>
-            </div>
-        </div>
-    </nav>
+    <div id="sidebar-placeholder"></div>
+    <div id="header-placeholder"></div>
 
     <div class="container">
         <div class="header">
@@ -1134,6 +1064,15 @@
                 battleChart.style.overflowX = 'visible';
             }
         }
+    </script>
+    <script>
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
+        });
     </script>
 </body>
 </html>

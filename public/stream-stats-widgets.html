@@ -5,6 +5,8 @@
 	<title>Онлайн и лайки — виджеты</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+	<link rel="stylesheet" href="/styles/design-system.css">
+	<link rel="stylesheet" href="/styles/layout.css">
 	<style>
 		:root {
 			--bg: #0b0f17;
@@ -18,9 +20,20 @@
 			--muted: rgba(232,238,247,0.7);
 		}
 		* { margin: 0; padding: 0; box-sizing: border-box; }
-		body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); }
+		body {
+			font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+			background: var(--bg);
+			color: var(--text);
+			padding-top: 70px;
+			padding-left: 280px;
+			transition: padding-left var(--transition-base, 0.3s);
+		}
+		body.sidebar-collapsed { padding-left: 80px; }
+		@media (max-width: 768px) {
+			body { padding-left: 0; }
+		}
 		.page { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
-		.h1 { font-size: 28px; font-weight: 800; letter-spacing: .2px; margin: 86px 0 16px; }
+		.h1 { font-size: 28px; font-weight: 800; letter-spacing: .2px; margin: 0 0 16px; }
 		.sub { color: var(--muted); margin-bottom: 24px; }
 
 		.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
@@ -164,7 +177,8 @@
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
 </head>
 <body class="theme-2026">
-	<div id="menu-container"></div>
+	<div id="sidebar-placeholder"></div>
+	<div id="header-placeholder"></div>
 	<div class="page">
 		<div class="h1">Виджеты онлайна и лайков</div>
 		<div class="sub">Красивая панель для OBS: онлайн и лайки с YouTube и VK Play Live, плюс суммарные значения.</div>
@@ -276,15 +290,13 @@
 	</div>
 
 	<script>
-		async function loadMenu() {
-			try {
-				const res = await fetch('/menu.html');
-				document.getElementById('menu-container').innerHTML = await res.text();
-			} catch (e) {
-				console.warn('menu load fail', e);
-			}
-		}
-		loadMenu();
+		Promise.all([
+			fetch('/components/sidebar.html').then(r => r.text()),
+			fetch('/components/header.html').then(r => r.text())
+		]).then(([sidebar, header]) => {
+			document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+			document.getElementById('header-placeholder').innerHTML = header;
+		});
 
 		function setBadge(el, ok, textOk, textErr) {
 			if (!el) return;
