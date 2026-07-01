@@ -1703,9 +1703,15 @@ function createReplayLiveModule(deps) {
         return speed > 0 ? speed : 1;
     }
 
+    // Знак важен: положительное значение ПРИДЕРЖИВАЕТ часы (виджет спешит —
+    // считает секунды загрузки, которых по факту не было в бою), отрицательное —
+    // РАЗГОНЯЕТ вперёд (виджет отстаёт — детект сработал позже, чем реально
+    // начался бой). Направление зависит от конкретной связки игра/железо
+    // пользователя, поэтому не фиксируем знак — подбирается на практике.
     function playbackLoadDelaySec() {
         const sec = Number(config.playbackLoadDelaySec);
-        return sec > 0 ? Math.min(sec, 60) : 0;
+        if (!Number.isFinite(sec)) return 0;
+        return Math.max(-60, Math.min(sec, 60));
     }
 
     function metaLogPath() {

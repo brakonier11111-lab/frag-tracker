@@ -95,9 +95,9 @@ code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:6px}
       <input id="autoPlaybackMinutes" type="number" min="0" step="1" value="0">
       <label>Скорость «времени боя» при просмотре реплея (1 = 1×)</label>
       <input id="playbackSpeed" type="number" min="0.25" max="16" step="0.25" value="1">
-      <label>Задержка старта часов, сек (компенсация загрузочного экрана игры)</label>
-      <input id="playbackLoadDelaySec" type="number" min="0" max="60" step="0.5" value="0">
-      <div class="note" style="margin-top:0">Игра не сообщает, когда закончилась загрузка реплея — часы виджета стартуют примерно в момент открытия файла. Если у тебя загрузка стабильно занимает N секунд, поставь N здесь — виджет вычтет их из отсчёта. Не идеально (загрузка иногда дольше/короче), но убирает системный сдвиг.</div>
+      <label>Коррекция часов, сек (+ придержать / − разогнать вперёд)</label>
+      <input id="playbackLoadDelaySec" type="number" min="-60" max="60" step="0.5" value="0">
+      <div class="note" style="margin-top:0">Игра не сообщает, когда закончилась загрузка реплея — часы виджета идут от момента открытия файла и могут спешить или отставать от реального боя на фиксированную величину. Если виджет <strong>спешит</strong> (показывает время раньше, чем на экране игры) — поставь <strong>положительное</strong> число секунд. Если <strong>отстаёт</strong> — поставь <strong>отрицательное</strong>. Подбирается на глаз по стриму.</div>
       <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
         <input id="watchReplayCache" type="checkbox" checked style="width:auto">
         Авто-детект реплея из кэша игры + atime .tbreplay
