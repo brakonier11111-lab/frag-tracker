@@ -164,6 +164,20 @@ check('GET /api/donor-achievement-tiers', async () => {
     if (!json.success || !Array.isArray(json.tiers)) throw new Error('unexpected body: ' + JSON.stringify(json));
 });
 
+check('GET /api/chat/messages', async () => {
+    const res = await fetch(`${BASE_URL}/api/chat/messages`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!Array.isArray(json.messages)) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/chat/stats', async () => {
+    const res = await fetch(`${BASE_URL}/api/chat/stats`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!Array.isArray(json.stats)) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
 check('GET / (главная страница)', async () => {
     const res = await fetch(`${BASE_URL}/`);
     if (res.status !== 200) throw new Error('status ' + res.status);

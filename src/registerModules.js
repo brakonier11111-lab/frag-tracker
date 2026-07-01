@@ -6,10 +6,11 @@ const { createYandexMusicModule } = require('./modules/yandex-music');
 const { registerRouletteRoutes } = require('./modules/roulette');
 const { createRazblogModule } = require('./modules/razblog');
 const { createDonorAchievementsModule } = require('./modules/donor-achievements');
+const { createChatStatsModule } = require('./modules/chat-stats');
 
 /**
  * Подключает вынесенные модули к Express-приложению.
- * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements }}
+ * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats }}
  */
 function registerModules(app, deps, config) {
     const blitz = createBlitzChallengeModule(deps);
@@ -35,7 +36,10 @@ function registerModules(app, deps, config) {
     const donorAchievements = createDonorAchievementsModule(deps);
     donorAchievements.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, razblog, donorAchievements };
+    const chatStats = createChatStatsModule(deps);
+    chatStats.registerRoutes(app);
+
+    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats };
 }
 
 module.exports = { registerModules };
