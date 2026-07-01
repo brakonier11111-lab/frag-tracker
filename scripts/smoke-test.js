@@ -246,6 +246,34 @@ check('GET /auth/lesta (проверка LESTA_CONFIG shared по ссылке)'
     if (res.status !== 400 && res.status !== 302) throw new Error('status ' + res.status);
 });
 
+check('GET /api/analytics/stats', async () => {
+    const res = await fetch(`${BASE_URL}/api/analytics/stats`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.success) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/donations-analytics', async () => {
+    const res = await fetch(`${BASE_URL}/api/donations-analytics`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.success || !json.data) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/donors-grouped', async () => {
+    const res = await fetch(`${BASE_URL}/api/donors-grouped`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.success) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/donations-stats-small-donors', async () => {
+    const res = await fetch(`${BASE_URL}/api/donations-stats-small-donors`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.success) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
 check('GET /integrations/rutony/status', async () => {
     const res = await fetch(`${BASE_URL}/integrations/rutony/status`);
     if (res.status !== 200) throw new Error('status ' + res.status);
