@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ФРАГ-ТРЕКЕР | АНАЛИТИКА</title>
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -32,6 +34,19 @@
             color: var(--light);
             min-height: 100vh;
             overflow-x: hidden;
+            padding-top: 70px;
+            padding-left: 280px;
+            transition: padding-left var(--transition-base, 0.3s);
+        }
+
+        body.sidebar-collapsed {
+            padding-left: 80px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding-left: 0;
+            }
         }
 
         .container {
@@ -308,7 +323,8 @@
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
 </head>
 <body class="theme-2026">
-    <a href="/" class="back-link">← НАЗАД</a>
+    <div id="sidebar-placeholder"></div>
+    <div id="header-placeholder"></div>
     
     <div class="container">
         <div class="header">
@@ -535,6 +551,15 @@
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
             loadAnalyticsData();
+        });
+    </script>
+    <script>
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
         });
     </script>
 </body>

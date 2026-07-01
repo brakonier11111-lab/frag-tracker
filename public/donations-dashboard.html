@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Донаты и донатеры — ФРАГ-ТРЕКЕР</title>
     <link rel="stylesheet" href="/styles/global.css">
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
     <style>
         :root {
             --bg-dark: #05050a;
@@ -19,42 +21,19 @@
             background: radial-gradient(circle at 20% 20%, rgba(0, 240, 255, 0.2), transparent 40%), #030307;
             color: #f5f5f5;
             font-family: 'Inter', system-ui, sans-serif;
+            padding-top: 70px;
+            padding-left: 280px;
+            transition: padding-left var(--transition-base, 0.3s);
         }
 
-        nav {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            background: rgba(3, 3, 7, 0.95);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            backdrop-filter: blur(12px);
+        body.sidebar-collapsed {
+            padding-left: 80px;
         }
 
-        nav .menu {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 12px 24px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            flex-wrap: wrap;
-        }
-
-        nav .menu a {
-            color: #f5f5f5;
-            text-decoration: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-weight: 500;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.2s ease;
-        }
-
-        nav .menu a.active {
-            background: var(--accent);
-            color: #030307;
-            border-color: var(--accent);
+        @media (max-width: 768px) {
+            body {
+                padding-left: 0;
+            }
         }
 
         main {
@@ -405,14 +384,8 @@
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
 </head>
 <body class="theme-2026">
-    <nav>
-        <div class="menu">
-            <a href="/index.html">🏠 Главная</a>
-            <a href="/mode2-timer.html">⏱ Таймер</a>
-            <a href="/donor-achievements.html">🏆 Достижения</a>
-            <a href="/donations-dashboard.html" class="active">📚 Донаты</a>
-        </div>
-    </nav>
+    <div id="sidebar-placeholder"></div>
+    <div id="header-placeholder"></div>
     <main>
         <header class="page-header">
             <div>
@@ -1070,6 +1043,15 @@
             console.log('   smallDonorsTotalAmountEl:', smallDonorsTotalAmountEl ? '✅ найден' : '❌ не найден');
             console.log('   smallDonorsTotalTimeEl:', smallDonorsTotalTimeEl ? '✅ найден' : '❌ не найден');
             console.log('   smallDonorsUniqueCountEl:', smallDonorsUniqueCountEl ? '✅ найден' : '❌ не найден');
+        });
+    </script>
+    <script>
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
         });
     </script>
 </body>

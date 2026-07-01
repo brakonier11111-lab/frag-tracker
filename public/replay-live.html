@@ -5,10 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Replay Live — настройки</title>
 <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/design-system.css">
+<link rel="stylesheet" href="/styles/layout.css">
 <style>
 :root{--bg:#0b0f18;--card:#121826;--line:rgba(255,255,255,.08);--accent:#37d6ff;--gold:#ffce46;--text:#e8eef8;--muted:#8ea0bf;}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Exo 2',sans-serif;background:radial-gradient(circle at 20% 0%,#152038,var(--bg));color:var(--text);min-height:100vh;padding:28px}
+body{font-family:'Exo 2',sans-serif;background:radial-gradient(circle at 20% 0%,#152038,var(--bg));color:var(--text);min-height:100vh;padding:28px;padding-top:98px;padding-left:308px;transition:padding-left var(--transition-base,0.3s)}
+body.sidebar-collapsed{padding-left:108px}
+@media(max-width:768px){body{padding-left:28px}}
 .wrap{max-width:980px;margin:0 auto}
 .top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px;flex-wrap:wrap}
 h1{font-size:1.8rem;font-weight:800;letter-spacing:.04em}
@@ -54,6 +58,8 @@ code{background:rgba(255,255,255,.06);padding:2px 6px;border-radius:6px}
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
 </head>
 <body class="theme-2026">
+<div id="sidebar-placeholder"></div>
+<div id="header-placeholder"></div>
 <div class="wrap">
   <div class="top">
     <div>
@@ -366,6 +372,15 @@ setupObsLinks();
 loadConfig().then(() => { refresh(); loadReplayPickList(); });
 setInterval(refresh, 1500);
 setInterval(loadReplayPickList, 15000);
+</script>
+<script>
+Promise.all([
+    fetch('/components/sidebar.html').then(r => r.text()),
+    fetch('/components/header.html').then(r => r.text())
+]).then(([sidebar, header]) => {
+    document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+    document.getElementById('header-placeholder').innerHTML = header;
+});
 </script>
 </body>
 </html>
