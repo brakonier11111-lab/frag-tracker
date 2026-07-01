@@ -150,6 +150,20 @@ check('POST /api/force-check-donations', async () => {
     if (res.status !== 200) throw new Error('status ' + res.status);
 });
 
+check('GET /api/donor-achievements', async () => {
+    const res = await fetch(`${BASE_URL}/api/donor-achievements`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.success || !Array.isArray(json.achievements)) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/donor-achievement-tiers', async () => {
+    const res = await fetch(`${BASE_URL}/api/donor-achievement-tiers`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.success || !Array.isArray(json.tiers)) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
 check('GET / (главная страница)', async () => {
     const res = await fetch(`${BASE_URL}/`);
     if (res.status !== 200) throw new Error('status ' + res.status);
