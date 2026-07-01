@@ -10,6 +10,7 @@
     "dev": "nodemon server.js",
     "init-db": "node init-db.js",
     "smoke-test": "node scripts/smoke-test.js",
+    "build:media-art": "dotnet publish scripts/media-art/MediaArt.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o scripts/media-art/out",
     "backup-db": "node scripts/backup-db.js",
     "stagewise": "stagewise",
     "electron": "electron .",

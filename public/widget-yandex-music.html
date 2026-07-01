@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Яндекс Музыка — OBS</title>
+<style>
+:root {
+  --bg: rgba(8, 8, 12, 0.62);
+  --line: rgba(255, 255, 255, 0.1);
+  --ym: #ffcc00;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+body {
+  font-family: system-ui, Segoe UI, sans-serif;
+  color: #fff;
+}
+.frame {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.widget {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  transform-origin: bottom left;
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+.widget.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.cover-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex: 0 0 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #14141c;
+  border: 1px solid var(--line);
+}
+.cover-wrap.empty { display: none; }
+.cover-wrap img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transform: scale(1.06);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.cover-wrap img.show {
+  opacity: 1;
+  transform: scale(1);
+}
+.cover-wrap img.hide {
+  opacity: 0;
+  transform: scale(0.94);
+}
+.meta {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.row-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  min-width: 0;
+}
+.badge {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.eq {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 14px;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.eq.on { opacity: 1; }
+.eq span {
+  display: block;
+  width: 3px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ym);
+  box-shadow: 0 0 6px rgba(255, 204, 0, 0.35);
+  animation: bar 0.85s ease-in-out infinite;
+}
+.eq span:nth-child(2) { animation-delay: 0.12s; }
+.eq span:nth-child(3) { animation-delay: 0.24s; }
+.eq span:nth-child(4) { animation-delay: 0.36s; }
+@keyframes bar {
+  0%, 100% { height: 4px; opacity: 0.5; }
+  50% { height: 14px; opacity: 1; }
+}
+.text-wrap {
+  min-width: 0;
+  transition: opacity 0.38s ease, transform 0.38s ease;
+}
+.text-wrap.swap-out {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.text-wrap.swap-in {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+.title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.artist {
+  margin-top: 4px;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.68);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+</head>
+<body>
+<div class="frame" id="frame">
+  <div class="widget hidden" id="widget">
+    <div class="cover-wrap empty" id="coverWrap">
+      <img id="coverA" alt="" width="80" height="80">
+      <img id="coverB" alt="" width="80" height="80">
+    </div>
+    <div class="meta">
+      <div class="row-top">
+        <div class="badge" id="badge">Сейчас играет</div>
+        <div class="eq" id="eq" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+      <div class="text-wrap" id="textWrap">
+        <div class="title" id="title">—</div>
+        <div class="artist" id="artist">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const DESIGN_H = 114;
+
+const widget = document.getElementById('widget');
+const coverWrap = document.getElementById('coverWrap');
+const coverA = document.getElementById('coverA');
+const coverB = document.getElementById('coverB');
+const badge = document.getElementById('badge');
+const eq = document.getElementById('eq');
+const textWrap = document.getElementById('textWrap');
+const titleEl = document.getElementById('title');
+const artistEl = document.getElementById('artist');
+
+const params = new URLSearchParams(location.search);
+
+function applyScale() {
+  const manual = params.get('scale');
+  let s;
+  if (manual != null && manual !== '') {
+    s = Math.max(1, Math.min(4, Number(manual) || 2));
+  } else {
+    s = window.innerHeight / DESIGN_H;
+    s = Math.max(2, Math.min(s, 4));
+  }
+  widget.style.transform = 'scale(' + s + ')';
+  widget.style.width = (100 / s) + '%';
+}
+
+applyScale();
+window.addEventListener('resize', applyScale);
+
+let lastTrackKey = '';
+let lastArtToken = '';
+let lastPlaying = null;
+let activeCover = null;
+let swapping = false;
+
+function buildTrackKey(data) {
+  return [data.title, data.artist].join('|');
+}
+
+function updatePlaybackUi(data) {
+  if (data.playing) {
+    badge.textContent = 'Сейчас играет';
+    eq.classList.add('on');
+  } else if (data.paused) {
+    badge.textContent = 'Пауза';
+    eq.classList.remove('on');
+  } else {
+    badge.textContent = 'Яндекс Музыка';
+    eq.classList.remove('on');
+  }
+  lastPlaying = Boolean(data.playing);
+}
+
+function applyText(data) {
+  titleEl.textContent = data.title || 'Без названия';
+  artistEl.textContent = data.artist || 'Неизвестный исполнитель';
+}
+
+function showCoverImg(img) {
+  coverWrap.classList.remove('empty');
+  [coverA, coverB].forEach((el) => {
+    if (el === img) {
+      el.classList.remove('hide');
+      el.classList.add('show');
+    } else {
+      el.classList.remove('show');
+      el.classList.add('hide');
+    }
+  });
+  activeCover = img;
+}
+
+function hideAllCovers() {
+  coverWrap.classList.add('empty');
+  [coverA, coverB].forEach((el) => {
+    el.classList.remove('show');
+    el.classList.add('hide');
+    el.removeAttribute('src');
+  });
+  activeCover = null;
+  lastArtToken = '';
+}
+
+function loadCover(token) {
+  if (!token) {
+    hideAllCovers();
+    return;
+  }
+  if (token === lastArtToken && activeCover && activeCover.src) return;
+
+  const next = activeCover === coverA ? coverB : coverA;
+  const url = '/api/yandex-music/art?t=' + encodeURIComponent(token);
+
+  next.onload = () => {
+    lastArtToken = token;
+    showCoverImg(next);
+  };
+  next.onerror = () => {
+    next.removeAttribute('src');
+    if (!activeCover || !activeCover.src) hideAllCovers();
+  };
+  next.src = url;
+}
+
+function swapCover(token) {
+  if (!token) {
+    hideAllCovers();
+    return;
+  }
+  if (token === lastArtToken) return;
+
+  const next = activeCover === coverA ? coverB : coverA;
+  const prev = activeCover;
+  const url = '/api/yandex-music/art?t=' + encodeURIComponent(token);
+
+  next.onload = () => {
+    lastArtToken = token;
+    coverWrap.classList.remove('empty');
+    next.classList.remove('hide');
+    next.classList.add('show');
+    if (prev) {
+      prev.classList.remove('show');
+      prev.classList.add('hide');
+    }
+    activeCover = next;
+  };
+  next.onerror = () => {
+    next.removeAttribute('src');
+    if (!prev || !prev.src) hideAllCovers();
+  };
+  next.src = url;
+}
+
+function animateTextChange(data) {
+  if (swapping) return;
+  swapping = true;
+  textWrap.classList.add('swap-out');
+  setTimeout(() => {
+    applyText(data);
+    textWrap.classList.remove('swap-out');
+    textWrap.classList.add('swap-in');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        textWrap.classList.remove('swap-in');
+        swapping = false;
+      });
+    });
+  }, 320);
+}
+
+function render(data) {
+  const active = Boolean(data && data.active);
+
+  if (!active) {
+    widget.classList.add('hidden');
+    lastTrackKey = '';
+    lastArtToken = '';
+    lastPlaying = null;
+    hideAllCovers();
+    return;
+  }
+
+  widget.classList.remove('hidden');
+
+  const trackKey = buildTrackKey(data);
+  const artToken = data.hasArt && data.artToken ? data.artToken : '';
+  const textChanged = trackKey !== lastTrackKey;
+  const artChanged = artToken !== lastArtToken;
+
+  if (textChanged) {
+    if (lastTrackKey) animateTextChange(data);
+    else applyText(data);
+    lastTrackKey = trackKey;
+  }
+
+  if (artChanged) {
+    if (lastArtToken) swapCover(artToken);
+    else loadCover(artToken);
+  }
+
+  if (textChanged || artChanged || data.playing !== lastPlaying) {
+    updatePlaybackUi(data);
+  }
+}
+
+async function poll() {
+  try {
+    const r = await fetch('/api/yandex-music/now-playing', { cache: 'no-store' });
+    const j = await r.json();
+    if (j.success) render(j.data);
+  } catch (_) { /* noop */ }
+}
+
+poll();
+setInterval(poll, 1400);
+</script>
+</body>
+</html>

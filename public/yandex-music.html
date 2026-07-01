@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Яндекс Музыка — виджет</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0f18;
+  --card: #121826;
+  --line: rgba(255,255,255,.08);
+  --accent: #ffcc00;
+  --text: #e8eef8;
+  --muted: #8ea0bf;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: radial-gradient(circle at 20% 0%, #1a2030, var(--bg));
+  color: var(--text);
+  min-height: 100vh;
+  padding: 28px;
+}
+.wrap { max-width: 820px; margin: 0 auto; }
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+h1 { font-family: 'Exo 2', sans-serif; font-size: 1.8rem; font-weight: 800; }
+.sub { color: var(--muted); margin-top: 6px; font-size: .95rem; }
+a.btn, button.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px; border-radius: 10px;
+  border: 1px solid rgba(255,204,0,.45);
+  background: rgba(255,204,0,.08); color: var(--accent);
+  text-decoration: none; font-weight: 700; cursor: pointer; font: inherit;
+}
+button.btn.primary {
+  background: linear-gradient(90deg, #e6b800, #ffcc00);
+  color: #1a1200; border: none;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.card h2 { font-size: 1.05rem; margin-bottom: 14px; color: var(--accent); font-family: 'Exo 2', sans-serif; }
+.now {
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+.now .status { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 8px; }
+.now .title { font-size: 1.35rem; font-weight: 800; font-family: 'Exo 2', sans-serif; }
+.now .artist { margin-top: 4px; color: var(--muted); font-size: 1rem; }
+.now.idle .title { color: var(--muted); font-weight: 600; font-size: 1rem; }
+.obs-url {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #0a101b;
+  color: #bfefff;
+  font: 600 .84rem Consolas, monospace;
+  margin: 8px 0 12px;
+}
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.note {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255,204,0,.06);
+  border: 1px solid rgba(255,204,0,.18);
+  color: #d9c88a;
+  font-size: .88rem;
+  line-height: 1.45;
+}
+label.chk {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 12px; font-size: .9rem; color: var(--muted);
+}
+label.chk input { width: auto; }
+code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Яндекс Музыка</h1>
+      <p class="sub">Текущий трек в OBS · десктопное приложение Яндекс Музыки</p>
+    </div>
+    <div class="row">
+      <a class="btn" href="/">← Главная</a>
+      <a class="btn primary" id="openWidget" href="/widget-yandex-music" target="_blank">OBS-виджет</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Сейчас играет</h2>
+    <div class="now idle" id="nowBox">
+      <div class="status" id="nowStatus">Ожидание</div>
+      <div class="title" id="nowTitle">Запусти Яндекс Музыку и включи трек</div>
+      <div class="artist" id="nowArtist"></div>
+    </div>
+    <label class="chk">
+      <input type="checkbox" id="showPaused" checked>
+      Показывать виджет на паузе
+    </label>
+  </div>
+
+  <div class="card">
+    <h2>Ссылка для OBS</h2>
+    <p class="sub" style="margin-bottom:8px">В OBS задай высоту источника ~<strong>230–280</strong> px (ширина — как удобно). Масштаб ×2 по умолчанию. Ещё крупнее: <code>?scale=3</code> в URL.</p>
+    <input class="obs-url" id="obsUrl" readonly>
+    <div class="row">
+      <button class="btn primary" type="button" id="copyBtn">Копировать ссылку</button>
+      <a class="btn" id="openWidget2" href="/widget-yandex-music" target="_blank">Открыть виджет</a>
+    </div>
+    <div class="note">
+      Работает с приложением <code>Яндекс Музыка.exe</code> из
+      <code>C:\Users\ixacy\AppData\Local\Programs\YandexMusic\</code>.
+      Windows передаёт название трека через System Media API — отдельный логин не нужен.
+    </div>
+  </div>
+</div>
+<script>
+const obsUrl = new URL('/widget-yandex-music', window.location.origin).toString();
+document.getElementById('obsUrl').value = obsUrl;
+document.getElementById('openWidget').href = obsUrl;
+document.getElementById('openWidget2').href = obsUrl;
+
+document.getElementById('copyBtn').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText(obsUrl);
+    document.getElementById('copyBtn').textContent = 'Скопировано';
+    setTimeout(() => { document.getElementById('copyBtn').textContent = 'Копировать ссылку'; }, 1200);
+  } catch (_) { /* noop */ }
+};
+
+async function saveConfig(showPaused) {
+  await fetch('/api/yandex-music/config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ showWhenPaused: showPaused })
+  });
+}
+
+document.getElementById('showPaused').onchange = (e) => {
+  saveConfig(e.target.checked);
+  refresh();
+};
+
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/yandex-music/config');
+    const j = await r.json();
+    if (j.success && j.config) {
+      document.getElementById('showPaused').checked = j.config.showWhenPaused !== false;
+    }
+  } catch (_) { /* noop */ }
+}
+
+function render(data) {
+  const box = document.getElementById('nowBox');
+  const status = document.getElementById('nowStatus');
+  const title = document.getElementById('nowTitle');
+  const artist = document.getElementById('nowArtist');
+
+  if (!data || !data.active) {
+    box.classList.add('idle');
+    status.textContent = data && data.error ? 'Ошибка' : 'Нет воспроизведения';
+    title.textContent = data && data.error
+      ? data.error
+      : 'Запусти Яндекс Музыку и включи трек';
+    artist.textContent = '';
+    return;
+  }
+
+  box.classList.remove('idle');
+  status.textContent = data.playing ? 'Сейчас играет' : (data.paused ? 'Пауза' : 'Яндекс Музыка');
+  title.textContent = data.title || 'Без названия';
+  artist.textContent = data.artist || '';
+}
+
+async function refresh() {
+  try {
+    const r = await fetch('/api/yandex-music/now-playing');
+    const j = await r.json();
+    if (j.success) render(j.data);
+  } catch (_) { /* noop */ }
+}
+
+loadConfig().then(refresh);
+setInterval(refresh, 1500);
+</script>
+</body>
+</html>

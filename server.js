@@ -11858,6 +11858,7 @@ FRAG_SERVER_READY:${port}
    Сбор донатов: http://localhost:${port}/widget/donation-goal
    Параметр от донатов: http://localhost:${port}/widget/donation-driven
    Replay Live: http://localhost:${port}/widget-replay-live
+   Яндекс Музыка: http://localhost:${port}/widget-yandex-music
    Итоги боя: http://localhost:${port}/widget-replay-summary?demo=1
    Итоги карусель: http://localhost:${port}/widget-replay-summary-carousel?demo=1
    Карточки карусели: http://localhost:${port}/widget-replay-summary-carousel-cards${RAZBLOG_ENABLED ? `
