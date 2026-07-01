@@ -121,7 +121,13 @@ function defaultConfig() {
         autoPlaybackMinutes: 0,
         playbackAccessMinutes: 5,
         playbackSpeed: 1,
-        watchReplayCache: true
+        watchReplayCache: true,
+        // Ручная калибровка: сколько секунд обычно занимает загрузочный экран игры
+        // между открытием реплея и реальным началом картинки боя. У нас нет сигнала,
+        // который сообщал бы об этом моменте в реальном времени (game cache не
+        // обновляется во время просмотра — проверено экспериментально), поэтому
+        // это фиксированная поправка, а не автодетект. 0 = поправка выключена.
+        playbackLoadDelaySec: 0
     };
 }
 
@@ -1697,6 +1703,11 @@ function createReplayLiveModule(deps) {
         return speed > 0 ? speed : 1;
     }
 
+    function playbackLoadDelaySec() {
+        const sec = Number(config.playbackLoadDelaySec);
+        return sec > 0 ? Math.min(sec, 60) : 0;
+    }
+
     function metaLogPath() {
         return path.join(deps.userData || deps.appRoot, 'replay-live-meta.log');
     }
@@ -2099,7 +2110,7 @@ function createReplayLiveModule(deps) {
     }
 
     function computeClockRaw(maxSec) {
-        const elapsed = ((Date.now() - playbackSession.startedAt) / 1000) * playbackSpeed();
+        const elapsed = ((Date.now() - playbackSession.startedAt) / 1000) * playbackSpeed() - playbackLoadDelaySec();
         const clock = playbackSession.clockOffsetSec + elapsed;
         const cap = maxSec > 0 ? maxSec : clock;
         return Math.max(0, Math.min(clock, cap));
@@ -2136,7 +2147,7 @@ function createReplayLiveModule(deps) {
         if (!playbackSession.zipLiveSince) {
             playbackSession.zipLiveSince = Date.now();
         }
-        const elapsed = ((Date.now() - playbackSession.zipLiveSince) / 1000) * playbackSpeed();
+        const elapsed = ((Date.now() - playbackSession.zipLiveSince) / 1000) * playbackSpeed() - playbackLoadDelaySec();
         return Math.max(0, Math.min(elapsed, maxDur));
     }
 
@@ -4289,7 +4300,10 @@ function createReplayLiveModule(deps) {
                     : config.playbackSpeed,
                 watchReplayCache: body.watchReplayCache != null
                     ? Boolean(body.watchReplayCache)
-                    : config.watchReplayCache
+                    : config.watchReplayCache,
+                playbackLoadDelaySec: body.playbackLoadDelaySec != null
+                    ? Number(body.playbackLoadDelaySec)
+                    : config.playbackLoadDelaySec
             });
             const nextManualPath = (next.playbackReplayPath || '').trim();
             if (nextManualPath
