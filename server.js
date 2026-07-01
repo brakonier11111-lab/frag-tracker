@@ -1235,9 +1235,13 @@ app.get('/widget-replay-summary-carousel-cards', (req, res) => sendReplayLivePub
 app.get('/replay-summary.css', (req, res) => sendReplayLivePublic(res, 'replay-summary.css'));
 app.get('/replay-summary-ui.js', (req, res) => sendReplayLivePublic(res, 'replay-summary-ui.js'));
 
-// Кэш для компонентов и стилей (меню и переходы быстрее)
-app.use('/components', express.static(path.join(__dirname, 'public', 'components'), { maxAge: '1h' }));
-app.use('/styles', express.static(path.join(__dirname, 'public', 'styles'), { maxAge: '1d' }));
+// Компоненты (sidebar/header) и стили меняются во время разработки чаще, чем
+// раз в час/сутки — агрессивный Cache-Control тут приводил к тому, что правки
+// в sidebar.html/layout.css не были видны в уже открытых вкладках. max-age: 0
+// (как у index.html) заставляет браузер каждый раз проверять ETag/Last-Modified,
+// но не грузить файл заново, если он не менялся.
+app.use('/components', express.static(path.join(__dirname, 'public', 'components'), { maxAge: 0 }));
+app.use('/styles', express.static(path.join(__dirname, 'public', 'styles'), { maxAge: 0 }));
 app.use(express.static('public'));
 // Отдаём статически папку assets в корне проекта
 if (!fs.existsSync(path.join(__dirname, 'assets'))) {
