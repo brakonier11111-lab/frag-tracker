@@ -6,7 +6,7 @@ const { parseDataReplayBuffer, mergePlayerDamage, parseSubtype55VehicleCodes } =
 const { parseFinishedReplay, readMetaFromZip } = require('./battleResults');
 const { parseBattleResultsContext, extractDataReplayFromZip, detectReplayDataEntryInZip, enrichPlayersWithCombatStats } = require('./battleResultsParser');
 const { shouldUseBattleResultsStats, isReplayRecordingComplete } = require('./replayCompleteness');
-const { createReplayCacheDiffTracker, replayCacheDir, listReplayCacheFiles, parseCacheEntries, getReplayFileActivity, readReplayCacheEntry, readActiveReplayFromCache, parseReplayPositionFromMeta, inspectReplayMeta, diffMetaReplayPosition, resolveReplayFromGameCache, findRecentlyAccessedReplay, replayPathExists, replayBasenameKey } = require('./replayCache');
+const { createReplayCacheDiffTracker, replayCacheDir, listReplayCacheFiles, parseCacheEntries, getReplayFileActivity, readReplayCacheEntry, readActiveReplayFromCache, parseReplayPositionFromMeta, inspectReplayMeta, diffMetaReplayPosition, resolveReplayFromGameCache, findRecentlyAccessedReplay, replayPathExists, replayBasenameKey, isReplayArchiveName, isReplayArchivePath, replayArchiveBasename } = require('./replayCache');
 const { buildReplayEndSummary } = require('./replaySummary');
 const { mergeReplayCombatCounters } = require('./combatStatsUtils');
 const { createReplayAccessTracker, listReplayZipFiles } = require('./replayAccessTracker');
@@ -92,7 +92,7 @@ const WEAK_CACHE_REASONS = new Set([
     'cache_idle',
     'cache_ambiguous'
 ]);
-const REPLAY_LIVE_MODULE_VERSION = 'timeline-v96-freshest-zip-only';
+const REPLAY_LIVE_MODULE_VERSION = 'timeline-v97-tbreplay-bin';
 const GAME_CACHE_INTENT_MS = 15 * 1000;
 const ZIP_JUST_OPENED_MS = 45 * 1000;
 const ZIP_SWITCH_TOUCH_DELTA_MS = 1500;
@@ -302,7 +302,7 @@ function createReplayLiveModule(deps) {
                 continue;
             }
             for (const name of names) {
-                if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
+                if (!isReplayArchiveName(name)) continue;
                 const full = path.join(dir, name);
                 try {
                     const stat = fs.statSync(full);
@@ -492,6 +492,37 @@ function createReplayLiveModule(deps) {
         return normalizeExtraReplaysDirs(config.extraReplaysDirs).some((extraDir) => (
             normalizedReplayPath(extraDir) === dir
         ));
+    }
+
+    // Имя подпапки, куда прячем досмотренные реплеи, чтобы рабочая папка (Downloads)
+    // не захламлялась — детект «какой реплей открыт» путается, когда там лежит
+    // много старых файлов (сравнивать время файлов становится неоднозначно).
+    const WATCHED_REPLAYS_SUBDIR = 'Старые';
+
+    // Переносит досмотренный реплей из отслеживаемой extra dir в её подпапку
+    // WATCHED_REPLAYS_SUBDIR. Тихо ничего не делает, если файл не в extra dir,
+    // если рядом лежит .mtime-маркер от game cache watcher (на всякий не рвём
+    // связку) — маркер переносим вместе с самим файлом.
+    function archiveWatchedReplay(replayPath) {
+        if (!replayPath || !isPathInExtraReplaysDirs(replayPath)) return;
+        try {
+            if (!fs.existsSync(replayPath)) return;
+            const dir = path.dirname(replayPath);
+            const archiveDir = path.join(dir, WATCHED_REPLAYS_SUBDIR);
+            fs.mkdirSync(archiveDir, { recursive: true });
+
+            const name = path.basename(replayPath);
+            let dest = path.join(archiveDir, name);
+            if (fs.existsSync(dest)) {
+                const ext = path.extname(name);
+                const stem = name.slice(0, name.length - ext.length);
+                dest = path.join(archiveDir, `${stem}_${Date.now()}${ext}`);
+            }
+            fs.renameSync(replayPath, dest);
+            console.log('[replay-live] досмотренный реплей перемещён в архив:', name);
+        } catch (err) {
+            console.warn('[replay-live] не удалось архивировать реплей:', err.message);
+        }
     }
 
     function usesExclusiveExtraReplayDirs() {
@@ -822,7 +853,7 @@ function createReplayLiveModule(deps) {
                 continue;
             }
             for (const name of names) {
-                if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
+                if (!isReplayArchiveName(name)) continue;
                 if (replayBasenameKey(name) !== key) continue;
                 const full = path.join(dir, name);
                 if (!replayPathExists(full)) continue;
@@ -873,7 +904,7 @@ function createReplayLiveModule(deps) {
                 continue;
             }
             for (const name of names) {
-                if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
+                if (!isReplayArchiveName(name)) continue;
                 const baseKey = replayBasenameKey(name);
                 const row = byBase.get(baseKey);
                 if (!row) continue;
@@ -915,7 +946,7 @@ function createReplayLiveModule(deps) {
                 continue;
             }
             for (const name of names) {
-                if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
+                if (!isReplayArchiveName(name)) continue;
                 const full = path.join(dir, name);
                 if (!replayPathExists(full)) continue;
                 const act = getReplayFileActivity(full);
@@ -1016,7 +1047,7 @@ function createReplayLiveModule(deps) {
                 continue;
             }
             for (const name of names) {
-                if (!name.endsWith('.tbreplay') || name.startsWith('recording_')) continue;
+                if (!isReplayArchiveName(name)) continue;
                 const baseKey = replayBasenameKey(name);
                 if (allowedKeys && !allowedKeys.has(baseKey)) continue;
                 if (excludeKeys && excludeKeys.has(baseKey)) continue;
@@ -1726,7 +1757,7 @@ function createReplayLiveModule(deps) {
             if (!fs.existsSync(cacheDir)) return 0;
             let removed = 0;
             const replayBase = scope && scope !== 'all' && scope !== '*'
-                ? path.basename(scope, '.tbreplay')
+                ? replayArchiveBasename(scope)
                 : '';
             for (const name of fs.readdirSync(cacheDir)) {
                 if (!name.endsWith('.data.replay') && !name.endsWith('.data.replay.mtime')) continue;
@@ -1964,7 +1995,7 @@ function createReplayLiveModule(deps) {
         if (replayBufCache.has(key)) return replayBufCache.get(key);
 
         let buf = null;
-        if (playbackPath.toLowerCase().endsWith('.tbreplay')) {
+        if (isReplayArchivePath(playbackPath)) {
             buf = extractDataReplayFromZip(playbackPath, cacheDir);
         } else if (fs.existsSync(playbackPath)) {
             buf = safeReadFile(playbackPath);
@@ -3020,7 +3051,7 @@ function createReplayLiveModule(deps) {
     function tankNameContext(options) {
         options = options || {};
         const playbackPath = options.playbackPath || '';
-        const meta = playbackPath.toLowerCase().endsWith('.tbreplay')
+        const meta = isReplayArchivePath(playbackPath)
             ? readMetaFromZip(playbackPath)
             : null;
         const vehicleCodesByNick = options.buf
@@ -3542,7 +3573,7 @@ function createReplayLiveModule(deps) {
     }
 
     function triggerReplayEndSummary(playbackPath) {
-        if (!playbackPath || !playbackPath.toLowerCase().endsWith('.tbreplay')) return;
+        if (!playbackPath || !isReplayArchivePath(playbackPath)) return;
         const replayKey = playbackLoadKey(playbackPath);
         if (state.replayEndSummary
             && state.replayEndSummary.replayKey === replayKey
@@ -3661,6 +3692,9 @@ function createReplayLiveModule(deps) {
             replayAccessTracker.reset();
             replayCacheDiffTracker.reset();
         }
+        // Небольшая задержка: даём игре/итогам боя спокойно отпустить файл и
+        // домассировать состояние конца реплея, прежде чем убрать его с диска.
+        setTimeout(() => archiveWatchedReplay(playbackPath), 5000);
     }
 
     function checkPlaybackEndSummary(playbackPath) {
@@ -3810,7 +3844,7 @@ function createReplayLiveModule(deps) {
                     state.playbackLoading = false;
                     state.updatedAt = now;
                     revealPendingReplaySummary();
-                    if (playbackPath.toLowerCase().endsWith('.tbreplay')) {
+                    if (isReplayArchivePath(playbackPath)) {
                         checkPlaybackEndSummary(playbackPath);
                     }
                     return;
@@ -3888,7 +3922,7 @@ function createReplayLiveModule(deps) {
                 || (playbackSession.parseInFlight && !state.playerCount && !playbackSession.applyCache)
             );
             if (parsed) {
-                const battleResultsPath = playbackPath.toLowerCase().endsWith('.tbreplay')
+                const battleResultsPath = isReplayArchivePath(playbackPath)
                     ? playbackPath
                     : '';
                 if (loadKey === playbackSession.loadKey && playbackSession.applyCache) {
@@ -3965,7 +3999,7 @@ function createReplayLiveModule(deps) {
                     try {
                         const entryMarker = path.join(
                             cacheDir,
-                            `${path.basename(playbackPath, '.tbreplay')}.data.replay.entry`
+                            `${replayArchiveBasename(playbackPath)}.data.replay.entry`
                         );
                         if (fs.existsSync(entryMarker)) {
                             return fs.readFileSync(entryMarker, 'utf8').trim();
@@ -4001,7 +4035,7 @@ function createReplayLiveModule(deps) {
                 firstHitClockSec: startDbg ? startDbg.firstHitClock : null,
                 hitInferredStartSec: startDbg ? startDbg.hitInferred : null
             });
-            if (playbackPath.toLowerCase().endsWith('.tbreplay')) {
+            if (isReplayArchivePath(playbackPath)) {
                 checkPlaybackEndSummary(playbackPath);
             }
             return;

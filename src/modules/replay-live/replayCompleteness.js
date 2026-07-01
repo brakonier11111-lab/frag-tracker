@@ -1,5 +1,6 @@
 'use strict';
 
+const { isReplayArchivePath } = require('./replayCache');
 const { readMetaFromZip } = require('./battleResults');
 
 const REPLAY_END_SLACK_SEC = 12;
@@ -8,7 +9,7 @@ function isReplayRecordingComplete(playbackPath, replayDurationSec) {
     if (!playbackPath || !Number.isFinite(replayDurationSec) || replayDurationSec <= 0) {
         return false;
     }
-    if (!playbackPath.toLowerCase().endsWith('.tbreplay')) {
+    if (!isReplayArchivePath(playbackPath)) {
         return false;
     }
 
