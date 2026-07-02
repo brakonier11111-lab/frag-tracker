@@ -34,10 +34,10 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 /* верхняя световая полоса */
 .card::after{content:'';position:absolute;top:0;left:8%;right:8%;height:2px;z-index:3;
     background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),.95),transparent);filter:drop-shadow(0 0 8px rgba(var(--accent-rgb),.8));}
-/* бегущий блик */
+/* бегущий блик — раз в 30 сек */
 .sheen{position:absolute;top:0;left:-60%;width:42%;height:100%;z-index:1;pointer-events:none;
-    background:linear-gradient(100deg,transparent,rgba(255,255,255,0.07),transparent);transform:skewX(-18deg);animation:sheen 8s ease-in-out infinite;}
-@keyframes sheen{0%,72%{left:-60%}100%{left:150%}}
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,0.07),transparent);transform:skewX(-18deg);animation:sheen 30s ease-in-out infinite;}
+@keyframes sheen{0%,96.5%{left:-60%}100%{left:150%}}
 .inner{position:relative;z-index:4;}
 
 .header{text-align:center;font-family:'Exo 2';font-weight:900;text-transform:uppercase;letter-spacing:.12em;line-height:1.22;
@@ -52,7 +52,10 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
     box-shadow:inset 0 1px 6px rgba(0,0,0,.5);transition:border-color .3s,box-shadow .3s;}
 .tchip .ic{font-size:1.25rem;line-height:1;filter:drop-shadow(0 0 6px rgba(var(--accent-rgb),.4));}
 .tchip .tl{font-size:.56rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.55);}
-.tchip .tv{font-family:'Orbitron';font-weight:800;font-size:1.22rem;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums;}
+.tchip .tv{font-family:'Orbitron';font-weight:800;font-size:1.22rem;line-height:1.1;color:#fff;white-space:nowrap;}
+/* фиксированная ширина знаков, чтобы таймер не прыгал */
+.tchip .tv .d{display:inline-block;width:.72em;text-align:center;}
+.tchip .tv .c{display:inline-block;width:.36em;text-align:center;}
 .tchip.cd{border-color:rgba(255,206,70,.45);}
 .tchip.cd .tv{color:var(--gold);text-shadow:0 0 14px rgba(255,170,0,.35);}
 .tchip.el{border-color:rgba(55,214,255,.4);}
@@ -90,8 +93,9 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 /* STEP + LIMIT */
 .step{margin:16px auto 0;width:fit-content;display:flex;align-items:center;gap:.5em;
     background:rgba(0,0,0,0.5);border:1.5px solid rgba(var(--accent-rgb),0.5);border-radius:10px;padding:9px 20px;
-    font-family:'Orbitron';font-weight:800;font-size:1.2rem;box-shadow:inset 0 1px 6px rgba(0,0,0,.5),0 0 16px rgba(var(--accent-rgb),.12);}
+    font-family:'Exo 2';font-weight:800;font-size:1.08rem;box-shadow:inset 0 1px 6px rgba(0,0,0,.5),0 0 16px rgba(var(--accent-rgb),.12);}
 .step .a{color:#fff;}.step .arr{color:var(--accent);}.step .p{color:var(--gold);}
+.step .num{font-family:'Orbitron';font-size:1.05em;}
 .limit{text-align:center;margin-top:12px;font-size:1.02rem;font-weight:700;letter-spacing:.05em;color:rgba(255,255,255,.62);}
 .limit b{font-family:'Orbitron';color:#fff;font-weight:900;text-shadow:0 0 10px rgba(255,255,255,.2);}
 
@@ -139,7 +143,7 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
     background:linear-gradient(92deg,#fff,#ffd0d6);-webkit-background-clip:text;background-clip:text;color:transparent;}
 .cons.hide{display:none;}
 
-/* FOOT: сумма за стрим внизу */
+/* FOOT: название челленджа + сумма */
 .foot{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;
     margin:18px -34px 0;padding:13px 34px 15px;
     background:rgba(0,0,0,0.35);border-top:1px solid rgba(255,255,255,0.1);}
@@ -152,6 +156,29 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 .fplus{position:absolute;right:34px;bottom:44px;font-family:'Orbitron';font-weight:900;font-size:1.15rem;color:var(--green);
     text-shadow:0 0 14px rgba(54,245,160,.6);pointer-events:none;animation:fplus 1.4s ease forwards;}
 @keyframes fplus{0%{opacity:0;transform:translateY(6px)}15%{opacity:1}100%{opacity:0;transform:translateY(-34px)}}
+
+/* BOTTOM WINDOW: донат-алерт + ротация топ-5 донатеров */
+.bwin{position:relative;width:560px;margin-top:14px;padding:13px 22px;border-radius:14px;overflow:hidden;
+    background:linear-gradient(165deg,rgba(13,16,28,0.96),rgba(8,10,19,0.97));
+    box-shadow:0 18px 44px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.05);
+    display:none;align-items:center;gap:16px;min-height:62px;}
+.bwin.show{display:flex;}
+.bwin::before{content:'';position:absolute;inset:0;border-radius:14px;padding:1.5px;pointer-events:none;z-index:2;
+    background:linear-gradient(150deg,rgba(255,206,70,.55),rgba(255,255,255,.14) 30%,transparent 55%,rgba(255,206,70,.3));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;}
+.bwin.alert::before{background:linear-gradient(150deg,rgba(54,245,160,.75),rgba(255,255,255,.16) 30%,transparent 55%,rgba(54,245,160,.4));}
+.bwin.alert{box-shadow:0 18px 44px rgba(0,0,0,.5),0 0 30px rgba(54,245,160,.22),inset 0 1px 0 rgba(255,255,255,.05);}
+.bw-tag{position:relative;z-index:3;flex:none;font-size:.56rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);
+    display:flex;flex-direction:column;align-items:center;gap:3px;min-width:74px;text-align:center;}
+.bwin.alert .bw-tag{color:var(--green);}
+.bw-tag .ic{font-size:1.15rem;letter-spacing:0;}
+.bw-body{position:relative;z-index:3;flex:1;min-width:0;}
+.bw-item{display:flex;align-items:center;gap:12px;animation:bwIn .45s cubic-bezier(.16,1,.3,1);}
+@keyframes bwIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.bw-item .rank{font-family:'Orbitron';font-weight:900;font-size:1.05rem;color:var(--gold);flex:none;}
+.bw-item .nick{font-weight:800;font-size:1.05rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px;}
+.bw-item .amt{font-family:'Orbitron';font-weight:900;font-size:1.05rem;color:#fff;flex:none;text-shadow:0 0 10px rgba(255,255,255,.2);}
+.bw-item .add{font-weight:800;font-size:.92rem;color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:auto;}
 
 /* victory */
 #victory{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:40;}
@@ -175,8 +202,8 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
             <div class="header" id="header">УДЕРЖАТЬ % ПОБЕД ЗА СТРИМ</div>
 
             <div class="timers" id="timers">
-                <div class="tchip cd" id="cdChip" style="display:none"><span class="ic">⏳</span><div><div class="tl">Осталось</div><div class="tv" id="cdVal">--:--</div></div></div>
                 <div class="tchip el" id="elChip" style="display:none"><span class="ic">⏱</span><div><div class="tl">Выполняю</div><div class="tv" id="elVal">--:--</div></div></div>
+                <div class="tchip cd" id="cdChip" style="display:none"><span class="ic">⏳</span><div><div class="tl">Осталось</div><div class="tv" id="cdVal">--:--</div></div></div>
             </div>
 
             <!-- gauge/value view -->
@@ -185,7 +212,7 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
                     <div class="val"><span class="live" id="liveVal">—</span><span class="slash">/</span><span class="target" id="targetVal">88</span><span class="u target" id="unit">%</span></div>
                     <div class="tlabel"><span class="normal">Цель</span><span class="ok">Цель взята</span></div>
                 </div>
-                <div class="step"><span class="a"><span id="perAmt">100</span>₽</span><span class="arr">→</span><span class="p">+<span id="stepAmt">1</span><span id="stepUnit">%</span></span></div>
+                <div class="step"><span class="a">Каждые <span class="num" id="perAmt">100</span> р</span><span class="arr">→</span><span class="p">+<span class="num" id="stepAmt">1</span><span id="stepUnit">%</span> <span id="stepName">к винрейту</span></span></div>
                 <div class="limit">Лимит: <b id="limitVal">88 %</b></div>
             </div>
 
@@ -198,7 +225,7 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
                     <div class="mdone">ВЗЯТО</div>
                 </div>
                 <div class="mlist" id="mlist"></div>
-                <div class="step" style="margin-top:14px"><span class="a"><span id="perAmtM">200</span>₽</span><span class="arr">→</span><span class="p">+<span id="stepAmtM">1</span> к медали</span></div>
+                <div class="step" style="margin-top:14px"><span class="a">Каждые <span class="num" id="perAmtM">200</span> р</span><span class="arr">→</span><span class="p">+<span class="num" id="stepAmtM">1</span> к медали</span></div>
             </div>
 
             <div class="cons" id="cons">
@@ -207,10 +234,16 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
             </div>
 
             <div class="foot">
-                <span class="fl"><span class="dot"></span> Собрано за стрим</span>
-                <span class="fv"><span id="balK">0</span> ₽</span>
+                <span class="fl"><span class="dot"></span> <span id="footLabel">Челлендж</span></span>
+                <span class="fv"><span id="balK">0</span> р</span>
             </div>
         </div>
+    </div>
+
+    <!-- нижнее окно: донат-алерт / ротация топ-донатеров -->
+    <div class="bwin" id="bwin">
+        <div class="bw-tag" id="bwTag"><span class="ic">🏆</span><span id="bwTagText">Топ донатеров</span></div>
+        <div class="bw-body" id="bwBody"></div>
     </div>
 </div>
 
@@ -219,19 +252,22 @@ body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;display:fl
 <script>
 let CH=null, prog=null, serverOffset=0;
 const META={
-    winrate:{cls:'wr',def:'УДЕРЖАТЬ % ПОБЕД ЗА СТРИМ',unit:'%'},
-    damage:{cls:'dmg',def:'УДЕРЖАТЬ СРЕДНИЙ УРОН ЗА СТРИМ',unit:''},
-    medals:{cls:'med',def:'ВЗЯТЬ МЕДАЛИ ЗА СТРИМ',unit:''}
+    winrate:{cls:'wr',def:'УДЕРЖАТЬ % ПОБЕД ЗА СТРИМ',unit:'%',name:'Win Rate',stepName:'к винрейту'},
+    damage:{cls:'dmg',def:'УДЕРЖАТЬ СРЕДНИЙ УРОН ЗА СТРИМ',unit:'',name:'Урон',stepName:'урона'},
+    medals:{cls:'med',def:'ВЗЯТЬ МЕДАЛИ ЗА СТРИМ',unit:'',name:'Медали'}
 };
-const DESIGN_W=640, DESIGN_H=680;
+const DESIGN_W=640, DESIGN_H=790;
 
-document.addEventListener('DOMContentLoaded',()=>{ scale(); addEventListener('resize',scale); initFx(); load(); loadProg(); connectWS(); setInterval(loadProg,15000); setInterval(tickTimers,500); });
-function scale(){ const s=Math.min(innerWidth/DESIGN_W,innerHeight/DESIGN_H,1.6); document.getElementById('scale').style.setProperty('--s',s); }
+document.addEventListener('DOMContentLoaded',()=>{ scale(); addEventListener('resize',scale); initFx(); load(); loadProg(); loadTop(); connectWS(); setInterval(loadProg,15000); setInterval(tickTimers,500); setInterval(rotateTop,5000); });
+/* без верхнего капа: виджет заполняет источник OBS любого размера — рендер чёткий */
+function scale(){ const s=Math.min(innerWidth/DESIGN_W,innerHeight/DESIGN_H); document.getElementById('scale').style.setProperty('--s',s); }
 function load(){ fetch('/api/blitz-challenge').then(r=>r.json()).then(d=>{if(d.success){applyChallenge(d.challenge);render();}}); }
 function loadProg(){ fetch('/api/blitz-challenge/progress').then(r=>r.json()).then(d=>{prog=d;render();}); }
+function loadTop(){ fetch('/api/blitz-challenge/feed').then(r=>r.json()).then(d=>{ if(d.success){TOP=d.top||[]; renderBwin();} }).catch(()=>{}); }
 function applyChallenge(ch){ CH=ch; if(ch&&ch.serverNow){ serverOffset=ch.serverNow-Math.floor(Date.now()/1000); } }
 function fmt(n){ return Math.round(Number(n)||0).toLocaleString('ru-RU'); }
 function trim(n){ const x=Number(n); return (Math.round(x*100)/100).toString(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 /* ===== АНИМИРОВАННЫЕ ЧИСЛА =====
    Плавный подсчёт + вспышка: зелёная при росте, красная при падении.
@@ -263,13 +299,14 @@ function setStatic(key,el,text){ delete numAnim[key]; if(el) el.textContent=text
 function render(){
     if(!CH) return;
     const card=document.getElementById('card');
-    if(!CH.enabled){ card.classList.add('hidden'); return; }
+    if(!CH.enabled){ card.classList.add('hidden'); document.getElementById('bwin').classList.remove('show'); return; }
     card.classList.remove('hidden');
     const t=CH.activeType||'winrate', meta=META[t];
     card.className='card '+meta.cls;
     setNumber('bal',document.getElementById('balK'),CH.sessionBalance,{group:true});
     const ht=(CH.headerTexts&&CH.headerTexts[t])||CH.headerText||meta.def;
     document.getElementById('header').textContent=ht;
+    document.getElementById('footLabel').textContent='Челлендж: '+meta.name;
 
     // consequence
     const cons=document.getElementById('cons');
@@ -303,6 +340,7 @@ function render(){
         document.getElementById('perAmt').textContent=fmt(o.perAmount);
         document.getElementById('stepAmt').textContent=trim(o.step);
         document.getElementById('stepUnit').textContent=isWr?'%':'';
+        document.getElementById('stepName').textContent=meta.stepName;
         document.getElementById('limitVal').textContent=isWr?(trim(o.cap)+' %'):fmt(o.cap);
         const done=live!=null&&live>=o.current;
         document.getElementById('vbox').classList.toggle('done',done);
@@ -379,6 +417,12 @@ function renderMedals(){
 let cdWasOver=false;
 function fmtDur(s){ s=Math.max(0,Math.floor(s)); const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
     const p=n=>String(n).padStart(2,'0'); return h>0?h+':'+p(m)+':'+p(sec):m+':'+p(sec); }
+/* цифры фиксированной ширины, чтобы чип не дёргался каждую секунду */
+function setTimerVal(el,txt){
+    if(el.dataset.txt===txt) return; el.dataset.txt=txt;
+    if(!/^[\d:]+$/.test(txt)){ el.textContent=txt; return; }
+    el.innerHTML=[...txt].map(ch=>ch===':'?'<span class="c">:</span>':'<span class="d">'+ch+'</span>').join('');
+}
 function tickTimers(){
     if(!CH||!CH.timers){ document.getElementById('timers').style.display='none'; return; }
     const now=Math.floor(Date.now()/1000)+serverOffset;
@@ -392,28 +436,65 @@ function tickTimers(){
             const rem=tc.durationSec-(now-tc.startedAt);
             cdChip.classList.remove('idle');
             if(rem<=0){
-                v.textContent='ВРЕМЯ ВЫШЛО';
+                setTimerVal(v,'ВРЕМЯ ВЫШЛО');
                 cdChip.classList.add('over'); cdChip.classList.remove('urgent');
                 if(!cdWasOver){ cdWasOver=true; flash(true); }
             } else {
                 cdWasOver=false;
-                v.textContent=fmtDur(rem);
+                setTimerVal(v,fmtDur(rem));
                 cdChip.classList.remove('over');
                 cdChip.classList.toggle('urgent',rem<=60);
             }
         } else {
             cdWasOver=false;
-            v.textContent=fmtDur(tc.durationSec);
+            setTimerVal(v,fmtDur(tc.durationSec));
             cdChip.classList.add('idle'); cdChip.classList.remove('over','urgent');
         }
     } else cdChip.style.display='none';
     if(te.enabled){
         any=true; elChip.style.display='flex';
         const v=document.getElementById('elVal');
-        if(te.startedAt>0){ elChip.classList.remove('idle'); v.textContent=fmtDur(now-te.startedAt); }
-        else { elChip.classList.add('idle'); v.textContent='0:00'; }
+        if(te.startedAt>0){ elChip.classList.remove('idle'); setTimerVal(v,fmtDur(now-te.startedAt)); }
+        else { elChip.classList.add('idle'); setTimerVal(v,'0:00'); }
     } else elChip.style.display='none';
     document.getElementById('timers').style.display=any?'flex':'none';
+}
+
+/* ===== НИЖНЕЕ ОКНО: донат-алерт + ротация топ-5 ===== */
+let TOP=[], topIdx=-1, alertUntil=0;
+function contribText(c){
+    c=c||{}; const p=[];
+    if(c.winrate>0)p.push('+'+trim(c.winrate)+'% к винрейту');
+    if(c.damage>0)p.push('+'+fmt(c.damage)+' урона');
+    if(c.medals>0)p.push('+'+Math.round(c.medals)+' к медалям');
+    return p.join(' · ');
+}
+function renderBwin(){
+    if(Date.now()<alertUntil) return;
+    const bw=document.getElementById('bwin');
+    if(!TOP.length||!CH||!CH.enabled){ bw.classList.remove('show'); return; }
+    bw.classList.add('show'); bw.classList.remove('alert');
+    document.getElementById('bwTag').querySelector('.ic').textContent='🏆';
+    document.getElementById('bwTagText').textContent='Топ донатеров';
+    if(topIdx<0||topIdx>=TOP.length) topIdx=0;
+    const t=TOP[topIdx];
+    document.getElementById('bwBody').innerHTML=
+        `<div class="bw-item"><span class="rank">#${topIdx+1}</span><span class="nick">${esc(t.username)}</span><span class="amt">${fmt(t.amount)} р</span><span class="add">${contribText(t)||'поддержка'}</span></div>`;
+}
+function rotateTop(){
+    if(Date.now()<alertUntil||TOP.length<2) { renderBwin(); return; }
+    topIdx=(topIdx+1)%TOP.length;
+    renderBwin();
+}
+function showDonAlert(ld){
+    const bw=document.getElementById('bwin');
+    alertUntil=Date.now()+6000;
+    bw.classList.add('show','alert');
+    document.getElementById('bwTag').querySelector('.ic').textContent='💰';
+    document.getElementById('bwTagText').textContent='Новый донат';
+    document.getElementById('bwBody').innerHTML=
+        `<div class="bw-item"><span class="nick">${esc(ld.username||'Аноним')}</span><span class="amt">${fmt(ld.amount)} р</span><span class="add">${contribText(ld.contribution)||'поддержка'}</span></div>`;
+    setTimeout(()=>{ if(Date.now()>=alertUntil) renderBwin(); },6100);
 }
 
 let victoryShown=false;
@@ -423,19 +504,25 @@ function markDone(done){
 function showVictory(){ document.getElementById('victory').classList.add('show'); confettiRun(); setTimeout(()=>document.getElementById('victory').classList.remove('show'),7000); }
 
 function connectWS(){ try{ const ws=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws');
-    ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;} if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){applyChallenge(m.challenge);render();if(m.lastDonation)onDonation(m.lastDonation);} };
+    ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
+        if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){
+            applyChallenge(m.challenge); render();
+            if(m.topDonors) TOP=m.topDonors;
+            if(m.lastDonation) onDonation(m.lastDonation);
+        } };
     ws.onclose=()=>setTimeout(connectWS,3000); }catch(e){ setTimeout(connectWS,4000); } }
 function onDonation(ld){
     const big=ld.amount>=500; flash(big);
     const vb=document.getElementById('vbox'); if(vb){ vb.classList.remove('cap-pulse'); void vb.offsetWidth; vb.classList.add('cap-pulse'); }
     floatPlus(ld.amount);
+    showDonAlert(ld);
 }
 function floatPlus(amount){
     const foot=document.querySelector('.foot'); if(!foot) return;
-    const el=document.createElement('span'); el.className='fplus'; el.textContent='+'+fmt(amount)+' ₽';
+    const el=document.createElement('span'); el.className='fplus'; el.textContent='+'+fmt(amount)+' р';
     foot.appendChild(el); setTimeout(()=>el.remove(),1500);
 }
-function flash(big){ const f=document.getElementById('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go'); burst(big?90:40,big);
+function flash(big){ const f=document.getElementById('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
     if(big){ const c=document.getElementById('card'); c.classList.add('shake'); setTimeout(()=>c.classList.remove('shake'),520);} }
 
 let ctx,parts=[],cv;
@@ -443,9 +530,6 @@ function initFx(){ cv=document.getElementById('fx'); const rz=()=>{cv.width=inne
     (function loop(){ ctx.clearRect(0,0,cv.width,cv.height); parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.g||0;p.life-=p.decay;
         ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();});
         parts=parts.filter(p=>p.life>0&&p.y<cv.height+40); requestAnimationFrame(loop); })(); }
-function burst(n,big){ const cx=innerWidth/2,cy=innerHeight*0.42; for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,sp=(big?6:3)*(0.4+Math.random());
-    parts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-1.5,g:0.05,r:Math.random()*3+1,life:1,decay:0.012+Math.random()*0.01,color:['#ffce46','#ff9d00','#fff','#ff2a45'][Math.random()*4|0]});}
-    if(parts.length>500)parts.splice(0,parts.length-500); }
 let confStop=false;
 function confettiRun(){ confStop=false; const cols=['#ffce46','#ff9d00','#37d6ff','#ff2a45','#fff','#36f5a0']; let cf=[];
     for(let i=0;i<160;i++)cf.push({x:Math.random()*innerWidth,y:-Math.random()*innerHeight,w:6+Math.random()*8,h:8+Math.random()*10,vy:2+Math.random()*4,vx:(Math.random()-0.5)*2,rot:Math.random()*6,vr:(Math.random()-0.5)*0.3,c:cols[Math.random()*cols.length|0]});
