@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Именной босс | Приказы донатеров</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@600;700;800;900&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles/design-system.css">
+<link rel="stylesheet" href="/styles/layout.css">
+<style>
+:root{
+    --gold:#ffce46;--gold-deep:#ff9d00;--crimson:#ff2a45;--electric:#37d6ff;--green:#36f5a0;--steel:#8ea2c6;
+    --panel:rgba(16,20,34,0.66);--panel-2:rgba(10,13,24,0.82);--hud-line:rgba(120,180,255,0.16);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
+    background:radial-gradient(1100px 640px at 82% -12%, rgba(255,42,69,0.10), transparent 60%),
+        radial-gradient(820px 560px at 8% 112%, rgba(55,214,255,0.08), transparent 60%),
+        linear-gradient(160deg,#05070f 0%,#080b18 45%,#0b0f20 100%);}
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:linear-gradient(var(--hud-line) 1px,transparent 1px),linear-gradient(90deg,var(--hud-line) 1px,transparent 1px);
+    background-size:64px 64px;mask-image:radial-gradient(circle at 50% 26%,#000 0%,transparent 76%);opacity:.45;}
+.app-main{position:relative;z-index:2;}
+.wrap{max-width:960px;margin:0 auto;padding:24px clamp(14px,3vw,40px) 80px;}
+
+.hdr{position:relative;display:flex;align-items:center;justify-content:space-between;gap:24px;
+    padding:24px 30px;margin-bottom:22px;border-radius:22px;overflow:hidden;
+    background:linear-gradient(135deg,rgba(28,10,12,0.85),rgba(12,15,28,0.85));
+    border:1px solid rgba(255,42,69,0.26);
+    box-shadow:0 24px 60px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.06);}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:.7rem;letter-spacing:3px;text-transform:uppercase;color:var(--crimson);font-weight:700;margin-bottom:6px;}
+.kicker .dot{width:8px;height:8px;border-radius:50%;background:var(--crimson);box-shadow:0 0 10px var(--crimson);animation:liv 1.4s infinite;}
+@keyframes liv{0%,100%{opacity:1}50%{opacity:.3}}
+.title{font-family:'Orbitron',monospace;font-weight:900;font-size:clamp(1.5rem,3.2vw,2.3rem);text-transform:uppercase;
+    background:linear-gradient(92deg,#fff4cf,var(--gold) 42%,var(--crimson) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.sub{margin-top:6px;color:var(--steel);font-size:.88rem;}
+
+.btn{cursor:pointer;border:none;border-radius:11px;padding:9px 16px;font-weight:700;font-size:.82rem;
+    display:inline-flex;align-items:center;gap:7px;transition:transform .15s,filter .2s;color:#0a0a12;}
+.btn:hover{transform:translateY(-2px);}
+.btn-gold{background:linear-gradient(135deg,#ffe08a,var(--gold-deep));}
+.btn-ghost{background:rgba(255,255,255,0.06);color:#dfe8ff;border:1px solid rgba(255,255,255,0.14);}
+.btn-ghost:hover{background:rgba(255,255,255,0.12);}
+.btn-green{background:linear-gradient(135deg,#5dffb0,#11c977);color:#04130b;}
+.btn-danger{background:linear-gradient(135deg,#ff6079,var(--crimson));color:#fff;}
+.btn-sm{padding:6px 11px;font-size:.74rem;border-radius:9px;}
+
+.card{border-radius:18px;padding:22px;margin-bottom:20px;
+    background:linear-gradient(160deg,var(--panel),var(--panel-2));border:1px solid var(--glass-border,rgba(255,255,255,.1));
+    box-shadow:0 18px 44px rgba(0,0,0,0.4);}
+.card h2{font-family:'Orbitron',monospace;font-size:1rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;color:#fff;}
+.cfg-row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;margin:12px 0;}
+.cfg-row label{font-size:.85rem;color:#cdd9f2;}
+.cfg-row .hint{font-size:.72rem;color:var(--steel);display:block;margin-top:2px;}
+.cfg-row input[type=text],.cfg-row input[type=number]{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px;font-family:'Orbitron',monospace;}
+.cfg-row input[type=number]{width:120px;text-align:right;}
+.cfg-row input[type=text]{width:260px;font-family:'Inter',sans-serif;}
+.cfg-row input[type=checkbox]{width:22px;height:22px;accent-color:var(--gold);}
+.cfg-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:6px;}
+
+.test-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08);}
+.test-row input{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:8px 11px;font-size:.85rem;}
+.test-row input.name{width:150px;}
+.test-row input.amount{width:90px;}
+.test-row input.text{flex:1;min-width:180px;}
+
+.order{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;margin-bottom:10px;
+    background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);transition:.2s;}
+.order.active{border-color:rgba(54,245,160,.55);background:rgba(54,245,160,.06);box-shadow:0 0 20px rgba(54,245,160,.14);}
+.order.done{opacity:.6;}
+.order.failed{opacity:.6;border-color:rgba(255,42,69,.4);}
+.order-av{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:900;font-family:'Orbitron',monospace;
+    background:linear-gradient(135deg,#ffe08a,var(--gold-deep));color:#1a1206;flex:none;}
+.order-body{flex:1;min-width:0;}
+.order-name{font-weight:800;color:#fff;display:flex;align-items:center;gap:8px;}
+.order-amt{font-family:'Orbitron',monospace;color:var(--gold);font-size:.85rem;}
+.order-text{color:#cdd9f2;font-size:.9rem;margin-top:3px;word-break:break-word;}
+.order-status{font-size:.62rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:7px;background:rgba(255,255,255,.08);color:var(--steel);}
+.order.pending .order-status{color:var(--electric);background:rgba(55,214,255,.12);}
+.order.active .order-status{color:var(--green);background:rgba(54,245,160,.16);}
+.order.done .order-status{color:var(--green);}
+.order.failed .order-status{color:var(--crimson);}
+.order-actions{display:flex;gap:6px;flex:none;flex-wrap:wrap;}
+.empty{text-align:center;padding:30px;color:var(--steel);font-size:.9rem;}
+
+.obs-hint{margin-top:22px;font-size:.78rem;color:var(--steel);text-align:center;}
+.obs-hint code{background:rgba(255,255,255,.07);padding:3px 8px;border-radius:6px;color:var(--gold);}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:800;opacity:0;background:#0d1122;border:1px solid rgba(255,206,70,.4);color:#fff;padding:12px 22px;border-radius:12px;font-weight:600;transition:.3s;box-shadow:0 10px 30px rgba(0,0,0,.5);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+<link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
+</head>
+<body class="theme-2026">
+<div class="bg-grid"></div>
+
+<div class="app-layout">
+    <script>if(localStorage.getItem('sidebarCollapsed')==='true'){document.body.classList.add('sidebar-collapsed');}</script>
+    <div id="sidebar-placeholder"></div>
+    <div id="header-placeholder"></div>
+    <main class="app-main">
+        <div class="wrap">
+
+            <div class="hdr">
+                <div>
+                    <div class="kicker"><span class="dot"></span> Именной босс</div>
+                    <h1 class="title">Приказы донатеров</h1>
+                    <div class="sub">Донат с комментарием выше порога становится приказом — покажи его на стриме и выполни</div>
+                </div>
+                <button class="btn btn-gold" onclick="openConfig()">⚙️ Настройки</button>
+            </div>
+
+            <div class="card" id="configCard" style="display:none">
+                <h2>Настройки приказов</h2>
+                <div class="cfg-row"><label>Приказы включены</label><input type="checkbox" id="cfgEnabled"></div>
+                <div class="cfg-row"><label>Порог доната, ₽<span class="hint">от какой суммы комментарий становится приказом</span></label><input type="number" id="cfgThreshold" value="500" step="50"></div>
+                <div class="cfg-row"><label>Заголовок на виджете</label><input type="text" id="cfgHeader" value="ПРИКАЗ ОТ ЗРИТЕЛЯ"></div>
+                <div class="test-row">
+                    <input class="name" id="testName" placeholder="Ник" value="ТестДонатер">
+                    <input class="amount" id="testAmount" placeholder="Сумма" value="777" type="number">
+                    <input class="text" id="testText" placeholder="Текст приказа" value="Убей 3 танка в этом бою!">
+                    <button class="btn btn-ghost btn-sm" onclick="sendTestOrder()">🧪 Тестовый приказ</button>
+                </div>
+                <div class="cfg-foot">
+                    <button class="btn btn-ghost" onclick="closeConfig()">Отмена</button>
+                    <button class="btn btn-gold" onclick="saveConfig()">Сохранить</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Очередь приказов</h2>
+                <div id="ordersList"><div class="empty">Загрузка…</div></div>
+            </div>
+
+            <div class="obs-hint">Виджет для OBS: <code id="obsUrl">/widget-boss-orders</code>
+                <button class="btn btn-ghost" style="padding:6px 12px;margin-left:8px" onclick="copyObs()">Копировать</button></div>
+        </div>
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let DATA = { config: {}, orders: [], active: null };
+
+document.addEventListener('DOMContentLoaded', () => {
+    Promise.all([fetch('/components/sidebar.html').then(r=>r.text()).catch(()=>''),fetch('/components/header.html').then(r=>r.text()).catch(()=>'')])
+        .then(([s,h])=>{document.getElementById('sidebar-placeholder').innerHTML=s;document.getElementById('header-placeholder').innerHTML=h;});
+    document.getElementById('obsUrl').textContent = location.origin + '/widget-boss-orders';
+    load();
+    connectWS();
+});
+
+function esc(s){ const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
+function fmt(n){ return Math.round(Number(n)||0).toLocaleString('ru-RU'); }
+
+function load(){
+    fetch('/api/boss-orders').then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); } });
+}
+
+function render(){
+    renderOrders();
+}
+
+const STATUS_LABEL = { pending:'В очереди', active:'Идёт', done:'Выполнено', failed:'Провалено' };
+function renderOrders(){
+    const box = document.getElementById('ordersList');
+    if(!DATA.orders.length){ box.innerHTML = '<div class="empty">Пока нет приказов. Ждём донат с комментарием выше порога.</div>'; return; }
+    box.innerHTML = '';
+    DATA.orders.forEach(o => {
+        const el = document.createElement('div');
+        el.className = 'order ' + o.status;
+        const nm = esc(o.username || 'Аноним');
+        const actions = [];
+        if (o.status === 'pending') {
+            actions.push(`<button class="btn btn-green btn-sm" onclick="act(${o.id},'activate')">▶ Начать</button>`);
+        }
+        if (o.status === 'active') {
+            actions.push(`<button class="btn btn-green btn-sm" onclick="act(${o.id},'complete')">✅ Выполнено</button>`);
+            actions.push(`<button class="btn btn-danger btn-sm" onclick="act(${o.id},'fail')">❌ Провалено</button>`);
+        }
+        if (o.status === 'done' || o.status === 'failed') {
+            actions.push(`<button class="btn btn-ghost btn-sm" onclick="act(${o.id},'reset')">↺ Вернуть</button>`);
+        }
+        actions.push(`<button class="btn btn-ghost btn-sm" onclick="del(${o.id})">🗑</button>`);
+        el.innerHTML = `<div class="order-av">${nm.slice(0,1).toUpperCase()}</div>
+            <div class="order-body">
+                <div class="order-name">${nm} <span class="order-amt">${fmt(o.amount)} ₽</span> <span class="order-status">${STATUS_LABEL[o.status]||o.status}</span></div>
+                <div class="order-text">${esc(o.text)}</div>
+            </div>
+            <div class="order-actions">${actions.join('')}</div>`;
+        box.appendChild(el);
+    });
+}
+
+function act(id, action){
+    fetch(`/api/boss-orders/${id}/${action}`, { method: 'POST' })
+        .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); } else toast(d.error||'Ошибка'); });
+}
+function del(id){
+    if(!confirm('Удалить приказ?')) return;
+    fetch(`/api/boss-orders/${id}`, { method: 'DELETE' })
+        .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); } });
+}
+
+function openConfig(){
+    document.getElementById('cfgEnabled').checked = !!DATA.config.enabled;
+    document.getElementById('cfgThreshold').value = DATA.config.thresholdAmount || 500;
+    document.getElementById('cfgHeader').value = DATA.config.headerText || 'ПРИКАЗ ОТ ЗРИТЕЛЯ';
+    document.getElementById('configCard').style.display = 'block';
+}
+function closeConfig(){ document.getElementById('configCard').style.display = 'none'; }
+function saveConfig(){
+    const body = {
+        enabled: document.getElementById('cfgEnabled').checked,
+        thresholdAmount: parseFloat(document.getElementById('cfgThreshold').value) || 0,
+        headerText: document.getElementById('cfgHeader').value || 'ПРИКАЗ ОТ ЗРИТЕЛЯ'
+    };
+    fetch('/api/boss-orders/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
+        .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); closeConfig(); toast('Сохранено'); } });
+}
+
+function sendTestOrder(){
+    const body = {
+        username: document.getElementById('testName').value || 'ТестДонатер',
+        amount: parseFloat(document.getElementById('testAmount').value) || 500,
+        text: document.getElementById('testText').value || 'Тестовый приказ'
+    };
+    fetch('/api/boss-orders/test', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
+        .then(r=>r.json()).then(()=>{ toast('Тестовый приказ отправлен'); load(); });
+}
+
+function connectWS(){
+    try {
+        const ws = new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws');
+        ws.onmessage = ev => {
+            let m; try { m = JSON.parse(ev.data); } catch { return; }
+            if (m.type === 'BOSS_ORDER_UPDATE') { DATA = m; render(); }
+        };
+        ws.onclose = () => setTimeout(connectWS, 3000);
+    } catch (e) { setTimeout(connectWS, 4000); }
+}
+
+function copyObs(){ navigator.clipboard.writeText(location.origin + '/widget-boss-orders').then(()=>toast('Скопировано')); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+</script>
+</body>
+</html>

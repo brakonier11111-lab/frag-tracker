@@ -11,6 +11,7 @@ const { createYoutubeIntegrationModule } = require('./modules/youtube-integratio
 const { createVkplayIntegrationModule } = require('./modules/vkplay-integration');
 const { createLestaOAuthModule } = require('./modules/lesta-oauth');
 const { createDonationsAnalyticsModule } = require('./modules/donations-analytics');
+const { createBossOrdersModule } = require('./modules/boss-orders');
 
 /**
  * Подключает вынесенные модули к Express-приложению.
@@ -59,7 +60,11 @@ function registerModules(app, deps, config) {
     const donationsAnalytics = createDonationsAnalyticsModule(deps);
     donationsAnalytics.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, lestaOAuth, donationsAnalytics };
+    const bossOrders = createBossOrdersModule(deps);
+    bossOrders.registerPages(app);
+    bossOrders.registerRoutes(app);
+
+    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, lestaOAuth, donationsAnalytics, bossOrders };
 }
 
 module.exports = { registerModules };

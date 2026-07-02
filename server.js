@@ -25,9 +25,11 @@ const port = process.env.PORT || 3000;
 const { registerModules } = require('./src/registerModules');
 const { classifyDonationForPolling } = require('./src/core/donation-poll-filter');
 const { initBlitzChallengeSchema } = require('./src/modules/blitz-challenge/schema');
+const { initBossOrdersSchema } = require('./src/modules/boss-orders/schema');
 let blitzModule = null;
 let razblogModuleRef = null;
 let rouletteModuleRef = null;
+let bossOrdersModuleRef = null;
 
 /** РазБЛОГировка 2026 — включена по умолчанию (RAZBLOG_ENABLED=0 для отключения) */
 const RAZBLOG_ENABLED = process.env.RAZBLOG_ENABLED !== '0';
@@ -427,6 +429,7 @@ db.serialize(() => {
     });
 
     initBlitzChallengeSchema(db);
+    initBossOrdersSchema(db);
 
     // Таблица для очереди танков
     db.run(`CREATE TABLE IF NOT EXISTS tank_queue (
@@ -7811,6 +7814,7 @@ const modules = registerModules(app, moduleDeps, moduleConfig);
 blitzModule = modules.blitz;
 razblogModuleRef = modules.razblog;
 rouletteModuleRef = modules.roulette;
+bossOrdersModuleRef = modules.bossOrders;
 
 function updateBlitzChallenge(amount, donation) {
     if (blitzModule) blitzModule.updateBlitzChallenge(amount, donation);
@@ -7844,6 +7848,9 @@ donationBus.subscribe('donor-achievements', (ev) => {
     if (ev.timeEarned > 0 && ev.donation.username) {
         updateDonorAchievement(ev.donation.username, ev.timeEarned, ev.donation.id);
     }
+});
+donationBus.subscribe('boss-orders', (ev) => {
+    if (bossOrdersModuleRef) bossOrdersModuleRef.addDonationOrder(ev.donation);
 });
 
 // Запуск сервера
