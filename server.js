@@ -102,6 +102,8 @@ const getAppState = appStateStore.getAppState;
 const updateAppState = appStateStore.updateAppState;
 const wsHub = createWebSocketHub();
 const broadcastToClients = wsHub.broadcastToClients;
+const { createDonationBus } = require('./src/core/donation-events');
+const donationBus = createDonationBus(); // подписчики — после registerModules
 let timerDbFlushTimeout = null;
 const TIMER_DB_FLUSH_MS = 10000;
 
@@ -5809,13 +5811,8 @@ function processDonationCore(donationData, isRealtime = false) {
         alertData.timeFormatted = formatTimeDetailed(timeEarned);
         alertData.actualCostPerMinute = actualCostPerMinute;
         
-        // Рулетка: добавляем деньги к полоске сбора (логика в src/modules/roulette)
-        try {
-            if (rouletteModuleRef) rouletteModuleRef.addDonationToRoulette(amount);
-        } catch (e) {
-            console.warn('⚠️ Ошибка обновления рулетки:', e);
-        }
-        
+        // Рулетка и прочие побочные потребители — подписчики donationBus (см. ниже по файлу)
+
         // Режим 3: Custom Tracker
         const customCostPerUnit = state.custom_unit_cost / state.custom_unit_amount;
         const customCurrentBalance = state.custom_current_balance || 0;
@@ -5842,44 +5839,11 @@ function processDonationCore(donationData, isRealtime = false) {
                 console.error('❌ Ошибка сохранения доната (продолжаем обработку):', err);
             }
             
-            // Логируем событие доната в аналитику
-            analytics.logEvent('donation_received', {
-                donation_id: donation.id,
-                username: donation.username,
-                amount: donation.amount,
-                currency: donation.currency,
-                message: donation.message,
-                is_realtime: donation.isRealtime,
-                frags_earned: fragUnitsEarned,
-                time_earned: timeEarned,
-                custom_units_earned: customUnitsEarned
-            });
-            
-            // Обновляем статистику донатов
-            try { analytics.updateDonationStats(donation); } catch (e) { console.warn('⚠️ Ошибка обновления статистики донатов:', e); }
-            
-            // Обновляем цель сбора донатов
-            try { updateDonationGoal(donation); } catch (e) { console.warn('⚠️ Ошибка обновления цели донатов:', e); }
-            
-            // Обновляем полоску сбора донатов
-            try { updateDonationBar(donation); } catch (e) { console.warn('⚠️ Ошибка обновления полоски сбора:', e); }
-            
-            // Виджет «параметр от донатов»: за каждые per_amount ₽ добавляем add_value к current_value
-            try { updateDonationDrivenWidgets(donation.amount); } catch (e) { console.warn('⚠️ Ошибка обновления виджета по донатам:', e); }
+            // Побочные потребители доната (аналитика, виджеты сбора, рулетка,
+            // Blitz Challenge, ачивки) — подписчики donationBus. emit синхронный,
+            // порядок и изоляция ошибок те же, что были у прямых вызовов.
+            donationBus.emit({ donation, state, fragUnitsEarned, timeEarned, customUnitsEarned });
 
-            // Tanks Blitz Challenge: каждый донат усложняет челлендж
-            try { updateBlitzChallenge(donation.amount, donation); } catch (e) { console.warn('⚠️ Ошибка обновления Blitz Challenge:', e); }
-            
-            // Обновляем достижения донатера (только для режима таймера)
-            // ВАЖНО: Вызываем только один раз, чтобы избежать дублирования
-            if (timeEarned > 0 && username) {
-                try { 
-                    updateDonorAchievement(username, timeEarned, donation.id); 
-                } catch (e) { 
-                    console.warn('⚠️ Ошибка обновления достижений донатера:', e); 
-                }
-            }
-            
             // Получаем достижение донатера для отображения в алерте
             const normalizedUsername = normalizeUsername(username);
             const getDonorAchievement = (callback) => {
@@ -10687,6 +10651,36 @@ rouletteModuleRef = modules.roulette;
 function updateBlitzChallenge(amount, donation) {
     if (blitzModule) blitzModule.updateBlitzChallenge(amount, donation);
 }
+
+// ===== Подписчики события «донат» =====
+// Порядок подписки повторяет прежний порядок прямых вызовов из processDonation.
+donationBus.subscribe('analytics', (ev) => {
+    analytics.logEvent('donation_received', {
+        donation_id: ev.donation.id,
+        username: ev.donation.username,
+        amount: ev.donation.amount,
+        currency: ev.donation.currency,
+        message: ev.donation.message,
+        is_realtime: ev.donation.isRealtime,
+        frags_earned: ev.fragUnitsEarned,
+        time_earned: ev.timeEarned,
+        custom_units_earned: ev.customUnitsEarned
+    });
+    analytics.updateDonationStats(ev.donation);
+});
+donationBus.subscribe('donation-goal', (ev) => updateDonationGoal(ev.donation));
+donationBus.subscribe('donation-bar', (ev) => updateDonationBar(ev.donation));
+donationBus.subscribe('donation-driven-widget', (ev) => updateDonationDrivenWidgets(ev.donation.amount));
+donationBus.subscribe('roulette', (ev) => {
+    if (rouletteModuleRef) rouletteModuleRef.addDonationToRoulette(ev.donation.amount);
+});
+donationBus.subscribe('blitz-challenge', (ev) => updateBlitzChallenge(ev.donation.amount, ev.donation));
+donationBus.subscribe('donor-achievements', (ev) => {
+    // Только для режима таймера; вызывается один раз на донат
+    if (ev.timeEarned > 0 && ev.donation.username) {
+        updateDonorAchievement(ev.donation.username, ev.timeEarned, ev.donation.id);
+    }
+});
 
 // Запуск сервера
 server.listen(port, async () => {
