@@ -6,9 +6,11 @@ const { initBossOrdersSchema } = require('./schema');
 const STATUSES = ['pending', 'active', 'done', 'failed', 'cancelled'];
 
 /**
- * «Именной босс»: донат с комментарием выше порога становится «приказом» от
- * зрителя — стример/модератор отмечает его выполнение, ник и текст видны на
- * OBS-виджете. Один активный приказ за раз (ясная картинка на стриме).
+ * «Именной босс»: приказ от донатера — ник, сумма, задание — виден на OBS-виджете.
+ * Создаётся либо вручную стримером/модератором (основной путь), либо
+ * автоматически из доната с комментарием выше порога (опционально, тумблер
+ * в конфиге). На виджете одновременно могут быть несколько приказов —
+ * ранжируются по сумме, «в процессе» не пропадают после выполнения.
  *
  * deps: { db, appRoot, broadcastToClients, normalizeUsername }
  */
@@ -45,6 +47,11 @@ function createBossOrdersModule(deps) {
                     }
                     const orders = (rows || []).map(normalizeOrderRow);
                     const active = orders.find(o => o.status === 'active') || null;
+                    // То, что реально показывает виджет: активные + выполненные,
+                    // отсортированные по сумме — выполненные не пропадают из вида.
+                    const boardOrders = orders
+                        .filter(o => o.status === 'active' || o.status === 'done')
+                        .sort((a, b) => b.amount - a.amount);
                     callback({
                         config: {
                             enabled: !!config.enabled,
@@ -52,7 +59,8 @@ function createBossOrdersModule(deps) {
                             headerText: config.header_text || 'ПРИКАЗ ОТ ЗРИТЕЛЯ'
                         },
                         orders,
-                        active
+                        active,
+                        boardOrders
                     });
                 }
             );
@@ -118,13 +126,30 @@ function createBossOrdersModule(deps) {
             });
         });
 
-        // Тестовый приказ (кнопка в управлении, без реального доната)
-        app.post('/api/boss-orders/test', (req, res) => {
-            const username = (req.body && req.body.username) || 'Тестовый Донатер';
-            const amount = Number(req.body && req.body.amount) || 500;
-            const text = (req.body && req.body.text) || 'Убей 3 танка в этом бою!';
-            addDonationOrder({ id: `test_${Date.now()}`, username, amount, message: text });
-            res.json({ success: true });
+        // Ручное создание приказа стримером/модератором — основной путь: не завязан
+        // на донат, порог или комментарий, доступен всегда независимо от config.enabled.
+        app.post('/api/boss-orders/manual', (req, res) => {
+            const username = ((req.body && req.body.username) || '').trim() || 'Аноним';
+            const amount = Math.max(0, Number(req.body && req.body.amount) || 0);
+            const text = ((req.body && req.body.text) || '').trim();
+            if (!text) return res.status(400).json({ success: false, error: 'Укажите задание приказа' });
+
+            const normalizedUsername = deps.normalizeUsername ? deps.normalizeUsername(username) : null;
+            const donationId = `manual_${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
+
+            db.run(
+                `INSERT INTO boss_orders (donation_id, username, normalized_username, amount, order_text, status)
+                 VALUES (?, ?, ?, ?, ?, 'pending')`,
+                [donationId, username, normalizedUsername, amount, text.slice(0, 300)],
+                function (err) {
+                    if (err) {
+                        console.error('❌ Ошибка ручного создания приказа:', err);
+                        return res.status(500).json({ success: false, error: 'Ошибка создания' });
+                    }
+                    broadcastUpdate();
+                    getOrdersSnapshot((snapshot) => res.json(Object.assign({ success: true }, snapshot)));
+                }
+            );
         });
 
         function setStatus(id, status, res) {
@@ -136,17 +161,7 @@ function createBossOrdersModule(deps) {
                     res.json(Object.assign({ success: true }, snapshot));
                 });
             };
-            if (status === 'active') {
-                // Один активный приказ за раз — деактивируем остальные
-                db.run(`UPDATE boss_orders SET status = 'pending' WHERE status = 'active' AND id != ?`, [id], (deactErr) => {
-                    if (deactErr) return res.status(500).json({ success: false, error: 'Ошибка обновления' });
-                    db.run(`UPDATE boss_orders SET status = 'active' WHERE id = ?`, [id], (err) => {
-                        if (err) return res.status(500).json({ success: false, error: 'Ошибка обновления' });
-                        afterUpdate();
-                    });
-                });
-                return;
-            }
+            // Несколько приказов могут быть активны одновременно — виджет ранжирует их по сумме
             db.run(`UPDATE boss_orders SET status = ?, completed_at = ${completedAt} WHERE id = ?`, [status, id], (err) => {
                 if (err) return res.status(500).json({ success: false, error: 'Ошибка обновления' });
                 afterUpdate();
