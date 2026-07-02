@@ -84,37 +84,26 @@ dbRead.serialize(() => {
     dbRead.run('PRAGMA busy_timeout = 5000');
 });
 
-// Кэш app_state в памяти — убирает очередь на SQLite при опросе виджетов и таймере
-let memoryAppState = null;
-let memoryAppStateLoaded = false;
+// Кэш app_state и WebSocket-реестр вынесены в src/core (семантика 1:1).
+// Таймер по-прежнему тикает прямо в кэше через appStateStore.getCachedState().
+const { createAppState } = require('./src/core/app-state');
+const { createWebSocketHub } = require('./src/core/websocket');
+const appStateStore = createAppState({
+    db,
+    dbRead,
+    onRowLoaded: (row) => {
+        if (row && row.last_donation_id) {
+            try { lastSeenDonationId = row.last_donation_id.toString(); } catch {}
+        }
+    }
+});
+const preloadAppStateCache = appStateStore.preloadAppStateCache;
+const getAppState = appStateStore.getAppState;
+const updateAppState = appStateStore.updateAppState;
+const wsHub = createWebSocketHub();
+const broadcastToClients = wsHub.broadcastToClients;
 let timerDbFlushTimeout = null;
 const TIMER_DB_FLUSH_MS = 10000;
-
-function mergeIntoMemoryAppState(fields, values, atomicTimerIncrement) {
-    if (!memoryAppState) memoryAppState = { id: 1 };
-    if (atomicTimerIncrement) {
-        memoryAppState.timer_seconds = Math.max(
-            0,
-            (Number(memoryAppState.timer_seconds) || 0) + atomicTimerIncrement
-        );
-    }
-    fields.forEach((key, idx) => {
-        memoryAppState[key] = values[idx];
-    });
-}
-
-function preloadAppStateCache(callback) {
-    dbRead.get('SELECT * FROM app_state WHERE id = 1', (err, row) => {
-        if (!err && row) {
-            memoryAppState = row;
-            memoryAppStateLoaded = true;
-            if (row.last_donation_id) {
-                try { lastSeenDonationId = row.last_donation_id.toString(); } catch {}
-            }
-        }
-        if (callback) callback(err, row);
-    });
-}
 
 // Тихий режим опроса донатов (иначе console.log блокирует UI на секунды)
 const DEBUG_POLL = process.env.DEBUG_POLL === '1';
@@ -154,8 +143,6 @@ function checkDonationsNormalizedColumn() {
 }
 
 // Виджеты "цель сбора" и "полоска сбора" вынесены в src/modules/donation-widgets
-// (broadcastToClients объявлен ниже как function-declaration и хоистится, поэтому
-// доступен здесь несмотря на то, что текстуально определён позже).
 const { createDonationWidgetsModule } = require('./src/modules/donation-widgets');
 const donationWidgetsModule = createDonationWidgetsModule({
     db,
@@ -662,7 +649,6 @@ checkDonationsNormalizedColumn();
 // Инициализация аналитики
 const analytics = new Analytics(db);
 
-let clients = [];
 /** Опрос DonationAlerts/DonatePay — включён по умолчанию (DONATION_POLLING=0 для отключения) */
 const DONATION_POLLING_ENABLED = process.env.DONATION_POLLING !== '0';
 let pollingInterval = null;
@@ -1719,104 +1705,8 @@ app.post('/api/tank-queue/save', express.json({ limit: '50mb' }), (req, res) => 
     });
 });
 
-// Функции для работы с БД
-function getAppState(callback) {
-    if (memoryAppStateLoaded && memoryAppState) {
-        callback(memoryAppState);
-        return;
-    }
-    dbRead.get('SELECT * FROM app_state WHERE id = 1', (err, row) => {
-        if (err) {
-            console.error('❌ Ошибка получения состояния:', err);
-            callback(null);
-        } else {
-            if (row) {
-                memoryAppState = row;
-                memoryAppStateLoaded = true;
-            }
-            callback(row);
-            if (row && row.last_donation_id) {
-                try { lastSeenDonationId = row.last_donation_id.toString(); } catch {}
-            }
-        }
-    });
-}
-
-function updateAppState(newState, callback, allowManualTimeUpdate = false) {
-    // ВАЖНО: timer_manual_time_added обновляется ТОЛЬКО через /api/timer-control с isManual: true
-    // Исключаем его из автоматических обновлений, чтобы предотвратить случайное изменение
-    // ВАЖНО: Для timer_seconds используем атомарное обновление, если это инкремент
-    // Это предотвращает гонку условий, когда таймер обновляется параллельно
-    const timerSecondsIncrement = newState._timer_seconds_increment;
-    const useAtomicTimerUpdate = timerSecondsIncrement !== undefined && timerSecondsIncrement > 0;
-    
-    const fields = Object.keys(newState).filter(key => {
-        if (key === 'id') return false;
-        if (key === 'created_at' || key === 'updated_at') return false;
-        if (key === '_forceFullUpdate') return false;
-        // Пропускаем специальный флаг инкремента
-        if (key === '_timer_seconds_increment') return false;
-        // Разрешаем обновление timer_manual_time_added только если явно разрешено (из /api/timer-control)
-        if (key === 'timer_manual_time_added' && !allowManualTimeUpdate) {
-            console.log(`⚠️ Игнорируем обновление timer_manual_time_added (разрешено только через /api/timer-control)`);
-            return false;
-        }
-        // Если используем атомарное обновление, исключаем timer_seconds из обычного обновления
-        if (key === 'timer_seconds' && useAtomicTimerUpdate) {
-            return false;
-        }
-        return true;
-    });
-
-    // Защита от случайной передачи всего state — иначе SQLite блокируется на секунды
-    if (fields.length > 35 && !newState._forceFullUpdate) {
-        const err = new Error(`updateAppState: слишком много полей (${fields.length}), вероятно передан весь state`);
-        console.error('❌', err.message);
-        if (callback) callback(err);
-        return;
-    }
-    
-    const values = fields.map(key => {
-        const value = newState[key];
-        // Преобразуем объекты и массивы в JSON строки
-        if (typeof value === 'object' && value !== null) {
-            return JSON.stringify(value);
-        }
-        return value;
-    });
-    
-    // Если нужно атомарное обновление timer_seconds, используем SQL инкремент
-    let setClause;
-    if (useAtomicTimerUpdate) {
-        // Используем атомарное обновление: timer_seconds = timer_seconds + increment
-        const otherSetClause = fields.map(key => `${key} = ?`).join(', ');
-        setClause = `timer_seconds = timer_seconds + ${timerSecondsIncrement}${fields.length > 0 ? ', ' + otherSetClause : ''}`;
-        console.log(`⏰ АТОМАРНОЕ обновление timer_seconds: +${timerSecondsIncrement} сек`);
-    } else {
-        setClause = fields.map(key => `${key} = ?`).join(', ');
-    }
-    
-    if (process.env.DEBUG_STATE === '1') {
-        console.log('🔄 Обновление состояния в БД:', fields);
-    }
-    
-    db.run(`UPDATE app_state SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = 1`,
-        values, function(err) {
-            if (err) {
-                console.error('❌ Ошибка обновления состояния:', err);
-                console.error('   SQL:', `UPDATE app_state SET ${setClause}, updated_at = CURRENT_TIMESTAMP WHERE id = 1`);
-                console.error('   Values:', values);
-                if (callback) callback(err);
-            } else {
-                mergeIntoMemoryAppState(fields, values, useAtomicTimerUpdate ? timerSecondsIncrement : 0);
-                memoryAppStateLoaded = true;
-                if (process.env.DEBUG_STATE === '1') {
-                    console.log('✅ Состояние успешно обновлено в БД');
-                }
-                if (callback) callback(null);
-            }
-        });
-}
+// getAppState / updateAppState вынесены в src/core/app-state.js
+// (константы объявлены рядом с созданием appStateStore в начале файла)
 
 // Функция нормализации ников донатеров для группировки похожих ников
 // Функция обновления достижений донатера
@@ -5244,8 +5134,8 @@ function startPollingDonationAlerts() {
 }
 
 function checkDiscountExpiration() {
-    if (!memoryAppStateLoaded || !memoryAppState) return;
-    const state = memoryAppState;
+    const state = appStateStore.getCachedState();
+    if (!state) return;
     const now = Math.floor(Date.now() / 1000);
     const discountUntil = state.timer_discount_until_ts || 0;
     if (state.timer_discount > 0 && discountUntil > 0 && now >= discountUntil) {
@@ -6589,12 +6479,13 @@ app.post('/api/timer-control', (req, res) => {
                         };
                     }
 
-                    console.log('🎲 Запуск рандомного замедления, клиентов подключено:', clients.length);
+                    const wsClients = wsHub.getClients();
+                    console.log('🎲 Запуск рандомного замедления, клиентов подключено:', wsClients.length);
                     console.log('🎲 Финальные настройки:', JSON.stringify(slowdownSettings, null, 2));
 
                     // 1) Отправляем окно прокрутки всем виджетам сразу
                     let spinSent = 0;
-                    clients.forEach((client, index) => {
+                    wsClients.forEach((client, index) => {
                         if (client.readyState === WebSocket.OPEN && client.clientType === 'WIDGET') {
                             try {
                                 client.send(JSON.stringify({
@@ -7049,8 +6940,8 @@ wss.on('connection', (ws, req) => {
     
     // Логируем подключение клиента
     analytics.logEvent('client_connected', { clientId, clientType }, null, null, req);
-    
-    clients.push(ws);
+
+    wsHub.addClient(ws);
     
     // Добавляем идентификатор для отладки
     ws.clientId = clientId;
@@ -7099,13 +6990,13 @@ wss.on('connection', (ws, req) => {
         
         // Логируем отключение клиента
         analytics.logEvent('client_disconnected', { clientId, clientType });
-        
-        clients = clients.filter(client => client !== ws);
+
+        wsHub.removeClient(ws);
     });
     
     ws.on('error', (error) => {
         console.error(`❌ Ошибка WebSocket клиента ${clientId} (${clientType}):`, error);
-        clients = clients.filter(client => client !== ws);
+        wsHub.removeClient(ws);
     });
     
     ws.on('message', (data) => {
@@ -7119,28 +7010,7 @@ wss.on('connection', (ws, req) => {
 });
 
 // Broadcast to all clients
-function broadcastToClients(message) {
-    const debug = process.env.DEBUG_BROADCAST === '1';
-    if (debug) {
-        console.log('📢 BROADCAST:', message.type, '| clients:', clients.length);
-    }
-
-    let sentCount = 0;
-    clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-            try {
-                client.send(JSON.stringify(message));
-                sentCount++;
-            } catch (error) {
-                console.error(`❌ Ошибка отправки WS ${client.clientId}:`, error.message);
-            }
-        }
-    });
-
-    if (debug) {
-        console.log(`   Отправлено ${sentCount}/${clients.length}`);
-    }
-}
+// broadcastToClients вынесен в src/core/websocket.js (см. wsHub в начале файла)
 
 // Маршруты
 app.get('/', (req, res) => {
@@ -11631,9 +11501,10 @@ function scheduleTimerDbFlush() {
     if (timerDbFlushTimeout) return;
     timerDbFlushTimeout = setTimeout(() => {
         timerDbFlushTimeout = null;
-        if (!memoryAppStateLoaded || !memoryAppState) return;
+        const cached = appStateStore.getCachedState();
+        if (!cached) return;
         updateAppState(
-            { timer_seconds: memoryAppState.timer_seconds },
+            { timer_seconds: cached.timer_seconds },
             (err) => {
                 if (err) console.error('❌ Ошибка сохранения таймера в БД:', err);
             }
@@ -11642,8 +11513,9 @@ function scheduleTimerDbFlush() {
 }
 
 function updateTimer() {
-    if (!memoryAppStateLoaded || !memoryAppState) return;
-    const state = memoryAppState;
+    // Живой объект кэша: тик меняет timer_seconds прямо в нём, БД пишем раз в 10 с
+    const state = appStateStore.getCachedState();
+    if (!state) return;
 
     // Тикаем в памяти; в SQLite пишем раз в 10 с, чтобы не блокировать чтения
     if (!state.timer_paused && state.timer_seconds > 0) {
@@ -11696,10 +11568,11 @@ process.on('SIGINT', () => {
         clearTimeout(timerDbFlushTimeout);
         timerDbFlushTimeout = null;
     }
-    if (memoryAppStateLoaded && memoryAppState) {
+    const cachedOnExit = appStateStore.getCachedState();
+    if (cachedOnExit) {
         db.run(
             'UPDATE app_state SET timer_seconds = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1',
-            [memoryAppState.timer_seconds],
+            [cachedOnExit.timer_seconds],
             () => {}
         );
     }
