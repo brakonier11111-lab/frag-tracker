@@ -19,7 +19,7 @@ function createBossOrdersModule(deps) {
 
     function getConfig(callback) {
         db.get('SELECT * FROM boss_orders_config WHERE id = 1', (err, row) => {
-            callback(err, row || { enabled: 1, threshold_amount: 500, header_text: 'ПРИКАЗ ОТ ЗРИТЕЛЯ' });
+            callback(err, row || { enabled: 1, threshold_amount: 500, header_text: 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ' });
         });
     }
 
@@ -58,7 +58,7 @@ function createBossOrdersModule(deps) {
                         config: {
                             enabled: !!config.enabled,
                             thresholdAmount: Number(config.threshold_amount) || 0,
-                            headerText: config.header_text || 'ПРИКАЗ ОТ ЗРИТЕЛЯ'
+                            headerText: config.header_text || 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ'
                         },
                         orders,
                         active,
@@ -134,7 +134,7 @@ function createBossOrdersModule(deps) {
             const username = ((req.body && req.body.username) || '').trim() || 'Аноним';
             const amount = Math.max(0, Number(req.body && req.body.amount) || 0);
             const text = ((req.body && req.body.text) || '').trim();
-            if (!text) return res.status(400).json({ success: false, error: 'Укажите задание приказа' });
+            if (!text) return res.status(400).json({ success: false, error: 'Укажите задание челленджа' });
 
             const normalizedUsername = deps.normalizeUsername ? deps.normalizeUsername(username) : null;
             const donationId = `manual_${Date.now()}_${Math.floor(Math.random() * 1e4)}`;

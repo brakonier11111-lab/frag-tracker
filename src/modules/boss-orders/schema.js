@@ -6,7 +6,7 @@ function initBossOrdersSchema(db) {
         id INTEGER PRIMARY KEY DEFAULT 1,
         enabled INTEGER NOT NULL DEFAULT 1,
         threshold_amount REAL NOT NULL DEFAULT 500,
-        header_text TEXT NOT NULL DEFAULT 'ПРИКАЗ ОТ ЗРИТЕЛЯ',
+        header_text TEXT NOT NULL DEFAULT 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`, (err) => {
@@ -17,6 +17,12 @@ function initBossOrdersSchema(db) {
         db.run('INSERT OR IGNORE INTO boss_orders_config (id) VALUES (1)', (e) => {
             if (e) console.error('❌ Ошибка инициализации boss_orders_config:', e);
         });
+        // «Приказ» → «Челлендж»: подтягиваем новый текст только тем, кто ещё не менял
+        // подпись вручную (иначе затёрли бы кастомный заголовок стримера)
+        db.run(
+            "UPDATE boss_orders_config SET header_text = 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ' WHERE id = 1 AND header_text = 'ПРИКАЗ ОТ ЗРИТЕЛЯ'",
+            () => {}
+        );
     });
 
     db.run(`CREATE TABLE IF NOT EXISTS boss_orders (
