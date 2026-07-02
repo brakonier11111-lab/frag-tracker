@@ -1175,7 +1175,15 @@ app.use(helmet({
     contentSecurityPolicy: false // OBS/локальные виджеты могут встраиваться
 }));
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({
+    limit: '50mb',
+    // Сырое тело нужно вебхуку DonatePay для проверки HMAC-подписи
+    verify: (req, res, buf) => {
+        if (req.originalUrl && req.originalUrl.startsWith('/webhook/donatepay')) {
+            req.rawBody = buf;
+        }
+    }
+}));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Загрузка гифок для виджета лайков (base64 в JSON, без multer)
@@ -5152,26 +5160,30 @@ async function startLestaAutoSync() {
 }
 
 // Webhook для DonatePay
-app.post('/webhook/donatepay', express.raw({ type: 'application/json' }), (req, res) => {
+// Тело уже распарсено глобальным express.json; сырые байты для подписи — в req.rawBody
+app.post('/webhook/donatepay', (req, res) => {
     try {
         const signature = req.headers['x-donatepay-signature'];
-        const payload = req.body;
-        
-        // Проверка подписи (если настроен секрет)
+
+        // Проверка подписи (если настроен секрет) — по сырому телу
         if (DP_CONFIG.webhookSecret) {
+            if (!req.rawBody) {
+                console.log('❌ DonatePay webhook: нет сырого тела для проверки подписи');
+                return res.status(401).json({ error: 'Invalid signature' });
+            }
             const crypto = require('crypto');
             const expectedSignature = crypto
                 .createHmac('sha256', DP_CONFIG.webhookSecret)
-                .update(payload)
+                .update(req.rawBody)
                 .digest('hex');
-            
+
             if (signature !== `sha256=${expectedSignature}`) {
                 console.log('❌ Неверная подпись DonatePay webhook');
                 return res.status(401).json({ error: 'Invalid signature' });
             }
         }
-        
-        const donation = JSON.parse(payload);
+
+        const donation = Buffer.isBuffer(req.body) ? JSON.parse(req.body) : (req.body || {});
         
         if (donation.type === 'donation' && donation.status === 'success') {
             console.log(`💰 DonatePay webhook: ${donation.what} - ${donation.sum}₽`);
@@ -5767,9 +5779,38 @@ function updateDonationDrivenWidgets(amount) {
 }
 
 // Функция обработки донатов
+// Единый дедуп для ВСЕХ входов (опрос DA/DP, Centrifugo, webhook, ручной/тест):
+// синхронная отметка в processedDonationIds закрывает гонку двух путей в один тик,
+// проверка по таблице donations — авторитет между рестартами и после чистки Set'а.
 function processDonation(donationData, isRealtime = false) {
+    const donationKey = donationData && donationData.id != null ? String(donationData.id) : null;
+    if (!donationKey) {
+        console.warn('⚠️ processDonation: донат без id, пропуск', donationData);
+        return;
+    }
+    if (processedDonationIds.has(donationKey)) {
+        pollLog('processDonation: дубль (память), пропуск', donationKey);
+        return;
+    }
+    processedDonationIds.add(donationKey);
+    if (processedDonationIds.size > 500) {
+        const first = processedDonationIds.values().next().value;
+        processedDonationIds.delete(first);
+    }
+    db.get('SELECT id FROM donations WHERE id = ?', [donationKey], (dupErr, existing) => {
+        if (dupErr) {
+            console.warn('⚠️ Дедуп-проверка по БД не удалась, продолжаем обработку:', dupErr.message);
+        } else if (existing) {
+            console.log(`⏭️ Донат ${donationKey} уже в БД — пропуск повторной обработки`);
+            return;
+        }
+        processDonationCore(donationData, isRealtime);
+    });
+}
+
+function processDonationCore(donationData, isRealtime = false) {
     pollLog('processDonation', isRealtime ? 'RT' : 'poll', donationData.id, donationData.username);
-    
+
     getAppState((state) => {
         if (!state) {
             console.error('❌ STATE NOT FOUND for donation processing');
