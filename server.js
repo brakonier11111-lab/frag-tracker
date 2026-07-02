@@ -4849,29 +4849,22 @@ function isHistoryRowInTrackingWindow(row, referenceBattles, reliableSinceSec) {
     return true;
 }
 
-async function startLestaAutoSync() {
-    if (lestaSyncTimer) {
-        clearTimeout(lestaSyncTimer);
-    }
-    
-    console.log('🔄 Запуск автосинхронизации Lesta Games...');
-    ensureLestaReliableSince();
-    
-    const syncLesta = async () => {
-        try {
-            const stats = await getLestaPlayerStats();
-            if (stats) {
-                // Логируем событие синхронизации
-                analytics.logEvent('lesta_sync', {
-                    battles: stats.battles,
-                    frags: stats.frags,
-                    winRate: stats.winRate,
-                    fragsPerBattle: stats.fragsPerBattle
-                });
-                
-                // Обновляем статистику в БД и отслеживаем изменения фрагов
-                getAppState((state) => {
-                    if (state) {
+// Применение свежей статистики Lesta: дельты боёв/фрагов, запись боёв,
+// АВТОСПИСАНИЕ фрагов из режима 1, снапшот истории, broadcast, razblog.
+// Выделено из цикла автосинка, чтобы тестировать без реального Lesta API
+// (см. /api/lesta-test-stats/inject и scripts/test-lesta-sync.js).
+function applyLestaStats(stats) {
+    // Логируем событие синхронизации
+    analytics.logEvent('lesta_sync', {
+        battles: stats.battles,
+        frags: stats.frags,
+        winRate: stats.winRate,
+        fragsPerBattle: stats.fragsPerBattle
+    });
+
+    // Обновляем статистику в БД и отслеживаем изменения фрагов
+    getAppState((state) => {
+        if (state) {
                         const previousFrags = state.lesta_previous_frags || 0;
                         const currentFrags = stats.frags;
                         const fragsDifference = currentFrags - previousFrags;
@@ -5036,17 +5029,34 @@ async function startLestaAutoSync() {
                                 });
                             }
                         });
-                    }
-                });
-            }
+        }
+    });
+}
+
+async function startLestaAutoSync() {
+    if (lestaSyncTimer) {
+        clearTimeout(lestaSyncTimer);
+    }
+    if (process.env.LESTA_AUTOSYNC === '0') {
+        console.log('⏸️ Автосинхронизация Lesta отключена (LESTA_AUTOSYNC=0)');
+        return;
+    }
+
+    console.log('🔄 Запуск автосинхронизации Lesta Games...');
+    ensureLestaReliableSince();
+
+    const syncLesta = async () => {
+        try {
+            const stats = await getLestaPlayerStats();
+            if (stats) applyLestaStats(stats);
         } catch (error) {
             console.error('❌ Ошибка автосинхронизации Lesta Games:', error.message);
         } finally {
-            // Повторяем каждые 30 секунд (реже — меньше нагрузка на Lesta и SQLite)
+            // Повторяем каждые 20 секунд (реже — меньше нагрузка на Lesta и SQLite)
             lestaSyncTimer = setTimeout(syncLesta, 20 * 1000);
         }
     };
-    
+
     // Запускаем первую синхронизацию
     syncLesta();
 }
@@ -9114,6 +9124,36 @@ app.get('/api/lesta-test-stats', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+// Тестовая инъекция статистики (только NODE_ENV=test или LESTA_TEST_INJECT=1):
+// прогоняет applyLestaStats — дельты, бои, автосписание — без реального Lesta API
+if (process.env.NODE_ENV === 'test' || process.env.LESTA_TEST_INJECT === '1') {
+    app.post('/api/lesta-test-stats/inject', (req, res) => {
+        const s = req.body || {};
+        const num = (v) => Number(v) || 0;
+        const battles = num(s.battles), wins = num(s.wins), losses = num(s.losses), frags = num(s.frags);
+        const damage = num(s.damage_dealt), xp = num(s.xp);
+        const stats = {
+            nickname: s.nickname || 'TEST',
+            battles, frags, wins, losses,
+            damage_dealt: damage,
+            damage_received: num(s.damage_received),
+            xp,
+            max_frags: num(s.max_frags), frags8p: num(s.frags8p),
+            hits: num(s.hits), shots: num(s.shots), spotted: num(s.spotted),
+            capture_points: 0, dropped_capture_points: 0,
+            survived_battles: num(s.survived_battles), win_and_survived: num(s.win_and_survived),
+            max_xp: num(s.max_xp),
+            winRate: battles > 0 ? (wins / battles * 100).toFixed(1) : 0,
+            fragsPerBattle: battles > 0 ? (frags / battles).toFixed(2) : 0,
+            avgDamage: battles > 0 ? (damage / battles).toFixed(0) : 0,
+            avgXp: battles > 0 ? (xp / battles).toFixed(0) : 0,
+            accuracy: 0
+        };
+        applyLestaStats(stats);
+        res.json({ success: true, injected: { battles, frags } });
+    });
+}
 
 app.post('/api/lesta-sync', async (req, res) => {
     try {
