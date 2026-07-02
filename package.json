@@ -12,6 +12,7 @@
     "smoke-test": "node scripts/smoke-test.js",
     "test-pipeline": "node scripts/test-donation-pipeline.js",
     "test-lesta": "node scripts/test-lesta-sync.js",
+    "test-poll-filter": "node scripts/test-donation-poll-filter.js",
     "build:media-art": "dotnet publish scripts/media-art/MediaArt.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o scripts/media-art/out",
     "backup-db": "node scripts/backup-db.js",
     "stagewise": "stagewise",

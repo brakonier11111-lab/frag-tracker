@@ -23,6 +23,7 @@ const app = express();
 const server = http.createServer(app);
 const port = process.env.PORT || 3000;
 const { registerModules } = require('./src/registerModules');
+const { classifyDonationForPolling } = require('./src/core/donation-poll-filter');
 const { initBlitzChallengeSchema } = require('./src/modules/blitz-challenge/schema');
 let blitzModule = null;
 let razblogModuleRef = null;
@@ -5011,42 +5012,30 @@ async function checkForNewDonations() {
             
             for (let i = allDonations.length - 1; i >= 0; i--) {
                 const donation = allDonations[i];
-                const donationId = donation.id.toString();
-                
-                // Проверяем время создания доната - пропускаем старые (старше 2 дней)
-                let donationTime = null;
-                if (donation.created_at) {
-                    if (typeof donation.created_at === 'string') {
-                        donationTime = new Date(donation.created_at).getTime();
-                    } else if (typeof donation.created_at === 'number') {
-                        donationTime = donation.created_at * 1000; // Если это timestamp в секундах
-                    }
-                } else if (donation.created_at_ts) {
-                    donationTime = donation.created_at_ts * 1000;
-                }
-                
-                // Если есть время создания и донат старше 2 дней - пропускаем сразу
-                if (donationTime && (now - donationTime) > maxAgeMs) {
+                const verdict = classifyDonationForPolling(donation, {
+                    processedIds: processedDonationIds,
+                    lastSeenDonationId,
+                    nowMs: now,
+                    maxAgeMs
+                });
+                const donationId = verdict.donationId;
+                const isNumericId = verdict.isNumericId;
+
+                if (verdict.action === 'skip_old_by_time') {
                     skippedByTimeCount++;
-                    // Пропускаем без логирования, чтобы не засорять логи
                     continue;
                 }
-                
-                if (processedDonationIds.has(donationId)) {
+                if (verdict.action === 'skip_already_processed') {
                     skippedProcessedCount++;
                     continue;
                 }
-                
-                // Для донатов с числовыми ID (DonationAlerts) - пропускаем старые
-                // Для донатов с префиксом (DonatePay: dp_xxx) - обрабатываем все новые
-                const isNumericId = /^\d+$/.test(donationId);
-                if (isNumericId && lastSeenDonationId && parseInt(donationId) <= parseInt(lastSeenDonationId)) {
+                if (verdict.action === 'skip_old_by_id') {
                     skippedOldCount++;
                     continue;
                 }
-                
+
                 console.log(`💰 Новый донат: ${donation.username} — ${donation.amount}${donation.currency || '₽'} (${donation.platform || 'unknown'}, ID ${donationId})`);
-                
+
                 processDonation({
                     id: donationId,
                     username: donation.username,
