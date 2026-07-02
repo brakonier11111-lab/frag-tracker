@@ -9469,10 +9469,12 @@ app.get('/api/lesta-session', (req, res) => {
     });
 });
 
-app.post('/api/lesta-session/start', (req, res) => {
+// Единая логика Lesta-сессии — используется и здесь, и в blitz-challenge
+// (/api/blitz-challenge/session/*) через moduleDeps, чтобы не было двух копий
+function startLestaSession(callback) {
     getAppState((state) => {
         if (!state || !state.lesta_account_id) {
-            return res.status(400).json({ success: false, error: 'Сначала привяжите Lesta' });
+            return callback({ status: 400, error: 'Сначала привяжите аккаунт Lesta' });
         }
         const nowSec = Math.floor(Date.now() / 1000);
         updateAppState({
@@ -9484,13 +9486,13 @@ app.post('/api/lesta-session/start', (req, res) => {
             lesta_session_baseline_damage: state.lesta_last_damage_dealt || 0,
             lesta_session_baseline_xp: state.lesta_last_xp || 0
         }, (err) => {
-            if (err) return res.status(500).json({ success: false, error: err.message });
-            res.json({ success: true, startedAt: nowSec });
+            if (err) return callback({ status: 500, error: err.message });
+            callback(null, { startedAt: nowSec });
         });
     });
-});
+}
 
-app.post('/api/lesta-session/reset', (req, res) => {
+function resetLestaSession(callback) {
     updateAppState({
         lesta_session_started_at: 0,
         lesta_session_baseline_battles: 0,
@@ -9500,7 +9502,21 @@ app.post('/api/lesta-session/reset', (req, res) => {
         lesta_session_baseline_damage: 0,
         lesta_session_baseline_xp: 0
     }, (err) => {
-        if (err) return res.status(500).json({ success: false, error: err.message });
+        if (err) return callback({ status: 500, error: err.message });
+        callback(null, {});
+    });
+}
+
+app.post('/api/lesta-session/start', (req, res) => {
+    startLestaSession((err, data) => {
+        if (err) return res.status(err.status).json({ success: false, error: err.error });
+        res.json({ success: true, startedAt: data.startedAt });
+    });
+});
+
+app.post('/api/lesta-session/reset', (req, res) => {
+    resetLestaSession((err) => {
+        if (err) return res.status(err.status).json({ success: false, error: err.error });
         res.json({ success: true });
     });
 });
@@ -10820,6 +10836,8 @@ const moduleDeps = {
     lestaConfig: LESTA_CONFIG,
     broadcastStateUpdate,
     startLestaAutoSync,
+    startLestaSession,
+    resetLestaSession,
     analytics,
     getDonationsHasNormalizedUsername: () => donationsHasNormalizedUsername
 };

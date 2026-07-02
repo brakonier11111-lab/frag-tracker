@@ -7,13 +7,35 @@ const { safeJsonParse, clampNum, round2 } = require('../../core/utils');
 const { initBlitzChallengeSchema } = require('./schema');
 
 function createBlitzChallengeModule(deps) {
-    // Последние донаты челленджа для фида на странице управления (сбрасывается при рестарте/reset)
+    // Последние донаты челленджа для фида + суммарный вклад по донатерам
+    // (в памяти процесса, сбрасывается при рестарте/reset)
     const FEED_LIMIT = 30;
     let recentFeed = [];
+    let donorTotals = {};
 
     function pushFeedItem(item) {
         recentFeed.unshift(item);
         if (recentFeed.length > FEED_LIMIT) recentFeed.length = FEED_LIMIT;
+        const key = item.username || 'Аноним';
+        const t = donorTotals[key] || (donorTotals[key] = { username: key, amount: 0, winrate: 0, damage: 0, medals: 0 });
+        t.amount += Number(item.amount) || 0;
+        const c = item.contribution || {};
+        t.winrate += Number(c.winrate) || 0;
+        t.damage += Number(c.damage) || 0;
+        t.medals += Number(c.medals) || 0;
+    }
+
+    function computeTopDonors() {
+        return Object.values(donorTotals)
+            .sort((a, b) => b.amount - a.amount)
+            .slice(0, 5)
+            .map(t => ({
+                username: t.username,
+                amount: round2(t.amount),
+                winrate: round2(t.winrate),
+                damage: Math.round(t.damage),
+                medals: Math.round(t.medals)
+            }));
     }
 
     function resolveBlitzHeaderTexts(row) {
@@ -199,7 +221,7 @@ function createBlitzChallengeModule(deps) {
                     at: Math.floor(Date.now() / 1000)
                 };
                 pushFeedItem(feedItem);
-                broadcastBlitzChallengeUpdate({ lastDonation: feedItem });
+                broadcastBlitzChallengeUpdate({ lastDonation: feedItem, topDonors: computeTopDonors() });
             });
         });
     }
@@ -374,7 +396,7 @@ function createBlitzChallengeModule(deps) {
                 const list = safeJsonParse(row.medals_list, []).map(m => Object.assign({}, m, { earned: 0 }));
                 deps.db.run(`UPDATE blitz_challenge SET wr_current = wr_start, dmg_current = dmg_start, session_balance = 0, medals_list = ?, timer_countdown_started_at = 0, timer_elapsed_started_at = 0, updated_at = CURRENT_TIMESTAMP WHERE id = 1`, [JSON.stringify(list)], (e) => {
                     if (e) return res.status(500).json({ success: false, error: 'Ошибка сброса' });
-                    recentFeed = [];
+                    recentFeed = []; donorTotals = {};
                     getBlitzChallengeRow((e2, r2) => {
                         const payload = normalizeBlitzRow(r2);
                         deps.broadcastToClients({ type: 'BLITZ_CHALLENGE_UPDATE', challenge: payload, reset: true });
@@ -400,9 +422,9 @@ function createBlitzChallengeModule(deps) {
             fetchBlitzBattleProgress((data) => res.json(data));
         });
 
-        // История донат-фида челленджа (последние N, в памяти процесса)
+        // История донат-фида челленджа + топ донатеров (в памяти процесса)
         app.get('/api/blitz-challenge/feed', (req, res) => {
-            res.json({ success: true, feed: recentFeed });
+            res.json({ success: true, feed: recentFeed, top: computeTopDonors() });
         });
 
         // Управление таймерами: start запускает от текущего момента, reset останавливает и обнуляет
@@ -477,37 +499,16 @@ function createBlitzChallengeModule(deps) {
                 res.json({ success: true, active: startedAt > 0, startedAt });
             });
         });
+        // Логика сессии общая с /api/lesta-session/* — живёт в server.js, здесь только обёртка
         app.post('/api/blitz-challenge/session/start', (req, res) => {
-            deps.getAppState((state) => {
-                if (!state || !state.lesta_account_id) {
-                    return res.status(400).json({ success: false, error: 'Сначала привяжите аккаунт Lesta' });
-                }
-                const nowSec = Math.floor(Date.now() / 1000);
-                deps.updateAppState({
-                    lesta_session_started_at: nowSec,
-                    lesta_session_baseline_battles: state.lesta_last_battles || 0,
-                    lesta_session_baseline_wins: state.lesta_last_wins || 0,
-                    lesta_session_baseline_losses: state.lesta_last_losses || 0,
-                    lesta_session_baseline_frags: state.lesta_last_frags || 0,
-                    lesta_session_baseline_damage: state.lesta_last_damage_dealt || 0,
-                    lesta_session_baseline_xp: state.lesta_last_xp || 0
-                }, (err) => {
-                    if (err) return res.status(500).json({ success: false, error: err.message });
-                    res.json({ success: true, startedAt: nowSec });
-                });
+            deps.startLestaSession((err, data) => {
+                if (err) return res.status(err.status).json({ success: false, error: err.error });
+                res.json({ success: true, startedAt: data.startedAt });
             });
         });
         app.post('/api/blitz-challenge/session/reset', (req, res) => {
-            deps.updateAppState({
-                lesta_session_started_at: 0,
-                lesta_session_baseline_battles: 0,
-                lesta_session_baseline_wins: 0,
-                lesta_session_baseline_losses: 0,
-                lesta_session_baseline_frags: 0,
-                lesta_session_baseline_damage: 0,
-                lesta_session_baseline_xp: 0
-            }, (err) => {
-                if (err) return res.status(500).json({ success: false, error: err.message });
+            deps.resetLestaSession((err) => {
+                if (err) return res.status(err.status).json({ success: false, error: err.error });
                 res.json({ success: true });
             });
         });
