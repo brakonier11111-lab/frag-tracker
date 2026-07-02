@@ -246,6 +246,35 @@ check('GET /auth/lesta (проверка LESTA_CONFIG shared по ссылке)'
     if (res.status !== 400 && res.status !== 302) throw new Error('status ' + res.status);
 });
 
+// Роуты из src/modules/lesta-routes (читающие / безопасные на копии БД)
+check('GET /api/lesta-period', async () => {
+    const res = await fetch(`${BASE_URL}/api/lesta-period?period=1d&daily=0`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.success !== true) throw new Error('unexpected body: ' + JSON.stringify(json).slice(0, 200));
+});
+
+check('GET /api/lesta-session', async () => {
+    const res = await fetch(`${BASE_URL}/api/lesta-session`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.success !== 'boolean') throw new Error('unexpected body: ' + JSON.stringify(json).slice(0, 200));
+});
+
+check('POST /api/lesta-session/start + reset', async () => {
+    const start = await fetch(`${BASE_URL}/api/lesta-session/start`, { method: 'POST' });
+    if (start.status !== 200 && start.status !== 400) throw new Error('start status ' + start.status);
+    const reset = await fetch(`${BASE_URL}/api/lesta-session/reset`, { method: 'POST' });
+    if (reset.status !== 200) throw new Error('reset status ' + reset.status);
+});
+
+check('GET /api/lesta-history', async () => {
+    const res = await fetch(`${BASE_URL}/api/lesta-history?period=1d`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (!json.success || !Array.isArray(json.history)) throw new Error('unexpected body: ' + JSON.stringify(json).slice(0, 200));
+});
+
 check('GET /api/analytics/stats', async () => {
     const res = await fetch(`${BASE_URL}/api/analytics/stats`);
     if (res.status !== 200) throw new Error('status ' + res.status);
