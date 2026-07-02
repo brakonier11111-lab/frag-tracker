@@ -39,7 +39,9 @@ function createBossOrdersModule(deps) {
     function getOrdersSnapshot(callback) {
         getConfig((cfgErr, config) => {
             db.all(
-                `SELECT * FROM boss_orders WHERE status != 'cancelled' ORDER BY created_at DESC LIMIT 50`,
+                // created_at у SQLite — секундная точность; id вторым критерием
+                // разруливает порядок нескольких приказов, созданных подряд за 1 секунду
+                `SELECT * FROM boss_orders WHERE status != 'cancelled' ORDER BY created_at DESC, id DESC LIMIT 50`,
                 (err, rows) => {
                     if (err) {
                         console.error('❌ Ошибка чтения boss_orders:', err);

@@ -124,7 +124,7 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
             <div class="card" id="configCard" style="display:none">
                 <h2>Настройки автосоздания из донатов</h2>
                 <div class="cfg-row"><label>Создавать приказ автоматически из доната<span class="hint">если у доната есть комментарий и сумма выше порога</span></label><input type="checkbox" id="cfgEnabled"></div>
-                <div class="cfg-row"><label>Порог доната, ₽</label><input type="number" id="cfgThreshold" value="500" step="50"></div>
+                <div class="cfg-row"><label>Порог доната, р</label><input type="number" id="cfgThreshold" value="500" step="50"></div>
                 <div class="cfg-row"><label>Подпись-плашка на виджете</label><input type="text" id="cfgHeader" value="ПРИКАЗ ОТ ЗРИТЕЛЯ"></div>
                 <div class="cfg-foot">
                     <button class="btn btn-ghost" onclick="closeConfig()">Отмена</button>
@@ -190,7 +190,7 @@ function renderOrders(){
         actions.push(`<button class="btn btn-ghost btn-sm" onclick="del(${o.id})">🗑</button>`);
         el.innerHTML = `<div class="order-av">${nm.slice(0,1).toUpperCase()}</div>
             <div class="order-body">
-                <div class="order-name">${nm} <span class="order-amt">${fmt(o.amount)} ₽</span> <span class="order-status">${STATUS_LABEL[o.status]||o.status}</span></div>
+                <div class="order-name">${nm} <span class="order-amt">${fmt(o.amount)} р</span> <span class="order-status">${STATUS_LABEL[o.status]||o.status}</span></div>
                 <div class="order-text">${esc(o.text)}</div>
             </div>
             <div class="order-actions">${actions.join('')}</div>`;
