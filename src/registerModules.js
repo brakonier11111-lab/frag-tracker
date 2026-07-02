@@ -3,7 +3,7 @@
 const { createBlitzChallengeModule } = require('./modules/blitz-challenge');
 const { createReplayLiveModule } = require('./modules/replay-live');
 const { createYandexMusicModule } = require('./modules/yandex-music');
-const { registerRouletteRoutes } = require('./modules/roulette');
+const { createRouletteModule } = require('./modules/roulette');
 const { createRazblogModule } = require('./modules/razblog');
 const { createDonorAchievementsModule } = require('./modules/donor-achievements');
 const { createChatStatsModule } = require('./modules/chat-stats');
@@ -31,7 +31,8 @@ function registerModules(app, deps, config) {
     yandexMusic.registerRoutes(app);
     yandexMusic.init();
 
-    registerRouletteRoutes(app, deps.db);
+    const roulette = createRouletteModule(deps);
+    roulette.registerRoutes(app);
 
     const razblog = createRazblogModule(deps, config);
     razblog.registerPages(app);
@@ -58,7 +59,7 @@ function registerModules(app, deps, config) {
     const donationsAnalytics = createDonationsAnalyticsModule(deps);
     donationsAnalytics.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, youtube, vkplay, lestaOAuth, donationsAnalytics };
+    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, lestaOAuth, donationsAnalytics };
 }
 
 module.exports = { registerModules };

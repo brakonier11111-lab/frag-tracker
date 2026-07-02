@@ -26,6 +26,7 @@ const { registerModules } = require('./src/registerModules');
 const { initBlitzChallengeSchema } = require('./src/modules/blitz-challenge/schema');
 let blitzModule = null;
 let razblogModuleRef = null;
+let rouletteModuleRef = null;
 
 /** РазБЛОГировка 2026 — включена по умолчанию (RAZBLOG_ENABLED=0 для отключения) */
 const RAZBLOG_ENABLED = process.env.RAZBLOG_ENABLED !== '0';
@@ -5877,90 +5878,11 @@ function processDonation(donationData, isRealtime = false) {
         alertData.timeFormatted = formatTimeDetailed(timeEarned);
         alertData.actualCostPerMinute = actualCostPerMinute;
         
-        // Рулетка: добавляем деньги к полоске сбора (если рулетка активна)
-        if (amount > 0) {
-            console.log(`🎰 Проверка рулетки: донат ${amount}₽`);
-            db.get('SELECT * FROM roulette_state WHERE id = 1', (err, rouletteState) => {
-                if (err) {
-                    console.error('❌ Ошибка получения состояния рулетки:', err);
-                    return;
-                }
-                if (!rouletteState) {
-                    console.log('⚠️ Состояние рулетки не найдено, создаем...');
-                    // Создаем запись если её нет
-                    db.run('INSERT INTO roulette_state (id, is_active, target_amount, current_amount, accumulated_roulettes) VALUES (1, 0, 1000, 0, 0)', (insertErr) => {
-                        if (insertErr) {
-                            console.error('❌ Ошибка создания состояния рулетки:', insertErr);
-                        } else {
-                            console.log('✅ Состояние рулетки создано');
-                        }
-                    });
-                    return;
-                }
-                console.log(`🎰 Состояние рулетки: активна=${rouletteState.is_active} (тип: ${typeof rouletteState.is_active}), текущая=${rouletteState.current_amount || 0}₽, цель=${rouletteState.target_amount || 1000}₽, накоплено=${rouletteState.accumulated_roulettes || 0}`);
-                // Проверяем активность: может быть 1, true, или строка "1"
-                const isActive = rouletteState.is_active === 1 || rouletteState.is_active === true || rouletteState.is_active === '1' || parseInt(rouletteState.is_active) === 1;
-                console.log(`🎰 Рулетка активна: ${isActive} (проверка: is_active=${rouletteState.is_active}, parseInt=${parseInt(rouletteState.is_active || 0)})`);
-                if (isActive) {
-                    console.log(`✅ Рулетка активна! Добавляем ${amount}₽ к текущей сумме ${rouletteState.current_amount || 0}₽`);
-                    const currentAmount = parseFloat(rouletteState.current_amount || 0);
-                    const targetAmount = parseFloat(rouletteState.target_amount || 1000);
-                    const accumulatedRoulettes = parseInt(rouletteState.accumulated_roulettes || 0);
-                    
-                    // Добавляем сумму к текущей
-                    let newCurrentAmount = currentAmount + amount;
-                    let newAccumulatedRoulettes = accumulatedRoulettes;
-                    
-                    // Если полоска заполнена или переполнена, накапливаем рулетки
-                    while (newCurrentAmount >= targetAmount && targetAmount > 0) {
-                        newAccumulatedRoulettes++;
-                        newCurrentAmount -= targetAmount;
-                        console.log(`🎰 Накоплена рулетка! Всего: ${newAccumulatedRoulettes}, остаток: ${newCurrentAmount.toFixed(2)}₽`);
-                    }
-                    
-                    const wasComplete = currentAmount >= targetAmount;
-                    const isNowComplete = newCurrentAmount >= targetAmount || newAccumulatedRoulettes > accumulatedRoulettes;
-                    
-                    db.run('UPDATE roulette_state SET current_amount = ?, accumulated_roulettes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1', 
-                        [newCurrentAmount, newAccumulatedRoulettes], (err) => {
-                            if (!err) {
-                                // Получаем обновленное состояние
-                                db.get('SELECT * FROM roulette_state WHERE id = 1', (err, updatedRoulette) => {
-                                    if (!err && updatedRoulette) {
-                                        console.log(`🎰 Рулетка обновлена: текущая сумма=${updatedRoulette.current_amount.toFixed(2)}₽, накоплено рулеток=${updatedRoulette.accumulated_roulettes}`);
-                                        
-                                        // Отправляем обновление всем клиентам
-                                        broadcastToClients({
-                                            type: 'ROULETTE_UPDATE',
-                                            state: updatedRoulette
-                                        });
-                                        
-                                        // Если полоска только что заполнилась, отправляем уведомление
-                                        if (!wasComplete && isNowComplete) {
-                                            console.log('🎰 Рулетка заполнена! Отправка уведомления о необходимости крутить барабан');
-                                            broadcastToClients({
-                                                type: 'ROULETTE_COMPLETE',
-                                                state: updatedRoulette,
-                                                message: `Полоска рулетки заполнена! Пора крутить барабан!`
-                                            });
-                                        }
-                                    }
-                                });
-                            } else {
-                                console.error('❌ Ошибка обновления рулетки:', err);
-                            }
-                        });
-                } else {
-                    if (!err && rouletteState) {
-                        const isActive = rouletteState.is_active === 1 || rouletteState.is_active === true || rouletteState.is_active === '1' || parseInt(rouletteState.is_active) === 1;
-                        if (!isActive) {
-                            console.log('⚠️ Рулетка неактивна (is_active=' + rouletteState.is_active + '), пропускаем добавление доната');
-                        }
-                    } else if (err) {
-                        console.error('❌ Ошибка получения состояния рулетки:', err);
-                    }
-                }
-            });
+        // Рулетка: добавляем деньги к полоске сбора (логика в src/modules/roulette)
+        try {
+            if (rouletteModuleRef) rouletteModuleRef.addDonationToRoulette(amount);
+        } catch (e) {
+            console.warn('⚠️ Ошибка обновления рулетки:', e);
         }
         
         // Режим 3: Custom Tracker
@@ -10849,6 +10771,7 @@ const moduleConfig = {
 const modules = registerModules(app, moduleDeps, moduleConfig);
 blitzModule = modules.blitz;
 razblogModuleRef = modules.razblog;
+rouletteModuleRef = modules.roulette;
 
 function updateBlitzChallenge(amount, donation) {
     if (blitzModule) blitzModule.updateBlitzChallenge(amount, donation);
