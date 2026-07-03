@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Интеграции стримов — YouTube и VK Play</title>
+	<title>Интеграции стримов — YouTube, VK Play и Twitch</title>
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="/styles/design-system.css">
 	<link rel="stylesheet" href="/styles/layout.css">
@@ -53,6 +53,7 @@
 		.btn { appearance: none; border: 0; outline: 0; cursor: pointer; padding: 10px 14px; border-radius: 10px; color: #0b0f17; font-weight: 700; font-size: 14px; }
 		.btn.yt { background: linear-gradient(135deg, #ff4757, #ffa502); }
 		.btn.vk { background: linear-gradient(135deg, #6ea8fe, #9b59ff); }
+		.btn.tw { background: linear-gradient(135deg, #9146ff, #772ce8); }
 		.btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--card-border); }
 		.btn:disabled { opacity: .6; cursor: default; }
 
@@ -155,7 +156,18 @@
 	<div id="header-placeholder"></div>
 	<div class="page">
 		<div class="h1">Интеграции стримов</div>
-		<div class="sub">Авторизуйтесь в YouTube и VK Play, чтобы собирать: онлайн, лайки, сообщения чата в реальном времени.</div>
+		<div class="sub">Авторизуйтесь в YouTube и VK Play, чтобы собирать: онлайн, лайки, сообщения чата в реальном времени. Twitch подключается без авторизации — просто через ключи в config.env.</div>
+
+		<div class="card" style="margin-bottom:16px;">
+			<h2>📊 Общий онлайн (YouTube + VK Play + Twitch)</h2>
+			<p>OBS-виджет суммирует онлайн со всех подключённых площадок.</p>
+			<div class="kv"><div>YouTube</div><div id="ov-youtube" class="value">—</div></div>
+			<div class="kv"><div>VK Play</div><div id="ov-vkplay" class="value">—</div></div>
+			<div class="kv"><div>Twitch</div><div id="ov-twitch" class="value">—</div></div>
+			<div class="kv"><div>Всего</div><div id="ov-total" class="value">—</div></div>
+			<div class="hr"></div>
+			<div class="small">Ссылка для OBS (Browser Source): <code>/widget-online-viewers.html</code></div>
+		</div>
 
 		<div class="grid">
 			<div class="card" id="card-youtube">
@@ -242,6 +254,33 @@
 						<button class="btn ghost" onclick="toggleChat()">Скрыть чат</button>
 					</div>
 					<div class="chat-messages" id="chat-messages"></div>
+					<div class="chat-footer">
+						<span class="chat-info">Сообщения обновляются каждые 5 секунд</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Twitch -->
+			<div class="card" id="card-twitch">
+				<h2>Twitch</h2>
+				<p>Онлайн через App Access Token, чат читается анонимно — авторизация не нужна. Укажите TW_CLIENT_ID/TW_CLIENT_SECRET/TW_CHANNEL в Настройках.</p>
+				<div class="kv"><div>Статус</div><span id="tw-status" class="badge err">Не подключено</span></div>
+				<div class="kv"><div>Канал</div><div id="tw-channel" class="value">—</div></div>
+				<div class="kv"><div>Текущий стрим</div><div id="tw-live" class="value">—</div></div>
+				<div class="kv"><div>Онлайн</div><div id="tw-viewers" class="value">—</div></div>
+				<div class="hr"></div>
+				<div class="row">
+					<button class="btn ghost" id="btn-tw-test">Проверить подключение</button>
+					<button class="btn ghost" id="btn-tw-chat" onclick="toggleTwitchChat()" style="display:none;">Показать чат</button>
+				</div>
+				<div class="small">Ключи задаются в <a href="/admin.html" style="color:var(--accent);">Настройках</a> (группа «Twitch»), рестарт сервера подхватит их без OAuth.</div>
+
+				<div class="chat-section" id="tw-chat-section" style="display: none;">
+					<div class="chat-header">
+						<h3>💬 Чат Twitch</h3>
+						<button class="btn ghost" onclick="toggleTwitchChat()">Скрыть чат</button>
+					</div>
+					<div class="chat-messages" id="tw-chat-messages"></div>
 					<div class="chat-footer">
 						<span class="chat-info">Сообщения обновляются каждые 5 секунд</span>
 					</div>
@@ -421,6 +460,11 @@
 			alert(JSON.stringify(res, null, 2));
 		};
 
+		document.getElementById('btn-tw-test').onclick = async () => {
+			const res = await api('/integrations/twitch/status');
+			alert(JSON.stringify(res, null, 2));
+		};
+
 		// DonationAlerts handlers
 		document.getElementById('btn-da-auth').onclick = () => {
 			window.open('/auth/donationalerts', 'DA Auth', 'width=600,height=700');
@@ -475,6 +519,16 @@
 			setBadge('yt-status', yt && yt.connected, { channel: yt.channel || '—', live: yt.liveTitle || '—', viewers: yt.viewers || 0 });
 			const vk = await api('/integrations/vkplay/status');
 			setBadge('vk-status', vk && vk.connected, { channel: vk.channel || '—', live: vk.liveTitle || '—' });
+			const tw = await api('/integrations/twitch/status');
+			setBadge('tw-status', tw && tw.connected, { channel: tw.channel || '—', live: tw.liveTitle || '—', viewers: tw && tw.connected ? tw.viewers : null });
+
+			const ov = await api('/api/online-viewers');
+			if (ov && !ov.error) {
+				document.getElementById('ov-youtube').textContent = ov.youtube.connected ? ov.youtube.viewers : '—';
+				document.getElementById('ov-vkplay').textContent = ov.vkplay.connected ? ov.vkplay.viewers : '—';
+				document.getElementById('ov-twitch').textContent = ov.twitch.connected ? ov.twitch.viewers : '—';
+				document.getElementById('ov-total').textContent = ov.total;
+			}
 
 			// Обновляем лайки YouTube и VK Play (если доступны)
 			try {
@@ -536,6 +590,16 @@
 			} else {
 				ytChatBtn.style.display = 'none';
 				document.getElementById('yt-chat-section').style.display = 'none';
+			}
+
+			// Twitch чат читается анонимно, доступен как только чатEnabled (сокет подключился)
+			const twChatBtn = document.getElementById('btn-tw-chat');
+			if (tw && tw.chatEnabled) {
+				twChatBtn.style.display = 'inline-block';
+				loadTwitchChatMessages();
+			} else {
+				twChatBtn.style.display = 'none';
+				document.getElementById('tw-chat-section').style.display = 'none';
 			}
 
 			// DonationAlerts status
@@ -664,8 +728,53 @@
 			}
 		}
 
+		function toggleTwitchChat() {
+			const chatSection = document.getElementById('tw-chat-section');
+			const chatBtn = document.getElementById('btn-tw-chat');
+			if (chatSection.style.display === 'none') {
+				chatSection.style.display = 'block';
+				chatBtn.textContent = 'Скрыть чат';
+				loadTwitchChatMessages();
+			} else {
+				chatSection.style.display = 'none';
+				chatBtn.textContent = 'Показать чат';
+			}
+		}
+
+		async function loadTwitchChatMessages() {
+			try {
+				const response = await api('/api/chat/messages?platform=twitch&limit=50');
+				if (response && response.messages) {
+					const chatContainer = document.getElementById('tw-chat-messages');
+					chatContainer.innerHTML = '';
+					response.messages.reverse().forEach(msg => {
+						const messageDiv = document.createElement('div');
+						messageDiv.className = 'chat-message';
+						const time = new Date(msg.created_at).toLocaleTimeString();
+						const username = msg.username || 'Аноним';
+						const isModerator = msg.is_moderator;
+						const isOwner = msg.is_owner;
+						let usernameClass = '';
+						if (isOwner) usernameClass = 'owner';
+						else if (isModerator) usernameClass = 'moderator';
+						messageDiv.innerHTML = `
+							<div class="chat-message-header">
+								<span class="chat-username ${usernameClass}">${username}</span>
+								<span class="chat-time">${time}</span>
+							</div>
+							<div class="chat-message-text">${msg.message || ''}</div>
+						`;
+						chatContainer.appendChild(messageDiv);
+					});
+					chatContainer.scrollTop = chatContainer.scrollHeight;
+				}
+			} catch (e) {
+				console.warn('Ошибка загрузки чата Twitch:', e);
+			}
+		}
+
 		refreshStatus();
-		
+
 		// Принудительное обновление данных VK Play при загрузке
 		setTimeout(async () => {
 			try {
