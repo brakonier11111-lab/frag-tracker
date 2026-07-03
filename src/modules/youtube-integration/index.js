@@ -633,7 +633,7 @@ function createYoutubeIntegrationModule(deps) {
         setInterval(() => withApiQueue('youtube', () => updateYouTubeData()), 30000);
     }
 
-    return { registerRoutes, hydrateFromDb, startPolling };
+    return { registerRoutes, hydrateFromDb, startPolling, getState: () => youtubeIntegration };
 }
 
 module.exports = { createYoutubeIntegrationModule };

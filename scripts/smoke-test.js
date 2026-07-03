@@ -178,6 +178,13 @@ check('GET /api/chat/stats', async () => {
     if (!Array.isArray(json.stats)) throw new Error('unexpected body: ' + JSON.stringify(json));
 });
 
+check('GET /api/online-viewers', async () => {
+    const res = await fetch(`${BASE_URL}/api/online-viewers`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.total !== 'number') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
 check('GET /integrations/youtube/status', async () => {
     const res = await fetch(`${BASE_URL}/integrations/youtube/status`);
     if (res.status !== 200) throw new Error('status ' + res.status);

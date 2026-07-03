@@ -9,13 +9,14 @@ const { createDonorAchievementsModule } = require('./modules/donor-achievements'
 const { createChatStatsModule } = require('./modules/chat-stats');
 const { createYoutubeIntegrationModule } = require('./modules/youtube-integration');
 const { createVkplayIntegrationModule } = require('./modules/vkplay-integration');
+const { createOnlineViewersModule } = require('./modules/online-viewers');
 const { createLestaOAuthModule } = require('./modules/lesta-oauth');
 const { createDonationsAnalyticsModule } = require('./modules/donations-analytics');
 const { createBossOrdersModule } = require('./modules/boss-orders');
 
 /**
  * Подключает вынесенные модули к Express-приложению.
- * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, youtube, vkplay, lestaOAuth, donationsAnalytics }}
+ * @returns {{ blitz, replayLive, yandexMusic, razblog, donorAchievements, chatStats, youtube, vkplay, onlineViewers, lestaOAuth, donationsAnalytics }}
  */
 function registerModules(app, deps, config) {
     const blitz = createBlitzChallengeModule(deps);
@@ -53,6 +54,13 @@ function registerModules(app, deps, config) {
     vkplay.registerRoutes(app);
     vkplay.startPolling();
 
+    const onlineViewers = createOnlineViewersModule({
+        ...deps,
+        getYoutubeState: youtube.getState,
+        getVkplayState: vkplay.getState
+    });
+    onlineViewers.registerRoutes(app);
+
     const lestaOAuth = createLestaOAuthModule(deps);
     lestaOAuth.registerPages(app);
     lestaOAuth.registerRoutes(app);
@@ -64,7 +72,7 @@ function registerModules(app, deps, config) {
     bossOrders.registerPages(app);
     bossOrders.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, lestaOAuth, donationsAnalytics, bossOrders };
+    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, onlineViewers, lestaOAuth, donationsAnalytics, bossOrders };
 }
 
 module.exports = { registerModules };

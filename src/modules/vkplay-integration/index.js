@@ -3017,7 +3017,7 @@ function createVkplayIntegrationModule(deps) {
                 }
     }
 
-    return { registerRoutes, startPolling, hydrateFromDb };
+    return { registerRoutes, startPolling, hydrateFromDb, getState: () => vkplayIntegration };
 }
 
 module.exports = { createVkplayIntegrationModule };
