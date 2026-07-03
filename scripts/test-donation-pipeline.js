@@ -4,8 +4,8 @@
  * и проверяет СЕМАНТИКУ обработки доната, а не только «роут отвечает»:
  *   - тест-донат увеличивает total_donated и timer_seconds, попадает в donations
  *   - донат двигает Blitz Challenge (session_balance)
- *   - webhook DonatePay принимает донат (секрет в копии БД обнуляется)
- *   - ДЕДУП: тот же донат, присланный трижды, засчитывается ровно один раз
+ *   - webhook DonatePay отключён (2026-07-03): отвечает success, но не создаёт донат —
+ *     единственный источник DonatePay теперь поллинг newTransactions, как в MiniChat
  *
  * Запуск: node scripts/test-donation-pipeline.js
  */
@@ -173,23 +173,17 @@ async function main() {
         const webhookPayload = { type: 'donation', status: 'success', id: dupId, sum: 100, what: 'DupDonor', comment: 'dup-test' };
         const stateBeforeDup = await getState();
 
-        await step('webhook DonatePay принимает донат', async () => {
+        await step('webhook DonatePay отключён: отвечает success, но донат не создаёт', async () => {
             const r = await post('/webhook/donatepay', webhookPayload);
             assert(r.success, 'webhook не вернул success: ' + JSON.stringify(r));
-            await sleep(900);
-            const rows = await findDonations('dp_' + dupId);
-            assert(rows.length === 1, `ожидалась 1 запись dp_${dupId}, найдено ${rows.length}`);
-        });
-
-        await step('ДЕДУП: повторный webhook с тем же id не засчитывается', async () => {
             await post('/webhook/donatepay', webhookPayload);
             await post('/webhook/donatepay', webhookPayload);
             await sleep(900);
             const rows = await findDonations('dp_' + dupId);
-            assert(rows.length === 1, `ожидалась 1 запись dp_${dupId}, найдено ${rows.length}`);
+            assert(rows.length === 0, `webhook должен быть no-op, найдено ${rows.length} записей dp_${dupId}`);
             const s = await getState();
             const diff = (s.total_donated || 0) - (stateBeforeDup.total_donated || 0);
-            assert(Math.abs(diff - 100) < 0.01, `total_donated diff = ${diff}, ожидалось 100 (донат засчитан один раз)`);
+            assert(Math.abs(diff) < 0.01, `total_donated diff = ${diff}, ожидалось 0 (webhook отключён)`);
         });
 
         if (results.some(([ok]) => !ok)) exitCode = 1;

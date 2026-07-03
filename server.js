@@ -3248,6 +3248,7 @@ const lestaSyncModule = createLestaSyncModule({
                 if (razErr) console.warn('⚠️ razblog sync after lesta:', razErr.message);
             });
         }
+        if (blitzModule) blitzModule.syncBlitzMedalsFromLesta();
     }
 });
 const prolongateLestaToken = lestaSyncModule.prolongateLestaToken;
@@ -3258,55 +3259,12 @@ const stopLestaAutoSync = lestaSyncModule.stopLestaAutoSync;
 
 // Webhook для DonatePay
 // Тело уже распарсено глобальным express.json; сырые байты для подписи — в req.rawBody
+// Намеренно отключено (2026-07-03): поллинг newTransactions — единственный источник
+// DonatePay, как в MiniChat. Роут оставлен, чтобы не отдавать 404 на случай, если
+// URL всё ещё указан в личном кабинете DonatePay, но донаты больше не обрабатывает —
+// это устраняет третий параллельный путь наряду с поллингом и Centrifugo.
 app.post('/webhook/donatepay', (req, res) => {
-    try {
-        const signature = req.headers['x-donatepay-signature'];
-
-        // Проверка подписи (если настроен секрет) — по сырому телу
-        if (DP_CONFIG.webhookSecret) {
-            if (!req.rawBody) {
-                console.log('❌ DonatePay webhook: нет сырого тела для проверки подписи');
-                return res.status(401).json({ error: 'Invalid signature' });
-            }
-            const crypto = require('crypto');
-            const expectedSignature = crypto
-                .createHmac('sha256', DP_CONFIG.webhookSecret)
-                .update(req.rawBody)
-                .digest('hex');
-
-            if (signature !== `sha256=${expectedSignature}`) {
-                console.log('❌ Неверная подпись DonatePay webhook');
-                return res.status(401).json({ error: 'Invalid signature' });
-            }
-        }
-
-        const donation = Buffer.isBuffer(req.body) ? JSON.parse(req.body) : (req.body || {});
-        
-        if (donation.type === 'donation' && donation.status === 'success') {
-            console.log(`💰 DonatePay webhook: ${donation.what} - ${donation.sum}₽`);
-            
-            processDonation({
-                id: `dp_${donation.id}`,
-                username: donation.what || 'Аноним',
-                amount: parseFloat(donation.sum),
-                message: donation.comment || '',
-                currency: 'RUB'
-            }, true);
-            
-            // Дополнительная проверка донатов после webhook
-            setTimeout(() => {
-                if (!isPollingInProgress) {
-                    console.log('🔄 Проверка донатов после webhook DonatePay...');
-                    checkForNewDonations();
-                }
-            }, 1000);
-        }
-        
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Ошибка обработки DonatePay webhook:', error);
-        res.status(500).json({ error: 'Webhook processing failed' });
-    }
+    res.json({ success: true });
 });
 
 // Опрос DonationAlerts и DonatePay
@@ -7887,7 +7845,7 @@ FRAG_SERVER_READY:${port}
 🔗 Статистика Lesta: http://localhost:${port}/lesta-stats${RAZBLOG_ENABLED ? `
 🔗 РазБЛОГировка 2026: http://localhost:${port}/razblogirovka` : ''}
 🔗 Тест Lesta API: http://localhost:${port}/lesta-test
-🔗 DonatePay Webhook: http://localhost:${port}/webhook/donatepay
+🔗 DonatePay Webhook: http://localhost:${port}/webhook/donatepay (отключён, только поллинг)
 🎯 ==================================
     `);
 

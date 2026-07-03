@@ -1,11 +1,12 @@
 'use strict';
 
 const axios = require('axios');
-const { Centrifuge } = require('centrifuge');
 
 /**
- * HTTP/WebSocket-интеграции с DonationAlerts и DonatePay: получение донатов
- * опросом (DA REST, DP /newTransactions) и realtime через Centrifugo.
+ * HTTP-интеграции с DonationAlerts и DonatePay: получение донатов опросом
+ * (DA REST, DP /newTransactions). Centrifugo-путь для DonatePay намеренно
+ * отключён (connectDonatePayCentrifugo — no-op, см. комментарий внутри):
+ * давал цикл переподключений (code 3501) и дублировал поллинг без выигрыша.
  * Вынос из server.js с телами 1:1 — вся логика решений (что считать новым
  * донатом, дедуп) остаётся снаружи в checkForNewDonations/classifyDonationForPolling,
  * здесь только сетевой слой.
@@ -509,201 +510,10 @@ function createDonationPlatformsModule(deps) {
     }
 
     async function connectDonatePayCentrifugo() {
-        if (!DP_CONFIG.apiKey) {
-            console.log('⚠️ DonatePay не настроен для Centrifugo (нет API ключа)');
-            return;
-        }
-
-        // Если userId не получен, пытаемся получить информацию о пользователе
-        if (!DP_CONFIG.userId) {
-            console.log('⚠️ UserId не получен, пытаемся получить информацию о пользователе...');
-            const userInfo = await getDonatePayUser();
-            if (!userInfo || !DP_CONFIG.userId) {
-                console.log('⚠️ Не удалось получить информацию о пользователе, Centrifugo не подключен');
-                return;
-            }
-        }
-
-        try {
-            console.log('🔗 Подключение к Centrifugo DonatePay...');
-            console.log('📋 Параметры:', {
-                userId: DP_CONFIG.userId,
-                apiKey: DP_CONFIG.apiKey ? `${DP_CONFIG.apiKey.substring(0, 10)}...` : 'ОТСУТСТВУЕТ',
-                centrifugoUrl: DP_CONFIG.centrifugoUrl,
-                socketTokenUrl: DP_CONFIG.socketTokenUrl
-            });
-
-            // Получаем токен для подключения
-            const tokenResponse = await axios.post(DP_CONFIG.socketTokenUrl, {
-                access_token: DP_CONFIG.apiKey
-            }, {
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                timeout: 10000
-            });
-
-            console.log('📥 Ответ от socket/token:', {
-                status: tokenResponse.status,
-                hasToken: !!tokenResponse.data?.token
-            });
-
-            if (!tokenResponse.data || !tokenResponse.data.token) {
-                console.error('❌ Не удалось получить токен для Centrifugo');
-                console.error('📋 Ответ:', JSON.stringify(tokenResponse.data, null, 2));
-                return;
-            }
-
-            const connectionToken = tokenResponse.data.token;
-            console.log('✅ Токен для Centrifugo получен');
-
-            // Создаем подключение к Centrifugo с новым API (v4+)
-            // Используем subscribeEndpoint и subscribeParams согласно документации
-            centrifuge = new Centrifuge(DP_CONFIG.centrifugoUrl, {
-                token: connectionToken,
-                subscribeEndpoint: DP_CONFIG.socketTokenUrl,
-                subscribeParams: {
-                    access_token: DP_CONFIG.apiKey
-                },
-                disableWithCredentials: true
-            });
-
-            // Подписываемся на канал пользователя
-            const channel = `$public:${DP_CONFIG.userId}`;
-            console.log('📡 Подписка на канал:', channel);
-            console.log('📋 Канал для получения донатов DonatePay в real-time');
-
-            const subscription = centrifuge.newSubscription(channel);
-
-            subscription.on('publication', (ctx) => {
-                console.log('💰💰💰 DonatePay real-time уведомление получено через Centrifugo! 💰💰💰');
-                console.log('📨 Полные данные:', JSON.stringify(ctx.data, null, 2));
-
-                // Обрабатываем донат - проверяем разные форматы данных
-                const data = ctx.data || {};
-                let donationData = null;
-
-                // Формат 1: прямое поле type === 'donation'
-                if (data.type === 'donation') {
-                    donationData = {
-                        id: `dp_${data.id || Date.now()}`,
-                        username: data.what || data.name || 'Аноним',
-                        amount: parseFloat(data.sum || data.amount || 0),
-                        message: data.comment || data.message || '',
-                        currency: 'RUB',
-                        created_at: data.created_at || new Date().toISOString(),
-                        platform: 'donatepay'
-                    };
-                }
-                // Формат 2: в vars может быть информация о донате
-                else if (data.vars) {
-                    const vars = data.vars;
-                    if (vars.type === 'donation' || vars.sum) {
-                        donationData = {
-                            id: `dp_${data.id || vars.id || Date.now()}`,
-                            username: vars.what || vars.name || 'Аноним',
-                            amount: parseFloat(vars.sum || vars.amount || 0),
-                            message: vars.comment || vars.message || '',
-                            currency: 'RUB',
-                            created_at: vars.created_at || data.created_at || new Date().toISOString(),
-                            platform: 'donatepay'
-                        };
-                    }
-                }
-                // Формат 3: если есть поля what и sum, это донат
-                else if (data.what && data.sum) {
-                    donationData = {
-                        id: `dp_${data.id || Date.now()}`,
-                        username: data.what || 'Аноним',
-                        amount: parseFloat(data.sum || 0),
-                        message: data.comment || data.message || '',
-                        currency: 'RUB',
-                        created_at: data.created_at || new Date().toISOString(),
-                        platform: 'donatepay'
-                    };
-                }
-
-                // Обрабатываем донат если он найден
-                if (donationData && donationData.amount > 0) {
-                    console.log('✅ Обработка доната из Centrifugo (real-time):', donationData);
-
-                    // Обновляем lastTransactionId если есть реальный ID
-                    if (data.id) {
-                        const transactionId = parseInt(data.id) || 0;
-                        if (transactionId > (parseInt(DP_CONFIG.lastTransactionId) || 0)) {
-                            DP_CONFIG.lastTransactionId = transactionId;
-                            // Сохраняем в БД
-                            getAppState((state) => {
-                                if (state) {
-                                    updateAppState({
-                                        dp_last_transaction_id: transactionId
-                                    }, (err) => {
-                                        if (err) {
-                                            console.error('❌ Ошибка сохранения ID последней транзакции:', err);
-                                        } else {
-                                            console.log('✅ ID последней транзакции сохранен:', transactionId);
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    }
-
-                    processDonation(donationData, true); // true = realtime
-                } else {
-                    console.log('⚠️ Получено уведомление, но не удалось извлечь данные доната');
-                }
-            });
-
-            subscription.on('subscribed', (ctx) => {
-                console.log('✅ Подписка на DonatePay канал активна:', channel);
-                console.log('🎉 Готов к получению донатов DonatePay в real-time через Centrifugo!');
-                console.log('📡 Все новые донаты будут приходить мгновенно через WebSocket');
-            });
-
-            subscription.on('subscribing', (ctx) => {
-                console.log('🔄 Подписка на DonatePay канал в процессе...');
-            });
-
-            subscription.on('unsubscribed', (ctx) => {
-                console.log('⚠️ Отписка от DonatePay канала:', ctx);
-            });
-
-            subscription.on('error', (ctx) => {
-                console.error('❌ Ошибка подписки DonatePay:', ctx);
-            });
-
-            // Обработчики событий подключения
-            centrifuge.on('connecting', (ctx) => {
-                console.log('🔄 Подключение к Centrifugo DonatePay...');
-            });
-
-            centrifuge.on('connected', (ctx) => {
-                console.log('✅ Подключение к Centrifugo DonatePay установлено');
-            });
-
-            centrifuge.on('disconnected', (ctx) => {
-                console.log('⚠️ Отключение от Centrifugo DonatePay:', ctx);
-            });
-
-            centrifuge.on('error', (ctx) => {
-                console.error('❌ Ошибка Centrifugo DonatePay:', ctx);
-            });
-
-            // Подключаемся и подписываемся
-            subscription.subscribe();
-            centrifuge.connect();
-
-            console.log('✅ Инициализация Centrifugo DonatePay завершена');
-
-        } catch (error) {
-            console.error('❌ Ошибка подключения к Centrifugo DonatePay:', error.message);
-            console.error('📋 Детали ошибки:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status
-            });
-        }
+        // Отключено намеренно: реальный поллинг newTransactions — единственный источник
+        // DonatePay (см. память проекта, 2026-07-03). Centrifugo давал цикл переподключений
+        // (code 3501) и дублировал поллинг без выигрыша в надёжности.
+        console.log('ℹ️ DonatePay Centrifugo отключён — используется только поллинг newTransactions');
     }
 
     function isCentrifugoConnected() {
