@@ -12,6 +12,11 @@
 const axios = require('axios');
 const WebSocket = require('ws');
 
+// Twitch-домены доступны напрямую (проверено), но axios по умолчанию читает
+// системные HTTP_PROXY/HTTPS_PROXY и криво их применяет к этим запросам
+// ("plain HTTP request was sent to HTTPS port") — принудительно идём напрямую.
+const twitchAxiosOpts = { proxy: false };
+
 function defaultTwitchIntegration() {
     return {
         connected: false,
@@ -47,7 +52,8 @@ function createTwitchIntegrationModule(deps) {
                 client_id: process.env.TW_CLIENT_ID,
                 client_secret: process.env.TW_CLIENT_SECRET,
                 grant_type: 'client_credentials'
-            }
+            },
+            ...twitchAxiosOpts
         });
 
         appToken = {
@@ -67,7 +73,8 @@ function createTwitchIntegrationModule(deps) {
                 headers: {
                     'Client-Id': process.env.TW_CLIENT_ID,
                     'Authorization': `Bearer ${token}`
-                }
+                },
+                ...twitchAxiosOpts
             });
 
             const stream = res.data.data && res.data.data[0];
