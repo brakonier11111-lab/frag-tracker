@@ -49,10 +49,11 @@ function createBossOrdersModule(deps) {
                     }
                     const orders = (rows || []).map(normalizeOrderRow);
                     const active = orders.find(o => o.status === 'active') || null;
-                    // То, что реально показывает виджет: активные + выполненные,
-                    // отсортированные по сумме — выполненные не пропадают из вида.
+                    // То, что реально показывает виджет: активные + выполненные + проваленные,
+                    // отсортированные по сумме — выполненные и проваленные не пропадают из вида,
+                    // остаются на доске (провал — темнее, выполнено — зелёный перелив).
                     const boardOrders = orders
-                        .filter(o => o.status === 'active' || o.status === 'done')
+                        .filter(o => o.status === 'active' || o.status === 'done' || o.status === 'failed')
                         .sort((a, b) => b.amount - a.amount);
                     callback({
                         config: {
@@ -89,17 +90,18 @@ function createBossOrdersModule(deps) {
             const username = donation.username || 'Аноним';
             const normalizedUsername = deps.normalizeUsername ? deps.normalizeUsername(username) : null;
 
+            // Сразу 'active' — челлендж должен появиться на виджете без ручного «Начать»
             db.run(
                 `INSERT OR IGNORE INTO boss_orders (donation_id, username, normalized_username, amount, order_text, status)
-                 VALUES (?, ?, ?, ?, ?, 'pending')`,
+                 VALUES (?, ?, ?, ?, ?, 'active')`,
                 [donation.id != null ? String(donation.id) : null, username, normalizedUsername, amount, text.slice(0, 300)],
                 function (insErr) {
                     if (insErr) {
-                        console.error('❌ Ошибка создания приказа босса:', insErr);
+                        console.error('❌ Ошибка создания челленджа:', insErr);
                         return;
                     }
                     if (this.changes > 0) {
-                        console.log(`⚔️ Новый приказ от ${username} (${amount}₽): "${text.slice(0, 60)}"`);
+                        console.log(`⚔️ Новый челлендж от ${username} (${amount}₽): "${text.slice(0, 60)}"`);
                         broadcastUpdate();
                     }
                 }
@@ -139,13 +141,14 @@ function createBossOrdersModule(deps) {
             const normalizedUsername = deps.normalizeUsername ? deps.normalizeUsername(username) : null;
             const donationId = `manual_${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
 
+            // Сразу 'active' — челлендж сразу попадает в «выполняется», без кнопки «Начать»
             db.run(
                 `INSERT INTO boss_orders (donation_id, username, normalized_username, amount, order_text, status)
-                 VALUES (?, ?, ?, ?, ?, 'pending')`,
+                 VALUES (?, ?, ?, ?, ?, 'active')`,
                 [donationId, username, normalizedUsername, amount, text.slice(0, 300)],
                 function (err) {
                     if (err) {
-                        console.error('❌ Ошибка ручного создания приказа:', err);
+                        console.error('❌ Ошибка ручного создания челленджа:', err);
                         return res.status(500).json({ success: false, error: 'Ошибка создания' });
                     }
                     broadcastUpdate();

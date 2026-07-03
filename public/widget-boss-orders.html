@@ -23,12 +23,13 @@ body{font-family:'Manrope',sans-serif;background:transparent;color:var(--text);
 .scale{transform-origin:top center;transform:scale(var(--s,1));padding-top:6px;}
 .stage{width:420px;display:flex;flex-direction:column;align-items:center;gap:9px;}
 
-/* плашка порога — всегда видна, компактная */
-.threshold{display:inline-flex;align-items:center;gap:7px;padding:6px 14px;border-radius:999px;
-    background:rgba(19,20,23,0.92);border:1px solid var(--line-gold);box-shadow:0 8px 20px rgba(0,0,0,0.4);}
-.threshold .ic{width:12px;height:12px;filter:drop-shadow(0 0 3px var(--gold-soft));}
-.threshold .tx{font-size:.66rem;font-weight:700;letter-spacing:.06em;color:var(--text-dim);white-space:nowrap;}
-.threshold .tx b{color:var(--gold);font-weight:800;}
+/* плашка порога — всегда видна, крупная (призыв «кинуть челлендж») */
+.threshold{display:inline-flex;align-items:center;gap:12px;padding:13px 28px;border-radius:999px;
+    background:rgba(19,20,23,0.92);border:1px solid var(--line-gold);
+    box-shadow:0 10px 26px rgba(0,0,0,0.45),0 0 26px rgba(217,180,101,.1);}
+.threshold .ic{width:24px;height:24px;filter:drop-shadow(0 0 5px var(--gold-soft));}
+.threshold .tx{font-size:1.28rem;font-weight:800;letter-spacing:.04em;color:var(--text);white-space:nowrap;}
+.threshold .tx b{color:var(--gold);font-weight:900;}
 
 .board{width:100%;display:flex;flex-direction:column;gap:8px;}
 
@@ -38,38 +39,50 @@ body{font-family:'Manrope',sans-serif;background:transparent;color:var(--text);
     box-shadow:0 10px 26px rgba(0,0,0,0.4);
     animation:cardIn .4s cubic-bezier(.16,1,.3,1);}
 @keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.order::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);}
+.order::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);z-index:2;}
 .order.done::before{background:var(--green);}
+.order.failed::before{background:#ff5a5a;}
 
-.order-row{display:flex;align-items:center;gap:10px;padding:9px 13px 9px 15px;}
+/* выполнено — переливающийся зелёный фон поверх карточки */
+.order.done{border-color:rgba(95,227,163,.32);}
+.order.done::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:linear-gradient(100deg,transparent 18%,rgba(95,227,163,.20) 50%,transparent 82%);
+    background-size:220% 100%;animation:greenShimmer 2.6s linear infinite;}
+@keyframes greenShimmer{0%{background-position:130% 0}100%{background-position:-130% 0}}
+/* провалено — на 20% темнее */
+.order.failed{filter:brightness(.8);}
+
+.order-row{position:relative;z-index:1;display:flex;align-items:center;gap:10px;padding:9px 13px 9px 15px;}
 .rank{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;
     font-size:.68rem;font-weight:800;color:var(--bg);background:var(--gold);}
 .who{flex:1;min-width:0;}
 .who .name-line{display:flex;align-items:baseline;gap:7px;}
-.who .name{font-weight:800;font-size:.92rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;}
+.who .name{font-weight:800;font-size:.92rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}
 .who .amt{font-weight:900;font-size:.86rem;color:var(--gold);font-variant-numeric:tabular-nums;flex:none;}
 .who .task{margin-top:1px;font-size:.78rem;font-weight:600;color:var(--text-dim);line-height:1.3;
     display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;}
 
-.status{flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;
-    background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.08);}
-.status .spin{width:11px;height:11px;border-radius:50%;border:2px solid rgba(217,180,101,.28);border-top-color:var(--gold);
+/* статус-бейдж с текстом */
+.badge{flex:none;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;
+    font-size:.64rem;font-weight:800;letter-spacing:.05em;white-space:nowrap;}
+.badge .spin{width:11px;height:11px;border-radius:50%;border:2px solid rgba(217,180,101,.3);border-top-color:var(--gold);
     animation:spin 1s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
-.status .check{display:none;width:12px;height:12px;}
-.order.done .status{border-color:rgba(95,227,163,.3);background:rgba(95,227,163,.08);}
-.order.done .status .spin{display:none;}
-.order.done .status .check{display:block;}
+.badge svg{width:12px;height:12px;flex:none;}
+.b-active{color:var(--gold);background:rgba(217,180,101,.1);border:1px solid rgba(217,180,101,.28);}
+.b-done{color:var(--green);background:rgba(95,227,163,.14);border:1px solid rgba(95,227,163,.4);}
+.b-failed{color:#ff6b6b;background:rgba(255,80,80,.1);border:1px solid rgba(255,80,80,.38);animation:failGlow 1.7s ease-in-out infinite;}
+@keyframes failGlow{0%,100%{box-shadow:0 0 0 rgba(255,80,80,0)}50%{box-shadow:0 0 14px rgba(255,80,80,.55)}}
 
-/* ===== крупный режим — только когда приказ один ===== */
+/* ===== крупный режим — только когда челлендж один ===== */
 .board.solo .order-row{padding:16px 20px 16px 22px;gap:14px;}
 .board.solo .rank{display:none;}
-.board.solo .who .name{font-size:1.15rem;max-width:220px;}
+.board.solo .who .name{font-size:1.15rem;max-width:200px;}
 .board.solo .who .amt{font-size:1.05rem;}
 .board.solo .who .task{font-size:.9rem;-webkit-line-clamp:2;margin-top:3px;}
-.board.solo .status{width:32px;height:32px;}
-.board.solo .status .spin{width:14px;height:14px;}
-.board.solo .status .check{width:15px;height:15px;}
+.board.solo .badge{font-size:.72rem;padding:7px 14px;}
+.board.solo .badge .spin{width:13px;height:13px;}
+.board.solo .badge svg{width:14px;height:14px;}
 
 .more{text-align:center;font-size:.66rem;font-weight:700;letter-spacing:.08em;color:var(--text-mut);padding-top:2px;}
 
@@ -98,7 +111,7 @@ body{font-family:'Manrope',sans-serif;background:transparent;color:var(--text);
     <div class="stage">
         <div class="threshold">
             <svg class="ic" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.5 9H21.5L15.5 13.5L18 21L12 16.5L6 21L8.5 13.5L2.5 9H9.5L12 2Z" fill="#d9b465"/></svg>
-            <span class="tx">ЧЕЛЛЕНДЖ · ОТ <b id="thresholdVal">500</b> Р</span>
+            <span class="tx">КИНУТЬ ЧЕЛЛЕНДЖ · ОТ <b id="thresholdVal">500</b> Р</span>
         </div>
         <div class="board" id="board"></div>
     </div>
@@ -116,6 +129,16 @@ function fmt(n){ return Math.round(Number(n) || 0).toLocaleString('ru-RU'); }
 
 function load(){ fetch('/api/boss-orders').then(r => r.json()).then(d => { if (d.success) render(d); }); }
 
+function statusBadgeHtml(status){
+    if (status === 'done') {
+        return `<span class="badge b-done"><svg viewBox="0 0 14 14" fill="none"><path d="M2.5 7.2L5.4 10L11.5 3.5" stroke="#5fe3a3" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>ВЫПОЛНЕНО</span>`;
+    }
+    if (status === 'failed') {
+        return `<span class="badge b-failed"><svg viewBox="0 0 14 14" fill="none"><path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="#ff6b6b" stroke-width="2.2" stroke-linecap="round"/></svg>НЕ СМОГ ВЫПОЛНИТЬ</span>`;
+    }
+    return `<span class="badge b-active"><span class="spin"></span>ВЫПОЛНЯЕТСЯ</span>`;
+}
+
 function orderRowHtml(o, ranked, index){
     const rank = ranked ? `<div class="rank">${index + 1}</div>` : '';
     return `<div class="order ${o.status}">
@@ -125,10 +148,7 @@ function orderRowHtml(o, ranked, index){
                 <div class="name-line"><span class="name">${esc(o.username || 'Аноним')}</span><span class="amt">${fmt(o.amount)} р</span></div>
                 <div class="task">${esc(o.text)}</div>
             </div>
-            <div class="status">
-                <span class="spin"></span>
-                <svg class="check" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.2L5.4 10L11.5 3.5" stroke="#5fe3a3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
+            ${statusBadgeHtml(o.status)}
         </div>
     </div>`;
 }
