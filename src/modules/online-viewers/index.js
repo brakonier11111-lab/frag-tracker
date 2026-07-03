@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * Сводный онлайн YouTube + VK Play для OBS-виджета. Не опрашивает платформы сам —
- * читает уже обновляемое состояние youtube/vkplay-integration модулей через getState().
+ * Сводный онлайн YouTube + VK Play + Twitch для OBS-виджета. Не опрашивает платформы
+ * сам — читает уже обновляемое состояние *-integration модулей через getState().
  */
 function createOnlineViewersModule(deps) {
-    const { getYoutubeState, getVkplayState } = deps;
+    const { getYoutubeState, getVkplayState, getTwitchState } = deps;
 
     function platformPayload(state) {
         return {
@@ -19,11 +19,12 @@ function createOnlineViewersModule(deps) {
         app.get('/api/online-viewers', (req, res) => {
             const youtube = platformPayload(getYoutubeState());
             const vkplay = platformPayload(getVkplayState());
-            const total = [youtube, vkplay]
+            const twitch = platformPayload(getTwitchState());
+            const total = [youtube, vkplay, twitch]
                 .filter((p) => p.connected)
                 .reduce((sum, p) => sum + p.viewers, 0);
 
-            res.json({ youtube, vkplay, total });
+            res.json({ youtube, vkplay, twitch, total });
         });
     }
 

@@ -11,6 +11,7 @@
   --line: rgba(255, 255, 255, 0.1);
   --yt: #ff0000;
   --vk: #6a76e8;
+  --tw: #9146ff;
   --h: 68px;
   --text-hard-shadow: 1px 1px 0 rgba(0, 0, 0, 0.85);
 }
@@ -58,6 +59,7 @@ body {
 }
 .platform.yt .dot { background: var(--yt); }
 .platform.vk .dot { background: var(--vk); }
+.platform.tw .dot { background: var(--tw); }
 .count {
   font-size: calc(var(--h) * 0.34);
   font-weight: 700;
@@ -99,6 +101,10 @@ body {
         <span class="dot"></span>
         <span class="count" id="vkCount">0</span>
       </div>
+      <div class="platform tw" id="twRow">
+        <span class="dot"></span>
+        <span class="count" id="twCount">0</span>
+      </div>
       <div class="sep"></div>
       <div class="total">
         <span class="label">Всего</span>
@@ -118,15 +124,19 @@ if (renderScale > 1) {
 
 const ytRow = document.getElementById('ytRow');
 const vkRow = document.getElementById('vkRow');
+const twRow = document.getElementById('twRow');
 const ytCount = document.getElementById('ytCount');
 const vkCount = document.getElementById('vkCount');
+const twCount = document.getElementById('twCount');
 const totalCount = document.getElementById('totalCount');
 
 function render(data) {
   ytRow.classList.toggle('connected', !!data.youtube.connected);
   vkRow.classList.toggle('connected', !!data.vkplay.connected);
+  twRow.classList.toggle('connected', !!data.twitch.connected);
   ytCount.textContent = data.youtube.viewers;
   vkCount.textContent = data.vkplay.viewers;
+  twCount.textContent = data.twitch.viewers;
   totalCount.textContent = data.total;
 }
 

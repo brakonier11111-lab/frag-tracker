@@ -192,6 +192,13 @@ check('GET /integrations/youtube/status', async () => {
     if (typeof json.connected !== 'boolean') throw new Error('unexpected body: ' + JSON.stringify(json));
 });
 
+check('GET /integrations/twitch/status', async () => {
+    const res = await fetch(`${BASE_URL}/integrations/twitch/status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.connected !== 'boolean') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
 check('POST /integrations/youtube/video-id (без токена)', async () => {
     const res = await fetch(`${BASE_URL}/integrations/youtube/video-id`, {
         method: 'POST',

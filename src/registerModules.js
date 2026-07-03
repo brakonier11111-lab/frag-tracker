@@ -9,6 +9,7 @@ const { createDonorAchievementsModule } = require('./modules/donor-achievements'
 const { createChatStatsModule } = require('./modules/chat-stats');
 const { createYoutubeIntegrationModule } = require('./modules/youtube-integration');
 const { createVkplayIntegrationModule } = require('./modules/vkplay-integration');
+const { createTwitchIntegrationModule } = require('./modules/twitch-integration');
 const { createOnlineViewersModule } = require('./modules/online-viewers');
 const { createLestaOAuthModule } = require('./modules/lesta-oauth');
 const { createDonationsAnalyticsModule } = require('./modules/donations-analytics');
@@ -54,10 +55,16 @@ function registerModules(app, deps, config) {
     vkplay.registerRoutes(app);
     vkplay.startPolling();
 
+    const twitch = createTwitchIntegrationModule(deps);
+    twitch.registerRoutes(app);
+    twitch.startPolling();
+    twitch.connectTwitchChat();
+
     const onlineViewers = createOnlineViewersModule({
         ...deps,
         getYoutubeState: youtube.getState,
-        getVkplayState: vkplay.getState
+        getVkplayState: vkplay.getState,
+        getTwitchState: twitch.getState
     });
     onlineViewers.registerRoutes(app);
 
@@ -72,7 +79,7 @@ function registerModules(app, deps, config) {
     bossOrders.registerPages(app);
     bossOrders.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, onlineViewers, lestaOAuth, donationsAnalytics, bossOrders };
+    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, twitch, onlineViewers, lestaOAuth, donationsAnalytics, bossOrders };
 }
 
 module.exports = { registerModules };

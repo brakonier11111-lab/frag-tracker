@@ -2448,6 +2448,9 @@ const ADMIN_CONFIG_FIELDS = [
     { group: 'VK Play Bot',    key: 'VKPLAY_BOT_CLIENT_ID',   label: 'Bot Client ID',  secret: false },
     { group: 'VK Play Bot',    key: 'VKPLAY_BOT_CLIENT_SECRET', label: 'Bot Secret',   secret: true  },
     { group: 'VK Play Bot',    key: 'VKPLAY_BOT_REDIRECT_URI', label: 'Bot Redirect URI', secret: false },
+    { group: 'Twitch',         key: 'TW_CLIENT_ID',           label: 'Client ID',      secret: false },
+    { group: 'Twitch',         key: 'TW_CLIENT_SECRET',       label: 'Client Secret',  secret: true  },
+    { group: 'Twitch',         key: 'TW_CHANNEL',             label: 'Канал (login)',  secret: false },
 ];
 
 function resolveConfigEnvPath() {
