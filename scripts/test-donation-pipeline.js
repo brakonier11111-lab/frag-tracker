@@ -217,6 +217,14 @@ async function main() {
             assert(row.custom_units_earned === 3, `custom_units_earned = ${row.custom_units_earned}, ожидалось 3`);
         });
 
+        await step('достижение донатера накопило время (updateDonorAchievement)', async () => {
+            // MathTest получил 250 сек — в donor_achievements должно быть >= 250
+            const r = await getJson('/api/donor-achievements/MathTest');
+            assert(r.success && r.achievement, 'достижение MathTest не найдено');
+            assert((r.achievement.total_time_seconds || 0) >= 250,
+                `total_time_seconds = ${r.achievement.total_time_seconds}, ожидалось >= 250`);
+        });
+
         await step('скидка 30₽/мин: донат 50₽ даёт +100 сек (30₽/мин → 2 сек/₽)', async () => {
             await post('/api/state', { timer_discount: 30, timer_discount_until_ts: 0 });
             await sleep(300);
