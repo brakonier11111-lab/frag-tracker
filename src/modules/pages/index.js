@@ -11,10 +11,10 @@ const path = require('path');
  *    (no-store) для файлов, которые иначе бы отдал static со своим кэшированием;
  *  - registerPages() — ПОСЛЕ static: обычные страницы/режимы/виджеты по чистым URL.
  *
- * deps: { appRoot, razblogEnabled, razblogArchiveDir }
+ * deps: { appRoot, razblogEnabled, razblogPublicDir }
  */
 function createPagesModule(deps) {
-    const { appRoot, razblogEnabled, razblogArchiveDir } = deps;
+    const { appRoot, razblogEnabled, razblogPublicDir } = deps;
 
     function sendNoCachePublic(res, filename) {
         res.set({
@@ -84,7 +84,7 @@ function createPagesModule(deps) {
                     return res.status(410).send('РазБЛОГировка 2026 отключена');
                 }
                 file = 'widget-razblogirovka-gold.html';
-                filePath = path.join(razblogArchiveDir, 'public');
+                filePath = razblogPublicDir;
             }
 
             // Отключаем кэширование для виджетов

@@ -1,21 +1,13 @@
-# РазБЛОГировка 2026 — архив
+# РазБЛОГировка 2026 — архив (пусто)
 
-Модуль «Копилка золота» отключён и вынесен сюда (июнь 2026).
+Рабочий код переехал в `src/modules/razblog/` (июль 2026):
 
-## Что внутри
-
-- `public/razblogirovka.html` — админка
-- `public/widget-razblogirovka-gold.html` — OBS-виджет
-- `src/services/razblogirovkaGoldService.js` — синхронизация с Lesta
-- `src/utils/goldCalculator.js` — расчёт золота за бой
+- `src/modules/razblog/public/razblogirovka.html` — админка
+- `src/modules/razblog/public/widget-razblogirovka-gold.html` — OBS-виджет
+- `src/modules/razblog/razblogirovkaGoldService.js` — синхронизация с Lesta
+- `src/modules/razblog/goldCalculator.js` — расчёт золота за бой
 
 Данные в БД (`razblogirovka_battles`, поля `razblog_*` в `app_state`) сохранены.
 
-## Включить снова
-
-1. В `start-server-quick.bat` или перед запуском:
-   ```
-   set RAZBLOG_ENABLED=1
-   ```
-2. Перезапустить сервер.
-3. Убрать виджет из OBS и добавить заново: `/widget/razblogirovka-gold`
+Фича управляется флагом `RAZBLOG_ENABLED` (включена по умолчанию, `RAZBLOG_ENABLED=0` — отключить).
+Виджет: `/widget/razblogirovka-gold`, админка: `/razblogirovka`.

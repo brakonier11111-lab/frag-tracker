@@ -48,10 +48,10 @@ let rouletteModuleRef = null;
 
 /** РазБЛОГировка 2026 — включена по умолчанию (RAZBLOG_ENABLED=0 для отключения) */
 const RAZBLOG_ENABLED = process.env.RAZBLOG_ENABLED !== '0';
-const RAZBLOG_ARCHIVE_DIR = path.join(__dirname, 'archive', 'razblogirovka-2026');
+const RAZBLOG_PUBLIC_DIR = path.join(__dirname, 'src', 'modules', 'razblog', 'public');
 let createRazblogirovkaGoldService = null;
 if (RAZBLOG_ENABLED) {
-    createRazblogirovkaGoldService = require(path.join(RAZBLOG_ARCHIVE_DIR, 'src', 'services', 'razblogirovkaGoldService')).createRazblogirovkaGoldService;
+    createRazblogirovkaGoldService = require('./src/modules/razblog/razblogirovkaGoldService').createRazblogirovkaGoldService;
 }
 
 // Конфигурация DonationAlerts
@@ -1237,7 +1237,7 @@ const { createPagesModule } = require('./src/modules/pages');
 const pagesModule = createPagesModule({
     appRoot: __dirname,
     razblogEnabled: RAZBLOG_ENABLED,
-    razblogArchiveDir: RAZBLOG_ARCHIVE_DIR
+    razblogPublicDir: RAZBLOG_PUBLIC_DIR
 });
 pagesModule.registerEarlyPages(app);
 
@@ -6989,8 +6989,7 @@ const moduleDeps = {
 };
 const moduleConfig = {
     razblogEnabled: RAZBLOG_ENABLED,
-    createRazblogirovkaGoldService,
-    archiveDir: RAZBLOG_ARCHIVE_DIR
+    createRazblogirovkaGoldService
 };
 const modules = registerModules(app, moduleDeps, moduleConfig);
 blitzModule = modules.blitz;

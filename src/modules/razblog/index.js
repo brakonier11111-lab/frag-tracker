@@ -90,7 +90,7 @@ function createRazblogModule(deps, config) {
             if (!config.razblogEnabled) {
                 return res.status(410).send('РазБЛОГировка 2026 отключена. Уберите RAZBLOG_ENABLED=0 и перезапустите сервер.');
             }
-            res.sendFile(path.join(config.archiveDir, 'public', 'razblogirovka.html'));
+            res.sendFile(path.join(__dirname, 'public', 'razblogirovka.html'));
         });
     }
 

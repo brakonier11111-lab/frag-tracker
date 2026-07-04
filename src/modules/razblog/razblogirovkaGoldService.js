@@ -1,7 +1,7 @@
 const {
     calculateGoldDistributed,
     inferBattleOutcomesFromAccountDelta
-} = require('../utils/goldCalculator');
+} = require('./goldCalculator');
 
 /** Событие «РазБЛОГировка 2026» — учитываем бои с 11 июня 2025 (МСК) */
 const DEFAULT_EVENT_START_ISO = '2025-06-11T00:00:00+03:00';
