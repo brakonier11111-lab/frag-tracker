@@ -34,7 +34,10 @@ function startServer(userDataDir) {
             ...process.env,
             PORT: String(PORT),
             FRAG_USER_DATA: userDataDir,
-            NODE_ENV: 'test'
+            NODE_ENV: 'test',
+            // Не стучаться в боевые DA/DP/Lesta API из тестового прогона
+            DONATION_POLLING: '0',
+            LESTA_AUTOSYNC: '0'
         },
         stdio: ['ignore', 'pipe', 'pipe']
     });
