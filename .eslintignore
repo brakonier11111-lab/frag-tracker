@@ -1,0 +1,9 @@
+node_modules/
+archive/
+backups/
+work/
+public/
+replay-live-cache/
+logs/
+assets/
+scripts/media-art/

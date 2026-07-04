@@ -459,9 +459,8 @@ function createDiagnosticsModule(deps) {
                     }
                 }
 
-                res.json({ 
-                    success: true, 
-                    message: 'DonatePay API работает корректно',
+                res.json({
+                    success: true,
                     userInfo: {
                         id: userInfo.id,
                         name: userInfo.name
