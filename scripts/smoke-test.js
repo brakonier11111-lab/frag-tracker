@@ -338,6 +338,45 @@ for (const p of ['/admin', '/analytics', '/dashboard/mode2', '/mode1-frag-tracke
     });
 }
 
+// Диагностические роуты (src/modules/diagnostics)
+check('GET /api/status', async () => {
+    const res = await fetch(`${BASE_URL}/api/status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/db-status', async () => {
+    const res = await fetch(`${BASE_URL}/api/db-status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.connected !== true || typeof json.donationsCount !== 'number') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/da-status', async () => {
+    const res = await fetch(`${BASE_URL}/api/da-status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (typeof json.hasToken !== 'boolean') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/admin/status', async () => {
+    const res = await fetch(`${BASE_URL}/api/admin/status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.success !== true) throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+check('GET /api/dp-centrifugo-status', async () => {
+    const res = await fetch(`${BASE_URL}/api/dp-centrifugo-status`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.success !== true || typeof json.status !== 'object') throw new Error('unexpected body: ' + JSON.stringify(json));
+});
+
+// /api/diagnose-polling и /api/debug-donations в smoke не гоняем: при реальном
+// DA-токене в копии БД они делают живой запрос к DonationAlerts API.
+
 check('GET /widget/donation-goal (no-cache заголовки виджетов)', async () => {
     const res = await fetch(`${BASE_URL}/widget/donation-goal`);
     if (res.status !== 200) throw new Error('status ' + res.status);
