@@ -40,6 +40,7 @@ const server = http.createServer(app);
 const port = process.env.PORT || 3000;
 const { registerModules } = require('./src/registerModules');
 const { classifyDonationForPolling } = require('./src/core/donation-poll-filter');
+const { computeFragAward, computeTimerAward, computeCustomAward } = require('./src/core/donation-math');
 const { initBlitzChallengeSchema } = require('./src/modules/blitz-challenge/schema');
 const { initBossOrdersSchema } = require('./src/modules/boss-orders/schema');
 let blitzModule = null;
@@ -3528,16 +3529,13 @@ function processDonationCore(donationData, isRealtime = false) {
         
         // ВАЖНО: Обрабатываем донат для ВСЕХ режимов одновременно!
         
-        // Режим 1: Frag Tracker
-        const fragCostPerUnit = state.frag_cost / state.frag_amount;
-        const currentBalance = state.current_balance || 0;
-        const totalAmount = currentBalance + amount;
-        
-        const fragUnitsEarned = Math.floor(totalAmount / fragCostPerUnit);
-        const fragRemainingBalance = totalAmount % fragCostPerUnit;
-        
-        console.log(`💰 Расчет фрагов: (${currentBalance} + ${amount}) / ${fragCostPerUnit} = ${fragUnitsEarned} ${state.frag_name}, остаток: ${fragRemainingBalance}`);
-        
+        // Режим 1: Frag Tracker (математика — src/core/donation-math.js)
+        const fragAward = computeFragAward(state, amount);
+        const fragUnitsEarned = fragAward.unitsEarned;
+        const fragRemainingBalance = fragAward.remainingBalance;
+
+        console.log(`💰 Расчет фрагов: (${state.current_balance || 0} + ${amount}) = ${fragUnitsEarned} ${state.frag_name}, остаток: ${fragRemainingBalance}`);
+
         updatedState.current_balance = fragRemainingBalance;
         const oldTotalDonated = state.total_donated || 0;
         updatedState.total_donated = oldTotalDonated + amount;
@@ -3567,26 +3565,16 @@ function processDonationCore(donationData, isRealtime = false) {
             alertData.fragDisplayType = 'amount'; // Тип отображения: сумма
         }
         
-        // Режим 2: Timer
-        const baseCostPerMinute = state.cost_per_minute || 50;
-        // Проверяем, активна ли скидка и не истекла ли она
-        const now = Math.floor(Date.now() / 1000);
-        const discountUntil = state.timer_discount_until_ts || 0;
-        let discount = 0;
-        if (state.timer_discount && state.timer_discount > 0) {
-            if (discountUntil === 0 || now < discountUntil) {
-                discount = state.timer_discount;
-            } else {
-                // Скидка истекла, отключаем её
-                updatedState.timer_discount = 0;
-                updatedState.timer_discount_until_ts = 0;
-            }
+        // Режим 2: Timer (математика — src/core/donation-math.js)
+        const timerAward = computeTimerAward(state, amount, Math.floor(Date.now() / 1000));
+        const { timeEarned, actualCostPerMinute, discount } = timerAward;
+        if (timerAward.discountExpired) {
+            // Скидка истекла, отключаем её
+            updatedState.timer_discount = 0;
+            updatedState.timer_discount_until_ts = 0;
         }
-        const actualCostPerMinute = Math.max(1, baseCostPerMinute - discount);
-        const secondsPerRuble = 60 / actualCostPerMinute;
-        const timeEarned = Math.floor(amount * secondsPerRuble);
-        
-        console.log(`⏰ Расчет времени: ${amount}₽ × ${secondsPerRuble.toFixed(2)}сек/₽ = ${timeEarned}сек (Цена: ${actualCostPerMinute}₽/мин, скидка: ${discount}₽)`);
+
+        console.log(`⏰ Расчет времени: ${amount}₽ × ${(60 / actualCostPerMinute).toFixed(2)}сек/₽ = ${timeEarned}сек (Цена: ${actualCostPerMinute}₽/мин, скидка: ${discount}₽)`);
         
         // ВАЖНО: Используем атомарное обновление SQL для предотвращения гонки условий
         // Вместо чтения и записи используем UPDATE с инкрементом прямо в SQL
@@ -3610,16 +3598,13 @@ function processDonationCore(donationData, isRealtime = false) {
         
         // Рулетка и прочие побочные потребители — подписчики donationBus (см. ниже по файлу)
 
-        // Режим 3: Custom Tracker
-        const customCostPerUnit = state.custom_unit_cost / state.custom_unit_amount;
-        const customCurrentBalance = state.custom_current_balance || 0;
-        const customTotalAmount = customCurrentBalance + amount;
-        
-        const customUnitsEarned = Math.floor(customTotalAmount / customCostPerUnit);
-        const customRemainingBalance = customTotalAmount % customCostPerUnit;
-        
-        console.log(`🎯 Расчет кастомных единиц: (${customCurrentBalance} + ${amount}) / ${customCostPerUnit} = ${customUnitsEarned} ${state.custom_goal_name}, остаток: ${customRemainingBalance}`);
-        
+        // Режим 3: Custom Tracker (математика — src/core/donation-math.js)
+        const customAward = computeCustomAward(state, amount);
+        const customUnitsEarned = customAward.unitsEarned;
+        const customRemainingBalance = customAward.remainingBalance;
+
+        console.log(`🎯 Расчет кастомных единиц: (${state.custom_current_balance || 0} + ${amount}) = ${customUnitsEarned} ${state.custom_goal_name}, остаток: ${customRemainingBalance}`);
+
         updatedState.custom_current_balance = customRemainingBalance;
         
         if (customUnitsEarned > 0) {
