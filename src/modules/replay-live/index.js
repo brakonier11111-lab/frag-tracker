@@ -35,6 +35,7 @@ const {
 const { enrichPlayersWithTankNames, getVehicleMaxHp, ensureVehicleHpBlocking } = require('./vehicleNames');
 const { createReplayLiveRoutes } = require('./routes');
 const { createReplayDetection } = require('./detection');
+const { createPlaybackClock } = require('./playbackClock');
 const {
     STRONG_CACHE_REASONS,
     WEAK_CACHE_REASONS,
@@ -676,7 +677,9 @@ function createReplayLiveModule(deps) {
         replayCacheDiffTracker,
         timelineCache,
         replayBufCache,
-        battleResultsCtxCache
+        battleResultsCtxCache,
+        PLAYBACK_VISUAL_LAG_SEC,
+        WALL_CLOCK_FALLBACK_MS
     };
     Object.defineProperties(h, {
         playbackSession: { get: () => playbackSession, set: (v) => { playbackSession = v; } },
@@ -686,6 +689,7 @@ function createReplayLiveModule(deps) {
         lastActivePlaybackAt: { get: () => lastActivePlaybackAt, set: (v) => { lastActivePlaybackAt = v; } },
         playbackHoldKey: { get: () => playbackHoldKey, set: (v) => { playbackHoldKey = v; } },
         playbackEndTriggered: { get: () => playbackEndTriggered, set: (v) => { playbackEndTriggered = v; } },
+        playbackMaxProgressSec: { get: () => playbackMaxProgressSec, set: (v) => { playbackMaxProgressSec = v; } },
         lastSeenGameCacheMtimeMs: { get: () => lastSeenGameCacheMtimeMs, set: (v) => { lastSeenGameCacheMtimeMs = v; } },
         lastGameCacheActivePath: { get: () => lastGameCacheActivePath, set: (v) => { lastGameCacheActivePath = v; } }
     });
@@ -714,7 +718,17 @@ function createReplayLiveModule(deps) {
         guardReplayPick: (...a) => guardReplayPick(...a),
         markPlaybackSelection: (...a) => markPlaybackSelection(...a),
         findSoleZipLiveReplayPath: (...a) => findSoleZipLiveReplayPath(...a),
-        normalizeExtraReplaysDirs: (...a) => normalizeExtraReplaysDirs(...a)
+        normalizeExtraReplaysDirs: (...a) => normalizeExtraReplaysDirs(...a),
+        playbackSpeed: (...a) => playbackSpeed(...a),
+        playbackLoadDelaySec: (...a) => playbackLoadDelaySec(...a),
+        unlockCachePositionIfMetaLive: (...a) => unlockCachePositionIfMetaLive(...a),
+        shouldIgnoreStaleCachePosition: (...a) => shouldIgnoreStaleCachePosition(...a),
+        markReplayPlaybackFinished: (...a) => markReplayPlaybackFinished(...a),
+        triggerReplayEndSummary: (...a) => triggerReplayEndSummary(...a),
+        resetPlaybackCaches: (...a) => resetPlaybackCaches(...a),
+        maybePersistPlaybackPath: (...a) => maybePersistPlaybackPath(...a),
+        logMetaChange: (...a) => logMetaChange(...a),
+        metaLogPath: (...a) => metaLogPath(...a)
     });
     const {
         scheduleExtraDirReplayPoll,
@@ -756,6 +770,10 @@ function createReplayLiveModule(deps) {
         pickReplayFromSignals,
         returnPlaybackPick
     } = createReplayDetection(h);
+    Object.assign(h, {
+        readGameCacheEntry: (...a) => readGameCacheEntry(...a),
+        canonicalCacheReplayPath: (...a) => canonicalCacheReplayPath(...a)
+    });
 
     function emptyState() {
         return {
@@ -1232,655 +1250,27 @@ function createReplayLiveModule(deps) {
         state.playbackTimeline = null;
     }
 
-    function computeClockRaw(maxSec) {
-        const elapsed = ((Date.now() - playbackSession.startedAt) / 1000) * playbackSpeed() - playbackLoadDelaySec();
-        const clock = playbackSession.clockOffsetSec + elapsed;
-        const cap = maxSec > 0 ? maxSec : clock;
-        return Math.max(0, Math.min(clock, cap));
-    }
+    // Playback-часы (game cache / zip wall-clock / wall fallback, пауза, рестарт
+    // по meta-сессии) вынесены в playbackClock.js. Общее состояние — через хаб h.
+    const {
+        isZipActiveForPlayback,
+        trackZipLive,
+        replayDataDurationSec,
+        clearReplayEndState,
+        readGameCacheSnapshot,
+        ensurePlaybackClock,
+        ensurePlaybackClockRunning,
+        maybeStartPlaybackClock,
+        startPlaybackClock,
+        stopPlaybackClock,
+        ensurePlaybackSession,
+        markPlaybackSelection,
+        maybeRestartPlaybackFromGameCache,
+        resetPlaybackClock,
+        isPlaybackPaused,
+        getPlaybackClockSec
+    } = createPlaybackClock(h);
 
-    function isZipLive(replayPath) {
-        if (!replayPath) return false;
-        const activity = getReplayFileActivity(replayPath);
-        return Boolean(activity.exists && activity.ageMs != null && activity.ageMs <= ZIP_LIVE_MS);
-    }
-
-    function isZipActiveForPlayback(replayPath) {
-        if (!replayPath) return false;
-        const activity = getReplayFileActivity(replayPath);
-        return Boolean(activity.exists && activity.ageMs != null && activity.ageMs <= HOT_ZIP_ACCESS_MS);
-    }
-
-    function trackZipLive(replayPath) {
-        if (!replayPath) {
-            playbackSession.zipLiveSince = 0;
-            return false;
-        }
-        if (isPlaybackPaused(replayPath)) {
-            playbackSession.zipLiveSince = 0;
-            return false;
-        }
-        if (!playbackSession.zipLiveSince) {
-            playbackSession.zipLiveSince = Date.now();
-        }
-        return true;
-    }
-
-    function resolveZipWallClockSec(maxDur) {
-        if (!playbackSession.zipLiveSince) {
-            playbackSession.zipLiveSince = Date.now();
-        }
-        const elapsed = ((Date.now() - playbackSession.zipLiveSince) / 1000) * playbackSpeed() - playbackLoadDelaySec();
-        return Math.max(0, Math.min(elapsed, maxDur));
-    }
-
-    function replayDataDurationSec() {
-        const cached = playbackSession.applyCache;
-        if (cached && cached.replayDurationSec > 0) return cached.replayDurationSec;
-        if (state.playbackTimeline && state.playbackTimeline.replayDataDurationSec > 0) {
-            return state.playbackTimeline.replayDataDurationSec;
-        }
-        return Number(state.replayDataDurationSec) || 0;
-    }
-
-    function playbackClockMaxSec() {
-        const dataEnd = replayDataDurationSec();
-        if (dataEnd > 0) return dataEnd;
-        return Math.max(Number(state.battleDurationSec) || 0, DEFAULT_BATTLE_DURATION_SEC);
-    }
-
-    function clearReplayEndState(resetClock) {
-        playbackSession.frozenClockSec = null;
-        playbackSession.zipPausedAt = 0;
-        if (playbackSession.clockSource === 'replay_end') {
-            playbackSession.clockSource = 'idle';
-        }
-        if (resetClock && !playbackSession.clockRunning) {
-            playbackSession.lastKnownClockSec = 0;
-            playbackSession.clockOffsetSec = 0;
-        }
-        state.replayAtEnd = false;
-    }
-
-    function stopClockAtReplayEnd(clockSec) {
-        if (!playbackSession.clockRunning) return false;
-        const dataEnd = replayDataDurationSec();
-        if (dataEnd <= 0 || clockSec < dataEnd - 0.25) return false;
-        playbackSession.clockRunning = false;
-        playbackSession.clockSource = 'replay_end';
-        playbackSession.lastKnownClockSec = dataEnd;
-        playbackSession.frozenClockSec = dataEnd;
-        state.replayAtEnd = true;
-        playbackMaxProgressSec = Math.max(playbackMaxProgressSec, dataEnd);
-        markReplayPlaybackFinished(playbackSession.path);
-        if (!playbackEndTriggered && playbackSession.path) {
-            playbackEndTriggered = true;
-            triggerReplayEndSummary(playbackSession.path);
-        }
-        return true;
-    }
-
-    function readGameCacheSnapshot(replayPath, replayDurationSec) {
-        const cacheEntry = readGameCacheEntry(replayPath);
-        if (!cacheEntry) return null;
-        unlockCachePositionIfMetaLive(cacheEntry);
-        const maxDur = Math.max(
-            replayDurationSec > 0 ? replayDurationSec : 0,
-            replayDataDurationSec()
-        ) || playbackClockMaxSec() || 600;
-        const inspect = inspectReplayMeta(cacheEntry.metaBuf, maxDur);
-        let gamePos = inspect ? inspect.parsedPosition : null;
-        if (gamePos == null && playbackSession.lastMetaHex && !playbackSession.cachePositionLocked) {
-            gamePos = diffMetaReplayPosition(playbackSession.lastMetaHex, cacheEntry.metaHex, maxDur);
-        }
-        if (playbackSession.cachePositionLocked) {
-            gamePos = null;
-        } else if (shouldIgnoreStaleCachePosition(gamePos, maxDur)) {
-            gamePos = null;
-        }
-        return { cacheEntry, inspect, gamePos, maxDur };
-    }
-
-    function readGameCachePosition(replayPath, replayDurationSec) {
-        const snap = readGameCacheSnapshot(replayPath, replayDurationSec);
-        return snap ? snap.gamePos : null;
-    }
-
-    function applyVisualLag(clockSec, maxDur) {
-        if (PLAYBACK_VISUAL_LAG_SEC <= 0 || isPlaybackPaused(playbackSession.path)) {
-            return clockSec;
-        }
-        const src = playbackSession.clockSource;
-        if (src === 'game_cache' || src === 'game_cache_frozen'
-            || src === 'zip_wall_sync' || src === 'wall_fallback') {
-            return Math.max(0, Math.min(clockSec - PLAYBACK_VISUAL_LAG_SEC, maxDur));
-        }
-        return clockSec;
-    }
-
-    function extrapolateGamePosition(replayDurationSec) {
-        if (playbackSession.gamePositionSec == null || !playbackSession.gamePositionAt) return null;
-        const maxDur = replayDurationSec > 0 ? replayDurationSec : 600;
-        const base = playbackSession.gamePositionSec;
-        const ageMs = Date.now() - playbackSession.gamePositionAt;
-        if (isPlaybackPaused(playbackSession.path)) {
-            return Math.max(0, Math.min(base, maxDur));
-        }
-        if (ageMs > GAME_POS_STALE_MS) {
-            return Math.max(0, Math.min(base, maxDur));
-        }
-        const ageSec = ageMs / 1000;
-        const extra = Math.min(GAME_POS_EXTRAPOLATE_MAX_SEC, ageSec * playbackSpeed());
-        return Math.max(0, Math.min(base + extra, maxDur));
-    }
-
-    function noteBattleAnchor(gamePos) {
-        const offset = Number(playbackSession.battleStartOffsetSec) || 0;
-        if (offset > 0 && gamePos != null && gamePos >= offset - 0.05) {
-            playbackSession.battleAnchored = true;
-        }
-    }
-
-    function applyGamePosition(gamePos, replayDurationSec, reason) {
-        if (gamePos == null) return false;
-        const maxDur = replayDurationSec > 0 ? replayDurationSec : 600;
-        const pos = Math.max(0, Math.min(Number(gamePos) || 0, maxDur));
-        if (pos < 1 && (playbackSession.clockSource === 'replay_end' || state.replayAtEnd)) {
-            if (shouldHoldPlaybackAfterEnd(playbackSession.path)) return true;
-            if (isFinishedReplayPath(playbackSession.path)
-                && !shouldAllowReplayRestart(playbackSession.path)) {
-                return true;
-            }
-            clearReplayEndState(true);
-        }
-        const prev = playbackSession.gamePositionSec;
-        playbackSession.gamePositionSec = pos;
-        playbackSession.gamePositionAt = Date.now();
-        playbackSession.lastKnownClockSec = pos;
-        playbackSession.clockSource = 'game_cache';
-        noteBattleAnchor(pos);
-
-        const jumped = prev != null && Math.abs(pos - prev) > CLOCK_SYNC_DELTA_SEC;
-        if (jumped || prev == null) {
-            playbackSession.clockOffsetSec = pos;
-            playbackSession.startedAt = Date.now();
-            playbackSession.rewindAt = Date.now();
-            playbackSession.frozenClockSec = null;
-            playbackSession.zipPausedAt = 0;
-            playbackSession.zipLiveSince = 0;
-        }
-
-        if (!playbackSession.clockRunning && isZipActiveForPlayback(playbackSession.path)) {
-            playbackSession.clockRunning = true;
-            if (state.playbackDebug) {
-                state.playbackDebug.clockStartReason = reason || 'game_cache_pos';
-                state.playbackDebug.clockStartPos = pos;
-            }
-        }
-        return true;
-    }
-
-    function resolvePlaybackClockSec() {
-        const maxDur = playbackClockMaxSec();
-        const gameClock = extrapolateGamePosition(maxDur);
-        if (gameClock != null) {
-            playbackSession.clockSource = 'game_cache';
-            const lagged = applyVisualLag(gameClock, maxDur);
-            playbackSession.lastKnownClockSec = lagged;
-            return lagged;
-        }
-
-        if (isPlaybackPaused(playbackSession.path)
-            && playbackSession.gamePositionSec != null
-            && !usesWallPlaybackClock()
-            && playbackSession.lastKnownClockSec != null) {
-            playbackSession.clockSource = 'game_cache_frozen';
-            return applyVisualLag(playbackSession.lastKnownClockSec, maxDur);
-        }
-
-        if (playbackSession.clockRunning) {
-            if (config.watchReplayCache !== false) {
-                if (trackZipLive(playbackSession.path)) {
-                    playbackSession.clockSource = 'zip_wall_sync';
-                    const wall = applyVisualLag(resolveZipWallClockSec(maxDur), maxDur);
-                    playbackSession.lastKnownClockSec = wall;
-                    return wall;
-                }
-            }
-            const sinceSelect = Date.now() - (playbackSession.replaySelectedAt || 0);
-            if (sinceSelect < WALL_CLOCK_FALLBACK_MS && playbackSession.lastKnownClockSec > 0) {
-                playbackSession.clockSource = 'waiting_game_cache';
-                return playbackSession.lastKnownClockSec;
-            }
-            playbackSession.clockSource = 'wall_fallback';
-            const wall = applyVisualLag(computeClockRaw(maxDur), maxDur);
-            playbackSession.lastKnownClockSec = wall;
-            return wall;
-        }
-
-        playbackSession.clockSource = 'idle';
-        return playbackSession.lastKnownClockSec || 0;
-    }
-
-    function ensurePlaybackClock(replayPath) {
-        if (!replayPath || playbackSession.clockRunning) return;
-        if (shouldHoldPlaybackAfterEnd(replayPath)) return;
-        if (!playbackSession.pendingSessionStart) return;
-        clearReplayEndState(true);
-        playbackSession.pendingSessionStart = false;
-        const durationHint = state.playbackTimeline && state.playbackTimeline.replayDataDurationSec
-            ? state.playbackTimeline.replayDataDurationSec
-            : (replayDataDurationSec() || Math.max(1, Number(state.battleDurationSec) || 600));
-        const initialPos = readGameCachePosition(replayPath, durationHint);
-        if (initialPos != null) {
-            applyGamePosition(initialPos, durationHint, 'play');
-        } else {
-            startPlaybackClock(0);
-            playbackSession.clockSource = 'waiting_game_cache';
-        }
-        if (state.playbackDebug) {
-            state.playbackDebug.clockStartReason = initialPos != null ? 'play' : 'play_wait_cache';
-        }
-    }
-
-    function ensurePlaybackClockRunning(playbackPath, reason) {
-        if (!playbackPath || playbackSession.clockRunning) return;
-        if (shouldHoldPlaybackAfterEnd(playbackPath)) return;
-        if (isFinishedReplayPath(playbackPath) && !shouldAllowReplayRestart(playbackPath)) return;
-        if (playbackSession.clockSource === 'replay_end' && state.replayAtEnd) return;
-
-        clearReplayEndState(true);
-        const durationHint = state.playbackTimeline && state.playbackTimeline.replayDataDurationSec
-            ? state.playbackTimeline.replayDataDurationSec
-            : (replayDataDurationSec() || Math.max(1, Number(state.battleDurationSec) || DEFAULT_BATTLE_DURATION_SEC));
-        const initialPos = readGameCachePosition(playbackPath, durationHint);
-        if (initialPos != null) {
-            applyGamePosition(initialPos, durationHint, reason || 'playback_auto');
-        } else {
-            startPlaybackClock(0);
-            playbackSession.clockSource = 'waiting_game_cache';
-        }
-        if (state.playbackDebug) {
-            state.playbackDebug.clockStartReason = reason || 'playback_auto';
-            state.playbackDebug.clockAutoStarted = true;
-        }
-    }
-
-    function maybeStartPlaybackClock(replayPath, reason) {
-        if (!replayPath) return;
-        if (shouldHoldPlaybackAfterEnd(replayPath)) return;
-        if (isFinishedReplayPath(replayPath) && !shouldAllowReplayRestart(replayPath)) return;
-        if (playbackSession.clockRunning) return;
-
-        if (playbackSession.pendingSessionStart) {
-            ensurePlaybackClock(replayPath);
-            if (playbackSession.clockRunning) return;
-        }
-
-        const sinceSelect = Date.now() - (playbackSession.replaySelectedAt || 0);
-        const zipSpike = new Set([
-            'cache_zip_spike',
-            'cache_zip_spike_multi',
-            'cache_meta',
-            'cache_meta_pos',
-            'cache_switch',
-            'cache_switch_multi',
-            'cache_session',
-            'cache_hold',
-            'cache_boot_active',
-            'cache_active_read',
-            'cache_file_touch',
-            'cache_file_fresh',
-            'game_cache_active',
-            'cache_active_zip',
-            'cache_zip',
-            'cache_fallback',
-            'sticky_session',
-            'manual_path',
-            'manual_play',
-            'access_spike',
-            'sole_zip_live',
-            'session_live',
-            'zip_scan',
-            'cache_active_live',
-            'game_active',
-            'game_switch',
-            'game_reopen',
-            'zip_live',
-            'zip_open',
-            'meta_changed',
-            'game_playing',
-            'session_hold',
-            'manual_hold'
-        ]);
-        const durationHint = state.playbackTimeline && state.playbackTimeline.replayDataDurationSec
-            ? state.playbackTimeline.replayDataDurationSec
-            : (replayDataDurationSec() || Math.max(1, Number(state.battleDurationSec) || 600));
-
-        if (zipSpike.has(reason)) {
-            if (isFinishedReplayPath(replayPath) && !shouldAllowReplayRestart(replayPath)) return;
-            clearReplayEndState(true);
-            clearFinishedReplayMark();
-            const initialPos = readGameCachePosition(replayPath, durationHint);
-            if (initialPos != null) {
-                applyGamePosition(initialPos, durationHint, reason);
-                playbackSession.pendingSessionStart = false;
-            } else {
-                startPlaybackClock(0);
-                playbackSession.clockSource = 'waiting_game_cache';
-                playbackSession.pendingSessionStart = false;
-            }
-            if (state.playbackDebug) {
-                state.playbackDebug.clockStartReason = initialPos != null ? reason : `${reason}_wait_cache`;
-                state.playbackDebug.clockStartPos = initialPos;
-            }
-            return;
-        }
-
-        if (reason === 'cache_hold' && sinceSelect >= 150) {
-            if (isFinishedReplayPath(replayPath) && !shouldAllowReplayRestart(replayPath)) return;
-            clearReplayEndState(true);
-            clearFinishedReplayMark();
-            const initialPos = readGameCachePosition(replayPath, durationHint);
-            if (initialPos != null) {
-                applyGamePosition(initialPos, durationHint, reason);
-                playbackSession.pendingSessionStart = false;
-            } else {
-                startPlaybackClock(0);
-                playbackSession.clockSource = 'waiting_game_cache';
-                playbackSession.pendingSessionStart = false;
-            }
-            if (state.playbackDebug) {
-                state.playbackDebug.clockStartReason = initialPos != null ? reason : `${reason}_wait_cache`;
-            }
-        }
-    }
-
-    function startPlaybackClock(initialClockSec) {
-        if (playbackSession.path
-            && isFinishedReplayPath(playbackSession.path)
-            && !shouldAllowReplayRestart(playbackSession.path)) {
-            return;
-        }
-        if (playbackSession.path && shouldAllowReplayRestart(playbackSession.path)) {
-            clearFinishedReplayMark();
-        }
-        clearReplayEndState(false);
-        playbackSession.clockRunning = true;
-        playbackSession.frozenClockSec = null;
-        playbackSession.zipPausedAt = 0;
-        playbackSession.startedAt = Date.now();
-        playbackSession.clockOffsetSec = Math.max(0, Number(initialClockSec) || 0);
-        playbackSession.rewindAt = Date.now();
-        playbackSession.lastKnownClockSec = playbackSession.clockOffsetSec;
-        state.replayAtEnd = false;
-    }
-
-    function stopPlaybackClock() {
-        playbackSession.clockRunning = false;
-        playbackSession.frozenClockSec = null;
-        playbackSession.zipPausedAt = 0;
-        playbackSession.zipLiveSince = 0;
-        playbackSession.pendingSessionStart = false;
-    }
-
-    function ensurePlaybackSession(playbackPath, options) {
-        options = options || {};
-        const pathChanged = playbackSession.path !== playbackPath;
-        if (pathChanged) {
-            clearReplayEndState(true);
-            playbackSession = defaultPlaybackSessionFields(playbackPath);
-            playbackSession.applyCache = null;
-            playbackSession.parseGen += 1;
-            state.replayAtEnd = false;
-            state.replayDataDurationSec = 0;
-            return true;
-        }
-        playbackSession.lastSeenAt = Date.now();
-        if (options.rewind && playbackSession.clockRunning) {
-            resetPlaybackClock();
-        }
-        return false;
-    }
-
-    function markPlaybackSelection(replayPath, reason) {
-        if (shouldHoldPlaybackAfterEnd(replayPath)) return;
-        const pathChanged = playbackSession.path !== replayPath;
-        playbackSession.lastDetectReason = reason;
-        replayCacheDiffTracker.syncSelection(canonicalCacheReplayPath(replayPath));
-
-        if (pathChanged) {
-            resetPlaybackCaches('replay_selected', {
-                replayPath: playbackSession.path || '',
-                purgeDisk: 'all',
-                stopClock: true,
-                resetSession: false,
-                clearLiveState: false
-            });
-            ensurePlaybackSession(replayPath, { rewind: false });
-            clearReplayEndState(true);
-            state.replayAtEnd = false;
-            state.replayDataDurationSec = 0;
-            playbackSession.lastRewindPickKey = '';
-            playbackSession.lastMetaSessionKey = null;
-            playbackSession.replaySelectedAt = Date.now();
-            playbackSession.lastMetaChangeAt = Date.now();
-            playbackSession.zipLiveSince = 0;
-            playbackSession.pendingSessionStart = false;
-            maybePersistPlaybackPath(replayPath, reason);
-            replayAccessTracker.syncPreferPath(replayPath);
-            if (reason === 'manual_path' || reason === 'manual_play' || reason === 'game_switch'
-                || reason === 'game_active' || reason === 'game_reopen'
-                || reason === 'zip_live' || reason === 'zip_open' || reason === 'meta_changed') {
-                startPlaybackClock(0);
-            }
-            return;
-        }
-
-        if (reason === 'manual_path' || reason === 'manual_play') {
-            ensurePlaybackSession(replayPath, { rewind: false });
-            startPlaybackClock(0);
-            return;
-        }
-
-        if (reason === 'game_switch' || reason === 'game_active' || reason === 'game_reopen'
-            || reason === 'zip_live' || reason === 'zip_open' || reason === 'meta_changed') {
-            ensurePlaybackSession(replayPath, { rewind: false });
-            const durationHint = replayDataDurationSec() || Math.max(1, Number(state.battleDurationSec) || 600);
-            const initialPos = readGameCachePosition(replayPath, durationHint);
-            if (initialPos != null) {
-                applyGamePosition(initialPos, durationHint, reason);
-            } else {
-                startPlaybackClock(0);
-            }
-            return;
-        }
-
-        ensurePlaybackSession(replayPath, { rewind: false });
-        maybeStartPlaybackClock(replayPath, reason);
-    }
-
-    function alignPlaybackClockTo(positionSec, battleDurationSec) {
-        const maxSec = battleDurationSec > 0 ? battleDurationSec : positionSec;
-        const pos = Math.max(0, Math.min(Number(positionSec) || 0, maxSec));
-        applyGamePosition(pos, maxSec, 'align');
-    }
-
-    function maybeRestartPlaybackFromGameCache(replayDurationSec) {
-        const snap = readGameCacheSnapshot(playbackSession.path, replayDurationSec);
-        if (!snap) return;
-
-        const { cacheEntry, inspect, gamePos, maxDur } = snap;
-        const sessionKey = cacheEntry.sessionKey;
-        const metaChanged = playbackSession.lastMetaHex !== cacheEntry.metaHex;
-        const sessionChanged = playbackSession.lastMetaSessionKey != null
-            && playbackSession.lastMetaSessionKey !== sessionKey;
-
-        if (metaChanged && inspect) {
-            playbackSession.lastMetaInspect = inspect;
-            playbackSession.lastMetaChangeAt = Date.now();
-            const reason = sessionChanged ? 'session' : 'meta';
-            logMetaChange(cacheEntry, inspect, reason);
-            if (state.playbackDebug) {
-                state.playbackDebug.lastMetaInspect = inspect;
-                state.playbackDebug.lastMetaChangeAt = playbackSession.lastMetaChangeAt;
-                state.playbackDebug.metaLogPath = metaLogPath();
-            }
-        }
-
-        if (gamePos != null) {
-            if (shouldIgnoreStaleCachePosition(gamePos, maxDur) && !sessionChanged) {
-                startPlaybackClock(0);
-                playbackSession.gamePositionSec = null;
-                playbackSession.pendingSessionStart = false;
-                playbackSession.clockSource = 'waiting_game_cache';
-                state.replayAtEnd = false;
-            } else if (!playbackSession.cachePositionLocked) {
-                const prevPos = playbackSession.gamePositionSec;
-                applyGamePosition(gamePos, maxDur, metaChanged ? 'meta_pos' : 'meta_poll');
-                if (prevPos == null || Math.abs(prevPos - gamePos) > 0.05) {
-                    playbackSession.lastMetaChangeAt = Date.now();
-                }
-                if (state.playbackDebug) {
-                    state.playbackDebug.clockSyncSource = 'game_cache_meta';
-                }
-            }
-        }
-
-        if (playbackSession.lastMetaSessionKey == null) {
-            playbackSession.lastMetaSessionKey = sessionKey;
-            playbackSession.lastMetaHex = cacheEntry.metaHex;
-            if (gamePos == null && playbackSession.pendingSessionStart && isZipActiveForPlayback(playbackSession.path)) {
-                playbackSession.clockRunning = true;
-                playbackSession.clockSource = 'waiting_game_cache';
-            }
-            return;
-        }
-
-        playbackSession.lastMetaHex = cacheEntry.metaHex;
-
-        if (!sessionChanged && !metaChanged) return;
-
-        if (sessionChanged) {
-            if (!summaryHoldActive()) {
-                playbackHoldKey = '';
-                if (state.replayEndSummary) state.replayEndSummary = null;
-            }
-            clearReplayEndState(true);
-            playbackSession.lastMetaSessionKey = sessionKey;
-            playbackSession.pendingSessionStart = true;
-            playbackSession.zipLiveSince = 0;
-            playbackSession.battleAnchored = false;
-            if (playbackSession.parseInFlight) {
-                playbackSession.parseGen += 1;
-            } else {
-                playbackSession.applyCache = null;
-            }
-            playbackSession.loadKey = '';
-            playbackSession.parseGen += 1;
-            state.playbackTimeline = null;
-            state.teamHp = null;
-            state.replayAtEnd = false;
-            state.replayDataDurationSec = 0;
-            if (gamePos != null && !playbackSession.cachePositionLocked) {
-                applyGamePosition(gamePos, maxDur, 'meta_session');
-                playbackSession.pendingSessionStart = false;
-            } else {
-                startPlaybackClock(0);
-                playbackSession.clockSource = 'waiting_game_cache';
-            }
-            if (state.playbackDebug) {
-                state.playbackDebug.clockStartReason = 'meta_session';
-                state.playbackDebug.playbackRestart = true;
-                state.playbackDebug.metaSessionKey = sessionKey;
-            }
-            if (state.playbackTimeline) {
-                state.playbackTimeline.rewindAt = playbackSession.rewindAt;
-                state.playbackTimeline.startedAt = playbackSession.startedAt;
-            }
-        }
-    }
-
-    function resetPlaybackClock() {
-        playbackSession.startedAt = Date.now();
-        playbackSession.clockOffsetSec = 0;
-        playbackSession.rewindAt = Date.now();
-        playbackSession.frozenClockSec = null;
-        playbackSession.zipPausedAt = 0;
-        if (playbackSession.clockSource === 'replay_end') {
-            playbackSession.clockSource = 'idle';
-            playbackSession.clockRunning = false;
-        }
-        state.replayAtEnd = false;
-    }
-
-    function hasGameCachePlayback(replayPath) {
-        if (!replayPath) return false;
-        return Boolean(readGameCacheEntry(replayPath));
-    }
-
-    function isPlaybackPaused(replayPath) {
-        if (!replayPath) return true;
-        if (playbackSession.path === replayPath && playbackSession.clockRunning) {
-            return false;
-        }
-        const activity = getReplayFileActivity(replayPath);
-        return !activity.exists || activity.ageMs == null || activity.ageMs > ZIP_PAUSE_MS;
-    }
-
-    function usesWallPlaybackClock() {
-        const src = playbackSession.clockSource;
-        return src === 'wall_fallback'
-            || src === 'zip_wall_sync'
-            || src === 'waiting_game_cache'
-            || src === 'idle'
-            || playbackSession.gamePositionSec == null;
-    }
-
-    function getPlaybackClockSec() {
-        if (!playbackSession.path) return 0;
-
-        const maxDur = playbackClockMaxSec();
-        const zipPaused = isPlaybackPaused(playbackSession.path);
-        const wallClock = usesWallPlaybackClock();
-
-        if (zipPaused && !wallClock) {
-            if (playbackSession.gamePositionSec != null) {
-                playbackSession.clockSource = 'game_cache_frozen';
-                playbackSession.lastKnownClockSec = playbackSession.gamePositionSec;
-                return Math.min(playbackSession.gamePositionSec, maxDur);
-            }
-            if (playbackSession.frozenClockSec == null && playbackSession.clockRunning) {
-                playbackSession.frozenClockSec = resolvePlaybackClockSec();
-                playbackSession.zipPausedAt = Date.now();
-            }
-            const frozen = playbackSession.frozenClockSec != null
-                ? playbackSession.frozenClockSec
-                : (playbackSession.lastKnownClockSec || 0);
-            return Math.min(frozen, maxDur);
-        }
-
-        if (playbackSession.frozenClockSec != null && playbackSession.zipPausedAt) {
-            playbackSession.frozenClockSec = null;
-            playbackSession.zipPausedAt = 0;
-        }
-
-        if (!playbackSession.clockRunning && playbackSession.gamePositionSec == null) {
-            if (playbackSession.clockSource === 'replay_end' || state.replayAtEnd) {
-                return Math.min(playbackSession.lastKnownClockSec || replayDataDurationSec() || 0, maxDur);
-            }
-            if (playbackSession.pendingSessionStart) {
-                return 0;
-            }
-            return Math.min(playbackSession.lastKnownClockSec || 0, maxDur);
-        }
-
-        const clock = Math.min(resolvePlaybackClockSec(), maxDur);
-        stopClockAtReplayEnd(clock);
-        return playbackSession.clockSource === 'replay_end'
-            ? maxDur
-            : clock;
-    }
 
     function replayFileMtime(replayPath) {
         try {
