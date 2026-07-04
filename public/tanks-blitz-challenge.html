@@ -115,6 +115,11 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
 .pv-note b{color:#fff;font-family:'Orbitron',monospace;font-weight:800;}
 .pv-note .good{color:#5dffb0;}
 
+/* награда за активность зрителей — наглядный бейдж вместо серой подписи */
+.act-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:999px;font-family:'Orbitron',monospace;font-weight:800;font-size:.82rem;white-space:nowrap;}
+.act-pill.wr{background:rgba(55,214,255,.16);color:var(--electric);border:1px solid rgba(55,214,255,.4);}
+.act-pill.gold{background:rgba(255,206,70,.16);color:var(--gold);border:1px solid rgba(255,206,70,.4);}
+
 /* TIMER CHIPS в сессионной панели */
 .timer-chip{display:inline-flex;align-items:center;gap:10px;padding:8px 12px;border-radius:11px;background:rgba(255,206,70,0.07);border:1px solid rgba(255,206,70,0.22);font-size:.8rem;color:var(--steel);}
 .timer-chip b{font-family:'Orbitron',monospace;color:#fff;min-width:5ch;text-align:center;}
@@ -147,7 +152,7 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
 
 /* LIVE FEED */
 .feed-wrap{margin-top:8px;}
-.feed-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-family:'Orbitron',monospace;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;}
+.feed-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-family:'Orbitron',monospace;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;white-space:nowrap;}
 .feed-head .dot{width:9px;height:9px;border-radius:50%;background:var(--crimson);box-shadow:0 0 10px var(--crimson);animation:livedot 1.4s infinite;}
 .feed{display:flex;flex-direction:column;gap:12px;max-height:340px;overflow:auto;padding-right:6px;}
 .feed::-webkit-scrollbar{width:6px;}.feed::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:6px;}
@@ -200,6 +205,11 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
 .me-fields input[type=text]{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:9px;padding:8px 10px;font-size:.85rem;}
 .me-need{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--steel);}
 .me-need input{width:64px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:8px;padding:6px 8px;font-family:'Orbitron',monospace;text-align:center;}
+.me-need select.lesta-sel{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:8px;padding:6px 8px;font-size:.78rem;}
+.me-need select.lesta-sel option{background:#1a2035;color:#fff;}
+.me-item.auto-linked{border-color:rgba(54,245,160,.4);}
+.me-auto-badge{display:none;font-size:.66rem;font-weight:800;letter-spacing:.05em;color:#36f5a0;padding:2px 7px;border-radius:6px;background:rgba(54,245,160,.12);border:1px solid rgba(54,245,160,.35);}
+.me-item.auto-linked .me-auto-badge{display:inline-block;}
 
 /* FX / VICTORY / TOAST */
 #flash{position:fixed;inset:0;z-index:550;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 50%,rgba(255,200,80,.5),transparent 60%);}
@@ -296,14 +306,41 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
                 </div>
             </div>
 
+            <!-- ACTIVITY PROGRESS: зрители тоже двигают челлендж, не только донатом -->
+            <div class="feed-wrap" style="margin-bottom:22px;">
+                <div class="feed-head"><span class="dot"></span> Зрители усиливают челлендж</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="pv-cell" style="padding:16px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                            <div class="pv-lbl" style="margin-bottom:0;">💬 Чат</div>
+                            <span class="act-pill wr" id="actChatReward">🎁 —</span>
+                        </div>
+                        <div class="pv-num" id="actChatNums" style="font-size:1.3rem;margin-top:8px;">0 / 0</div>
+                        <div class="pv-track" style="margin:10px 0 0;height:12px;"><i class="fill" id="actChatBar" style="background:linear-gradient(90deg,var(--electric),#fff);"></i></div>
+                    </div>
+                    <div class="pv-cell" style="padding:16px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+                            <div class="pv-lbl" style="margin-bottom:0;">👍 Лайки</div>
+                            <span class="act-pill gold" id="actLikesReward">🎁 —</span>
+                        </div>
+                        <div class="pv-num" id="actLikesNums" style="font-size:1.3rem;margin-top:8px;">0 / 0</div>
+                        <div class="pv-track" style="margin:10px 0 0;height:12px;"><i class="fill" id="actLikesBar" style="background:linear-gradient(90deg,var(--gold),#fff);"></i></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- LIVE FEED -->
             <div class="feed-wrap">
                 <div class="feed-head"><span class="dot"></span> Live донат-фид</div>
                 <div class="feed" id="feed"><div class="feed-empty">Пока нет донатов в этой сессии.</div></div>
             </div>
 
-            <div class="obs-hint">Виджет для OBS: <code id="obsUrl">/widget/tanks-blitz-challenge</code>
+            <div class="obs-hint">Виджет для OBS: <code id="obsUrl">/widget/tanks-blitz-challenge?scale=2</code>
+                <span style="opacity:.65;font-size:.85em"> — в OBS: 1280×1580 px</span>
                 <button class="btn btn-ghost" style="padding:6px 12px;margin-left:8px" onclick="copyObs()">Копировать</button></div>
+            <div class="obs-hint">Виджет активности зрителей (отдельно): <code id="obsActivityUrl">/widget/blitz-activity?scale=2</code>
+                <span style="opacity:.65;font-size:.85em"> — ширина тянется под источник OBS</span>
+                <button class="btn btn-ghost" style="padding:6px 12px;margin-left:8px" onclick="copyObsActivity()">Копировать</button></div>
         </div>
     </main>
 </div>
@@ -338,6 +375,7 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
             <div class="cfg-tab active" data-pane="wr" onclick="cfgTab('wr')">🎯 Win Rate</div>
             <div class="cfg-tab" data-pane="dmg" onclick="cfgTab('dmg')">💥 Урон</div>
             <div class="cfg-tab" data-pane="med" onclick="cfgTab('med')">🏅 Медали</div>
+            <div class="cfg-tab" data-pane="act" onclick="cfgTab('act')">💬 Буст зрителей</div>
         </div>
 
         <div class="cfg-pane show" id="paneWr">
@@ -359,6 +397,42 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
             <div style="margin:14px 0 8px;font-weight:700;color:#cdd9f2">Медали челленджа</div>
             <div id="medalEdit"></div>
             <button class="btn btn-ghost" style="padding:8px 14px" onclick="addMedalRow()">+ Добавить медаль</button>
+        </div>
+        <div class="cfg-pane" id="paneAct">
+            <div class="cfg-row" style="grid-template-columns:1fr"><span class="hint">Зрители тоже могут двигать челлендж — не донатом, а активностью. Цель растёт сама после каждого выполнения.</span></div>
+            <div style="font-weight:700;color:#cdd9f2;margin:14px 0 8px">💬 Чат</div>
+            <div class="cfg-row"><label>Включено</label><input type="checkbox" id="actChatEnabled" style="width:20px;height:20px;accent-color:var(--gold)"></div>
+            <div class="cfg-row"><label>Цель, сообщений</label><input type="number" id="actChatGoal" value="1000" step="50" min="1"></div>
+            <div class="cfg-row"><label>Награда</label>
+                <select id="actChatRewardType" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px">
+                    <option value="winrate">Win Rate, %</option><option value="damage">Урон</option><option value="medals">К медали «нужно»</option>
+                </select>
+            </div>
+            <div class="cfg-row"><label>Величина награды</label><input type="number" id="actChatRewardAmount" value="100" step="1"></div>
+            <div class="cfg-row"><label>Эскалация цели</label>
+                <select id="actChatEscMode" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px">
+                    <option value="percent">+% к цели</option><option value="fixed">+фикс. число</option>
+                </select>
+            </div>
+            <div class="cfg-row"><label>Величина эскалации</label><input type="number" id="actChatEscValue" value="20" step="1"></div>
+            <div class="cfg-row" style="grid-template-columns:1fr"><span class="hint" id="actChatProgressHint">прогресс: —</span></div>
+
+            <div style="font-weight:700;color:#cdd9f2;margin:18px 0 8px">👍 Лайки</div>
+            <div class="cfg-row"><label>Включено</label><input type="checkbox" id="actLikesEnabled" style="width:20px;height:20px;accent-color:var(--gold)"></div>
+            <div class="cfg-row"><label>Цель, лайков</label><input type="number" id="actLikesGoal" value="500" step="25" min="1"></div>
+            <div class="cfg-row"><label>Награда</label>
+                <select id="actLikesRewardType" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px">
+                    <option value="winrate">Win Rate, %</option><option value="damage">Урон</option><option value="medals">К медали «нужно»</option>
+                </select>
+            </div>
+            <div class="cfg-row"><label>Величина награды</label><input type="number" id="actLikesRewardAmount" value="1" step="0.1"></div>
+            <div class="cfg-row"><label>Эскалация цели</label>
+                <select id="actLikesEscMode" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:#fff;border-radius:10px;padding:9px 12px">
+                    <option value="percent">+% к цели</option><option value="fixed">+фикс. число</option>
+                </select>
+            </div>
+            <div class="cfg-row"><label>Величина эскалации</label><input type="number" id="actLikesEscValue" value="20" step="1"></div>
+            <div class="cfg-row" style="grid-template-columns:1fr"><span class="hint" id="actLikesProgressHint">прогресс: —</span></div>
         </div>
 
         <div style="margin:18px 0 6px;font-weight:700;color:#cdd9f2">Пресеты</div>
@@ -386,11 +460,62 @@ let headerDraft={winrate:'',damage:'',medals:''};
 document.addEventListener('DOMContentLoaded',()=>{
     Promise.all([fetch('/components/sidebar.html').then(r=>r.text()).catch(()=>''),fetch('/components/header.html').then(r=>r.text()).catch(()=>'')])
         .then(([s,h])=>{document.getElementById('sidebar-placeholder').innerHTML=s;document.getElementById('header-placeholder').innerHTML=h;});
-    document.getElementById('obsUrl').textContent=location.origin+'/widget/tanks-blitz-challenge';
+    document.getElementById('obsUrl').textContent=location.origin+'/widget/tanks-blitz-challenge?scale=2';
+    document.getElementById('obsActivityUrl').textContent=location.origin+'/widget/blitz-activity?scale=2';
     document.getElementById('medalFile').addEventListener('change',onMedalFile);
-    initFx(); bindRanges(); loadChallenge(); loadProgress(); loadFeed();
+    initFx(); bindRanges(); loadChallenge(); loadProgress(); loadFeed(); loadLestaMedalCatalog();
     connectWS(); setInterval(loadProgress,15000); setInterval(renderTimers,500);
 });
+
+/* ===== АВТОСПИСАНИЕ МЕДАЛЕЙ ПО LESTA API =====
+   Медаль в списке можно привязать к коду достижения Lesta (lestaId). Сервер сам сверяет
+   счётчик достижения с базовой точкой при каждом синке статистики и добавляет разницу
+   в "earned" — донаты продолжают поднимать планку "нужно", а взятие идёт само. */
+const ACH_LABELS={
+    medalCarius:'Кариус',medalHalonen:'Халонен',medalEkins:'Икинс',medalKay:'Кей',medalLeClerc:'Леклерк',
+    medalLehvaslaiho:'Лехваслайхо',medalAbrams:'Абрамс',medalPoppel:'Поппель',medalRadleyWalters:'Рэдли-Уолтерс',
+    medalSupremacy:'Превосходство',medalKnispel:'Книспель',medalBurda:'Бурда',medalPascucci:'Паскуччи',
+    medalOskin:'Медаль Оськина',medalOrlik:'Медаль Орлика',medalCrucialShot:'Меткий выстрел',
+    markOfMasteryI:'Знак мастерства I',markOfMasteryII:'Знак мастерства II',markOfMasteryIII:'Знак мастерства III',
+    markOfMastery:'Мастер',titleSniper:'Снайпер',titleSharpshooter:'Меткий стрелок',
+    firstBlood:'Первая кровь',firstVictory:'Первая победа',invader:'Захватчик',defender:'Защитник',
+    supporter:'Поддержка',steelwall:'Стальная стена',punisher:'Каратель',armorPiercer:'Бронебойный',
+    mousebane:'Крысолов',kamikaze:'Камикадзе',diehard:'Стойкий',warrior:'Воин',sinai:'Лев Синая',
+    evileye:'Дозорный',tankExpert:'Танковый эксперт',
+    mainGun:'Основной Калибр',medalBrothersInArms:'Братья по оружию',scout:'Разведчик',
+    medalCrucialContribution:'Решающий Вклад',sturdy:'Спартанец',camper:'Танкист Снайпер',
+    medalKolobanov:'Медаль Колобанова',medalLafayettePool:'Медаль Пула',beasthunter:'Зверобой',
+    ironMan:'Невозмутимый',huntsman:'Егерь',medalNikolas:'Медаль Николса',
+    diamondClanRibbon:'Бриллиантовая лента сезона',platinumClanRibbonRU:'Платиновая лента сезона',
+    pattonValley:'Долина Паттонов',medalDeLanglade:'Медаль Де Ланглада'
+};
+function achLabel(id){ return ACH_LABELS[id] || id; }
+let LESTA_MEDAL_CATALOG=null;
+function loadLestaMedalCatalog(){
+    fetch('/api/blitz-challenge/lesta-medals').then(r=>r.json()).then(d=>{
+        LESTA_MEDAL_CATALOG = d.success ? (d.achievements||{}) : {};
+        refreshLestaSelects();
+    }).catch(()=>{ LESTA_MEDAL_CATALOG={}; });
+}
+function fillLestaSelect(sel,selected){
+    const cat=LESTA_MEDAL_CATALOG||{};
+    const ids=Object.keys(cat);
+    if(selected && !ids.includes(selected)) ids.push(selected);
+    ids.sort((a,b)=>(Number(cat[b])||0)-(Number(cat[a])||0));
+    sel.innerHTML='<option value="">— вручную (по донатам) —</option>'+ids.map(id=>{
+        const cnt=cat[id]!=null?` (сейчас ${cat[id]})`:'';
+        return `<option value="${id}" ${id===selected?'selected':''}>${achLabel(id)}${cnt}</option>`;
+    }).join('');
+}
+function refreshLestaSelects(){
+    document.querySelectorAll('#medalEdit .me-item').forEach(row=>{
+        const sel=row.querySelector('.lesta-sel');
+        fillLestaSelect(sel, sel.value||row.dataset.lestaId||'');
+    });
+}
+function onLestaSelChange(sel){
+    sel.closest('.me-item').classList.toggle('auto-linked', !!sel.value);
+}
 
 function applyCH(ch){ CH=ch; if(ch&&ch.serverNow) serverOffset=ch.serverNow-Math.floor(Date.now()/1000); }
 function loadChallenge(){ fetch('/api/blitz-challenge').then(r=>r.json()).then(d=>{ if(d.success){applyCH(d.challenge);render();} }); }
@@ -422,7 +547,28 @@ function render(){
     const gaugeView=document.getElementById('gaugeView'), medalsView=document.getElementById('medalsView');
     if(t==='medals'){ gaugeView.style.display='none'; medalsView.style.display='block'; renderMedals(); }
     else { gaugeView.style.display='flex'; medalsView.style.display='none'; renderGauge(t); }
-    renderProgress(); renderTimers();
+    renderProgress(); renderTimers(); renderActivity();
+}
+
+function pluralMedal(n){ n=Math.abs(Math.round(Number(n)||0)); const m10=n%10,m100=n%100;
+    if(m10===1&&m100!==11) return 'медаль'; if(m10>=2&&m10<=4&&(m100<10||m100>=20)) return 'медали'; return 'медалей'; }
+function rewardPreviewText(a){
+    if(!a) return '—';
+    if(a.rewardType==='winrate') return '+'+(Math.round(a.rewardAmount*100)/100)+'% к винрейту';
+    if(a.rewardType==='damage') return '+'+fmt(a.rewardAmount)+' урона';
+    return '+'+Math.round(a.rewardAmount)+' '+pluralMedal(a.rewardAmount);
+}
+function renderActivity(){
+    if(!CH||!CH.activity) return;
+    const c=CH.activity.chat||{}, l=CH.activity.likes||{};
+    const chatPct=c.goalCurrent>0?Math.min(100,(c.progress/c.goalCurrent)*100):0;
+    const likesPct=l.goalCurrent>0?Math.min(100,(l.progress/l.goalCurrent)*100):0;
+    document.getElementById('actChatNums').textContent=fmt(c.progress||0)+' / '+fmt(c.goalCurrent||0)+(c.enabled?'':' (выкл)');
+    document.getElementById('actChatBar').style.width=chatPct+'%';
+    document.getElementById('actChatReward').textContent='🎁 '+rewardPreviewText(c);
+    document.getElementById('actLikesNums').textContent=fmt(l.progress||0)+' / '+fmt(l.goalCurrent||0)+(l.enabled?'':' (выкл)');
+    document.getElementById('actLikesBar').style.width=likesPct+'%';
+    document.getElementById('actLikesReward').textContent='🎁 '+rewardPreviewText(l);
 }
 
 /* позиция значения на шкале старт→потолок (0..1) */
@@ -590,7 +736,8 @@ function cfgTab(p){
     document.getElementById('paneWr').classList.toggle('show',p==='wr');
     document.getElementById('paneDmg').classList.toggle('show',p==='dmg');
     document.getElementById('paneMed').classList.toggle('show',p==='med');
-    loadHeaderDraftToInput(p);
+    document.getElementById('paneAct').classList.toggle('show',p==='act');
+    if(CFG_TAB_MAP[p]) loadHeaderDraftToInput(p);
 }
 function openSettings(){
     if(!CH) return;
@@ -598,6 +745,17 @@ function openSettings(){
     sv('wrStart',w.start);sv('wrCapIn',w.cap);sv('wrPer',w.perAmount);sv('wrStep',w.step);
     sv('dmgStart',dm.start);sv('dmgCapIn',dm.cap);sv('dmgPer',dm.perAmount);sv('dmgStep',dm.step);
     sv('medPer',md.perAmount);sv('medStep',md.step);sv('medCapIn',md.capPerMedal||10);
+    const act=CH.activity||{chat:{},likes:{}};
+    document.getElementById('actChatEnabled').checked=!!act.chat.enabled;
+    sv('actChatGoal',act.chat.goalStart||1000);sv('actChatRewardType',act.chat.rewardType||'damage');
+    sv('actChatRewardAmount',act.chat.rewardAmount||100);sv('actChatEscMode',act.chat.escalationMode||'percent');
+    sv('actChatEscValue',act.chat.escalationValue||20);
+    document.getElementById('actChatProgressHint').textContent='прогресс: '+fmt(act.chat.progress||0)+' / '+fmt(act.chat.goalCurrent||0);
+    document.getElementById('actLikesEnabled').checked=!!act.likes.enabled;
+    sv('actLikesGoal',act.likes.goalStart||500);sv('actLikesRewardType',act.likes.rewardType||'winrate');
+    sv('actLikesRewardAmount',act.likes.rewardAmount||1);sv('actLikesEscMode',act.likes.escalationMode||'percent');
+    sv('actLikesEscValue',act.likes.escalationValue||20);
+    document.getElementById('actLikesProgressHint').textContent='прогресс: '+fmt(act.likes.progress||0)+' / '+fmt(act.likes.goalCurrent||0);
     const tm=CH.timers||{};
     document.getElementById('cdEnabled').checked=!!(tm.countdown&&tm.countdown.enabled);
     document.getElementById('cdMinutes').value=Math.max(1,Math.round(((tm.countdown&&tm.countdown.durationSec)||3600)/60));
@@ -625,17 +783,21 @@ function bindRanges(){
 function renderMedalEdit(list){ const box=document.getElementById('medalEdit'); box.innerHTML='';
     (list&&list.length?list:[{label:'Калибр',icon:'🔥',required:1}]).forEach(addMedalRow); }
 function addMedalRow(m){
-    m=m||{label:'',icon:'🏅',image:'',required:1};
+    m=m||{label:'',icon:'🏅',image:'',required:1,lestaId:''};
     const box=document.getElementById('medalEdit');
-    const row=document.createElement('div'); row.className='me-item';
+    const row=document.createElement('div'); row.className='me-item'+(m.lestaId?' auto-linked':'');
     row.dataset.id=m.id||('m'+Date.now()+Math.floor(Math.random()*1000));
     row.dataset.image=m.image||'';
+    row.dataset.lestaId=m.lestaId||'';
     const inner=m.image?`<img src="${m.image}">`:(m.icon||'🏅');
     row.innerHTML=`<div class="me-ico" onclick="pickImage(this.parentNode)">${inner}<span class="up">PNG</span></div>
         <div class="me-fields"><input type="text" class="lbl" value="${(m.label||'').replace(/"/g,'&quot;')}" placeholder="Название медали">
-            <div class="me-need">нужно взять: <input type="number" class="req" min="0" value="${m.required||1}"></div></div>
+            <div class="me-need">нужно взять: <input type="number" class="req" min="0" value="${m.required||1}"></div>
+            <div class="me-need">автосписание: <select class="lesta-sel" onchange="onLestaSelChange(this)"></select><span class="me-auto-badge">АВТО</span></div>
+        </div>
         <button class="circle-btn" onclick="this.closest('.me-item').remove()">×</button>`;
     box.appendChild(row);
+    fillLestaSelect(row.querySelector('.lesta-sel'), m.lestaId||'');
 }
 function pickImage(row){ uploadTargetRow=row; document.getElementById('medalFile').click(); }
 function onMedalFile(e){
@@ -653,14 +815,23 @@ function collectMedals(){
     return [...document.querySelectorAll('#medalEdit .me-item')].map(r=>({
         id:r.dataset.id, image:r.dataset.image||'',
         icon:'🏅', label:r.querySelector('.lbl').value||'Медаль',
-        required:Math.max(0,parseInt(r.querySelector('.req').value)||0), earned:0
+        required:Math.max(0,parseInt(r.querySelector('.req').value)||0), earned:0,
+        lestaId:r.querySelector('.lesta-sel').value||''
     })).filter(m=>m.label.trim());
 }
 function buildConfig(){
     return {
         winrate:{start:nv('wrStart'),cap:nv('wrCapIn'),perAmount:nv('wrPer'),step:nv('wrStep')},
         damage:{start:nv('dmgStart'),cap:nv('dmgCapIn'),perAmount:nv('dmgPer'),step:nv('dmgStep')},
-        medals:{perAmount:nv('medPer'),step:nv('medStep'),capPerMedal:nv('medCapIn'),list:collectMedals()}
+        medals:{perAmount:nv('medPer'),step:nv('medStep'),capPerMedal:nv('medCapIn'),list:collectMedals()},
+        activity:{
+            chat:{enabled:document.getElementById('actChatEnabled').checked,goalStart:nv('actChatGoal'),
+                rewardType:document.getElementById('actChatRewardType').value,rewardAmount:nv('actChatRewardAmount'),
+                escalationMode:document.getElementById('actChatEscMode').value,escalationValue:nv('actChatEscValue')},
+            likes:{enabled:document.getElementById('actLikesEnabled').checked,goalStart:nv('actLikesGoal'),
+                rewardType:document.getElementById('actLikesRewardType').value,rewardAmount:nv('actLikesRewardAmount'),
+                escalationMode:document.getElementById('actLikesEscMode').value,escalationValue:nv('actLikesEscValue')}
+        }
     };
 }
 function saveSettings(){
@@ -693,6 +864,10 @@ function applyPreset(id){ const p=presets.find(x=>x.id===id); if(!p)return; cons
     if(c.winrate){sv('wrStart',c.winrate.start);sv('wrCapIn',c.winrate.cap);sv('wrPer',c.winrate.perAmount);sv('wrStep',c.winrate.step);}
     if(c.damage){sv('dmgStart',c.damage.start);sv('dmgCapIn',c.damage.cap);sv('dmgPer',c.damage.perAmount);sv('dmgStep',c.damage.step);}
     if(c.medals){sv('medPer',c.medals.perAmount);sv('medStep',c.medals.step);sv('medCapIn',c.medals.capPerMedal||10);renderMedalEdit(c.medals.list);}
+    if(c.activity){
+        if(c.activity.chat){const a=c.activity.chat;document.getElementById('actChatEnabled').checked=!!a.enabled;sv('actChatGoal',a.goalStart);sv('actChatRewardType',a.rewardType);sv('actChatRewardAmount',a.rewardAmount);sv('actChatEscMode',a.escalationMode);sv('actChatEscValue',a.escalationValue);}
+        if(c.activity.likes){const a=c.activity.likes;document.getElementById('actLikesEnabled').checked=!!a.enabled;sv('actLikesGoal',a.goalStart);sv('actLikesRewardType',a.rewardType);sv('actLikesRewardAmount',a.rewardAmount);sv('actLikesEscMode',a.escalationMode);sv('actLikesEscValue',a.escalationValue);}
+    }
     bindRanges(); toast('Пресет применён'); }
 function delPreset(id){ fetch('/api/blitz-challenge/presets/'+id,{method:'DELETE'}).then(()=>loadPresets()); }
 
@@ -700,11 +875,17 @@ function delPreset(id){ fetch('/api/blitz-challenge/presets/'+id,{method:'DELETE
 function connectWS(){
     try{ const ws=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws');
         ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
-            if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){ applyCH(m.challenge); render(); if(m.lastDonation) onDonation(m.lastDonation); } };
+            if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){ applyCH(m.challenge); render(); if(m.lastDonation) onDonation(m.lastDonation); if(m.activityMilestone) onActivityMilestone(m.activityMilestone); } };
         ws.onclose=()=>setTimeout(connectWS,3000);
     }catch(e){ setTimeout(connectWS,4000); }
 }
 function onDonation(ld){ addFeed(ld); flash(ld.amount); }
+function onActivityMilestone(am){
+    const label=am.metric==='chat'?'💬 Чат':'👍 Лайки';
+    const rewardLabel=am.rewardType==='winrate'?('+'+am.rewardAmount+'% WR'):am.rewardType==='damage'?('+'+fmt(am.rewardAmount)+' урона'):('+'+am.rewardAmount+' к медали');
+    toast(label+': цель выполнена! '+rewardLabel);
+    flash(500);
+}
 function esc(s){ const d=document.createElement('div'); d.textContent=String(s==null?'':s); return d.innerHTML; }
 function feedEl(ld){
     const big=ld.amount>=500; const c=ld.contribution||{}; const tags=[];
@@ -754,7 +935,8 @@ function animateNumber(id,target,sep){ target=Number(target)||0; const el=docume
     (function step(t){ const k=Math.min(1,(t-start)/dur),v=from+(target-from)*(1-Math.pow(1-k,3));
         el.textContent=sep?Math.round(v).toLocaleString('ru-RU'):Math.round(v); if(k<1)requestAnimationFrame(step); else animState[id]=target; })(start); }
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
-function copyObs(){ navigator.clipboard.writeText(location.origin+'/widget/tanks-blitz-challenge').then(()=>toast('Скопировано')); }
+function copyObs(){ navigator.clipboard.writeText(location.origin+'/widget/tanks-blitz-challenge?scale=2').then(()=>toast('Скопировано')); }
+function copyObsActivity(){ navigator.clipboard.writeText(location.origin+'/widget/blitz-activity?scale=2').then(()=>toast('Скопировано')); }
 </script>
 </body>
 </html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity Widget</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800;900&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#ffce46;--gold-deep:#ff9d00;--electric:#37d6ff;--green:#36f5a0;--steel:#9fb4d8;--text-shadow:0 2px 0 rgba(0,0,0,.5);--text-glow:0 0 10px rgba(255,255,255,.2);}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;}
+html,body{width:100%;height:100%;min-height:100vh;overflow:hidden;}
+body{font-family:'Exo 2',sans-serif;background:transparent;color:#fff;width:100%;}
+
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:30;background:radial-gradient(circle at 50% 42%,rgba(255,200,80,.5),transparent 58%);}
+#flash.go{animation:flash .65s ease;}
+@keyframes flash{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+
+/* Ширина карточки = ширина источника OBS; без transform-scale — текст не сжимается */
+.wrap{width:100%;}
+.card{position:relative;width:100%;padding:20px clamp(16px,4vw,30px);
+    background:linear-gradient(165deg,rgba(13,16,28,0.86),rgba(8,10,19,0.87));
+    border-radius:18px;overflow:hidden;
+    box-shadow:0 30px 70px rgba(0,0,0,0.62),inset 0 1px 0 rgba(255,255,255,0.05);}
+.card.hidden{display:none;}
+.card::before{content:'';position:absolute;inset:0;border-radius:18px;padding:1.5px;pointer-events:none;z-index:2;
+    background:linear-gradient(150deg,rgba(255,206,70,.55),rgba(255,255,255,.16) 30%,transparent 55%,rgba(255,206,70,.3));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;}
+.inner{position:relative;z-index:4;}
+
+.header{text-align:center;font-family:'Exo 2';font-weight:900;text-transform:uppercase;letter-spacing:.12em;line-height:1.22;
+    font-size:1.15rem;margin-bottom:16px;white-space:nowrap;overflow:hidden;
+    background:linear-gradient(92deg,#fff6da,var(--gold) 55%,var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 2px 0 rgba(0,0,0,.5));}
+
+.arow{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;}
+.arow:last-child{margin-bottom:0;}
+.aic{font-size:1.5rem;flex:none;width:1.4em;text-align:center;margin-top:1px;filter:drop-shadow(0 0 6px rgba(255,255,255,.25));}
+.abody{flex:1;min-width:0;}
+.atop{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.atitle{font-size:.72rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.6);text-shadow:var(--text-shadow);}
+.apill{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:0;padding:4px 11px;border-radius:999px;
+    font-family:'Exo 2',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.02em;line-height:1.25;white-space:nowrap;text-shadow:var(--text-shadow);}
+.apill .sign,.apill .unit{font-weight:600;font-size:.88em;opacity:.82;}
+.apill .amt{font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.04em;margin:0 2px;}
+.apill .tail{font-weight:600;opacity:.95;margin-left:2px;}
+.arow.chat .apill{background:rgba(55,214,255,.16);color:var(--electric);border:1px solid rgba(55,214,255,.4);box-shadow:0 0 12px rgba(55,214,255,.15);}
+.arow.likes .apill{background:rgba(255,206,70,.16);color:var(--gold);border:1px solid rgba(255,206,70,.4);box-shadow:0 0 12px rgba(255,206,70,.15);}
+.atrack{height:13px;border-radius:8px;background:rgba(255,255,255,0.08);overflow:hidden;box-shadow:inset 0 2px 6px rgba(0,0,0,.5);}
+.atrack>i{display:block;height:100%;width:0;border-radius:8px;transition:width .8s cubic-bezier(.16,1,.3,1);}
+.arow.chat .atrack>i{background:linear-gradient(90deg,var(--electric),#fff);box-shadow:0 0 12px rgba(55,214,255,.5);}
+.arow.likes .atrack>i{background:linear-gradient(90deg,var(--gold),#fff);box-shadow:0 0 12px rgba(255,206,70,.5);}
+.anums{margin-top:6px;text-align:left;font-family:'Exo 2','Orbitron',sans-serif;font-weight:700;font-size:.72rem;color:rgba(255,255,255,.58);font-variant-numeric:tabular-nums;line-height:1.3;text-shadow:var(--text-shadow);}
+.anums .n{font-family:'Orbitron';font-weight:700;text-shadow:var(--text-shadow);}
+.anums .lbl{font-weight:600;opacity:.92;text-shadow:var(--text-shadow);}
+
+.empty{text-align:center;font-size:.82rem;color:rgba(255,255,255,.5);padding:6px 0;text-shadow:var(--text-shadow);}
+
+/* всплеск при достижении цели */
+.mtoast{position:absolute;left:0;right:0;bottom:-100%;z-index:5;padding:12px 20px;text-align:center;
+    background:linear-gradient(160deg,rgba(20,34,26,0.87),rgba(10,20,15,0.87));border-top:1.5px solid rgba(54,245,160,.5);
+    transition:bottom .35s cubic-bezier(.16,1,.3,1);}
+.mtoast.show{bottom:0;}
+.mtoast .mt-title{font-family:'Exo 2';font-weight:900;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;color:var(--green);text-shadow:var(--text-shadow),0 0 10px rgba(54,245,160,.5);}
+.mtoast .mt-body{font-family:'Exo 2',sans-serif;font-weight:700;font-size:.95rem;color:#fff;margin-top:3px;line-height:1.3;text-shadow:var(--text-shadow),var(--text-glow);}
+.mtoast .mt-body .sign,.mtoast .mt-body .unit{font-weight:600;font-size:.88em;opacity:.82;}
+.mtoast .mt-body .amt{font-weight:800;margin:0 2px;}
+
+.shake{animation:shake .5s;}
+@keyframes shake{0%,100%{transform:translate(0,0)}25%{transform:translate(-6px,3px)}50%{transform:translate(5px,-3px)}75%{transform:translate(-3px,2px)}}
+</style>
+</head>
+<body>
+<div id="flash"></div>
+<div class="wrap" id="wrap">
+<div class="card hidden" id="card">
+    <div class="inner">
+        <div class="header" id="header">Зрители усиливают челлендж</div>
+        <div id="rows">
+            <div class="arow chat" id="rowChat" style="display:none">
+                <div class="aic">💬</div>
+                <div class="abody">
+                    <div class="atop"><span class="atitle">Чат</span><span class="apill" id="chatReward">—</span></div>
+                    <div class="atrack"><i id="chatFill"></i></div>
+                    <div class="anums" id="chatNums"><span class="n">0 / 0</span> <span class="lbl">сообщений в чате</span></div>
+                </div>
+            </div>
+            <div class="arow likes" id="rowLikes" style="display:none">
+                <div class="aic">👍</div>
+                <div class="abody">
+                    <div class="atop"><span class="atitle">Лайки</span><span class="apill" id="likesReward">—</span></div>
+                    <div class="atrack"><i id="likesFill"></i></div>
+                    <div class="anums" id="likesNums"><span class="n">0 / 0</span> <span class="lbl">лайков</span></div>
+                </div>
+            </div>
+            <div class="empty" id="emptyMsg" style="display:none">Активность выключена в настройках</div>
+        </div>
+    </div>
+    <div class="mtoast" id="mtoast">
+        <div class="mt-title" id="mtTitle">Цель выполнена!</div>
+        <div class="mt-body" id="mtBody">+100 урона</div>
+    </div>
+</div>
+</div>
+
+<script>
+/* ?scale=2 — чуть крупнее базовый rem для чёткости в OBS; ширина карточки всегда 100% */
+const renderScale=Math.max(1,Math.min(3,Number(new URLSearchParams(location.search).get('scale'))||1));
+if(renderScale>1) document.documentElement.style.fontSize=(100*renderScale)+'%';
+
+let CH=null;
+document.addEventListener('DOMContentLoaded',()=>{ load(); connectWS(); fitHeaderText(); });
+addEventListener('resize',fitHeaderText);
+// Заголовок должен помещаться в одну строку при любой ширине карточки — уменьшаем
+// шрифт, пока текст не перестанет вылезать за контейнер (аналог fitNick в главном виджете)
+function fitHeaderText(){
+    const el=document.getElementById('header');
+    if(!el) return;
+    let size=1.15;
+    el.style.fontSize=size+'rem';
+    let guard=0;
+    while(el.scrollWidth>el.clientWidth && size>0.55 && guard<40){ size-=0.03; el.style.fontSize=size.toFixed(2)+'rem'; guard++; }
+}
+function load(){ fetch('/api/blitz-challenge').then(r=>r.json()).then(d=>{ if(d.success){ CH=d.challenge; render(); } }); }
+function fmt(n){ return Math.round(Number(n)||0).toLocaleString('ru-RU'); }
+function trim(n){ const x=Number(n); return (Math.round(x*100)/100).toString(); }
+function pluralMedal(n){ n=Math.abs(Math.round(Number(n)||0)); const m10=n%10,m100=n%100;
+    if(m10===1&&m100!==11) return 'медаль'; if(m10>=2&&m10<=4&&(m100<10||m100>=20)) return 'медали'; return 'медалей'; }
+
+function render(){
+    const card=document.getElementById('card');
+    if(!CH||!CH.enabled||!CH.activity){ card.classList.add('hidden'); return; }
+    const c=CH.activity.chat||{}, l=CH.activity.likes||{};
+    const anyEnabled=!!(c.enabled||l.enabled);
+    const wasHidden=card.classList.contains('hidden');
+    card.classList.toggle('hidden',!anyEnabled);
+    if(!anyEnabled) return;
+    if(wasHidden) fitHeaderText(); // карточка только что стала видимой — теперь можно измерить текст
+    document.getElementById('emptyMsg').style.display='none';
+    const rowChat=document.getElementById('rowChat'), rowLikes=document.getElementById('rowLikes');
+    rowChat.style.display=c.enabled?'flex':'none';
+    rowLikes.style.display=l.enabled?'flex':'none';
+    if(c.enabled){
+        const pct=c.goalCurrent>0?Math.min(100,(c.progress/c.goalCurrent)*100):0;
+        document.getElementById('chatFill').style.width=pct+'%';
+        document.getElementById('chatNums').querySelector('.n').textContent=fmt(c.progress||0)+' / '+fmt(c.goalCurrent||0);
+        setRewardPill(document.getElementById('chatReward'),c);
+    }
+    if(l.enabled){
+        const pct=l.goalCurrent>0?Math.min(100,(l.progress/l.goalCurrent)*100):0;
+        document.getElementById('likesFill').style.width=pct+'%';
+        document.getElementById('likesNums').querySelector('.n').textContent=fmt(l.progress||0)+' / '+fmt(l.goalCurrent||0);
+        setRewardPill(document.getElementById('likesReward'),l);
+    }
+}
+function setRewardPill(el,a){
+    if(!el) return;
+    if(!a){ el.textContent='—'; return; }
+    if(a.rewardType==='winrate'){
+        el.innerHTML='<span class="sign">+</span><span class="amt">'+trim(a.rewardAmount)+'</span><span class="unit">%</span>';
+    } else if(a.rewardType==='damage'){
+        el.innerHTML='<span class="sign">+</span><span class="amt">'+fmt(a.rewardAmount)+'</span><span class="tail"> урона</span>';
+    } else {
+        el.innerHTML='<span class="sign">+</span><span class="amt">'+Math.round(a.rewardAmount)+'</span><span class="tail"> '+pluralMedal(a.rewardAmount)+'</span>';
+    }
+}
+function rewardPreviewText(a){
+    if(!a) return '—';
+    if(a.rewardType==='winrate') return '+'+trim(a.rewardAmount)+'%';
+    if(a.rewardType==='damage') return '+'+fmt(a.rewardAmount)+' урона';
+    return '+'+Math.round(a.rewardAmount)+' '+pluralMedal(a.rewardAmount);
+}
+
+function connectWS(){
+    try{
+        const ws=new WebSocket((location.protocol==='https:'?'wss:':'ws:')+'//'+location.host+'/ws');
+        ws.onmessage=ev=>{ let m; try{m=JSON.parse(ev.data);}catch{return;}
+            if(m.type==='BLITZ_CHALLENGE_UPDATE'&&m.challenge){ CH=m.challenge; render(); if(m.activityMilestone) onMilestone(m.activityMilestone); } };
+        ws.onclose=()=>setTimeout(connectWS,3000);
+    }catch(e){ setTimeout(connectWS,4000); }
+}
+
+function onMilestone(am){
+    const f=document.getElementById('flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+    const card=document.getElementById('card'); card.classList.add('shake'); setTimeout(()=>card.classList.remove('shake'),520);
+    const label=am.metric==='chat'?'💬 Чат-цель выполнена!':'👍 Цель по лайкам выполнена!';
+    document.getElementById('mtTitle').textContent=label;
+    setRewardPill(document.getElementById('mtBody'),{rewardType:am.rewardType,rewardAmount:am.rewardAmount});
+    const mt=document.getElementById('mtoast');
+    mt.classList.add('show');
+    clearTimeout(mt._t);
+    mt._t=setTimeout(()=>mt.classList.remove('show'),4500);
+}
+</script>
+</body>
+</html>

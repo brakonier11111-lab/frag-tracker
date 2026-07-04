@@ -86,6 +86,24 @@ function initBlitzChallengeSchema(db) {
     db.run("ALTER TABLE blitz_challenge ADD COLUMN timer_countdown_started_at INTEGER NOT NULL DEFAULT 0", () => {});
     db.run("ALTER TABLE blitz_challenge ADD COLUMN timer_elapsed_enabled INTEGER NOT NULL DEFAULT 0", () => {});
     db.run("ALTER TABLE blitz_challenge ADD COLUMN timer_elapsed_started_at INTEGER NOT NULL DEFAULT 0", () => {});
+    // Активность зрителей (чат/лайки) двигает челлендж так же, как донаты
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_chat_enabled INTEGER NOT NULL DEFAULT 0", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_chat_goal_start REAL NOT NULL DEFAULT 1000", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_chat_goal_current REAL NOT NULL DEFAULT 1000", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_chat_progress REAL NOT NULL DEFAULT 0", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_chat_reward_type TEXT NOT NULL DEFAULT 'damage'", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_chat_reward_amount REAL NOT NULL DEFAULT 100", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_chat_escalation_mode TEXT NOT NULL DEFAULT 'percent'", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_chat_escalation_value REAL NOT NULL DEFAULT 20", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_enabled INTEGER NOT NULL DEFAULT 0", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_goal_start REAL NOT NULL DEFAULT 500", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_goal_current REAL NOT NULL DEFAULT 500", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_progress REAL NOT NULL DEFAULT 0", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_reward_type TEXT NOT NULL DEFAULT 'winrate'", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_reward_amount REAL NOT NULL DEFAULT 1", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_escalation_mode TEXT NOT NULL DEFAULT 'percent'", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_escalation_value REAL NOT NULL DEFAULT 20", () => {});
+    db.run("ALTER TABLE blitz_challenge ADD COLUMN activity_likes_baseline TEXT NOT NULL DEFAULT '{}'", () => {});
     db.run(`CREATE TABLE IF NOT EXISTS blitz_challenge_presets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,

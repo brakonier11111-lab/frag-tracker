@@ -300,6 +300,26 @@ function createWindow() {
         return { action: 'deny' };
     });
 
+    // OAuth-кнопки (YouTube/VK Play/...) делают window.location.href на внешний
+    // домен (не window.open, поэтому setWindowOpenHandler их не ловит) — без этой
+    // защиты Electron заменяет содержимое ГЛАВНОГО окна страницей логина, и когда
+    // пользователь закрывает то, что выглядит как окно авторизации, закрывается всё
+    // приложение. Открываем такие переходы в системном браузере вместо этого;
+    // OAuth callback всё равно бьёт напрямую в наш локальный сервер.
+    const interceptExternalNav = (event, url) => {
+        if (url.startsWith('http://127.0.0.1:') || url.startsWith('http://localhost:')) {
+            return;
+        }
+        event.preventDefault();
+        shell.openExternal(url);
+    };
+    mainWindow.webContents.on('will-navigate', interceptExternalNav);
+    // Наши /oauth/*/start роуты сначала грузятся с локального сервера (проходят
+    // will-navigate), а уже ОН отвечает HTTP-редиректом на внешний OAuth-домен —
+    // это отдельное событие will-redirect, не will-navigate, и без отдельного
+    // перехвата редирект всё равно подменял бы главное окно.
+    mainWindow.webContents.on('will-redirect', interceptExternalNav);
+
     mainWindow.on('close', (event) => {
         if (!isQuitting) {
             event.preventDefault();

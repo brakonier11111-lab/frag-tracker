@@ -7,10 +7,9 @@ const STATUSES = ['pending', 'active', 'done', 'failed', 'cancelled'];
 
 /**
  * «Именной босс»: приказ от донатера — ник, сумма, задание — виден на OBS-виджете.
- * Создаётся либо вручную стримером/модератором (основной путь), либо
- * автоматически из доната с комментарием выше порога (опционально, тумблер
- * в конфиге). На виджете одновременно могут быть несколько приказов —
- * ранжируются по сумме, «в процессе» не пропадают после выполнения.
+ * Создаётся только вручную стримером/модератором — на виджете одновременно
+ * могут быть несколько приказов, ранжируются по сумме, «в процессе» не
+ * пропадают после выполнения.
  *
  * deps: { db, appRoot, broadcastToClients, normalizeUsername }
  */
@@ -19,7 +18,7 @@ function createBossOrdersModule(deps) {
 
     function getConfig(callback) {
         db.get('SELECT * FROM boss_orders_config WHERE id = 1', (err, row) => {
-            callback(err, row || { enabled: 1, threshold_amount: 500, header_text: 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ' });
+            callback(err, row || { threshold_amount: 500 });
         });
     }
 
@@ -43,9 +42,10 @@ function createBossOrdersModule(deps) {
                 // разруливает порядок нескольких приказов, созданных подряд за 1 секунду
                 `SELECT * FROM boss_orders WHERE status != 'cancelled' ORDER BY created_at DESC, id DESC LIMIT 50`,
                 (err, rows) => {
+                    const cfgOut = { thresholdAmount: Number(config.threshold_amount) || 0 };
                     if (err) {
                         console.error('❌ Ошибка чтения boss_orders:', err);
-                        return callback({ config, orders: [], active: null });
+                        return callback({ config: cfgOut, orders: [], active: null, boardOrders: [] });
                     }
                     const orders = (rows || []).map(normalizeOrderRow);
                     const active = orders.find(o => o.status === 'active') || null;
@@ -55,16 +55,7 @@ function createBossOrdersModule(deps) {
                     const boardOrders = orders
                         .filter(o => o.status === 'active' || o.status === 'done' || o.status === 'failed')
                         .sort((a, b) => b.amount - a.amount);
-                    callback({
-                        config: {
-                            enabled: !!config.enabled,
-                            thresholdAmount: Number(config.threshold_amount) || 0,
-                            headerText: config.header_text || 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ'
-                        },
-                        orders,
-                        active,
-                        boardOrders
-                    });
+                    callback({ config: cfgOut, orders, active, boardOrders });
                 }
             );
         });
@@ -76,62 +67,27 @@ function createBossOrdersModule(deps) {
         });
     }
 
-    // Вызывается подписчиком donationBus на каждый донат — решает, создавать ли приказ
-    function addDonationOrder(donation) {
-        const amount = Number(donation.amount) || 0;
-        const text = (donation.message || '').trim();
-        if (!text) return;
-
-        getConfig((err, config) => {
-            if (err || !config.enabled) return;
-            const threshold = Number(config.threshold_amount) || 0;
-            if (amount < threshold) return;
-
-            const username = donation.username || 'Аноним';
-            const normalizedUsername = deps.normalizeUsername ? deps.normalizeUsername(username) : null;
-
-            // Сразу 'active' — челлендж должен появиться на виджете без ручного «Начать»
-            db.run(
-                `INSERT OR IGNORE INTO boss_orders (donation_id, username, normalized_username, amount, order_text, status)
-                 VALUES (?, ?, ?, ?, ?, 'active')`,
-                [donation.id != null ? String(donation.id) : null, username, normalizedUsername, amount, text.slice(0, 300)],
-                function (insErr) {
-                    if (insErr) {
-                        console.error('❌ Ошибка создания челленджа:', insErr);
-                        return;
-                    }
-                    if (this.changes > 0) {
-                        console.log(`⚔️ Новый челлендж от ${username} (${amount}₽): "${text.slice(0, 60)}"`);
-                        broadcastUpdate();
-                    }
-                }
-            );
-        });
-    }
-
     function registerRoutes(app) {
         app.get('/api/boss-orders', (req, res) => {
             getOrdersSnapshot((snapshot) => res.json(Object.assign({ success: true }, snapshot)));
         });
 
+        // Цена челленджа — только для плашки на виджете, доната или автосоздания не запускает
         app.put('/api/boss-orders/config', (req, res) => {
-            const b = req.body || {};
-            const updates = [];
-            const values = [];
-            if (b.enabled != null) { updates.push('enabled = ?'); values.push(b.enabled ? 1 : 0); }
-            if (b.thresholdAmount != null) { updates.push('threshold_amount = ?'); values.push(Math.max(0, Number(b.thresholdAmount) || 0)); }
-            if (b.headerText != null) { updates.push('header_text = ?'); values.push(String(b.headerText).slice(0, 100)); }
-            if (!updates.length) return res.status(400).json({ success: false, error: 'Нет полей для обновления' });
-            updates.push('updated_at = CURRENT_TIMESTAMP');
-            db.run(`UPDATE boss_orders_config SET ${updates.join(', ')} WHERE id = 1`, values, (err) => {
-                if (err) return res.status(500).json({ success: false, error: 'Ошибка сохранения' });
-                broadcastUpdate();
-                getOrdersSnapshot((snapshot) => res.json(Object.assign({ success: true }, snapshot)));
-            });
+            const thresholdAmount = Math.max(0, Number(req.body && req.body.thresholdAmount) || 0);
+            db.run(
+                `UPDATE boss_orders_config SET threshold_amount = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1`,
+                [thresholdAmount],
+                (err) => {
+                    if (err) return res.status(500).json({ success: false, error: 'Ошибка сохранения' });
+                    broadcastUpdate();
+                    getOrdersSnapshot((snapshot) => res.json(Object.assign({ success: true }, snapshot)));
+                }
+            );
         });
 
-        // Ручное создание приказа стримером/модератором — основной путь: не завязан
-        // на донат, порог или комментарий, доступен всегда независимо от config.enabled.
+        // Ручное создание приказа стримером/модератором — единственный способ
+        // добавить челлендж, виджет не считает донаты сам.
         app.post('/api/boss-orders/manual', (req, res) => {
             const username = ((req.body && req.body.username) || '').trim() || 'Аноним';
             const amount = Math.max(0, Number(req.body && req.body.amount) || 0);
@@ -193,8 +149,7 @@ function createBossOrdersModule(deps) {
     return {
         initSchema: initBossOrdersSchema,
         registerRoutes,
-        registerPages,
-        addDonationOrder
+        registerPages
     };
 }
 

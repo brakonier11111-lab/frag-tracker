@@ -8,7 +8,10 @@
  * дублирования.
  */
 
-const axios = require('axios');
+// axios по умолчанию читает системные HTTP_PROXY/HTTPS_PROXY и криво их
+// применяет к некоторым запросам (см. тот же фикс в twitch-integration) —
+// идём напрямую, googleapis.com доступен без прокси.
+const axios = require('axios').create({ proxy: false });
 const querystring = require('querystring');
 
 function defaultYoutubeIntegration() {
@@ -23,6 +26,7 @@ function defaultYoutubeIntegration() {
         liveChatId: null,
         nextPageToken: null,
         videoId: null,       // ручной override текущего стрима
+        manualVideoId: false, // true — videoId задан вручную, авто-детект не трогает/не сбрасывает его
         pollIntervalSec: 60, // базовый интервал опроса YouTube (секунды)
         lastPollTime: 0,     // последний успешный опрос videos.list/liveChat
         lastLiveDetectTime: 0 // последний авто-поиск активного live (чтобы не жечь квоту)
@@ -55,14 +59,17 @@ function createYoutubeIntegrationModule(deps) {
             });
 
             const items = (live.data?.items || []).filter(i => i?.id);
+            // Раньше при отсутствии реально идущего эфира фолбэчились на items (ЛЮБЫЕ
+            // трансляции, включая завершённые) и брали самую свежую по дате — это
+            // навсегда "залипало" на последнем закончившемся стриме как на "активном".
+            // Теперь: нет live/livestarting/testing — значит эфира сейчас нет, и точка.
             const liveLike = items.filter(i => {
                 const lc = String(i?.status?.lifeCycleStatus || '').toLowerCase();
                 return lc === 'live' || lc === 'livestarting' || lc === 'testing';
             });
-            const pool = liveLike.length ? liveLike : items;
 
-            if (pool.length) {
-                const selected = pool
+            if (liveLike.length) {
+                const selected = liveLike
                     .slice()
                     .sort((a, b) => {
                         const aTs = Date.parse(a?.snippet?.actualStartTime || a?.snippet?.scheduledStartTime || 0) || 0;
@@ -71,7 +78,7 @@ function createYoutubeIntegrationModule(deps) {
                     })[0];
                 videoId = selected.id;
                 snippet = selected.snippet || null;
-                source = liveLike.length ? 'liveBroadcasts.mine.liveLike' : 'liveBroadcasts.mine.latest';
+                source = 'liveBroadcasts.mine.liveLike';
             }
         } catch (e) {
             console.warn('⚠️ YouTube detect: liveBroadcasts(mine) не сработал:', e?.response?.data || e.message);
@@ -129,24 +136,34 @@ function createYoutubeIntegrationModule(deps) {
                 const ad = it.authorDetails || {};
                 const text = sn.displayMessage || '';
                 const publishedAt = sn.publishedAt ? new Date(sn.publishedAt).toISOString() : new Date().toISOString();
+                const insertParams = [
+                    'youtube',
+                    youtubeIntegration.channel || 'youtube',
+                    ad.channelId || ad.channelUrl || ad.displayName || 'unknown',
+                    ad.displayName || 'YouTube User',
+                    text,
+                    ad.isChatModerator ? 1 : 0,
+                    ad.isChatOwner ? 1 : 0,
+                    publishedAt
+                ];
 
-                // Deduplicate recent messages
-                db.get('SELECT id FROM chat_messages WHERE platform = ? AND user_id = ? AND message = ? AND created_at > datetime("now", "-5 minutes")',
-                    ['youtube', ad.channelId || ad.channelUrl || ad.displayName || 'unknown', text], (err, row) => {
-                    if (!err && !row) {
-                        db.run(`INSERT INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
-                            'youtube',
-                            youtubeIntegration.channel || 'youtube',
-                            ad.channelId || ad.channelUrl || ad.displayName || 'unknown',
-                            ad.displayName || 'YouTube User',
-                            text,
-                            ad.isChatModerator ? 1 : 0,
-                            ad.isChatOwner ? 1 : 0,
-                            publishedAt
-                        ]);
-                    }
-                });
+                if (it.id) {
+                    // Нативный ID сообщения liveChatMessage — надёжная дедупликация без риска дропнуть настоящий повтор
+                    db.run(`INSERT OR IGNORE INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at, message_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...insertParams, it.id], function (err) {
+                        if (!err && this.changes > 0 && deps.onChatMessage) deps.onChatMessage('youtube:' + insertParams[2]);
+                    });
+                } else {
+                    db.get('SELECT id FROM chat_messages WHERE platform = ? AND user_id = ? AND message = ? AND created_at > datetime("now", "-5 minutes")',
+                        ['youtube', insertParams[2], text], (err, row) => {
+                        if (!err && !row) {
+                            db.run(`INSERT INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, insertParams, function (insErr) {
+                                if (!insErr && deps.onChatMessage) deps.onChatMessage('youtube:' + insertParams[2]);
+                            });
+                        }
+                    });
+                }
             }
         } catch (e) {
             console.warn('⚠️ Ошибка сбора чата YouTube:', e?.response?.data || e.message);
@@ -169,8 +186,10 @@ function createYoutubeIntegrationModule(deps) {
             let videoId = youtubeIntegration.videoId || null;
             const detectCooldownMs = 5 * 60 * 1000; // раз в 5 минут синхронизируем active live
 
-            // Если videoId не задан, или периодически для синхронизации, ищем active live.
-            const shouldRedetect = !videoId || !youtubeIntegration.lastLiveDetectTime || (now - youtubeIntegration.lastLiveDetectTime >= detectCooldownMs);
+            // Ручной videoId (задан по ссылке) авто-детект не трогает вообще.
+            // Иначе — если videoId не задан, или периодически для синхронизации, ищем active live.
+            const shouldRedetect = !youtubeIntegration.manualVideoId &&
+                (!videoId || !youtubeIntegration.lastLiveDetectTime || (now - youtubeIntegration.lastLiveDetectTime >= detectCooldownMs));
             if (shouldRedetect) {
                 const hadVideoIdBeforeDetect = !!videoId;
                 const detected = await detectActiveYouTubeLive(youtubeIntegration.tokens, { allowSearchFallback: false });
@@ -188,11 +207,31 @@ function createYoutubeIntegrationModule(deps) {
                     } else if (!hadVideoIdBeforeDetect) {
                         console.log(`✅ YouTube: найден активный эфир автоматически (videoId=${videoId})`);
                     }
+                } else if (hadVideoIdBeforeDetect || youtubeIntegration.viewers || youtubeIntegration.liveTitle) {
+                    // Live-трансляций сейчас нет, а в состоянии (в т.ч. загруженном из БД при
+                    // старте сервера) остались данные от прошлого эфира — сбрасываем, а не
+                    // оставляем застывшие цифры висеть до следующего реального стрима.
+                    console.log('🔴 YouTube: активного эфира нет, сбрасываем онлайн/чат');
+                    videoId = null;
+                    youtubeIntegration.videoId = null;
+                    youtubeIntegration.liveChatId = null;
+                    youtubeIntegration.chatEnabled = false;
+                    youtubeIntegration.viewers = 0;
+                    youtubeIntegration.liveTitle = null;
+                    youtubeIntegration.likes = 0;
+                    await saveIntegration('youtube', {
+                        tokens: youtubeIntegration.tokens,
+                        channel: youtubeIntegration.channel,
+                        liveTitle: null,
+                        viewers: 0,
+                        likes: 0,
+                        chatEnabled: false,
+                        pollIntervalSec: youtubeIntegration.pollIntervalSec || 60
+                    });
+                    return;
                 } else {
-                    if (!videoId) {
-                        // Не нашли эфир и текущего videoId нет — выходим тихо
-                        return;
-                    }
+                    // Не нашли эфир и текущего videoId не было — выходим тихо
+                    return;
                 }
             }
 
@@ -350,6 +389,7 @@ function createYoutubeIntegrationModule(deps) {
                 }
 
                 youtubeIntegration.videoId = id;
+                youtubeIntegration.manualVideoId = true;
                 console.log('✅ Ручной выбор стрима YouTube, videoId =', id);
                 res.json({ ok: true, videoId: id });
             } catch (e) {
@@ -633,7 +673,7 @@ function createYoutubeIntegrationModule(deps) {
         setInterval(() => withApiQueue('youtube', () => updateYouTubeData()), 30000);
     }
 
-    return { registerRoutes, hydrateFromDb, startPolling, getState: () => youtubeIntegration };
+    return { registerRoutes, hydrateFromDb, startPolling, getState: () => youtubeIntegration, refreshData: () => updateYouTubeData() };
 }
 
 module.exports = { createYoutubeIntegrationModule };

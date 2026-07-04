@@ -111,6 +111,7 @@
 					<option value="day">День</option>
 				</select>
 				<button class="btn ghost" id="btn-refresh">Обновить</button>
+				<button class="btn ghost" id="btn-reset-stats" style="color: var(--error); border-color: var(--error);">Сбросить статистику</button>
 				<span class="badge" id="summary-badge">Загружаем статистику...</span>
 			</div>
 
@@ -261,6 +262,24 @@
 		}
 
 		document.getElementById('btn-refresh').addEventListener('click', loadStats);
+
+		document.getElementById('btn-reset-stats').addEventListener('click', async () => {
+			if (!confirm('Обнулить всю статистику чата? Действие необратимо (старые данные сохранятся в бэкап-файле на сервере, но со страницы исчезнут).')) return;
+			const btn = document.getElementById('btn-reset-stats');
+			btn.disabled = true;
+			btn.textContent = 'Сбрасываем...';
+			try {
+				const res = await fetch('/api/chat/stats/reset', { method: 'POST' });
+				const data = await res.json();
+				if (!res.ok || !data.success) throw new Error(data.error || 'Ошибка сброса');
+				await loadStats();
+			} catch (e) {
+				alert('Не удалось сбросить статистику: ' + e.message);
+			} finally {
+				btn.disabled = false;
+				btn.textContent = 'Сбросить статистику';
+			}
+		});
 
 		// Быстрые кнопки периода
 		const periodSelect = document.getElementById('filter-period');

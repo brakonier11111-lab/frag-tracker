@@ -4,11 +4,27 @@ loadEnv();
 const logger = require('./src/utils/logger');
 const console = { log: logger.info, warn: logger.warn, error: logger.error };
 
+// Страховка от молчаливой смерти сервера посреди стрима: необработанные ошибки
+// из фоновых таймеров/WebSocket-ов логируем в logs/error.log, процесс не роняем.
+process.on('unhandledRejection', (reason) => {
+    console.error('⚠️ unhandledRejection:', reason && reason.stack ? reason.stack : reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('💥 uncaughtException:', err && err.stack ? err.stack : err);
+});
+
 const path = require('path');
 const fs = require('fs');
 
 const express = require('express');
 const axios = require('axios');
+// Системный HTTP_PROXY/HTTPS_PROXY (используется для доступа к заблокированным
+// сервисам вроде Twitch) ломает часть запросов axios криво собранным туннелем
+// ("plain HTTP request was sent to HTTPS port") — задеты были Twitch, YouTube,
+// VK Play и DonationAlerts. Отключаем автопрокси глобально для всех axios-
+// вызовов в проекте (все require('axios')/axios.create() наследуют этот
+// дефолт, т.к. этот require выполняется раньше любых модулей интеграций).
+axios.defaults.proxy = false;
 const WebSocket = require('ws');
 const http = require('http');
 const sqlite3 = require('sqlite3').verbose();
@@ -29,7 +45,6 @@ const { initBossOrdersSchema } = require('./src/modules/boss-orders/schema');
 let blitzModule = null;
 let razblogModuleRef = null;
 let rouletteModuleRef = null;
-let bossOrdersModuleRef = null;
 
 /** РазБЛОГировка 2026 — включена по умолчанию (RAZBLOG_ENABLED=0 для отключения) */
 const RAZBLOG_ENABLED = process.env.RAZBLOG_ENABLED !== '0';
@@ -293,6 +308,15 @@ db.serialize(() => {
         is_owner BOOLEAN DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+    // Нативный ID сообщения с площадки — для надёжной дедупликации вместо сравнения по тексту
+    db.run(`ALTER TABLE chat_messages ADD COLUMN message_id TEXT`, (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+            console.error('❌ Ошибка добавления поля message_id:', err);
+        }
+    });
+    db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_messages_platform_msgid ON chat_messages(platform, message_id) WHERE message_id IS NOT NULL`, (err) => {
+        if (err) console.error('❌ Ошибка создания индекса idx_chat_messages_platform_msgid:', err);
+    });
 
     // Вставляем начальную цель сбора
     db.run(`INSERT OR IGNORE INTO donation_goals (id) VALUES (1)`, (err) => {
@@ -4922,6 +4946,7 @@ app.get('/widget/:mode', (req, res) => {
     else if (mode === 'donation-bar') file = 'widget-donation-bar.html';
     else if (mode === 'donation-driven') file = 'widget-donation-driven.html';
     else if (mode === 'tanks-blitz-challenge') file = 'widget-tanks-blitz-challenge.html';
+    else if (mode === 'blitz-activity') file = 'widget-blitz-activity.html';
     else if (mode === 'razblogirovka-gold') {
         if (!RAZBLOG_ENABLED) {
             return res.status(410).send('РазБЛОГировка 2026 отключена');
@@ -7775,7 +7800,6 @@ const modules = registerModules(app, moduleDeps, moduleConfig);
 blitzModule = modules.blitz;
 razblogModuleRef = modules.razblog;
 rouletteModuleRef = modules.roulette;
-bossOrdersModuleRef = modules.bossOrders;
 
 function updateBlitzChallenge(amount, donation) {
     if (blitzModule) blitzModule.updateBlitzChallenge(amount, donation);
@@ -7809,9 +7833,6 @@ donationBus.subscribe('donor-achievements', (ev) => {
     if (ev.timeEarned > 0 && ev.donation.username) {
         updateDonorAchievement(ev.donation.username, ev.timeEarned, ev.donation.id);
     }
-});
-donationBus.subscribe('boss-orders', (ev) => {
-    if (bossOrdersModuleRef) bossOrdersModuleRef.addDonationOrder(ev.donation);
 });
 
 // Запуск сервера

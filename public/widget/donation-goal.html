@@ -357,6 +357,30 @@
     </div>
 
     <script>
+        // ?scale=2 — сверхсэмплинг БЕЗ изменения размера источника в OBS: контейнер рисуется
+        // в N раз крупнее в реальных CSS-пикселях (больше пикселей на те же буквы/градиенты),
+        // затем transform:scale() визуально сжимает его обратно ровно до размера окна.
+        // Высота у контейнера не в %, а в px/rem (от контента) — при расширении ширины сама
+        // она не растёт, поэтому меряем её ДО масштабирования и растягиваем на renderScale
+        // тоже, иначе после scale() полоска визуально сплющивается по вертикали.
+        // Вызывается из updateDisplay() при каждом рендере — сброс перед замером не даёт
+        // повторным вызовам накапливать ошибку поверх уже применённого transform.
+        const renderScale = Math.max(1, Math.min(3, Number(new URLSearchParams(location.search).get('scale')) || 1));
+        function applyRenderScale() {
+            if (renderScale <= 1) return;
+            const container = document.querySelector('.widget-container');
+            if (!container) return;
+            container.style.transform = 'none';
+            container.style.width = '';
+            container.style.height = '';
+            const naturalHeight = container.getBoundingClientRect().height;
+            const naturalWidth = window.innerWidth;
+            container.style.width = (naturalWidth * renderScale) + 'px';
+            container.style.height = (naturalHeight * renderScale) + 'px';
+            container.style.transformOrigin = 'top left';
+            container.style.transform = `scale(${1 / renderScale})`;
+        }
+
         let goalState = {
             title: 'Сбор донатов',
             target_amount: 10000,
@@ -376,12 +400,25 @@
         let ws = null;
         const requestedProfileId = new URLSearchParams(window.location.search).get('profile');
 
+        // Черновик настроек из панели управления (postMessage), пока пользователь двигает
+        // ползунки/выбирает пресет без сохранения. Приоритетнее goalState.settings, пока не
+        // придёт подтверждённое обновление с сервера (см. ws.onmessage ниже).
+        let livePreviewSettings = null;
+
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
             loadGoalState();
             connectWebSocket();
             startAutoUpdate();
             window.addEventListener('resize', () => updateDisplay());
+            window.addEventListener('message', (event) => {
+                if (event.origin !== window.location.origin) return;
+                const msg = event.data;
+                if (msg && msg.type === 'LIVE_PREVIEW_SETTINGS') {
+                    livePreviewSettings = msg.settings || null;
+                    updateDisplay();
+                }
+            });
         });
 
         // Загрузка состояния
@@ -466,7 +503,7 @@
         // Обновление отображения
         function updateDisplay() {
             applyProfileOverridesFromSettings();
-            const settings = goalState.settings || {};
+            const settings = livePreviewSettings || goalState.settings || {};
             const progressContainerEl = document.querySelector('.progress-container');
             const widthPercent = Math.max(55, Math.min(100, Number(settings.barWidthPercent) || 100));
             if (progressContainerEl) {
@@ -575,6 +612,7 @@
             }
 
             applyWidgetMedia(settings);
+            applyRenderScale();
         }
 
         function applyWidgetMedia(settings) {
@@ -1043,10 +1081,12 @@
                             goalState.settings = typeof data.goal.settings === 'string'
                                 ? JSON.parse(data.goal.settings)
                                 : data.goal.settings;
+                            livePreviewSettings = null;
                         }
                         updateDisplay();
                     } else if (data.type === 'WIDGET_SETTINGS_UPDATE' && data.scope === 'donation-goal' && data.settings) {
                         goalState.settings = typeof data.settings === 'string' ? JSON.parse(data.settings) : data.settings;
+                        livePreviewSettings = null;
                         updateDisplay();
                     } else if (data.type === 'donation' && data.donation) {
                         loadGoalState();

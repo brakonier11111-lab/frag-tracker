@@ -147,9 +147,9 @@ function createTwitchIntegrationModule(deps) {
         const isOwner = /broadcaster\//.test(badges) ? 1 : 0;
         const username = parsed.tags['display-name'] || (parsed.prefix.split('!')[0]) || 'Twitch User';
         const userId = parsed.tags['user-id'] || username;
+        const messageId = parsed.tags.id || null;
 
-        db.run(`INSERT INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+        const insertParams = [
             'twitch',
             twitchIntegration.channel || process.env.TW_CHANNEL || 'twitch',
             userId,
@@ -158,7 +158,19 @@ function createTwitchIntegrationModule(deps) {
             isModerator,
             isOwner,
             new Date().toISOString()
-        ]);
+        ];
+
+        if (messageId) {
+            db.run(`INSERT OR IGNORE INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at, message_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...insertParams, messageId], function (err) {
+                if (!err && this.changes > 0 && deps.onChatMessage) deps.onChatMessage('twitch:' + userId);
+            });
+        } else {
+            db.run(`INSERT INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, insertParams, function (err) {
+                if (!err && deps.onChatMessage) deps.onChatMessage('twitch:' + userId);
+            });
+        }
     }
 
     function scheduleReconnect() {

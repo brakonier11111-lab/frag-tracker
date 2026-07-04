@@ -31,6 +31,32 @@
     </div>
 </header>
 
+<button type="button" class="page-copy-btn" id="copyPageContextBtn"
+    onclick="(function(btn){
+        var text = document.title + ' — ' + window.location.href;
+        var done = function(){
+            var label = btn.querySelector('.page-copy-text');
+            var original = label.textContent;
+            label.textContent = 'Скопировано!';
+            btn.classList.add('copied');
+            setTimeout(function(){ label.textContent = original; btn.classList.remove('copied'); }, 1500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(done);
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); } catch (e) {}
+            document.body.removeChild(ta);
+            done();
+        }
+    })(this)">
+    <span>📋</span>
+    <span class="page-copy-text">Скопировать страницу</span>
+</button>
+
 <script>
 (function() {
     // Обновление хлебных крошек

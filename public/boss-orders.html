@@ -107,9 +107,8 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
                 <div>
                     <div class="kicker"><span class="dot"></span> Именной босс</div>
                     <h1 class="title">Челленджи донатеров</h1>
-                    <div class="sub">Создавай челленджи сам — ник, сумма, задание. Донаты с комментарием можно подключить отдельно в настройках.</div>
+                    <div class="sub">Создавай челленджи сам — ник, сумма, задание.</div>
                 </div>
-                <button class="btn btn-ghost" onclick="openConfig()">⚙️ Настройки</button>
             </div>
 
             <div class="card">
@@ -120,16 +119,9 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
                     <input class="text" id="newText" type="text" placeholder="Что нужно сделать" autocomplete="off">
                     <button class="btn btn-gold btn-sm" onclick="createOrder()">⚔️ Создать челлендж</button>
                 </div>
-            </div>
-
-            <div class="card" id="configCard" style="display:none">
-                <h2>Настройки автосоздания из донатов</h2>
-                <div class="cfg-row"><label>Создавать челлендж автоматически из доната<span class="hint">если у доната есть комментарий и сумма выше порога</span></label><input type="checkbox" id="cfgEnabled"></div>
-                <div class="cfg-row"><label>Порог доната, р</label><input type="text" inputmode="decimal" id="cfgThreshold" value="500"></div>
-                <div class="cfg-row"><label>Подпись-плашка на виджете</label><input type="text" id="cfgHeader" value="ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ"></div>
-                <div class="cfg-foot">
-                    <button class="btn btn-ghost" onclick="closeConfig()">Отмена</button>
-                    <button class="btn btn-gold" onclick="saveConfig()">Сохранить</button>
+                <div class="cfg-row" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08)">
+                    <label>Цена челленджа на плашке виджета<span class="hint">только надпись «от N р», на создание челленджей не влияет</span></label>
+                    <input type="text" inputmode="decimal" id="cfgThreshold" value="500" onchange="saveThreshold()">
                 </div>
             </div>
 
@@ -168,6 +160,7 @@ function load(){
 
 function render(){
     renderOrders();
+    document.getElementById('cfgThreshold').value = (DATA.config && DATA.config.thresholdAmount) || 500;
 }
 
 const STATUS_LABEL = { pending:'В очереди', active:'Идёт', done:'Выполнено', failed:'Провалено' };
@@ -206,26 +199,14 @@ function act(id, action){
         .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); } else toast(d.error||'Ошибка'); });
 }
 function del(id){
-    if(!confirm('Удалить челлендж?')) return;
     fetch(`/api/boss-orders/${id}`, { method: 'DELETE' })
         .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); } });
 }
 
-function openConfig(){
-    document.getElementById('cfgEnabled').checked = !!DATA.config.enabled;
-    document.getElementById('cfgThreshold').value = DATA.config.thresholdAmount || 500;
-    document.getElementById('cfgHeader').value = DATA.config.headerText || 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ';
-    document.getElementById('configCard').style.display = 'block';
-}
-function closeConfig(){ document.getElementById('configCard').style.display = 'none'; }
-function saveConfig(){
-    const body = {
-        enabled: document.getElementById('cfgEnabled').checked,
-        thresholdAmount: parseAmount(document.getElementById('cfgThreshold').value),
-        headerText: document.getElementById('cfgHeader').value || 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ'
-    };
-    fetch('/api/boss-orders/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })
-        .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); closeConfig(); toast('Сохранено'); } });
+function saveThreshold(){
+    const thresholdAmount = parseAmount(document.getElementById('cfgThreshold').value);
+    fetch('/api/boss-orders/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ thresholdAmount }) })
+        .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); toast('Сохранено'); } });
 }
 
 function createOrder(){

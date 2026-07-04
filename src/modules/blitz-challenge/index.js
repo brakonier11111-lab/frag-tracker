@@ -2,6 +2,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const axios = require('axios');
 const { BLITZ_DEFAULT_HEADERS } = require('./constants');
 const { safeJsonParse, clampNum, round2 } = require('../../core/utils');
 const { initBlitzChallengeSchema } = require('./schema');
@@ -12,6 +13,36 @@ function createBlitzChallengeModule(deps) {
     const FEED_LIMIT = 30;
     let recentFeed = [];
     let donorTotals = {};
+
+    // Анти-спам для активности чата: не даём одному зрителю в одиночку разогнать
+    // прогресс — не более ACTIVITY_RATE_LIMIT засчитанных сообщений от одного
+    // пользователя (platform+userId) за скользящее окно ACTIVITY_RATE_WINDOW_MS.
+    // Лишние сообщения по-прежнему сохраняются в chat_messages (статистика не режется),
+    // просто не двигают прогресс челленджа.
+    const ACTIVITY_RATE_LIMIT = 4;
+    const ACTIVITY_RATE_WINDOW_MS = 15000;
+    const activityRateMap = new Map(); // userKey -> [timestamps]
+
+    function isChatMessageRateLimited(userKey) {
+        if (!userKey) return false;
+        const now = Date.now();
+        let arr = activityRateMap.get(userKey);
+        if (!arr) { arr = []; activityRateMap.set(userKey, arr); }
+        while (arr.length && now - arr[0] > ACTIVITY_RATE_WINDOW_MS) arr.shift();
+        if (arr.length >= ACTIVITY_RATE_LIMIT) return true;
+        arr.push(now);
+        return false;
+    }
+
+    // Периодически подчищаем неактивных пользователей, чтобы карта не росла бесконечно
+    const rateMapSweepTimer = setInterval(() => {
+        const now = Date.now();
+        for (const [key, arr] of activityRateMap) {
+            while (arr.length && now - arr[0] > ACTIVITY_RATE_WINDOW_MS) arr.shift();
+            if (!arr.length) activityRateMap.delete(key);
+        }
+    }, 5 * 60 * 1000);
+    if (rateMapSweepTimer.unref) rateMapSweepTimer.unref();
 
     function pushFeedItem(item) {
         recentFeed.unshift(item);
@@ -69,7 +100,8 @@ function createBlitzChallengeModule(deps) {
             image: m.image || '',
             required: Math.max(0, Math.round(Number(m.required) || 0)),
             requiredRaw: Number(m.required) || 0,
-            earned: Math.max(0, Math.round(Number(m.earned) || 0))
+            earned: Math.max(0, Math.round(Number(m.earned) || 0)),
+            lestaId: m.lestaId || ''
         }));
         return list;
     }
@@ -114,6 +146,28 @@ function createBlitzChallengeModule(deps) {
                 totalRequired,
                 totalEarned
             },
+            activity: {
+                chat: {
+                    enabled: row.activity_chat_enabled ? 1 : 0,
+                    goalStart: Number(row.activity_chat_goal_start) || 0,
+                    goalCurrent: Number(row.activity_chat_goal_current) || 0,
+                    progress: Number(row.activity_chat_progress) || 0,
+                    rewardType: row.activity_chat_reward_type || 'damage',
+                    rewardAmount: Number(row.activity_chat_reward_amount) || 0,
+                    escalationMode: row.activity_chat_escalation_mode || 'percent',
+                    escalationValue: Number(row.activity_chat_escalation_value) || 0
+                },
+                likes: {
+                    enabled: row.activity_likes_enabled ? 1 : 0,
+                    goalStart: Number(row.activity_likes_goal_start) || 0,
+                    goalCurrent: Number(row.activity_likes_goal_current) || 0,
+                    progress: Number(row.activity_likes_progress) || 0,
+                    rewardType: row.activity_likes_reward_type || 'winrate',
+                    rewardAmount: Number(row.activity_likes_reward_amount) || 0,
+                    escalationMode: row.activity_likes_escalation_mode || 'percent',
+                    escalationValue: Number(row.activity_likes_escalation_value) || 0
+                }
+            },
             timers: {
                 countdown: {
                     enabled: row.timer_countdown_enabled ? 1 : 0,
@@ -130,6 +184,157 @@ function createBlitzChallengeModule(deps) {
         };
     }
     
+    // Чистые хелперы прибавки к цели каждого типа челленджа — общие для доната
+    // (updateBlitzChallenge) и для награды за активность зрителей (applyActivityReward)
+    function computeWinrateBump(row, amount) {
+        const cur = Number(row.wr_current) || Number(row.wr_start) || 0;
+        const cap = Number(row.wr_cap);
+        let next = cur + amount;
+        if (isFinite(cap) && cap > 0) next = Math.min(next, cap);
+        next = round2(next);
+        return { next, contribution: round2(next - cur) };
+    }
+
+    function computeDamageBump(row, amount) {
+        const cur = Number(row.dmg_current) || Number(row.dmg_start) || 0;
+        const cap = Number(row.dmg_cap);
+        let next = cur + amount;
+        if (isFinite(cap) && cap > 0) next = Math.min(next, cap);
+        next = Math.round(next);
+        return { next, contribution: Math.round(next - cur) };
+    }
+
+    function computeMedalsRequiredBump(row, amount) {
+        const list = safeJsonParse(row.medals_list, []);
+        if (!Array.isArray(list) || !list.length) return { list: null, contribution: 0 };
+        const capPer = Number(row.medals_cap) || 0;
+        const totalBefore = list.reduce((s, m) => s + Math.round(Number(m.required) || 0), 0);
+        // повышаем планку у первой ещё не закрытой медали (иначе у последней)
+        let idx = list.findIndex(m => (Number(m.earned) || 0) < Math.round(Number(m.required) || 0));
+        if (idx < 0) idx = list.length - 1;
+        let req = (Number(list[idx].required) || 0) + amount;
+        if (capPer > 0) req = Math.min(req, capPer);
+        list[idx].required = round2(req);
+        const totalAfter = list.reduce((s, m) => s + Math.round(Number(m.required) || 0), 0);
+        return { list, contribution: totalAfter - totalBefore };
+    }
+
+    // Применяет награду за выполненную активность (чат/лайки) — работает точно так же,
+    // как вклад доната в updateBlitzChallenge, только величина берётся из настроек
+    // активности, а не из формулы (amount/perAmount)*step
+    function applyActivityReward(kind, amount, callback) {
+        getBlitzChallengeRow((err, row) => {
+            if (err || !row) return callback && callback(err);
+            const updates = [];
+            const values = [];
+            if (kind === 'winrate' && row.wr_enabled) {
+                const { next } = computeWinrateBump(row, amount);
+                updates.push('wr_current = ?'); values.push(next);
+            } else if (kind === 'damage' && row.dmg_enabled) {
+                const { next } = computeDamageBump(row, amount);
+                updates.push('dmg_current = ?'); values.push(next);
+            } else if (kind === 'medals' && row.medals_enabled) {
+                const { list } = computeMedalsRequiredBump(row, amount);
+                if (list) { updates.push('medals_list = ?'); values.push(JSON.stringify(list)); }
+            }
+            if (!updates.length) return callback && callback(null);
+            updates.push('updated_at = CURRENT_TIMESTAMP');
+            deps.db.run(`UPDATE blitz_challenge SET ${updates.join(', ')} WHERE id = 1`, values, (uErr) => {
+                if (uErr) console.error('❌ Ошибка применения награды активности:', uErr);
+                callback && callback(uErr);
+            });
+        });
+    }
+
+    // Инкремент прогресса активности (чат или лайки). Атомарный SQL (progress = progress + ?),
+    // а не read-modify-write в JS: при частых сообщениях в чате несколько вызовов могут
+    // выполняться параллельно, и чтение старого значения перед записью роняло часть
+    // прироста — та же природа бага, что и дедупликация чата по контенту.
+    function bumpActivityProgress(metric, delta) {
+        if (!delta) return;
+        const prefix = metric === 'chat' ? 'activity_chat_' : 'activity_likes_';
+        deps.db.run(`UPDATE blitz_challenge SET ${prefix}progress = ${prefix}progress + ? WHERE id = 1 AND enabled = 1 AND ${prefix}enabled = 1`, [delta], function (err) {
+            if (err) return console.error('❌ Ошибка инкремента прогресса активности:', err);
+            if (this.changes === 0) return; // активность выключена — нечего проверять
+            checkActivityMilestone(metric);
+        });
+    }
+
+    // Проверяет, не достигнута ли цель активности, и если да — применяет награду и растит
+    // цель. "Забор" милстоуна — через condition-UPDATE (progress/goal должны совпасть с только
+    // что прочитанными значениями): если несколько сообщений долетели одновременно, выиграет
+    // только один вызов, остальные увидят уже сброшенный прогресс и просто перепроверят заново
+    // (на случай, если прогресс всё ещё дорос до новой цели).
+    function checkActivityMilestone(metric) {
+        const prefix = metric === 'chat' ? 'activity_chat_' : 'activity_likes_';
+        getBlitzChallengeRow((err, row) => {
+            if (err || !row || !row.enabled || !row[`${prefix}enabled`]) return;
+            const progress = Number(row[`${prefix}progress`]) || 0;
+            const goal = Number(row[`${prefix}goal_current`]) || 0;
+            if (!(goal > 0) || progress < goal) {
+                broadcastBlitzChallengeUpdate();
+                return;
+            }
+            const nextProgress = progress - goal;
+            const escalationMode = row[`${prefix}escalation_mode`] || 'percent';
+            const escalationValue = Number(row[`${prefix}escalation_value`]) || 0;
+            const nextGoal = escalationMode === 'fixed'
+                ? goal + escalationValue
+                : round2(goal * (1 + escalationValue / 100));
+            const rewardType = row[`${prefix}reward_type`] || 'damage';
+            const rewardAmount = Number(row[`${prefix}reward_amount`]) || 0;
+            deps.db.run(`UPDATE blitz_challenge SET ${prefix}progress = ?, ${prefix}goal_current = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1 AND ${prefix}progress = ? AND ${prefix}goal_current = ?`,
+                [nextProgress, nextGoal, progress, goal], function (uErr) {
+                if (uErr) return console.error('❌ Ошибка обновления прогресса активности:', uErr);
+                if (this.changes === 0) return checkActivityMilestone(metric); // милстоун забрал кто-то другой — перепроверяем
+                applyActivityReward(rewardType, rewardAmount, () => {
+                    broadcastBlitzChallengeUpdate({ activityMilestone: { metric, rewardType, rewardAmount, prevGoal: goal, nextGoal } });
+                });
+            });
+        });
+    }
+
+    // Вызывается интеграциями чата (youtube/vkplay/twitch) при каждом реально новом сообщении
+    function onChatMessageCounted(userKey) {
+        if (isChatMessageRateLimited(userKey)) return;
+        bumpActivityProgress('chat', 1);
+    }
+
+    // Периодический синк лайков (youtube+vkplay) в прогресс активности — та же схема
+    // "baseline + delta", что и в syncBlitzMedalsFromLesta: первое наблюдение только
+    // фиксирует базу, назад задним числом не начисляем
+    function setLikesBaseline(total, callback) {
+        deps.db.run('UPDATE blitz_challenge SET activity_likes_baseline = ? WHERE id = 1', [JSON.stringify({ total })], (uErr) => {
+            if (uErr) console.error('❌ Ошибка обновления baseline лайков:', uErr);
+            else broadcastBlitzChallengeUpdate();
+            callback && callback(uErr);
+        });
+    }
+
+    function syncBlitzActivityLikes(youtubeLikes, vkplayLikes) {
+        const total = (Number(youtubeLikes) || 0) + (Number(vkplayLikes) || 0);
+        getBlitzChallengeRow((err, row) => {
+            if (err || !row || !row.enabled || !row.activity_likes_enabled) return;
+            const baseline = safeJsonParse(row.activity_likes_baseline, {});
+            if (!('total' in baseline)) {
+                setLikesBaseline(total);
+                return;
+            }
+            const base = Number(baseline.total) || 0;
+            // Новый эфир / счётчики платформ обнулились — переснимаем базу, иначе прогресс замирает
+            if (total < base) {
+                setLikesBaseline(total);
+                return;
+            }
+            if (total <= base) return;
+            const delta = total - base;
+            deps.db.run('UPDATE blitz_challenge SET activity_likes_baseline = ? WHERE id = 1', [JSON.stringify({ total })], (uErr) => {
+                if (uErr) return console.error('❌ Ошибка обновления baseline лайков:', uErr);
+                bumpActivityProgress('likes', delta);
+            });
+        });
+    }
+
     function getBlitzChallengeRow(callback) {
         deps.db.get('SELECT * FROM blitz_challenge WHERE id = 1', (err, row) => {
             callback(err, row);
@@ -162,49 +367,31 @@ function createBlitzChallengeModule(deps) {
                 const per = Number(row.wr_per_amount) || 100;
                 const step = Number(row.wr_step) || 0;
                 if (per > 0 && step > 0) {
-                    const inc = (amt / per) * step;
-                    const cur = Number(row.wr_current) || Number(row.wr_start) || 0;
-                    const cap = Number(row.wr_cap);
-                    let next = cur + inc;
-                    if (isFinite(cap) && cap > 0) next = Math.min(next, cap);
-                    next = round2(next);
-                    contribution.winrate = round2(next - cur);
+                    const { next, contribution: c } = computeWinrateBump(row, (amt / per) * step);
+                    contribution.winrate = c;
                     updates.push('wr_current = ?'); values.push(next);
                 }
             }
-    
+
             if (row.dmg_enabled) {
                 const per = Number(row.dmg_per_amount) || 100;
                 const step = Number(row.dmg_step) || 0;
                 if (per > 0 && step > 0) {
-                    const inc = (amt / per) * step;
-                    const cur = Number(row.dmg_current) || Number(row.dmg_start) || 0;
-                    const cap = Number(row.dmg_cap);
-                    let next = cur + inc;
-                    if (isFinite(cap) && cap > 0) next = Math.min(next, cap);
-                    next = Math.round(next);
-                    contribution.damage = Math.round(next - cur);
+                    const { next, contribution: c } = computeDamageBump(row, (amt / per) * step);
+                    contribution.damage = c;
                     updates.push('dmg_current = ?'); values.push(next);
                 }
             }
-    
+
             if (row.medals_enabled) {
                 const per = Number(row.medals_per_amount) || 200;
                 const step = Number(row.medals_step) || 1;
-                const list = safeJsonParse(row.medals_list, []);
-                if (per > 0 && step > 0 && Array.isArray(list) && list.length) {
-                    const inc = (amt / per) * step;
-                    const capPer = Number(row.medals_cap) || 0;
-                    const totalBefore = list.reduce((s, m) => s + Math.round(Number(m.required) || 0), 0);
-                    // повышаем планку у первой ещё не закрытой медали (иначе у последней)
-                    let idx = list.findIndex(m => (Number(m.earned) || 0) < Math.round(Number(m.required) || 0));
-                    if (idx < 0) idx = list.length - 1;
-                    let req = (Number(list[idx].required) || 0) + inc;
-                    if (capPer > 0) req = Math.min(req, capPer);
-                    list[idx].required = round2(req);
-                    const totalAfter = list.reduce((s, m) => s + Math.round(Number(m.required) || 0), 0);
-                    contribution.medals = totalAfter - totalBefore;
-                    updates.push('medals_list = ?'); values.push(JSON.stringify(list));
+                if (per > 0 && step > 0) {
+                    const { list, contribution: c } = computeMedalsRequiredBump(row, (amt / per) * step);
+                    if (list) {
+                        contribution.medals = c;
+                        updates.push('medals_list = ?'); values.push(JSON.stringify(list));
+                    }
                 }
             }
     
@@ -277,6 +464,74 @@ function createBlitzChallengeModule(deps) {
         });
     }
 
+    // Достижения (медали) стримера из Lesta API — те же коды, что и в /api/lesta-achievements,
+    // для привязанного аккаунта. Используется и для каталога в админке, и для автосписания.
+    function fetchLestaAchievementsForAccount() {
+        const cfg = deps.lestaConfig;
+        if (!cfg || !cfg.applicationId || !cfg.accountId) return Promise.resolve(null);
+        return deps.withApiQueue('blitz-lesta-achievements', async () => {
+            try {
+                const response = await axios.get(`${cfg.apiUrl}/account/achievements/`, {
+                    params: {
+                        application_id: cfg.applicationId,
+                        account_id: cfg.accountId,
+                        fields: 'achievements',
+                        language: 'ru'
+                    },
+                    timeout: 8000
+                });
+                if (response.data.status !== 'ok') return null;
+                let payload = response.data.data;
+                const key = String(cfg.accountId);
+                if (payload && payload[key]) payload = payload[key];
+                return (payload && payload.achievements) || {};
+            } catch (e) {
+                console.error('❌ Ошибка получения медалей Lesta для челленджа:', e.message);
+                return null;
+            }
+        }).catch(() => null);
+    }
+
+    // Автосписание медалей: сверяем текущие счётчики достижений с базовой точкой (medals_baseline)
+    // и добавляем разницу в "earned" у привязанных медалей. Первое наблюдение конкретного
+    // достижения только фиксирует базу, назад задним числом не начисляем.
+    function syncBlitzMedalsFromLesta() {
+        getBlitzChallengeRow((err, row) => {
+            if (err || !row || !row.enabled || !row.medals_enabled) return;
+            const list = safeJsonParse(row.medals_list, []);
+            const linked = list.filter(m => m.lestaId);
+            if (!linked.length) return;
+            fetchLestaAchievementsForAccount().then((achievements) => {
+                if (!achievements) return;
+                const baseline = safeJsonParse(row.medals_baseline, {});
+                let baselineChanged = false, earnedChanged = false;
+                linked.forEach(m => {
+                    const cur = Number(achievements[m.lestaId]) || 0;
+                    if (!(m.lestaId in baseline)) {
+                        baseline[m.lestaId] = cur; baselineChanged = true; return;
+                    }
+                    const base = Number(baseline[m.lestaId]) || 0;
+                    if (cur > base) {
+                        m.earned = Math.max(0, Number(m.earned) || 0) + (cur - base);
+                        baseline[m.lestaId] = cur;
+                        baselineChanged = true; earnedChanged = true;
+                    }
+                });
+                if (!baselineChanged && !earnedChanged) return;
+                const updates = ['medals_baseline = ?']; const values = [JSON.stringify(baseline)];
+                if (earnedChanged) { updates.push('medals_list = ?'); values.push(JSON.stringify(list)); }
+                updates.push('updated_at = CURRENT_TIMESTAMP');
+                deps.db.run(`UPDATE blitz_challenge SET ${updates.join(', ')} WHERE id = 1`, values, (uErr) => {
+                    if (uErr) return console.error('❌ Ошибка автосписания медалей:', uErr);
+                    if (earnedChanged) {
+                        console.log('🏅 Автосписание медалей челленджа применено');
+                        broadcastBlitzChallengeUpdate();
+                    }
+                });
+            });
+        });
+    }
+
     function registerRoutes(app) {
         app.get('/api/blitz-challenge', (req, res) => {
             getBlitzChallengeRow((err, row) => {
@@ -333,7 +588,14 @@ function createBlitzChallengeModule(deps) {
                     setNum('wr_cap', w.cap, 0, 100);
                     setNum('wr_per_amount', w.perAmount, 1, null);
                     setNum('wr_step', w.step, 0, null);
-                    if (w.start != null) { updates.push('wr_current = ?'); values.push(clampNum(w.start, 0, 100)); }
+                    // wr_current сбрасываем только если стример реально поменял "старт" —
+                    // иначе любое сохранение настроек (например, переключение вкладки/типа
+                    // челленджа) шлёт прежний start и стирает уже набранный прогресс
+                    if (w.start != null) {
+                        const newStart = clampNum(w.start, 0, 100);
+                        const prevStart = Number(existingRow.wr_start) || 0;
+                        if (newStart !== prevStart) { updates.push('wr_current = ?'); values.push(newStart); }
+                    }
                 }
                 if (b.damage) {
                     const d = b.damage;
@@ -342,7 +604,11 @@ function createBlitzChallengeModule(deps) {
                     setNum('dmg_cap', d.cap, 0, null);
                     setNum('dmg_per_amount', d.perAmount, 1, null);
                     setNum('dmg_step', d.step, 0, null);
-                    if (d.start != null) { updates.push('dmg_current = ?'); values.push(clampNum(d.start, 0, null)); }
+                    if (d.start != null) {
+                        const newStart = clampNum(d.start, 0, null);
+                        const prevStart = Number(existingRow.dmg_start) || 0;
+                        if (newStart !== prevStart) { updates.push('dmg_current = ?'); values.push(newStart); }
+                    }
                 }
                 if (b.medals) {
                     const m = b.medals;
@@ -357,10 +623,55 @@ function createBlitzChallengeModule(deps) {
                             icon: (x.icon || '🏅').toString().slice(0, 6),
                             image: (x.image || '').toString().slice(0, 500),
                             required: Math.max(0, clampNum(x.required, 0, null)),
-                            earned: Math.max(0, clampNum(x.earned, 0, null))
+                            earned: Math.max(0, clampNum(x.earned, 0, null)),
+                            lestaId: (x.lestaId || '').toString().slice(0, 64)
                         }));
                         updates.push('medals_list = ?'); values.push(JSON.stringify(clean));
+                        // подчищаем базовые точки автосписания для медалей, которые отвязали от Lesta
+                        const usedIds = new Set(clean.filter(x => x.lestaId).map(x => x.lestaId));
+                        const baseline = safeJsonParse(existingRow.medals_baseline, {});
+                        let baselineChanged = false;
+                        Object.keys(baseline).forEach(k => { if (!usedIds.has(k)) { delete baseline[k]; baselineChanged = true; } });
+                        if (baselineChanged) { updates.push('medals_baseline = ?'); values.push(JSON.stringify(baseline)); }
                     }
+                }
+
+                if (b.activity && typeof b.activity === 'object') {
+                    ['chat', 'likes'].forEach((metric) => {
+                        const a = b.activity[metric];
+                        if (!a || typeof a !== 'object') return;
+                        const prefix = metric === 'chat' ? 'activity_chat_' : 'activity_likes_';
+                        if (a.enabled != null) {
+                            const wasEnabled = !!existingRow[`${prefix}enabled`];
+                            setBool(`${prefix}enabled`, a.enabled);
+                            // Включили лайки — сбрасываем baseline, иначе старый эфир блокирует прогресс
+                            if (metric === 'likes' && !wasEnabled && !!a.enabled) {
+                                updates.push('activity_likes_baseline = ?');
+                                values.push('{}');
+                            }
+                        }
+                        if (a.goalStart != null) {
+                            const startVal = clampNum(a.goalStart, 0, null);
+                            if (isFinite(startVal)) {
+                                updates.push(`${prefix}goal_start = ?`); values.push(startVal);
+                                // Подтягиваем текущую цель, только если она ещё не выросла от эскалации
+                                // (т.е. равна прежнему start) — иначе стример правит текст, а не сбрасывает прогресс
+                                const prevStart = Number(existingRow[`${prefix}goal_start`]) || 0;
+                                const prevCurrent = Number(existingRow[`${prefix}goal_current`]) || 0;
+                                if (prevCurrent === prevStart) {
+                                    updates.push(`${prefix}goal_current = ?`); values.push(startVal);
+                                }
+                            }
+                        }
+                        if (a.rewardType != null && ['winrate', 'damage', 'medals'].includes(String(a.rewardType))) {
+                            updates.push(`${prefix}reward_type = ?`); values.push(String(a.rewardType));
+                        }
+                        setNum(`${prefix}reward_amount`, a.rewardAmount, 0, null);
+                        if (a.escalationMode != null && ['fixed', 'percent'].includes(String(a.escalationMode))) {
+                            updates.push(`${prefix}escalation_mode = ?`); values.push(String(a.escalationMode));
+                        }
+                        setNum(`${prefix}escalation_value`, a.escalationValue, 0, null);
+                    });
                 }
 
                 if (b.timers && typeof b.timers === 'object') {
@@ -394,14 +705,29 @@ function createBlitzChallengeModule(deps) {
                 if (err || !row) return res.status(500).json({ success: false, error: 'Ошибка сервера' });
                 // Обнуляем "взято" у медалей, сохраняя их список и требуемое количество
                 const list = safeJsonParse(row.medals_list, []).map(m => Object.assign({}, m, { earned: 0 }));
-                deps.db.run(`UPDATE blitz_challenge SET wr_current = wr_start, dmg_current = dmg_start, session_balance = 0, medals_list = ?, timer_countdown_started_at = 0, timer_elapsed_started_at = 0, updated_at = CURRENT_TIMESTAMP WHERE id = 1`, [JSON.stringify(list)], (e) => {
-                    if (e) return res.status(500).json({ success: false, error: 'Ошибка сброса' });
-                    recentFeed = []; donorTotals = {};
-                    getBlitzChallengeRow((e2, r2) => {
-                        const payload = normalizeBlitzRow(r2);
-                        deps.broadcastToClients({ type: 'BLITZ_CHALLENGE_UPDATE', challenge: payload, reset: true });
-                        res.json({ success: true, challenge: payload });
+                const linkedIds = list.filter(m => m.lestaId).map(m => m.lestaId);
+
+                const finishReset = (baseline) => {
+                    deps.db.run(`UPDATE blitz_challenge SET wr_current = wr_start, dmg_current = dmg_start, session_balance = 0, medals_list = ?, medals_baseline = ?, timer_countdown_started_at = 0, timer_elapsed_started_at = 0, activity_chat_progress = 0, activity_chat_goal_current = activity_chat_goal_start, activity_likes_progress = 0, activity_likes_goal_current = activity_likes_goal_start, activity_likes_baseline = '{}', updated_at = CURRENT_TIMESTAMP WHERE id = 1`, [JSON.stringify(list), JSON.stringify(baseline)], (e) => {
+                        if (e) return res.status(500).json({ success: false, error: 'Ошибка сброса' });
+                        recentFeed = []; donorTotals = {};
+                        getBlitzChallengeRow((e2, r2) => {
+                            const payload = normalizeBlitzRow(r2);
+                            deps.broadcastToClients({ type: 'BLITZ_CHALLENGE_UPDATE', challenge: payload, reset: true });
+                            res.json({ success: true, challenge: payload });
+                        });
                     });
+                };
+
+                if (!linkedIds.length) return finishReset({});
+                // Базовые точки автосписания фиксируем СРАЗУ по текущим счётчикам Lesta, а не
+                // откладываем до следующего фонового синка (syncBlitzMedalsFromLesta) — иначе
+                // медаль, полученная в промежутке между сбросом и этим синком, молча
+                // "проглатывается" так, будто была получена ещё до сброса
+                fetchLestaAchievementsForAccount().then((achievements) => {
+                    const baseline = {};
+                    if (achievements) linkedIds.forEach(id => { baseline[id] = Number(achievements[id]) || 0; });
+                    finishReset(baseline);
                 });
             });
         });
@@ -472,7 +798,16 @@ function createBlitzChallengeModule(deps) {
                 });
             });
         });
-        
+
+        // Каталог медалей Lesta привязанного аккаунта (код достижения -> текущий счётчик) —
+        // для выбора медали при настройке автосписания в админке
+        app.get('/api/blitz-challenge/lesta-medals', (req, res) => {
+            fetchLestaAchievementsForAccount().then((achievements) => {
+                if (!achievements) return res.status(400).json({ success: false, error: 'Не удалось получить медали Lesta. Привяжите аккаунт Lesta.' });
+                res.json({ success: true, achievements });
+            });
+        });
+
         // Загрузка PNG-иконки медали (base64) -> возвращает URL
         app.post('/api/blitz-challenge/upload-medal-icon', (req, res) => {
             const { imageData } = req.body || {};
@@ -551,7 +886,10 @@ function createBlitzChallengeModule(deps) {
         registerPages,
         updateBlitzChallenge,
         fetchBlitzBattleProgress,
-        normalizeBlitzRow
+        normalizeBlitzRow,
+        syncBlitzMedalsFromLesta,
+        onChatMessageCounted,
+        syncBlitzActivityLikes
     };
 }
 

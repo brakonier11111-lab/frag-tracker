@@ -68,20 +68,16 @@
             font-size: 1.1rem;
         }
 
+        /* Левая колонка (превью) сжимается до 320px вместо жёстких 650px, чтобы правая
+           колонка с вкладками не оставалась зажатой на обычных ширинах окна. */
         .container {
             max-width: 1800px;
             margin: 0 auto;
             padding: 20px;
             display: grid;
-            grid-template-columns: 650px 1fr;
+            grid-template-columns: minmax(320px, 420px) 1fr;
             gap: 30px;
             align-items: start;
-        }
-
-        @media (max-width: 1400px) {
-            .container {
-                grid-template-columns: 500px 1fr;
-            }
         }
 
         @media (max-width: 1200px) {
@@ -90,7 +86,9 @@
             }
         }
 
-        /* Вкладки */
+        /* Вкладки — обычный блок в потоке страницы: скроллится вместе со всей
+           страницей, без своего внутреннего скролла (раньше был вложенный
+           скролл-бокс поверх скролла страницы — неудобно). */
         .tabs-container {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
@@ -98,10 +96,6 @@
             border-radius: 20px;
             overflow: hidden;
             box-shadow: var(--shadow-glow);
-            position: sticky;
-            top: 20px;
-            bottom: 20px;
-            max-height: calc(100vh - 40px);
             display: flex;
             flex-direction: column;
             align-self: start;
@@ -109,6 +103,7 @@
 
         .tabs-header {
             display: flex;
+            flex-wrap: wrap;
             background: rgba(0, 0, 0, 0.3);
             border-bottom: 1px solid var(--glass-border);
             overflow-x: auto;
@@ -130,9 +125,9 @@
         }
 
         .tab-button {
-            flex: 1;
-            min-width: 180px;
-            padding: 20px 25px;
+            flex: 1 1 auto;
+            min-width: 0;
+            padding: 18px 20px;
             background: transparent;
             border: none;
             color: var(--text-secondary);
@@ -146,6 +141,12 @@
             justify-content: center;
             gap: 10px;
             white-space: nowrap;
+        }
+
+        @media (max-width: 900px) {
+            .tab-button {
+                flex: 1 1 45%;
+            }
         }
 
         .tab-button:hover {
@@ -167,21 +168,6 @@
             padding: 30px;
             min-height: 500px;
             flex: 1;
-            overflow-y: auto;
-            max-height: calc(100vh - 200px);
-        }
-        
-        .tabs-content::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .tabs-content::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-        }
-        
-        .tabs-content::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
         }
 
         .tab-pane {
@@ -198,7 +184,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Секции */
+        /* Секции (design-system.css не даёт готового аналога с этим же визуальным весом) */
         .section {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--glass-border);
@@ -222,7 +208,8 @@
             margin-bottom: 20px;
         }
 
-        /* Формы */
+        /* Формы: базовые .form-group/.form-label/.form-input/.form-select идут из
+           design-system.css — тут только то, чего там нет. */
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -230,44 +217,10 @@
             margin-bottom: 20px;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        .form-input,
-        .form-select {
-            width: 100%;
-            padding: 12px 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .form-select option {
-            background: #1a1a1a;
-            color: #fff;
-        }
-
-        .form-input:focus,
-        .form-select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
-        }
-
         .form-input[type="color"] {
             height: 50px;
             cursor: pointer;
+            padding: 6px;
         }
 
         .form-input[type="range"] {
@@ -286,94 +239,20 @@
             cursor: pointer;
         }
 
-        /* Кнопки */
-        .btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: var(--primary-gradient);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-success {
-            background: var(--success-gradient);
-            color: white;
-        }
-
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
-        }
-
-        .btn-danger {
-            background: var(--danger-gradient);
-            color: white;
-        }
-
-        .btn-danger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-        }
-
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
         .btn-group {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
         }
 
-        /* Превью полоски */
-        .preview-container {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 25px;
-            min-height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .preview-iframe {
-            width: 100%;
-            height: 200px;
-            border: none;
-            border-radius: 10px;
-            background: transparent;
-        }
-
-        /* Превью полоски - фиксировано слева */
+        /* Превью полоски — фиксировано слева */
         .fixed-preview-wrapper {
             background: rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(20px);
             border: 2px solid rgba(102, 126, 234, 0.3);
             border-radius: 20px;
             padding: 25px;
-            box-shadow: 
+            box-shadow:
                 0 10px 40px rgba(0, 0, 0, 0.5),
                 0 0 60px rgba(102, 126, 234, 0.2);
             animation: fadeIn 0.5s ease-out;
@@ -405,125 +284,66 @@
             text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
         }
 
+        .fixed-preview-hint {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 12px;
+        }
+
         .fixed-preview-iframe {
             width: 100%;
-            height: 350px;
+            height: 220px;
             border: none;
             border-radius: 10px;
             background: transparent;
         }
 
-        /* Карточки тем */
-        .themes-grid {
+        /* Пресеты оформления полоски */
+        .preset-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
         }
 
-        .theme-card {
+        .preset-card {
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 20px;
+            border: 2px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 14px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            transition: all 0.25s ease;
+            text-align: center;
         }
 
-        .theme-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--theme-color, var(--primary-gradient));
+        .preset-card:hover {
+            border-color: rgba(255, 255, 255, 0.35);
+            transform: translateY(-3px);
         }
 
-        .theme-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            border-color: rgba(255, 255, 255, 0.3);
-        }
-
-        .theme-card.selected {
+        .preset-card.selected {
             border-color: #667eea;
-            box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 0 18px rgba(102, 126, 234, 0.45);
         }
 
-        .theme-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
+        .preset-card-swatch {
+            height: 34px;
+            border-radius: 17px;
+            margin-bottom: 10px;
         }
 
-        .theme-icon {
-            font-size: 1.8rem;
-        }
-
-        .theme-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .theme-description {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-
-        .theme-preview {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-            height: 60px;
+        .preset-card-swatch.preset-card-custom {
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px dashed rgba(255, 255, 255, 0.3);
         }
 
-        .preview-bar {
-            width: 100%;
-            height: 25px;
-            border-radius: 12px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .preview-bar-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            opacity: 0.3;
-        }
-
-        .preview-bar-fill {
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 65%;
-            border-radius: 12px;
-        }
-
-        .theme-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .tag {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 4px 10px;
-            border-radius: 10px;
-            font-size: 0.8rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .preset-card-name {
+            font-weight: 600;
+            font-size: 0.9rem;
         }
 
         /* Статистика */
@@ -617,13 +437,15 @@
             background: #2196F3;
         }
 
-        /* История донатов */
-        .donations-list {
+        /* История донатов / снимки настроек */
+        .donations-list,
+        .snapshots-list {
             max-height: 400px;
             overflow-y: auto;
         }
 
-        .donation-item {
+        .donation-item,
+        .snapshot-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -635,7 +457,8 @@
             transition: all 0.3s ease;
         }
 
-        .donation-item:hover {
+        .donation-item:hover,
+        .snapshot-item:hover {
             background: rgba(255, 255, 255, 0.1);
             transform: translateX(5px);
         }
@@ -673,48 +496,14 @@
             font-style: italic;
         }
 
-        /* Уведомления */
-        .notification {
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            background: var(--success-gradient);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-            z-index: 2000;
-            transform: translateX(400px);
-            transition: transform 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification.error {
-            background: var(--danger-gradient);
-        }
-
         /* Адаптивность */
         @media (max-width: 768px) {
-            .tabs-header {
-                flex-direction: column;
-            }
-
-            .tab-button {
-                min-width: auto;
-            }
-
             .form-grid {
                 grid-template-columns: 1fr;
             }
 
-            .themes-grid {
-                grid-template-columns: 1fr;
+            .preset-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .stats-grid {
@@ -762,178 +551,6 @@
             text-align: right;
             color: #667eea;
             font-weight: 600;
-        }
-
-        /* Стили для встроенного виджета во вкладке */
-        #tab-widget .widget-full-content {
-            display: grid;
-            grid-template-columns: 1fr 350px;
-            gap: 25px;
-        }
-
-        #tab-widget .widget-main {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 30px;
-        }
-
-        #tab-widget .widget-panel {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 25px;
-        }
-
-        #tab-widget .widget-title-main {
-            font-size: 2rem;
-            font-weight: 800;
-            text-align: center;
-            background: var(--primary-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 30px;
-        }
-
-        #tab-widget .widget-progress-bar {
-            width: 100%;
-            height: 35px;
-            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(10,10,20,0.95) 50%, rgba(0,0,0,0.9) 100%);
-            border-radius: 30px;
-            overflow: hidden;
-            position: relative;
-            border: 3px solid rgba(74, 85, 104, 0.4);
-            box-shadow: inset 0 6px 12px rgba(0,0,0,0.7), 0 0 30px rgba(0,0,0,0.5);
-        }
-
-        #tab-widget .widget-progress-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #4a5568 0%, #2d3748 50%, #4a5568 100%);
-            border-radius: 30px;
-            position: relative;
-            transition: width 2s ease;
-            box-shadow: 0 0 20px rgba(74, 85, 104, 0.6);
-        }
-
-        #tab-widget .widget-progress-amount {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-weight: 700;
-            color: white;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
-            z-index: 10;
-        }
-
-        #tab-widget .widget-progress-text {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            font-weight: 600;
-        }
-
-        #tab-widget .widget-progress-text span {
-            background: rgba(0,0,0,0.5);
-            padding: 6px 12px;
-            border-radius: 8px;
-        }
-
-        #tab-widget .widget-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin: 25px 0;
-        }
-
-        #tab-widget .widget-stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        #tab-widget .widget-stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        #tab-widget .widget-stat-label {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-
-        #tab-widget .widget-history {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 20px;
-        }
-
-        #tab-widget .widget-history-item {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        #tab-widget .widget-panel-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        #tab-widget .widget-control-group {
-            margin-bottom: 15px;
-        }
-
-        #tab-widget .widget-control-label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        #tab-widget .widget-control-input {
-            width: 100%;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            color: white;
-            font-size: 0.9rem;
-        }
-
-        #tab-widget .widget-control-btn {
-            width: 100%;
-            padding: 10px;
-            background: var(--primary-gradient);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            margin-bottom: 10px;
-            transition: all 0.3s ease;
-        }
-
-        #tab-widget .widget-control-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        #tab-widget .widget-control-btn.danger {
-            background: var(--danger-gradient);
-        }
-
-        @media (max-width: 1000px) {
-            #tab-widget .widget-full-content {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
@@ -1069,37 +686,34 @@
     </div>
 
     <div class="container">
-        <!-- Левая колонка: Превью полоски -->
+        <!-- Левая колонка: живое превью полоски (тот же файл, что открывается в OBS) -->
         <div class="fixed-preview-wrapper">
             <div class="fixed-preview-title">
                 ⚡ Превью полоски
             </div>
             <div class="fixed-preview-container">
-                <iframe id="preview-iframe" class="fixed-preview-iframe" src=""></iframe>
+                <iframe id="preview-iframe" class="fixed-preview-iframe" src="/widget/donation-goal"></iframe>
             </div>
+            <p class="fixed-preview-hint">Это тот же виджет, что открывается в OBS — превью обновляется само после «Сохранить».</p>
         </div>
 
         <!-- Правая колонка: Меню и управление -->
         <div class="tabs-container">
             <!-- Вкладки -->
             <div class="tabs-header">
-                <button class="tab-button active" onclick="switchTab('goal')">
+                <button class="tab-button active" onclick="switchTab('goal', event)">
                     <span class="tab-icon">🎯</span>
-                    <span>Настройки сбора</span>
+                    <span>Сбор донатов</span>
                 </button>
-                <button class="tab-button" onclick="switchTab('widget')">
-                    <span class="tab-icon">📊</span>
-                    <span>Полный виджет</span>
-                </button>
-                <button class="tab-button" onclick="switchTab('customize')">
+                <button class="tab-button" onclick="switchTab('customize', event)">
                     <span class="tab-icon">🎨</span>
-                    <span>Конструктор полоски</span>
+                    <span>Оформление полоски</span>
                 </button>
-                <button class="tab-button" onclick="switchTab('links')">
+                <button class="tab-button" onclick="switchTab('links', event)">
                     <span class="tab-icon">🔗</span>
                     <span>Ссылки для OBS</span>
                 </button>
-                <button class="tab-button" onclick="switchTab('history')">
+                <button class="tab-button" onclick="switchTab('history', event)">
                     <span class="tab-icon">📜</span>
                     <span>История</span>
                 </button>
@@ -1107,7 +721,7 @@
 
             <!-- Содержимое вкладок -->
             <div class="tabs-content">
-                <!-- Вкладка: Настройки сбора -->
+                <!-- Вкладка: Сбор донатов -->
                 <div id="tab-goal" class="tab-pane active">
                     <div class="section">
                         <h2 class="section-title">
@@ -1175,21 +789,6 @@
 
                     <div class="section">
                         <h2 class="section-title">
-                            <span>🎨</span>
-                            Ссылка для OBS
-                        </h2>
-                        <p class="section-subtitle">Скопируйте эту ссылку и вставьте в OBS Browser Source</p>
-                        <div class="form-group">
-                            <label class="form-label">🎨 Кастомная полоска (с вашими настройками из конструктора)</label>
-                            <div class="url-input-group">
-                                <input type="text" class="url-input" id="url-custom-goal" readonly style="background: var(--bg-secondary);">
-                                <button class="copy-btn" onclick="copyUrl('url-custom-goal')">Копировать</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <h2 class="section-title">
                             <span>➕</span>
                             Добавить донат вручную
                         </h2>
@@ -1209,408 +808,157 @@
                     </div>
                 </div>
 
-                <!-- Вкладка: Полный виджет -->
-                <div id="tab-widget" class="tab-pane">
-                    <div class="widget-full-content">
-                        <!-- Левая часть: Виджет -->
-                        <div class="widget-main">
-                            <h2 class="widget-title-main" id="widget-title">Сбор на новый контент</h2>
-                            
-                            <!-- Полоска прогресса -->
-                            <div style="position: relative; padding: 10px 0;">
-                                <div class="widget-progress-bar">
-                                    <div class="widget-progress-fill" id="widget-progress-fill" style="width: 0%"></div>
-                                    <div class="widget-progress-amount" id="widget-current-amount">0 ₽</div>
-                                </div>
-                                <div class="widget-progress-text">
-                                    <span>0 ₽</span>
-                                    <span id="widget-target-amount">10,000 ₽</span>
-                                </div>
+                <!-- Вкладка: Оформление полоски -->
+                <div id="tab-customize" class="tab-pane">
+                    <div class="section">
+                        <h2 class="section-title">
+                            <span>🎨</span>
+                            Пресет оформления
+                        </h2>
+                        <p class="section-subtitle">Выберите готовый стиль полоски или настройте свой</p>
+                        <div class="preset-grid">
+                            <div class="preset-card" data-preset="classic" onclick="selectPreset('classic'); sendLivePreview()">
+                                <div class="preset-card-swatch" style="background: linear-gradient(120deg, #5b8dff 0%, #7f67ff 100%);"></div>
+                                <div class="preset-card-name">Классика</div>
                             </div>
-
-                            <!-- Статистика -->
-                            <div class="widget-stats-grid">
-                                <div class="widget-stat-card">
-                                    <div class="widget-stat-value" id="widget-total-donations">0</div>
-                                    <div class="widget-stat-label">Донатов</div>
-                                </div>
-                                <div class="widget-stat-card">
-                                    <div class="widget-stat-value" id="widget-avg-donation">0 ₽</div>
-                                    <div class="widget-stat-label">Средний чек</div>
-                                </div>
-                                <div class="widget-stat-card">
-                                    <div class="widget-stat-value" id="widget-days-left">∞</div>
-                                    <div class="widget-stat-label">Дней осталось</div>
-                                </div>
-                                <div class="widget-stat-card">
-                                    <div class="widget-stat-value" id="widget-last-donation">--:--</div>
-                                    <div class="widget-stat-label">Последний донат</div>
-                                </div>
+                            <div class="preset-card" data-preset="minimal" onclick="selectPreset('minimal'); sendLivePreview()">
+                                <div class="preset-card-swatch" style="background: linear-gradient(120deg, #7f8aa6 0%, #b1b8ca 100%);"></div>
+                                <div class="preset-card-name">Минимал</div>
                             </div>
-
-                            <!-- История донатов -->
-                            <div style="margin-top: 25px;">
-                                <h3 style="font-size: 1.2rem; margin-bottom: 15px; text-align: center;">История донатов</h3>
-                                <div class="widget-history" id="widget-history">
-                                    <div style="text-align: center; color: var(--text-secondary); padding: 20px;">Пока нет донатов</div>
-                                </div>
+                            <div class="preset-card" data-preset="neon" onclick="selectPreset('neon'); sendLivePreview()">
+                                <div class="preset-card-swatch" style="background: linear-gradient(120deg, #00eaff 0%, #2d7cff 45%, #b100ff 100%);"></div>
+                                <div class="preset-card-name">Неон</div>
                             </div>
-                        </div>
-
-                        <!-- Правая часть: Панель управления -->
-                        <div class="widget-panel">
-                            <h3 class="widget-panel-title">Управление</h3>
-
-                            <div class="widget-control-group">
-                                <label class="widget-control-label">Название сбора</label>
-                                <input type="text" id="widget-goal-name" class="widget-control-input" placeholder="Название">
+                            <div class="preset-card" data-preset="gradient" onclick="selectPreset('gradient'); sendLivePreview()">
+                                <div class="preset-card-swatch" style="background: linear-gradient(120deg, #ff7a66 0%, #ffcb4f 52%, #4ecdc4 100%);"></div>
+                                <div class="preset-card-name">Закат</div>
                             </div>
-
-                            <div class="widget-control-group">
-                                <label class="widget-control-label">Целевая сумма (₽)</label>
-                                <input type="number" id="widget-target-input" class="widget-control-input" placeholder="10000" min="1">
+                            <div class="preset-card" data-preset="dark" onclick="selectPreset('dark'); sendLivePreview()">
+                                <div class="preset-card-swatch" style="background: linear-gradient(120deg, #2a3342 0%, #475267 100%);"></div>
+                                <div class="preset-card-name">Тёмная</div>
                             </div>
-
-                            <div class="widget-control-group">
-                                <label class="widget-control-label">Текущая сумма (₽)</label>
-                                <input type="number" id="widget-current-input" class="widget-control-input" placeholder="0" min="0">
+                            <div class="preset-card" data-preset="colorful" onclick="selectPreset('colorful'); sendLivePreview()">
+                                <div class="preset-card-swatch" style="background: linear-gradient(120deg, #ff5f95 0%, #ffb84d 33%, #5fe6ff 66%, #8d7dff 100%);"></div>
+                                <div class="preset-card-name">Радуга</div>
                             </div>
-
-                            <button class="widget-control-btn" onclick="saveWidgetSettings()">💾 Сохранить</button>
-
-                            <div style="border-top: 1px solid var(--glass-border); margin: 20px 0; padding-top: 20px;">
-                                <label class="widget-control-label">Добавить донат (₽)</label>
-                                <input type="number" id="widget-manual-amount" class="widget-control-input" placeholder="100" min="1">
-                                <input type="text" id="widget-manual-username" class="widget-control-input" placeholder="Имя донатера (опционально)" style="margin-top: 10px;">
-                                <button class="widget-control-btn" style="background: var(--success-gradient); margin-top: 10px;" onclick="addWidgetDonation()">✅ Добавить донат</button>
-                            </div>
-
-                            <div style="border-top: 1px solid var(--glass-border); margin: 20px 0; padding-top: 20px;">
-                                <label class="widget-control-label">Дата окончания</label>
-                                <input type="datetime-local" id="widget-end-date" class="widget-control-input">
-                                <button class="widget-control-btn" onclick="setWidgetEndDate()">📅 Установить срок</button>
-                            </div>
-
-                            <div style="border-top: 1px solid var(--glass-border); margin: 20px 0; padding-top: 20px;">
-                                <div class="widget-control-group">
-                                    <label class="widget-control-label">🎨 Ссылка для OBS</label>
-                                    <input type="text" class="widget-control-input" id="url-custom-widget" readonly style="font-size: 0.85rem;">
-                                    <button class="widget-control-btn" style="margin-top: 10px;" onclick="copyUrl('url-custom-widget')">📋 Копировать ссылку</button>
-                                </div>
-                            </div>
-
-                            <div style="border-top: 1px solid var(--glass-border); margin: 20px 0; padding-top: 20px;">
-                                <button class="widget-control-btn danger" onclick="resetWidgetGoal()">🔄 Обнулить сбор</button>
-                                <button class="widget-control-btn" onclick="openFullWidget()">🔗 Открыть в отдельной вкладке</button>
+                            <div class="preset-card" data-preset="custom" onclick="selectPreset('custom'); sendLivePreview()">
+                                <div class="preset-card-swatch preset-card-custom">✏️</div>
+                                <div class="preset-card-name">Свой дизайн</div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Вкладка: Конструктор полоски -->
-                <div id="tab-customize" class="tab-pane">
-
-                    <div class="section">
+                    <div class="section" id="custom-design-section" style="display: none;">
                         <h2 class="section-title">
-                            <span>📐</span>
-                            Форма и геометрия
+                            <span>🛠️</span>
+                            Свой дизайн
                         </h2>
                         <div class="form-grid">
                             <div class="form-group">
                                 <label class="form-label">Форма полоски</label>
-                                <select id="custom-shape" class="form-select" onchange="updatePreview(); updateStandardTheme();">
-                                    <optgroup label="📊 Базовые">
-                                        <option value="horizontal">Горизонтальная полоска</option>
-                                        <option value="vertical">Вертикальная полоска</option>
-                                        <option value="circular">Круговая диаграмма</option>
-                                    </optgroup>
-                                    <optgroup label="💎 Геометрические">
-                                        <option value="hexagon">🔷 Шестиугольник</option>
-                                        <option value="diamond">💎 Ромб</option>
-                                        <option value="star">⭐ Звезда</option>
-                                        <option value="heart">❤️ Сердце</option>
-                                    </optgroup>
-                                    <optgroup label="🌊 Специальные">
-                                        <option value="wave">🌊 Волна (анимация)</option>
-                                        <option value="custom-image">🖼️ Кастомное изображение</option>
-                                    </optgroup>
+                                <select id="custom-bar-shape" class="form-select" onchange="sendLivePreview()">
+                                    <option value="capsule">Капсула</option>
+                                    <option value="soft-square">Скруглённый квадрат</option>
+                                    <option value="rounded">Закруглённая</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">
-                                    Высота/Толщина: <span class="range-value" id="bar-height-value">35px</span>
-                                </label>
-                                <input type="range" id="bar-height" class="form-input" min="20" max="100" value="35" oninput="updateRangeDisplay('bar-height')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">
-                                    Скругление углов: <span class="range-value" id="border-radius-value">30px</span>
-                                </label>
-                                <input type="range" id="border-radius" class="form-input" min="0" max="50" value="30" oninput="updateRangeDisplay('border-radius')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <h2 class="section-title">
-                            <span>🎨</span>
-                            Цвета и градиенты
-                        </h2>
-                        
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label class="checkbox-group" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" id="enable-colors-section" checked onchange="toggleSection('colors-section')" style="margin: 0;">
-                                <span style="font-weight: 600;">Использовать кастомные цвета</span>
-                            </label>
-                        </div>
-
-                        <div id="colors-section">
-                            <h3 style="font-size: 1.1rem; margin-bottom: 15px;">Цвета фона полоски</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Фон полоски (начало)</label>
-                                    <input type="color" id="bg-color-1" class="form-input" value="#000000" onchange="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Фон полоски (конец)</label>
-                                    <input type="color" id="bg-color-2" class="form-input" value="#141428" onchange="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        Прозрачность фона: <span class="range-value" id="bg-opacity-value">90%</span>
-                                    </label>
-                                    <input type="range" id="bg-opacity" class="form-input" min="0" max="100" value="90" oninput="updateRangeDisplay('bg-opacity')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                                </div>
-                            </div>
-
-                            <h3 style="font-size: 1.1rem; margin-bottom: 15px; margin-top: 20px;">Цвета заполнения</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Цвет 1 (начало)</label>
-                                    <input type="color" id="gradient-color-1" class="form-input" value="#4a5568" onchange="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Цвет 2 (середина)</label>
-                                    <input type="color" id="gradient-color-2" class="form-input" value="#2d3748" onchange="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Цвет 3 (конец)</label>
-                                    <input type="color" id="gradient-color-3" class="form-input" value="#1a202c" onchange="updatePreview()">
-                                </div>
-                            </div>
-
-                            <h3 style="font-size: 1.1rem; margin-bottom: 15px; margin-top: 20px;">Цвета границы и свечения</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">Цвет границы</label>
-                                    <input type="color" id="border-color" class="form-input" value="#4a5568" onchange="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Цвет свечения</label>
-                                    <input type="color" id="glow-color" class="form-input" value="#667eea" onchange="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        Интенсивность свечения: <span class="range-value" id="glow-intensity-value">50%</span>
-                                    </label>
-                                    <input type="range" id="glow-intensity" class="form-input" min="0" max="100" value="50" oninput="updateRangeDisplay('glow-intensity')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <h2 class="section-title">
-                            <span>✨</span>
-                            Эффекты и анимации
-                        </h2>
-                        
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    Скорость анимации: <span class="range-value" id="anim-speed-value">1x</span>
-                                </label>
-                                <input type="range" id="anim-speed" class="form-input" min="0.1" max="3" step="0.1" value="1" oninput="updateRangeDisplay('anim-speed')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                            </div>
-                        </div>
-
-                        <h3 style="font-size: 1.1rem; margin-bottom: 15px; margin-top: 20px;">Активные эффекты</h3>
-                        <div class="form-grid">
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="effect-glow" checked onchange="updatePreview()">
-                                <label for="effect-glow">Пульсирующее свечение границы</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="effect-shimmer" checked onchange="updatePreview()">
-                                <label for="effect-shimmer">Переливы внутри заполнения</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="effect-gradient-move" checked onchange="updatePreview()">
-                                <label for="effect-gradient-move">Движущийся градиент</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="effect-background-pulse" checked onchange="updatePreview()">
-                                <label for="effect-background-pulse">Подложка под полоской</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="effect-outer-glow" checked onchange="updatePreview()">
-                                <label for="effect-outer-glow">Внешнее свечение контейнера</label>
-                            </div>
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="effect-fill-glow" checked onchange="updatePreview()">
-                                <label for="effect-fill-glow">Свечение заполнения</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <h2 class="section-title">
-                            <span>🎬</span>
-                            Тип анимации заполнения
-                        </h2>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label">Анимация внутри полоски</label>
-                                <select id="fill-animation" class="form-select" onchange="updatePreview()">
-                                    <option value="">🌈 Без анимации (статичный градиент)</option>
-                                    <option value="waves">🌊 Волна (ритмичное покачивание)</option>
-                                    <option value="glow">✨ Свечение (пульсирующий свет)</option>
-                                    <option value="prism">🎨 Переливы (движущаяся радуга)</option>
-                                    <option value="sway">🫧 Калыхание (медленное покачивание)</option>
-                                    <option value="glimmer">💫 Блики (пробегающий свет)</option>
-                                    <option value="energy">⚡ Энергия (мощная пульсация)</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <h2 class="section-title">
-                            <span>⚡</span>
-                            Пресеты эффектов
-                        </h2>
-                        <p class="section-subtitle">Выберите готовый набор эффектов</p>
-                        
-                        <div class="btn-group">
-                            <button class="btn btn-secondary" onclick="applyAnimationPreset('calm')" style="flex: 1;">
-                                🌊 Спокойная волна
-                            </button>
-                            <button class="btn btn-secondary" onclick="applyAnimationPreset('energy')" style="flex: 1;">
-                                ⚡ Энергия
-                            </button>
-                            <button class="btn btn-secondary" onclick="applyAnimationPreset('fire')" style="flex: 1;">
-                                🔥 Огонь
-                            </button>
-                        </div>
-                        <div class="btn-group" style="margin-top: 10px;">
-                            <button class="btn btn-secondary" onclick="applyAnimationPreset('neon')" style="flex: 1;">
-                                💜 Неон
-                            </button>
-                            <button class="btn btn-secondary" onclick="applyAnimationPreset('rainbow')" style="flex: 1;">
-                                🌈 Радуга
-                            </button>
-                            <button class="btn btn-secondary" onclick="applyAnimationPreset('minimal')" style="flex: 1;">
-                                ⚪ Минимум
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <h2 class="section-title">
-                            <span>💫</span>
-                            Частицы и дополнительные эффекты
-                        </h2>
-                        
-                        <div class="form-grid">
-                            <div class="form-group checkbox-group">
-                                <input type="checkbox" id="custom-show-particles" checked onchange="toggleParticlesSettings(); updatePreview()">
-                                <label for="custom-show-particles">Показать частицы (только для горизонтальной)</label>
-                            </div>
-                        </div>
-
-                        <div id="particles-settings">
-                            <h3 style="font-size: 1.1rem; margin-bottom: 15px;">Настройки частиц</h3>
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        Количество частиц: <span class="range-value" id="particles-count-value">9</span>
-                                    </label>
-                                    <input type="range" id="particles-count" class="form-input" min="3" max="20" value="9" oninput="updateRangeDisplay('particles-count')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        Размер частиц: <span class="range-value" id="particles-size-value">4px</span>
-                                    </label>
-                                    <input type="range" id="particles-size" class="form-input" min="2" max="10" value="4" oninput="updateRangeDisplay('particles-size')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        Скорость частиц: <span class="range-value" id="particles-speed-value">1x</span>
-                                    </label>
-                                    <input type="range" id="particles-speed" class="form-input" min="0.5" max="2" step="0.1" value="1" oninput="updateRangeDisplay('particles-speed')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Цвет частиц</label>
-                                    <input type="color" id="particles-color" class="form-input" value="#667eea" onchange="updatePreview()">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">
-                                        Прозрачность частиц: <span class="range-value" id="particles-opacity-value">70%</span>
-                                    </label>
-                                    <input type="range" id="particles-opacity" class="form-input" min="10" max="100" value="70" oninput="updateRangeDisplay('particles-opacity')" onmouseup="updatePreview()" ontouchend="updatePreview()">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="section" id="custom-image-section" style="display: none; background: rgba(102, 126, 234, 0.1); border-color: rgba(102, 126, 234, 0.3);">
-                        <h2 class="section-title">
-                            <span>🖼️</span>
-                            Кастомное изображение
-                        </h2>
-                        <div class="form-group">
-                            <label class="form-label">URL изображения (PNG, SVG, GIF)</label>
-                            <input type="text" id="custom-image-url" class="form-input" placeholder="https://example.com/image.png" oninput="updatePreview()">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Или загрузите файл с компьютера</label>
-                            <input type="file" id="custom-image-file" class="form-input" accept="image/png,image/svg+xml,image/gif" onchange="handleImageUpload(event)" style="padding: 8px;">
-                        </div>
-                        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 10px;">
-                            💡 Изображение будет заполняться снизу вверх по мере достижения цели
-                        </div>
-                    </div>
-
-                    <div class="section">
-                        <h2 class="section-title">
-                            <span>🔤</span>
-                            Шрифт и текст
-                        </h2>
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label class="form-label">Шрифт</label>
-                                <select id="custom-font" class="form-select" onchange="updatePreview()">
-                                    <option value="Inter">Inter (современный)</option>
-                                    <option value="Rajdhani">Rajdhani (динамичный)</option>
-                                    <option value="Orbitron">Orbitron (футуристический)</option>
-                                    <option value="Russo One">Russo One (жирный)</option>
-                                    <option value="Bebas Neue">Bebas Neue (узкий)</option>
-                                    <option value="Exo 2">Exo 2 (технологичный)</option>
-                                    <option value="Audiowide">Audiowide (ретро)</option>
-                                    <option value="Montserrat">Montserrat (элегантный)</option>
-                                    <option value="Roboto">Roboto (универсальный)</option>
-                                    <option value="Press Start 2P">Press Start 2P (8-бит)</option>
+                                <label class="form-label">Текстура заливки</label>
+                                <select id="custom-fill-texture" class="form-select" onchange="sendLivePreview()">
+                                    <option value="glass">Стекло</option>
+                                    <option value="matte">Матовая</option>
+                                    <option value="neon">Неон</option>
+                                    <option value="striped">Полосы</option>
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">
-                                    Размер шрифта: <span class="range-value" id="font-size-value">100%</span>
-                                </label>
-                                <input type="range" id="font-size" class="form-input" min="50" max="150" value="100" oninput="updateRangeDisplay('font-size')" onmouseup="updatePreview()" ontouchend="updatePreview()">
+                                <label class="form-label">Тип заливки</label>
+                                <select id="custom-fill-type" class="form-select" onchange="sendLivePreview()">
+                                    <option value="gradient">Градиент</option>
+                                    <option value="solid">Сплошная заливка</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Цвет заливки (начало)</label>
+                                <input type="color" id="custom-color-1" class="form-input" value="#667eea" oninput="sendLivePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Цвет заливки (конец)</label>
+                                <input type="color" id="custom-color-2" class="form-input" value="#764ba2" oninput="sendLivePreview()">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Цвет текста</label>
-                                <input type="color" id="text-color" class="form-input" value="#ffffff" onchange="updatePreview()">
+                                <input type="color" id="custom-text-color" class="form-input" value="#eaf2ff" oninput="sendLivePreview()">
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Цвет фона (трек)</label>
+                                <input type="color" id="custom-track-color" class="form-input" value="#0b1328" oninput="sendLivePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Цвет обводки</label>
+                                <input type="color" id="custom-border-color" class="form-input" value="#b7cdff" oninput="sendLivePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Толщина обводки: <span class="range-value" id="custom-border-width-value">2px</span>
+                                </label>
+                                <input type="range" id="custom-border-width" class="form-input" min="0" max="6" value="2" oninput="updateRangeDisplay('custom-border-width'); sendLivePreview()">
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Высота полоски: <span class="range-value" id="custom-bar-height-value">50px</span>
+                                </label>
+                                <input type="range" id="custom-bar-height" class="form-input" min="20" max="100" value="50" oninput="updateRangeDisplay('custom-bar-height'); sendLivePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Скругление углов: <span class="range-value" id="custom-bar-radius-value">25px</span>
+                                </label>
+                                <input type="range" id="custom-bar-radius" class="form-input" min="0" max="50" value="25" oninput="updateRangeDisplay('custom-bar-radius'); sendLivePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Скорость анимации: <span class="range-value" id="custom-anim-speed-value">1x</span>
+                                </label>
+                                <input type="range" id="custom-anim-speed" class="form-input" min="0.4" max="2.5" step="0.1" value="1" oninput="updateRangeDisplay('custom-anim-speed'); sendLivePreview()">
+                            </div>
+                        </div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Внешнее свечение</label>
+                                <select id="custom-outer-glow" class="form-select" onchange="sendLivePreview()">
+                                    <option value="none">Нет</option>
+                                    <option value="soft">Слабое</option>
+                                    <option value="medium">Среднее</option>
+                                    <option value="strong">Сильное</option>
+                                    <option value="pulse">Пульсация</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Внутреннее свечение</label>
+                                <select id="custom-inner-glow" class="form-select" onchange="sendLivePreview()">
+                                    <option value="none">Нет</option>
+                                    <option value="soft">Слабое</option>
+                                    <option value="medium">Среднее</option>
+                                    <option value="strong">Сильное</option>
+                                    <option value="pulse">Пульсация</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Свечение заливки</label>
+                                <select id="custom-fill-glow" class="form-select" onchange="sendLivePreview()">
+                                    <option value="none">Нет</option>
+                                    <option value="soft">Слабое</option>
+                                    <option value="medium">Среднее</option>
+                                    <option value="strong">Сильное</option>
+                                    <option value="pulse">Пульсация</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -1618,65 +966,81 @@
                     <div class="section">
                         <h2 class="section-title">
                             <span>👁️</span>
-                            Отображение элементов
+                            Видимость и текст
                         </h2>
                         <div class="form-grid">
                             <div class="form-group checkbox-group">
-                                <input type="checkbox" id="custom-show-title" checked onchange="updatePreview()">
-                                <label for="custom-show-title">Показать название сбора</label>
+                                <input type="checkbox" id="vis-show-title" checked onchange="sendLivePreview()">
+                                <label for="vis-show-title">Показать название сбора</label>
                             </div>
                             <div class="form-group checkbox-group">
-                                <input type="checkbox" id="show-progress-numbers" checked onchange="updatePreview()">
-                                <label for="show-progress-numbers">Показать числа прогресса (0 ₽ и целевая сумма)</label>
+                                <input type="checkbox" id="vis-show-current" checked onchange="sendLivePreview()">
+                                <label for="vis-show-current">Сумма под полоской</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="vis-show-current-inside" checked onchange="sendLivePreview()">
+                                <label for="vis-show-current-inside">Сумма внутри полоски</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="vis-show-target" checked onchange="sendLivePreview()">
+                                <label for="vis-show-target">Показать цель</label>
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="vis-show-percentage" checked onchange="sendLivePreview()">
+                                <label for="vis-show-percentage">Показать процент</label>
                             </div>
                         </div>
-                        
-                        <div class="form-grid" style="margin-top: 20px;">
+                        <div class="form-grid">
                             <div class="form-group">
-                                <label class="form-label">Данные внутри полоски</label>
-                                <select id="amount-format" class="form-select" onchange="updateAmountFormat()">
-                                    <option value="current" selected>Сколько собрано (₽)</option>
-                                    <option value="percentage">Процент сбора (%)</option>
-                                    <option value="both">Собрано / Нужно</option>
+                                <label class="form-label">Режим отображения текста</label>
+                                <select id="vis-text-mode" class="form-select" onchange="sendLivePreview()">
+                                    <option value="default">Обычный</option>
+                                    <option value="centered-scale">По центру (крупный масштаб)</option>
                                 </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Ширина полоски: <span class="range-value" id="vis-bar-width-value">100%</span>
+                                </label>
+                                <input type="range" id="vis-bar-width" class="form-input" min="55" max="100" value="100" oninput="document.getElementById('vis-bar-width-value').textContent = this.value + '%'; sendLivePreview()">
                             </div>
                         </div>
                     </div>
 
                     <div class="section">
                         <h2 class="section-title">
-                            <span>🎯</span>
-                            Быстрые пресеты
+                            <span>🖼️</span>
+                            Фон (картинка или видео)
                         </h2>
-                        <p class="section-subtitle">Примените готовые наборы настроек одной кнопкой</p>
-                        
-                        <div class="btn-group">
-                            <button class="btn btn-secondary" onclick="applyPreset('minimal')" style="flex: 1;">
-                                ⚪ Минимализм
-                            </button>
-                            <button class="btn btn-secondary" onclick="applyPreset('neon')" style="flex: 1;">
-                                💜 Неон
-                            </button>
-                            <button class="btn btn-secondary" onclick="applyPreset('fire')" style="flex: 1;">
-                                🔥 Огонь
-                            </button>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="media-enabled" onchange="sendLivePreview()">
+                            <label for="media-enabled">Показывать фон за полоской</label>
                         </div>
-                        <div class="btn-group" style="margin-top: 10px;">
-                            <button class="btn btn-secondary" onclick="applyPreset('cyber')" style="flex: 1;">
-                                🤖 Киберпанк
-                            </button>
-                            <button class="btn btn-secondary" onclick="applyPreset('space')" style="flex: 1;">
-                                🌌 Космос
-                            </button>
-                            <button class="btn btn-secondary" onclick="applyPreset('retro')" style="flex: 1;">
-                                👾 Ретро
-                            </button>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Тип фона</label>
+                                <select id="media-type" class="form-select" onchange="sendLivePreview()">
+                                    <option value="none">Нет</option>
+                                    <option value="image">Картинка</option>
+                                    <option value="video">Видео</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">URL картинки/видео</label>
+                                <input type="text" id="media-url" class="form-input" placeholder="https://example.com/background.png" oninput="sendLivePreview()">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">
+                                    Затемнение фона: <span class="range-value" id="media-opacity-value">20%</span>
+                                </label>
+                                <input type="range" id="media-opacity" class="form-input" min="0" max="100" step="5" value="20" oninput="updateRangeDisplay('media-opacity'); sendLivePreview()">
+                            </div>
                         </div>
                     </div>
 
                     <div class="btn-group" style="margin-top: 20px;">
                         <button class="btn btn-primary" onclick="saveCustomSettings()">
-                            💾 Сохранить все настройки
+                            💾 Сохранить оформление
                         </button>
                         <button class="btn btn-secondary" onclick="resetCustomSettings()">
                             🔄 Сбросить к стандарту
@@ -1689,44 +1053,15 @@
                     <div class="section">
                         <h2 class="section-title">
                             <span>🔗</span>
-                            Ссылки для OBS Browser Source
+                            Ссылка для OBS Browser Source
                         </h2>
 
                         <div class="url-block">
-                            <label class="url-label">Основной виджет сбора (с панелью управления)</label>
+                            <label class="url-label">Полоска сбора донатов</label>
                             <div class="url-input-group">
-                                <input type="text" class="url-input" id="url-main" readonly>
-                                <button class="copy-btn" onclick="copyUrl('url-main')">Копировать</button>
+                                <input type="text" class="url-input" id="url-obs" readonly>
+                                <button class="copy-btn" onclick="copyUrl('url-obs')">Копировать</button>
                             </div>
-                        </div>
-
-                        <div class="url-block">
-                            <label class="url-label">Простой виджет для OBS</label>
-                            <div class="url-input-group">
-                                <input type="text" class="url-input" id="url-simple" readonly>
-                                <button class="copy-btn" onclick="copyUrl('url-simple')">Копировать</button>
-                            </div>
-                        </div>
-
-                        <div class="url-block">
-                            <label class="url-label">🎨 Кастомная полоска (с текущими настройками и новыми формами)</label>
-                            <div class="url-input-group">
-                                <input type="text" class="url-input" id="url-custom" readonly>
-                                <button class="copy-btn" onclick="copyUrl('url-custom')">Копировать</button>
-                            </div>
-                            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 5px; padding: 10px; background: rgba(102, 126, 234, 0.1); border-radius: 5px;">
-                                💡 Используйте эту ссылку для OBS! Все параметры конструктора применяются.
-                            </p>
-                        </div>
-
-                        <div class="info-box" style="background: rgba(255, 200, 0, 0.1); border-color: rgba(255, 200, 0, 0.3);">
-                            <div class="info-box-title" style="color: #ffc800;">⭐ Новые возможности:</div>
-                            <ul>
-                                <li>9 геометрических форм (шестиугольник, ромб, звезда, сердце, волна и др.)</li>
-                                <li>8 уникальных тем (киберпанк, ретро, космос, огонь и др.)</li>
-                                <li>Поддержка кастомных изображений PNG/SVG/GIF</li>
-                                <li>Каждая тема имеет уникальный визуальный стиль</li>
-                            </ul>
                         </div>
 
                         <div class="info-box">
@@ -1741,18 +1076,17 @@
                         </div>
 
                         <div class="info-box">
-                            <div class="info-box-title">📐 Рекомендуемые размеры для OBS:</div>
+                            <div class="info-box-title">📐 Размер источника в OBS:</div>
                             <ul>
-                                <li>Горизонтальная: 800x150px</li>
-                                <li>Вертикальная: 150x600px</li>
-                                <li>Круговая: 350x400px</li>
-                                <li>Шестиугольник: 350x300px</li>
-                                <li>Ромб: 350x350px</li>
-                                <li>Звезда: 350x350px</li>
-                                <li>Сердце: 350x300px</li>
-                                <li>Волна: 800x200px</li>
-                                <li>Кастомное изображение: зависит от размера</li>
-                                <li>Основной виджет: 1200x800px</li>
+                                <li>Полоска адаптивная — старт: 800×150px, можно менять свободно</li>
+                                <li>Оформление настраивается на вкладке «Оформление полоски» и применяется сразу после сохранения — пересоздавать источник в OBS не нужно</li>
+                            </ul>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="info-box-title">🔍 Чёткость текста в OBS:</div>
+                            <ul>
+                                <li>Добавьте <code>?scale=2</code> в конец ссылки (до <code>scale=3</code>) — размер источника в OBS менять не нужно, полоска сама отрисуется плотнее и выглядит чётче на стриме</li>
                             </ul>
                         </div>
                     </div>
@@ -1767,6 +1101,30 @@
                         </h2>
                         <div class="donations-list" id="donations-list">
                             <div class="no-donations">Пока нет донатов</div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2 class="section-title">
+                            <span>↩️</span>
+                            Снимки настроек
+                        </h2>
+                        <p class="section-subtitle">Сбор автоматически сохраняет снимок при каждом сохранении настроек, обнулении или импорте — можно откатиться к любому из них.</p>
+                        <div class="snapshots-list" id="snapshots-list">
+                            <div class="no-donations">Пока нет снимков</div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <h2 class="section-title">
+                            <span>💾</span>
+                            Резервная копия
+                        </h2>
+                        <p class="section-subtitle">Скачайте настройки сбора и полоски в файл или загрузите ранее сохранённый файл обратно.</p>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="exportSettings()">📥 Скачать резервную копию</button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📤 Загрузить резервную копию</button>
+                            <input type="file" id="import-file" accept=".json,application/json" style="display: none;" onchange="importSettingsFile(event)">
                         </div>
                     </div>
                 </div>
@@ -1786,233 +1144,41 @@
             currentAmount: 0,
             totalDonations: 0,
             avgDonation: 0,
-            endDate: null
+            endDate: null,
+            settings: null
         };
 
-        const themes = [
-            // Базовые темы с разными формами
-            {
-                id: 'classic',
-                name: 'Классический',
-                icon: '🎯',
-                description: 'Универсальная горизонтальная полоска',
-                color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                tags: ['Горизонтальная', 'Классика'],
-                params: 'shape=horizontal&theme=default&showPercentage=true'
-            },
-            {
-                id: 'hexagon-cyber',
-                name: 'Шестиугольник Киберпанк',
-                icon: '🔷',
-                description: 'Футуристический шестиугольник с неоновым свечением',
-                color: 'linear-gradient(135deg, #00ffff 0%, #ff00ff 100%)',
-                tags: ['Шестиугольник', 'Киберпанк', 'Неон'],
-                params: 'shape=hexagon&theme=cyberpunk&showPercentage=true'
-            },
-            {
-                id: 'diamond-crystal',
-                name: 'Ромб Кристалл',
-                icon: '💎',
-                description: 'Прозрачный кристальный ромб с сиянием',
-                color: 'linear-gradient(135deg, #c8c8ff 0%, #ffffff 100%)',
-                tags: ['Ромб', 'Кристалл', 'Прозрачный'],
-                params: 'shape=diamond&theme=crystal&showPercentage=true'
-            },
-            {
-                id: 'star-fire',
-                name: 'Звезда Огонь',
-                icon: '⭐',
-                description: 'Пылающая звезда с анимацией огня',
-                color: 'linear-gradient(135deg, #ff0000 0%, #ffff00 100%)',
-                tags: ['Звезда', 'Огонь', 'Анимация'],
-                params: 'shape=star&theme=fire&showPercentage=true'
-            },
-            {
-                id: 'star-space',
-                name: 'Звезда Космос',
-                icon: '🌌',
-                description: 'Космическая звезда с пульсацией',
-                color: 'linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%)',
-                tags: ['Звезда', 'Космос', 'Пульсация'],
-                params: 'shape=star&theme=space&showPercentage=true'
-            },
-            {
-                id: 'heart-love',
-                name: 'Сердце Любовь',
-                icon: '❤️',
-                description: 'Романтичное красное сердце',
-                color: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)',
-                tags: ['Сердце', 'Любовь', 'Красный'],
-                params: 'shape=heart&theme=default&showPercentage=true'
-            },
-            {
-                id: 'wave-ocean',
-                name: 'Волна Океан',
-                icon: '🌊',
-                description: 'Анимированная океанская волна',
-                color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                tags: ['Волна', 'Океан', 'Анимация'],
-                params: 'shape=wave&theme=default&showPercentage=true'
-            },
-            {
-                id: 'hexagon-matrix',
-                name: 'Шестиугольник Матрица',
-                icon: '🟩',
-                description: 'Зеленый код Матрицы',
-                color: 'linear-gradient(135deg, #00ff00 0%, #008800 100%)',
-                tags: ['Шестиугольник', 'Матрица', 'Зеленый'],
-                params: 'shape=hexagon&theme=matrix&showPercentage=true'
-            },
-            {
-                id: 'diamond-neon',
-                name: 'Ромб Неон',
-                icon: '💠',
-                description: 'Яркий неоновый ромб',
-                color: 'linear-gradient(135deg, #ff00ff 0%, #00ffff 100%)',
-                tags: ['Ромб', 'Неон', 'Яркий'],
-                params: 'shape=diamond&theme=neon-city&showPercentage=true'
-            },
-            {
-                id: 'star-gold',
-                name: 'Звезда Золото',
-                icon: '🌟',
-                description: 'Роскошная золотая звезда',
-                color: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                tags: ['Звезда', 'Золото', 'VIP'],
-                params: 'shape=star&theme=default&showPercentage=true'
-            },
-            {
-                id: 'circular-classic',
-                name: 'Круг Классика',
-                icon: '⭕',
-                description: 'Классическая круговая диаграмма',
-                color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                tags: ['Круг', 'Диаграмма', 'Классика'],
-                params: 'shape=circular&theme=default&showPercentage=true'
-            },
-            {
-                id: 'hexagon-retro',
-                name: 'Шестиугольник Ретро',
-                icon: '👾',
-                description: '8-битный пиксельный стиль',
-                color: 'linear-gradient(135deg, #00ff00 0%, #008800 100%)',
-                tags: ['Шестиугольник', 'Ретро', '8-бит'],
-                params: 'shape=hexagon&theme=retro&showPercentage=true'
-            }
-        ];
+        // Рабочая копия настроек оформления полоски (карточка пресета + свой дизайн).
+        // Заполняется реальными данными с сервера в applySettingsToForm() при загрузке.
+        let currentSettings = {
+            preset: 'classic',
+            customDesign: null,
+            showTitle: true,
+            showCurrent: true,
+            showCurrentInsideBar: true,
+            showTarget: true,
+            showPercentage: true,
+            textDisplayMode: 'default',
+            barWidthPercent: 100,
+            media: { enabled: false, type: 'none', url: '', overlayOpacity: 0.2, fit: 'cover' }
+        };
 
-        let selectedTheme = null;
+        const SNAPSHOT_ACTION_LABELS = {
+            'save-settings': 'Сохранение настроек',
+            'reset': 'Обнуление сбора',
+            'import': 'Импорт настроек',
+            'manual-donation': 'Ручной донат',
+            'manual': 'Ручное действие'
+        };
 
         // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
             loadMenu();
             loadGoalData();
-            loadCustomSettings(); // Загружаем сохраненные настройки
             updateURLs();
-            updatePreview();
-            toggleCustomImageSection(); // Инициализируем видимость секции изображений
-            toggleParticlesSettings(); // Инициализируем видимость настроек частиц
             loadDonationsHistory();
+            loadSnapshots();
         });
-
-        // Загрузка сохраненных настроек
-        function loadCustomSettings() {
-            const saved = localStorage.getItem('donationBarCustomSettings');
-            if (!saved) return;
-            
-            try {
-                const settings = JSON.parse(saved);
-                
-                // Форма
-                if (settings.shape) document.getElementById('custom-shape').value = settings.shape;
-                
-                // Цвета заполнения
-                if (settings.gradientColor1) document.getElementById('gradient-color-1').value = settings.gradientColor1;
-                if (settings.gradientColor2) document.getElementById('gradient-color-2').value = settings.gradientColor2;
-                if (settings.gradientColor3) document.getElementById('gradient-color-3').value = settings.gradientColor3;
-                
-                // Цвета фона
-                if (settings.bgColor1) document.getElementById('bg-color-1').value = settings.bgColor1;
-                if (settings.bgColor2) document.getElementById('bg-color-2').value = settings.bgColor2;
-                if (settings.bgOpacity) {
-                    document.getElementById('bg-opacity').value = settings.bgOpacity;
-                    updateRangeDisplay('bg-opacity');
-                }
-                
-                // Граница и свечение
-                if (settings.borderColor) document.getElementById('border-color').value = settings.borderColor;
-                if (settings.glowColor) document.getElementById('glow-color').value = settings.glowColor;
-                if (settings.glowIntensity) {
-                    document.getElementById('glow-intensity').value = settings.glowIntensity;
-                    updateRangeDisplay('glow-intensity');
-                }
-                
-                // Геометрия
-                if (settings.barHeight) {
-                    document.getElementById('bar-height').value = settings.barHeight;
-                    updateRangeDisplay('bar-height');
-                }
-                if (settings.borderRadius) {
-                    document.getElementById('border-radius').value = settings.borderRadius;
-                    updateRangeDisplay('border-radius');
-                }
-                
-                // Анимация и эффекты
-                if (settings.fillAnimation) document.getElementById('fill-animation').value = settings.fillAnimation;
-                if (settings.animSpeed) {
-                    document.getElementById('anim-speed').value = settings.animSpeed;
-                    updateRangeDisplay('anim-speed');
-                }
-                if (typeof settings.effectGlow !== 'undefined') document.getElementById('effect-glow').checked = settings.effectGlow;
-                if (typeof settings.effectShimmer !== 'undefined') document.getElementById('effect-shimmer').checked = settings.effectShimmer;
-                if (typeof settings.effectGradientMove !== 'undefined') document.getElementById('effect-gradient-move').checked = settings.effectGradientMove;
-                if (typeof settings.effectBackgroundPulse !== 'undefined') document.getElementById('effect-background-pulse').checked = settings.effectBackgroundPulse;
-                if (typeof settings.effectOuterGlow !== 'undefined') document.getElementById('effect-outer-glow').checked = settings.effectOuterGlow;
-                if (typeof settings.effectFillGlow !== 'undefined') document.getElementById('effect-fill-glow').checked = settings.effectFillGlow;
-                
-                // Частицы
-                if (typeof settings.showParticles !== 'undefined') document.getElementById('custom-show-particles').checked = settings.showParticles;
-                if (settings.particlesCount) {
-                    document.getElementById('particles-count').value = settings.particlesCount;
-                    updateRangeDisplay('particles-count');
-                }
-                if (settings.particlesSize) {
-                    document.getElementById('particles-size').value = settings.particlesSize;
-                    updateRangeDisplay('particles-size');
-                }
-                if (settings.particlesSpeed) {
-                    document.getElementById('particles-speed').value = settings.particlesSpeed;
-                    updateRangeDisplay('particles-speed');
-                }
-                if (settings.particlesColor) document.getElementById('particles-color').value = settings.particlesColor;
-                if (settings.particlesOpacity) {
-                    document.getElementById('particles-opacity').value = settings.particlesOpacity;
-                    updateRangeDisplay('particles-opacity');
-                }
-                
-                // Шрифт и текст
-                if (settings.font) document.getElementById('custom-font').value = settings.font;
-                if (settings.fontSize) {
-                    document.getElementById('font-size').value = settings.fontSize;
-                    updateRangeDisplay('font-size');
-                }
-                if (settings.textColor) document.getElementById('text-color').value = settings.textColor;
-                
-                // Видимость
-                if (typeof settings.showTitle !== 'undefined') document.getElementById('custom-show-title').checked = settings.showTitle;
-                if (typeof settings.showProgressNumbers !== 'undefined') document.getElementById('show-progress-numbers').checked = settings.showProgressNumbers;
-                if (settings.amountFormat) document.getElementById('amount-format').value = settings.amountFormat;
-                
-                // Кастомное изображение
-                if (settings.customImageUrl) document.getElementById('custom-image-url').value = settings.customImageUrl;
-                
-                console.log('Настройки загружены из localStorage');
-                updateURLs(); // Обновляем ссылки при загрузке настроек
-                updatePreview(); // Обновляем превью с загруженными настройками
-            } catch (error) {
-                console.error('Ошибка загрузки настроек:', error);
-            }
-        }
 
         // Загрузка меню
         async function loadMenu() {
@@ -2029,25 +1195,26 @@
         }
 
         // Переключение вкладок
-        function switchTab(tabName) {
-            // Убираем активный класс со всех вкладок
+        function switchTab(tabName, clickEvent) {
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
 
-            // Добавляем активный класс к выбранной вкладке
-            event.target.closest('.tab-button').classList.add('active');
+            const btn = clickEvent ? clickEvent.currentTarget : document.querySelector(`[onclick*="'${tabName}'"]`);
+            if (btn) btn.classList.add('active');
             document.getElementById('tab-' + tabName).classList.add('active');
         }
 
-        // Загрузка данных сбора
-        async function loadGoalData() {
+        // Загрузка данных сбора (цель + оформление полоски приходят одним запросом).
+        // applySettings=false используется фоновым поллингом — иначе он затирал бы
+        // несохранённые правки на вкладке "Оформление полоски" каждые 10 секунд.
+        async function loadGoalData(applySettings = true) {
             try {
                 const response = await fetch('/api/donation-goal');
                 if (response.ok) {
                     const data = await response.json();
                     donationGoal = { ...donationGoal, ...data };
                     updateGoalDisplay();
-                    updateWidgetDisplay(); // Обновляем также встроенный виджет
+                    if (applySettings) applySettingsToForm(donationGoal.settings);
                 }
             } catch (error) {
                 console.error('Ошибка загрузки данных:', error);
@@ -2061,7 +1228,7 @@
             document.getElementById('goal-target').value = donationGoal.targetAmount;
             document.getElementById('goal-current').value = donationGoal.currentAmount;
 
-            const percentage = donationGoal.targetAmount > 0 ? 
+            const percentage = donationGoal.targetAmount > 0 ?
                 Math.round((donationGoal.currentAmount / donationGoal.targetAmount) * 100) : 0;
 
             document.getElementById('stat-current').textContent = formatCurrency(donationGoal.currentAmount);
@@ -2100,9 +1267,7 @@
                     donationGoal = data;
                     updateGoalDisplay();
                     showNotification('Настройки сохранены', 'success');
-                    
-                    // Обновляем все виджеты
-                    updateAllWidgets();
+                    loadSnapshots();
                 } else {
                     throw new Error('Ошибка сервера');
                 }
@@ -2112,20 +1277,9 @@
             }
         }
 
-        // Обновление всех виджетов после изменений
-        function updateAllWidgets() {
-            // Обновляем превью кастомной полоски
-            updatePreview();
-            
-            // Обновляем встроенный виджет
-            updateWidgetDisplay();
-            
-            console.log('Все виджеты обновлены');
-        }
-
         // Обнуление сбора
         async function resetGoal() {
-            if (!confirm('Вы уверены, что хотите обнулить сбор? Это действие нельзя отменить.')) {
+            if (!confirm('Вы уверены, что хотите обнулить сбор? Отменить можно во вкладке «История» → «Снимки настроек».')) {
                 return;
             }
 
@@ -2140,9 +1294,7 @@
                     updateGoalDisplay();
                     showNotification('Сбор обнулен', 'success');
                     loadDonationsHistory();
-                    
-                    // Обновляем все виджеты
-                    updateAllWidgets();
+                    loadSnapshots();
                 } else {
                     throw new Error('Ошибка сервера');
                 }
@@ -2177,9 +1329,7 @@
                     document.getElementById('manual-username').value = '';
                     showNotification(`Добавлен донат на ${formatCurrency(amount)}`, 'success');
                     loadDonationsHistory();
-                    
-                    // Обновляем все виджеты
-                    updateAllWidgets();
+                    loadSnapshots();
                 } else {
                     throw new Error('Ошибка сервера');
                 }
@@ -2189,17 +1339,15 @@
             }
         }
 
-
-        // Универсальное обновление значений range
+        // Универсальное обновление значений range (id => суффикс по смыслу поля)
         function updateRangeDisplay(id) {
             const input = document.getElementById(id);
             const display = document.getElementById(id + '-value');
-            
+
             if (!input || !display) return;
-            
+
             const value = input.value;
-            
-            // Определяем суффикс в зависимости от типа
+
             if (id.includes('speed')) {
                 display.textContent = value + 'x';
             } else if (id.includes('opacity') || id.includes('intensity') || id.includes('font-size')) {
@@ -2211,558 +1359,175 @@
             }
         }
 
-        // Обновление превью с debounce
-        let previewTimeout;
-        // Функция для обновления формата суммы внутри полоски
-        function updateAmountFormat() {
-            // Сразу обновляем localStorage
-            const customSettings = {
-                // Видимость
-                showTitle: document.getElementById('custom-show-title')?.checked,
-                showProgressNumbers: document.getElementById('show-progress-numbers')?.checked,
-                amountFormat: document.getElementById('amount-format')?.value,
-                // Кастомное изображение
-                customImageUrl: document.getElementById('custom-image-url')?.value,
-                // Форма
-                shape: document.getElementById('custom-shape')?.value,
-                fillAnimation: document.getElementById('fill-animation')?.value,
-                // Цвета (упрощенные значения для быстрого сохранения)
-                barHeight: document.getElementById('bar-height')?.value || 35,
-                borderRadius: document.getElementById('border-radius')?.value || 30,
-                gradientColor1: document.getElementById('gradient-color-1')?.value || '#667eea',
-                gradientColor2: document.getElementById('gradient-color-2')?.value || '#764ba2',
-                gradientColor3: document.getElementById('gradient-color-3')?.value || '#764ba2',
-                bgColor1: document.getElementById('bg-color-1')?.value || '#000000',
-                bgColor2: document.getElementById('bg-color-2')?.value || '#1a1a2e',
-                bgOpacity: document.getElementById('bg-opacity')?.value || 100,
-                borderColor: document.getElementById('border-color')?.value || '#4a5568',
-                glowColor: document.getElementById('glow-color')?.value || '#667eea',
-                glowIntensity: document.getElementById('glow-intensity')?.value || 100,
-                animSpeed: document.getElementById('anim-speed')?.value || 100,
-                effectGlow: document.getElementById('effect-glow')?.checked,
-                effectShimmer: document.getElementById('effect-shimmer')?.checked,
-                effectGradientMove: document.getElementById('effect-gradient-move')?.checked,
-                effectBackgroundPulse: document.getElementById('effect-background-pulse')?.checked,
-                effectOuterGlow: document.getElementById('effect-outer-glow')?.checked,
-                effectFillGlow: document.getElementById('effect-fill-glow')?.checked,
-                particles: document.getElementById('custom-show-particles')?.checked,
-                particlesCount: document.getElementById('particles-count')?.value || 50,
-                particlesSize: document.getElementById('particles-size')?.value || 100,
-                particlesSpeed: document.getElementById('particles-speed')?.value || 100,
-                particlesColor: document.getElementById('particles-color')?.value || '#ffffff',
-                particlesOpacity: document.getElementById('particles-opacity')?.value || 100,
-                font: document.getElementById('custom-font')?.value,
-                fontSize: document.getElementById('font-size')?.value,
-                textColor: document.getElementById('text-color')?.value
-            };
-            
-            localStorage.setItem('donationBarCustomSettings', JSON.stringify(customSettings));
-            updatePreview();
+        // Выбор пресета оформления (или режима "свой дизайн")
+        function selectPreset(name) {
+            currentSettings.preset = name;
+            document.querySelectorAll('.preset-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.preset === name);
+            });
+            document.getElementById('custom-design-section').style.display = name === 'custom' ? 'block' : 'none';
         }
 
-        function updatePreview() {
-            clearTimeout(previewTimeout);
-            previewTimeout = setTimeout(() => {
-                const params = buildCustomParams();
-                const baseUrl = window.location.origin;
-                const previewUrl = `${baseUrl}/donation-bar-enhanced.html?${params}`;
+        // Считывает поля "своего дизайна" в объект customDesign
+        function readCustomDesignForm() {
+            return {
+                fillType: document.getElementById('custom-fill-type').value,
+                color1: document.getElementById('custom-color-1').value,
+                color2: document.getElementById('custom-color-2').value,
+                barHeight: Number(document.getElementById('custom-bar-height').value),
+                barRadius: Number(document.getElementById('custom-bar-radius').value),
+                borderWidth: Number(document.getElementById('custom-border-width').value),
+                borderColor: document.getElementById('custom-border-color').value,
+                trackColor: document.getElementById('custom-track-color').value,
+                textColor: document.getElementById('custom-text-color').value,
+                animationSpeed: Number(document.getElementById('custom-anim-speed').value),
+                barShape: document.getElementById('custom-bar-shape').value,
+                fillTexture: document.getElementById('custom-fill-texture').value,
+                outerGlowEffect: document.getElementById('custom-outer-glow').value,
+                innerGlowEffect: document.getElementById('custom-inner-glow').value,
+                fillGlowEffect: document.getElementById('custom-fill-glow').value
+            };
+        }
+
+        // Заполняет всю вкладку "Оформление полоски" реальными настройками с сервера
+        function applySettingsToForm(settings) {
+            currentSettings = settings ? { ...currentSettings, ...settings } : currentSettings;
+            const preset = currentSettings.preset || 'classic';
+            selectPreset(preset);
+
+            const cd = currentSettings.customDesign || {};
+            document.getElementById('custom-fill-type').value = cd.fillType || 'gradient';
+            document.getElementById('custom-color-1').value = cd.color1 || '#667eea';
+            document.getElementById('custom-color-2').value = cd.color2 || '#764ba2';
+            document.getElementById('custom-bar-height').value = cd.barHeight || 50;
+            updateRangeDisplay('custom-bar-height');
+            document.getElementById('custom-bar-radius').value = cd.barRadius || 25;
+            updateRangeDisplay('custom-bar-radius');
+            document.getElementById('custom-border-width').value = cd.borderWidth != null ? cd.borderWidth : 2;
+            updateRangeDisplay('custom-border-width');
+            document.getElementById('custom-border-color').value = cd.borderColor || '#b7cdff';
+            document.getElementById('custom-track-color').value = cd.trackColor || '#0b1328';
+            document.getElementById('custom-text-color').value = cd.textColor || '#eaf2ff';
+            document.getElementById('custom-anim-speed').value = cd.animationSpeed || 1;
+            updateRangeDisplay('custom-anim-speed');
+            document.getElementById('custom-bar-shape').value = cd.barShape || 'capsule';
+            document.getElementById('custom-fill-texture').value = cd.fillTexture || 'glass';
+            document.getElementById('custom-outer-glow').value = cd.outerGlowEffect || 'medium';
+            document.getElementById('custom-inner-glow').value = cd.innerGlowEffect || 'soft';
+            document.getElementById('custom-fill-glow').value = cd.fillGlowEffect || 'medium';
+
+            document.getElementById('vis-show-title').checked = currentSettings.showTitle !== false;
+            document.getElementById('vis-show-current').checked = currentSettings.showCurrent !== false;
+            document.getElementById('vis-show-current-inside').checked = currentSettings.showCurrentInsideBar !== false;
+            document.getElementById('vis-show-target').checked = currentSettings.showTarget !== false;
+            document.getElementById('vis-show-percentage').checked = currentSettings.showPercentage !== false;
+            document.getElementById('vis-text-mode').value = currentSettings.textDisplayMode || 'default';
+            document.getElementById('vis-bar-width').value = currentSettings.barWidthPercent || 100;
+            document.getElementById('vis-bar-width-value').textContent = (currentSettings.barWidthPercent || 100) + '%';
+
+            const media = currentSettings.media || {};
+            document.getElementById('media-enabled').checked = Boolean(media.enabled);
+            document.getElementById('media-type').value = media.type || 'none';
+            document.getElementById('media-url').value = media.url || '';
+            const opacityPercent = Math.round((typeof media.overlayOpacity === 'number' ? media.overlayOpacity : 0.2) * 100);
+            document.getElementById('media-opacity').value = opacityPercent;
+            updateRangeDisplay('media-opacity');
+        }
+
+        // Собирает settings из формы для сохранения (сохраняет "проходные" поля вроде
+        // typography/animations/obsProfiles из currentSettings нетронутыми)
+        function buildSettingsFromForm() {
+            const preset = currentSettings.preset || 'classic';
+            return {
+                ...currentSettings,
+                preset,
+                customDesign: preset === 'custom' ? readCustomDesignForm() : null,
+                showTitle: document.getElementById('vis-show-title').checked,
+                showCurrent: document.getElementById('vis-show-current').checked,
+                showCurrentInsideBar: document.getElementById('vis-show-current-inside').checked,
+                showTarget: document.getElementById('vis-show-target').checked,
+                showPercentage: document.getElementById('vis-show-percentage').checked,
+                textDisplayMode: document.getElementById('vis-text-mode').value,
+                barWidthPercent: Number(document.getElementById('vis-bar-width').value),
+                media: {
+                    enabled: document.getElementById('media-enabled').checked,
+                    type: document.getElementById('media-type').value,
+                    url: document.getElementById('media-url').value,
+                    overlayOpacity: Number(document.getElementById('media-opacity').value) / 100,
+                    fit: (currentSettings.media && currentSettings.media.fit) || 'cover'
+                }
+            };
+        }
+
+        // Живой предпросмотр без сохранения: шлёт текущий черновик формы во встроенный iframe
+        // через postMessage — виджет временно подменяет им свои настройки (см.
+        // LIVE_PREVIEW_SETTINGS в public/widget/donation-goal.html), ничего не сохраняя на сервере.
+        let livePreviewTimeout;
+        function sendLivePreview() {
+            clearTimeout(livePreviewTimeout);
+            livePreviewTimeout = setTimeout(() => {
                 const iframe = document.getElementById('preview-iframe');
-                
-                // Показываем/скрываем секцию кастомного изображения
-                toggleCustomImageSection();
-                
-                // Обновляем ссылки везде
-                updateURLs();
-                
-                if (iframe) {
-                    iframe.src = previewUrl;
-                    console.log('🎨 Обновление превью:', previewUrl);
-                    console.log('📊 Параметры:', params);
+                if (!iframe || !iframe.contentWindow) return;
+                iframe.contentWindow.postMessage(
+                    { type: 'LIVE_PREVIEW_SETTINGS', settings: buildSettingsFromForm() },
+                    window.location.origin
+                );
+            }, 60);
+        }
+
+        // Сохранение оформления полоски — пишет settings прямо в /api/donation-goal,
+        // сервер сам разошлёт обновление подключённым виджетам (OBS + превью) по WebSocket
+        async function saveCustomSettings() {
+            const settings = buildSettingsFromForm();
+            try {
+                const response = await fetch('/api/donation-goal', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...donationGoal, settings })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    donationGoal = data;
+                    applySettingsToForm(data.settings);
+                    showNotification('Оформление полоски сохранено и применено', 'success');
+                    loadSnapshots();
+                } else {
+                    throw new Error('Ошибка сервера');
                 }
-            }, 50); // Задержка 50ms для плавности при перетаскивании
-        }
-
-        // Построение параметров из настроек
-        function buildCustomParams() {
-            const params = new URLSearchParams();
-            
-            // Форма
-            const shapeEl = document.getElementById('custom-shape');
-            if (shapeEl) params.set('shape', shapeEl.value);
-            
-            // Тип анимации заполнения
-            const fillAnimEl = document.getElementById('fill-animation');
-            if (fillAnimEl) params.set('fillAnimation', fillAnimEl.value);
-            
-            // Геометрия
-            const barHeight = document.getElementById('bar-height');
-            const borderRadius = document.getElementById('border-radius');
-            if (barHeight) params.set('barHeight', barHeight.value);
-            if (borderRadius) params.set('borderRadius', borderRadius.value);
-            
-            // Цвета фона
-            const bgColor1 = document.getElementById('bg-color-1');
-            const bgColor2 = document.getElementById('bg-color-2');
-            const bgOpacity = document.getElementById('bg-opacity');
-            if (bgColor1) params.set('bgColor1', bgColor1.value.replace('#', ''));
-            if (bgColor2) params.set('bgColor2', bgColor2.value.replace('#', ''));
-            if (bgOpacity) params.set('bgOpacity', bgOpacity.value);
-            
-            // Цвета заполнения
-            const gc1 = document.getElementById('gradient-color-1');
-            const gc2 = document.getElementById('gradient-color-2');
-            const gc3 = document.getElementById('gradient-color-3');
-            if (gc1) params.set('gradientColor1', gc1.value.replace('#', ''));
-            if (gc2) params.set('gradientColor2', gc2.value.replace('#', ''));
-            if (gc3) params.set('gradientColor3', gc3.value.replace('#', ''));
-            
-            // Граница и свечение
-            const borderColor = document.getElementById('border-color');
-            const glowColor = document.getElementById('glow-color');
-            const glowIntensity = document.getElementById('glow-intensity');
-            if (borderColor) params.set('borderColor', borderColor.value.replace('#', ''));
-            if (glowColor) params.set('glowColor', glowColor.value.replace('#', ''));
-            if (glowIntensity) params.set('glowIntensity', glowIntensity.value);
-            
-            // Анимации и эффекты
-            const animSpeed = document.getElementById('anim-speed');
-            if (animSpeed) params.set('animSpeed', animSpeed.value);
-            
-            const eg = document.getElementById('effect-glow');
-            const es = document.getElementById('effect-shimmer');
-            const egm = document.getElementById('effect-gradient-move');
-            const ebp = document.getElementById('effect-background-pulse');
-            const eog = document.getElementById('effect-outer-glow');
-            const efg = document.getElementById('effect-fill-glow');
-            
-            if (eg) params.set('effectGlow', eg.checked);
-            if (es) params.set('effectShimmer', es.checked);
-            if (egm) params.set('effectGradientMove', egm.checked);
-            if (ebp) params.set('effectBackgroundPulse', ebp.checked);
-            if (eog) params.set('effectOuterGlow', eog.checked);
-            if (efg) params.set('effectFillGlow', efg.checked);
-            
-            // Частицы
-            const particlesEl = document.getElementById('custom-show-particles');
-            const particlesCount = document.getElementById('particles-count');
-            const particlesSize = document.getElementById('particles-size');
-            const particlesSpeed = document.getElementById('particles-speed');
-            const particlesColor = document.getElementById('particles-color');
-            const particlesOpacity = document.getElementById('particles-opacity');
-            
-            if (particlesEl) params.set('particles', particlesEl.checked);
-            if (particlesCount) params.set('particlesCount', particlesCount.value);
-            if (particlesSize) params.set('particlesSize', particlesSize.value);
-            if (particlesSpeed) params.set('particlesSpeed', particlesSpeed.value);
-            if (particlesColor) params.set('particlesColor', particlesColor.value.replace('#', ''));
-            if (particlesOpacity) params.set('particlesOpacity', particlesOpacity.value);
-            
-            // Кастомное изображение
-            const customImageUrl = document.getElementById('custom-image-url');
-            if (customImageUrl && customImageUrl.value) {
-                params.set('customImage', encodeURIComponent(customImageUrl.value));
+            } catch (error) {
+                console.error('Ошибка сохранения оформления:', error);
+                showNotification('Ошибка сохранения оформления', 'error');
             }
-            
-            // Шрифт и текст
-            const font = document.getElementById('custom-font');
-            const fontSize = document.getElementById('font-size');
-            const textColor = document.getElementById('text-color');
-            
-            if (font) params.set('font', font.value);
-            if (fontSize) params.set('fontSize', fontSize.value);
-            if (textColor) params.set('textColor', textColor.value.replace('#', ''));
-            
-            // Видимость элементов
-            const stEl = document.getElementById('custom-show-title');
-            const spnEl = document.getElementById('show-progress-numbers');
-            const afEl = document.getElementById('amount-format');
-            
-            if (stEl) params.set('showTitle', stEl.checked);
-            if (spnEl) params.set('showProgressNumbers', spnEl.checked);
-            if (afEl) params.set('amountFormat', afEl.value);
-
-            return params.toString();
         }
 
-        // Сохранение кастомных настроек
-        function saveCustomSettings() {
-            const settings = {
-                // Форма
-                shape: document.getElementById('custom-shape')?.value,
-                
-                // Цвета заполнения
-                gradientColor1: document.getElementById('gradient-color-1')?.value,
-                gradientColor2: document.getElementById('gradient-color-2')?.value,
-                gradientColor3: document.getElementById('gradient-color-3')?.value,
-                
-                // Цвета фона
-                bgColor1: document.getElementById('bg-color-1')?.value,
-                bgColor2: document.getElementById('bg-color-2')?.value,
-                bgOpacity: document.getElementById('bg-opacity')?.value,
-                
-                // Граница и свечение
-                borderColor: document.getElementById('border-color')?.value,
-                glowColor: document.getElementById('glow-color')?.value,
-                glowIntensity: document.getElementById('glow-intensity')?.value,
-                
-                // Геометрия
-                barHeight: document.getElementById('bar-height')?.value,
-                borderRadius: document.getElementById('border-radius')?.value,
-                
-                // Анимация и эффекты
-                fillAnimation: document.getElementById('fill-animation')?.value,
-                animSpeed: document.getElementById('anim-speed')?.value,
-                effectGlow: document.getElementById('effect-glow')?.checked,
-                effectShimmer: document.getElementById('effect-shimmer')?.checked,
-                effectGradientMove: document.getElementById('effect-gradient-move')?.checked,
-                effectBackgroundPulse: document.getElementById('effect-background-pulse')?.checked,
-                effectOuterGlow: document.getElementById('effect-outer-glow')?.checked,
-                effectFillGlow: document.getElementById('effect-fill-glow')?.checked,
-                
-                // Частицы
-                showParticles: document.getElementById('custom-show-particles')?.checked,
-                particlesCount: document.getElementById('particles-count')?.value,
-                particlesSize: document.getElementById('particles-size')?.value,
-                particlesSpeed: document.getElementById('particles-speed')?.value,
-                particlesColor: document.getElementById('particles-color')?.value,
-                particlesOpacity: document.getElementById('particles-opacity')?.value,
-                
-                // Шрифт и текст
-                font: document.getElementById('custom-font')?.value,
-                fontSize: document.getElementById('font-size')?.value,
-                textColor: document.getElementById('text-color')?.value,
-                
-                // Видимость
-                showTitle: document.getElementById('custom-show-title')?.checked,
-                showProgressNumbers: document.getElementById('show-progress-numbers')?.checked,
-                amountFormat: document.getElementById('amount-format')?.value,
-                
-                // Кастомное изображение
-                customImageUrl: document.getElementById('custom-image-url')?.value
-            };
-
-            localStorage.setItem('donationBarCustomSettings', JSON.stringify(settings));
-            updateURLs();
-            updatePreview();
-            showNotification('Настройки полоски сохранены и применены', 'success');
-        }
-
-        // Сброс кастомных настроек
+        // Сброс оформления — только локально, требует последующего "Сохранить"
         function resetCustomSettings() {
-            if (confirm('Сбросить все настройки полоски?')) {
-                localStorage.removeItem('donationBarCustomSettings');
-                
-                const shapeEl = document.getElementById('custom-shape');
-                const themeEl = document.getElementById('custom-theme');
-                const imageUrlEl = document.getElementById('custom-image-url');
-                const fontEl = document.getElementById('custom-font');
-                const particlesEl = document.getElementById('custom-show-particles');
-                const titleEl = document.getElementById('custom-show-title');
-                const amountEl = document.getElementById('custom-show-amount');
-                const percentEl = document.getElementById('custom-show-percentage');
-                
-                if (shapeEl) shapeEl.value = 'horizontal';
-                if (themeEl) themeEl.value = 'default';
-                if (imageUrlEl) imageUrlEl.value = '';
-                if (fontEl) fontEl.value = 'Inter';
-                if (particlesEl) particlesEl.checked = true;
-                if (titleEl) titleEl.checked = true;
-                if (amountEl) amountEl.checked = true;
-                if (percentEl) percentEl.checked = true;
-                
-                // Сбрасываем настройки стандартной темы
-                resetToOriginalStandard();
-                
-                toggleCustomImageSection();
-                updateStandardTheme();
-                updatePreview();
-                updateURLs();
-                showNotification('Настройки сброшены', 'success');
-            }
-        }
-
-        // Показ/скрытие секции кастомного изображения
-        function toggleCustomImageSection() {
-            const shapeEl = document.getElementById('custom-shape');
-            const section = document.getElementById('custom-image-section');
-            
-            if (!shapeEl || !section) return;
-            
-            const shape = shapeEl.value;
-            
-            if (shape === 'custom-image') {
-                section.style.display = 'block';
-            } else {
-                section.style.display = 'none';
-            }
-        }
-        
-        // Переключение видимости секций
-        function toggleSection(sectionId) {
-            const section = document.getElementById(sectionId);
-            if (section) {
-                section.style.display = section.style.display === 'none' ? 'block' : 'none';
-            }
-        }
-        
-        // Переключение настроек частиц
-        function toggleParticlesSettings() {
-            const checkbox = document.getElementById('custom-show-particles');
-            const settings = document.getElementById('particles-settings');
-            if (settings && checkbox) {
-                settings.style.display = checkbox.checked ? 'block' : 'none';
-            }
-        }
-
-        // Обработка загрузки изображения
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            
-            if (!file) {
+            if (!confirm('Сбросить оформление полоски к стандартному пресету? Изменения нужно будет сохранить.')) {
                 return;
             }
 
-            // Проверка типа файла
-            const validTypes = ['image/png', 'image/svg+xml', 'image/gif', 'image/jpeg', 'image/jpg'];
-            if (!validTypes.includes(file.type)) {
-                showNotification('Загрузите изображение в формате PNG, SVG или GIF', 'error');
-                return;
-            }
-
-            // Проверка размера (макс 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                showNotification('Файл слишком большой. Максимум 5MB', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                document.getElementById('custom-image-url').value = e.target.result;
-                updatePreview();
-                showNotification('Изображение загружено успешно!', 'success');
-            };
-            reader.onerror = function() {
-                showNotification('Ошибка загрузки изображения', 'error');
-            };
-            reader.readAsDataURL(file);
+            applySettingsToForm({
+                ...currentSettings,
+                preset: 'classic',
+                customDesign: null,
+                showTitle: true,
+                showCurrent: true,
+                showCurrentInsideBar: true,
+                showTarget: true,
+                showPercentage: true,
+                textDisplayMode: 'default',
+                barWidthPercent: 100,
+                media: { enabled: false, type: 'none', url: '', overlayOpacity: 0.2, fit: 'cover' }
+            });
+            showNotification('Оформление сброшено — нажмите «Сохранить», чтобы применить', 'success');
         }
 
-        // Заглушка для совместимости
-        function updateStandardTheme() {
-            updatePreview();
-        }
-
-        // Применение пресетов анимаций
-        function applyAnimationPreset(presetName) {
-            const presets = {
-                calm: {
-                    fillAnimation: 'sway',
-                    animSpeed: '0.5',
-                    gradientColors: ['#4a90e2', '#357abd'], // 2 цвета
-                    effects: { glow: false, shimmer: false, gradientMove: false, backgroundPulse: false, outerGlow: false, fillGlow: false },
-                    particles: false
-                },
-                energy: {
-                    fillAnimation: 'energy',
-                    animSpeed: '1.5',
-                    gradientColors: ['#ff6b6b', '#ee5a24', '#feca57', '#ff9ff3'], // 4 цвета
-                    effects: { glow: true, shimmer: false, gradientMove: false, backgroundPulse: true, outerGlow: true, fillGlow: false },
-                    particles: true
-                },
-                fire: {
-                    fillAnimation: 'energy',
-                    animSpeed: '2',
-                    gradientColors: ['#ff0000', '#ff6b00', '#ffa500', '#ffff00', '#ff0000'], // 5 цветов
-                    effects: { glow: true, shimmer: false, gradientMove: false, backgroundPulse: true, outerGlow: true, fillGlow: false },
-                    particles: true
-                },
-                neon: {
-                    fillAnimation: 'prism',
-                    animSpeed: '1.2',
-                    gradientColors: ['#ff00ff', '#00ffff', '#ff00ff', '#00ffff'], // 4 цвета
-                    effects: { glow: true, shimmer: false, gradientMove: false, backgroundPulse: true, outerGlow: true, fillGlow: false },
-                    particles: true
-                },
-                rainbow: {
-                    fillAnimation: 'prism',
-                    animSpeed: '1',
-                    gradientColors: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#667eea'], // 5 цветов
-                    effects: { glow: false, shimmer: false, gradientMove: false, backgroundPulse: false, outerGlow: false, fillGlow: false },
-                    particles: false
-                },
-                minimal: {
-                    fillAnimation: 'glow',
-                    animSpeed: '0.3',
-                    gradientColors: ['#4a5568', '#2d3748'], // 2 цвета
-                    effects: { glow: false, shimmer: false, gradientMove: false, backgroundPulse: false, outerGlow: false, fillGlow: false },
-                    particles: false
-                }
-            };
-
-            const preset = presets[presetName];
-            if (!preset) return;
-
-            // Применяем тип анимации заполнения
-            if (document.getElementById('fill-animation')) {
-                document.getElementById('fill-animation').value = preset.fillAnimation;
-            }
-
-            // Применяем цвета градиента
-            const colorInputs = [
-                document.getElementById('gradient-color-1'),
-                document.getElementById('gradient-color-2'),
-                document.getElementById('gradient-color-3')
-            ];
-            
-            // Применяем только доступные цвета (пока что 3 слота)
-            if (preset.gradientColors && colorInputs[0]) {
-                colorInputs[0].value = preset.gradientColors[0] || '#4a5568';
-            }
-            if (preset.gradientColors && colorInputs[1]) {
-                colorInputs[1].value = preset.gradientColors[1] || '#2d3748';
-            }
-            if (preset.gradientColors && colorInputs[2]) {
-                colorInputs[2].value = preset.gradientColors[2] || preset.gradientColors[0] || '#1a202c';
-            }
-
-            // Применяем скорость анимации
-            if (document.getElementById('anim-speed')) {
-                document.getElementById('anim-speed').value = preset.animSpeed;
-                updateRangeDisplay('anim-speed');
-            }
-
-            // Применяем эффекты
-            if (document.getElementById('effect-glow')) document.getElementById('effect-glow').checked = preset.effects.glow;
-            if (document.getElementById('effect-shimmer')) document.getElementById('effect-shimmer').checked = preset.effects.shimmer;
-            if (document.getElementById('effect-gradient-move')) document.getElementById('effect-gradient-move').checked = preset.effects.gradientMove;
-            if (document.getElementById('effect-background-pulse')) document.getElementById('effect-background-pulse').checked = preset.effects.backgroundPulse;
-            if (document.getElementById('effect-outer-glow')) document.getElementById('effect-outer-glow').checked = preset.effects.outerGlow;
-            if (document.getElementById('effect-fill-glow')) document.getElementById('effect-fill-glow').checked = preset.effects.fillGlow;
-
-            // Применяем частицы
-            if (document.getElementById('custom-show-particles')) document.getElementById('custom-show-particles').checked = preset.particles;
-
-            updatePreview();
-            showNotification(`Пресет анимации "${presetName}" применен`, 'success');
-        }
-
-        // Применение быстрых пресетов
-        function applyPreset(presetName) {
-            const presets = {
-                minimal: {
-                    gradientColor1: '#ffffff',
-                    gradientColor2: '#cccccc',
-                    gradientColor3: '#999999',
-                    borderColor: '#cccccc',
-                    glowColor: '#ffffff',
-                    glowIntensity: 20,
-                    effects: { glow: false, shimmer: false, gradientMove: false, backgroundPulse: false, outerGlow: false, fillGlow: false },
-                    particles: false,
-                    font: 'Inter'
-                },
-                neon: {
-                    gradientColor1: '#ff00ff',
-                    gradientColor2: '#8b00ff',
-                    gradientColor3: '#ff00ff',
-                    borderColor: '#ff00ff',
-                    glowColor: '#ff00ff',
-                    glowIntensity: 80,
-                    effects: { glow: true, shimmer: true, gradientMove: true, backgroundPulse: true, outerGlow: true, fillGlow: true },
-                    particles: true,
-                    font: 'Orbitron'
-                },
-                fire: {
-                    gradientColor1: '#ff0000',
-                    gradientColor2: '#ff7f00',
-                    gradientColor3: '#ffff00',
-                    borderColor: '#ff6b6b',
-                    glowColor: '#ff6b6b',
-                    glowIntensity: 70,
-                    effects: { glow: true, shimmer: true, gradientMove: true, backgroundPulse: true, outerGlow: true, fillGlow: true },
-                    particles: true,
-                    font: 'Russo One'
-                },
-                cyber: {
-                    gradientColor1: '#00ffff',
-                    gradientColor2: '#0088ff',
-                    gradientColor3: '#ff00ff',
-                    borderColor: '#00ffff',
-                    glowColor: '#00ffff',
-                    glowIntensity: 90,
-                    effects: { glow: true, shimmer: true, gradientMove: true, backgroundPulse: true, outerGlow: true, fillGlow: true },
-                    particles: true,
-                    font: 'Orbitron'
-                },
-                space: {
-                    gradientColor1: '#4a00e0',
-                    gradientColor2: '#8e2de2',
-                    gradientColor3: '#ffffff',
-                    borderColor: '#8e2de2',
-                    glowColor: '#8e2de2',
-                    glowIntensity: 60,
-                    effects: { glow: true, shimmer: true, gradientMove: true, backgroundPulse: true, outerGlow: true, fillGlow: true },
-                    particles: true,
-                    font: 'Exo 2'
-                },
-                retro: {
-                    gradientColor1: '#00ff00',
-                    gradientColor2: '#008800',
-                    gradientColor3: '#00ff00',
-                    borderColor: '#00ff00',
-                    glowColor: '#00ff00',
-                    glowIntensity: 40,
-                    effects: { glow: false, shimmer: false, gradientMove: false, backgroundPulse: false, outerGlow: true, fillGlow: true },
-                    particles: false,
-                    font: 'Press Start 2P'
-                }
-            };
-
-            const preset = presets[presetName];
-            if (!preset) return;
-
-            // Применяем цвета
-            if (document.getElementById('gradient-color-1')) document.getElementById('gradient-color-1').value = preset.gradientColor1;
-            if (document.getElementById('gradient-color-2')) document.getElementById('gradient-color-2').value = preset.gradientColor2;
-            if (document.getElementById('gradient-color-3')) document.getElementById('gradient-color-3').value = preset.gradientColor3;
-            if (document.getElementById('border-color')) document.getElementById('border-color').value = preset.borderColor;
-            if (document.getElementById('glow-color')) document.getElementById('glow-color').value = preset.glowColor;
-            if (document.getElementById('glow-intensity')) {
-                document.getElementById('glow-intensity').value = preset.glowIntensity;
-                updateRangeDisplay('glow-intensity');
-            }
-
-            // Применяем эффекты
-            if (document.getElementById('effect-glow')) document.getElementById('effect-glow').checked = preset.effects.glow;
-            if (document.getElementById('effect-shimmer')) document.getElementById('effect-shimmer').checked = preset.effects.shimmer;
-            if (document.getElementById('effect-gradient-move')) document.getElementById('effect-gradient-move').checked = preset.effects.gradientMove;
-            if (document.getElementById('effect-background-pulse')) document.getElementById('effect-background-pulse').checked = preset.effects.backgroundPulse;
-            if (document.getElementById('effect-outer-glow')) document.getElementById('effect-outer-glow').checked = preset.effects.outerGlow;
-            if (document.getElementById('effect-fill-glow')) document.getElementById('effect-fill-glow').checked = preset.effects.fillGlow;
-
-            // Применяем частицы и шрифт
-            if (document.getElementById('custom-show-particles')) document.getElementById('custom-show-particles').checked = preset.particles;
-            if (document.getElementById('custom-font')) document.getElementById('custom-font').value = preset.font;
-
-            updatePreview();
-            showNotification(`Пресет "${presetName}" применен`, 'success');
-        }
-
-        // Обновление ссылок
+        // Обновление ссылки для OBS
         function updateURLs() {
             const baseUrl = window.location.origin;
-            const customParams = buildCustomParams();
-            const customUrl = `${baseUrl}/donation-bar-enhanced.html?${customParams}`;
-
-            // Обновляем ссылки во вкладке "Ссылки для OBS"
-            if (document.getElementById('url-main')) document.getElementById('url-main').value = `${baseUrl}/donation-goal-widget.html`;
-            if (document.getElementById('url-simple')) document.getElementById('url-simple').value = `${baseUrl}/widget-donation-goal.html`;
-            if (document.getElementById('url-custom')) document.getElementById('url-custom').value = customUrl;
-            
-            // Обновляем ссылки во вкладке "Настройки сбора"
-            if (document.getElementById('url-custom-goal')) document.getElementById('url-custom-goal').value = customUrl;
-            
-            // Обновляем ссылки во вкладке "Полный виджет"
-            if (document.getElementById('url-custom-widget')) document.getElementById('url-custom-widget').value = customUrl;
+            const urlObs = document.getElementById('url-obs');
+            if (urlObs) urlObs.value = `${baseUrl}/widget/donation-goal`;
         }
 
         // Копирование URL
@@ -2800,7 +1565,7 @@
         // Отображение истории донатов
         function displayDonationsHistory(donations) {
             const container = document.getElementById('donations-list');
-            
+
             if (donations.length === 0) {
                 container.innerHTML = '<div class="no-donations">Пока нет донатов</div>';
                 return;
@@ -2816,9 +1581,105 @@
                     <div class="donation-amount">${formatCurrency(donation.amount)}</div>
                 </div>
             `).join('');
-            
-            // Также обновляем историю в виджете
-            displayWidgetHistory(donations);
+        }
+
+        // Загрузка снимков настроек (авто-создаются сервером при сохранении/сбросе/импорте)
+        async function loadSnapshots() {
+            try {
+                const response = await fetch('/api/donation-goal/snapshots');
+                if (!response.ok) return;
+                const snapshots = await response.json();
+                const container = document.getElementById('snapshots-list');
+
+                if (!snapshots.length) {
+                    container.innerHTML = '<div class="no-donations">Пока нет снимков</div>';
+                    return;
+                }
+
+                container.innerHTML = snapshots.map(snap => `
+                    <div class="snapshot-item">
+                        <div class="donation-info">
+                            <div class="donation-username">${SNAPSHOT_ACTION_LABELS[snap.action] || snap.action}</div>
+                            <div class="donation-time">${new Date(snap.createdAt).toLocaleString('ru-RU')}</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="restoreSnapshot(${snap.id})">↩️ Восстановить</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Ошибка загрузки снимков:', error);
+            }
+        }
+
+        // Восстановление снимка настроек
+        async function restoreSnapshot(id) {
+            if (!confirm('Восстановить это состояние сбора? Текущие настройки будут заменены.')) return;
+
+            try {
+                const response = await fetch(`/api/donation-goal/snapshots/${id}/restore`, { method: 'POST' });
+                if (response.ok) {
+                    await loadGoalData();
+                    await loadDonationsHistory();
+                    await loadSnapshots();
+                    showNotification('Снимок восстановлен', 'success');
+                } else {
+                    throw new Error('Ошибка сервера');
+                }
+            } catch (error) {
+                console.error('Ошибка восстановления снимка:', error);
+                showNotification('Ошибка восстановления снимка', 'error');
+            }
+        }
+
+        // Экспорт настроек в JSON-файл
+        async function exportSettings() {
+            try {
+                const response = await fetch('/api/donation-goal/export');
+                if (!response.ok) throw new Error('Ошибка сервера');
+                const data = await response.json();
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `donation-goal-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                showNotification('Резервная копия скачана', 'success');
+            } catch (error) {
+                console.error('Ошибка экспорта:', error);
+                showNotification('Ошибка экспорта настроек', 'error');
+            }
+        }
+
+        // Импорт настроек из JSON-файла
+        async function importSettingsFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const payload = JSON.parse(text);
+
+                const response = await fetch('/api/donation-goal/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Ошибка сервера');
+
+                await loadGoalData();
+                await loadDonationsHistory();
+                await loadSnapshots();
+                showNotification('Настройки импортированы', 'success');
+            } catch (error) {
+                console.error('Ошибка импорта:', error);
+                showNotification('Не удалось импортировать файл — проверьте формат', 'error');
+            } finally {
+                event.target.value = '';
+            }
         }
 
         // Форматирование валюты
@@ -2838,229 +1699,12 @@
             }, 3000);
         }
 
-        // Открытие полного виджета в новой вкладке
-        function openFullWidget() {
-            window.open('/donation-goal-widget.html', '_blank');
-        }
-
-        // Обновление встроенного виджета
-        function updateWidgetDisplay() {
-            const percentage = donationGoal.targetAmount > 0 ? 
-                Math.min((donationGoal.currentAmount / donationGoal.targetAmount) * 100, 100) : 0;
-
-            // Обновляем элементы виджета
-            const widgetTitle = document.getElementById('widget-title');
-            const widgetTargetAmount = document.getElementById('widget-target-amount');
-            const widgetCurrentAmount = document.getElementById('widget-current-amount');
-            const widgetProgressFill = document.getElementById('widget-progress-fill');
-            const widgetTotalDonations = document.getElementById('widget-total-donations');
-            const widgetAvgDonation = document.getElementById('widget-avg-donation');
-            const widgetDaysLeft = document.getElementById('widget-days-left');
-            const widgetLastDonation = document.getElementById('widget-last-donation');
-
-            if (widgetTitle) widgetTitle.textContent = donationGoal.title;
-            if (widgetTargetAmount) widgetTargetAmount.textContent = formatCurrency(donationGoal.targetAmount);
-            if (widgetCurrentAmount) widgetCurrentAmount.textContent = formatCurrency(donationGoal.currentAmount);
-            if (widgetProgressFill) widgetProgressFill.style.width = percentage + '%';
-            if (widgetTotalDonations) widgetTotalDonations.textContent = donationGoal.totalDonations || 0;
-            if (widgetAvgDonation) widgetAvgDonation.textContent = formatCurrency(donationGoal.avgDonation || 0);
-
-            if (donationGoal.lastDonationTime) {
-                const time = new Date(donationGoal.lastDonationTime);
-                if (widgetLastDonation) widgetLastDonation.textContent = 
-                    time.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            }
-
-            // Обновляем поля ввода
-            const widgetGoalName = document.getElementById('widget-goal-name');
-            const widgetTargetInput = document.getElementById('widget-target-input');
-            const widgetCurrentInput = document.getElementById('widget-current-input');
-            const widgetEndDate = document.getElementById('widget-end-date');
-
-            if (widgetGoalName) widgetGoalName.value = donationGoal.title;
-            if (widgetTargetInput) widgetTargetInput.value = donationGoal.targetAmount;
-            if (widgetCurrentInput) widgetCurrentInput.value = donationGoal.currentAmount;
-
-            if (donationGoal.endDate && widgetEndDate) {
-                const date = new Date(donationGoal.endDate);
-                const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-                widgetEndDate.value = localDateTime.toISOString().slice(0, 16);
-            }
-
-            // Обновляем историю виджета
-            loadWidgetHistory();
-        }
-
-        // Загрузка истории для виджета
-        async function loadWidgetHistory() {
-            try {
-                const response = await fetch('/api/donation-goal/history');
-                if (response.ok) {
-                    const donations = await response.json();
-                    displayWidgetHistory(donations);
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки истории виджета:', error);
-            }
-        }
-
-        // Отображение истории в виджете
-        function displayWidgetHistory(donations) {
-            const container = document.getElementById('widget-history');
-            if (!container) return;
-
-            if (donations.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">Пока нет донатов</div>';
-                return;
-            }
-
-            container.innerHTML = donations.map(donation => `
-                <div class="widget-history-item">
-                    <div>
-                        <div style="font-weight: 600;">${donation.username || 'Аноним'}</div>
-                        ${donation.message ? `<div style="font-size: 0.85rem; color: var(--text-secondary);">${donation.message}</div>` : ''}
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">${new Date(donation.createdAt).toLocaleString('ru-RU')}</div>
-                    </div>
-                    <div style="font-weight: 700; color: #4CAF50;">${formatCurrency(donation.amount)}</div>
-                </div>
-            `).join('');
-        }
-
-        // Сохранение настроек виджета
-        async function saveWidgetSettings() {
-            const title = document.getElementById('widget-goal-name').value || donationGoal.title;
-            const targetAmount = parseFloat(document.getElementById('widget-target-input').value) || donationGoal.targetAmount;
-            const currentAmount = parseFloat(document.getElementById('widget-current-input').value) || 0;
-
-            try {
-                const response = await fetch('/api/donation-goal', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...donationGoal,
-                        title,
-                        targetAmount,
-                        currentAmount
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    donationGoal = data;
-                    updateGoalDisplay();
-                    updateWidgetDisplay();
-                    updateAllWidgets();
-                    showNotification('Настройки виджета сохранены', 'success');
-                } else {
-                    throw new Error('Ошибка сервера');
-                }
-            } catch (error) {
-                console.error('Ошибка сохранения:', error);
-                showNotification('Ошибка сохранения', 'error');
-            }
-        }
-
-        // Добавление доната через виджет
-        async function addWidgetDonation() {
-            const amount = parseFloat(document.getElementById('widget-manual-amount').value);
-            const username = document.getElementById('widget-manual-username').value || 'Аноним';
-
-            if (!amount || amount <= 0) {
-                showNotification('Введите корректную сумму', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/donation-goal/manual-donation', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount, username })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    donationGoal = data;
-                    updateGoalDisplay();
-                    updateWidgetDisplay();
-                    updateAllWidgets();
-                    document.getElementById('widget-manual-amount').value = '';
-                    document.getElementById('widget-manual-username').value = '';
-                    showNotification(`Добавлен донат на ${formatCurrency(amount)}`, 'success');
-                    loadDonationsHistory();
-                } else {
-                    throw new Error('Ошибка сервера');
-                }
-            } catch (error) {
-                console.error('Ошибка добавления доната:', error);
-                showNotification('Ошибка добавления доната', 'error');
-            }
-        }
-
-        // Установка даты окончания для виджета
-        async function setWidgetEndDate() {
-            const endDateValue = document.getElementById('widget-end-date').value;
-            if (!endDateValue) {
-                showNotification('Выберите дату окончания', 'error');
-                return;
-            }
-
-            donationGoal.endDate = new Date(endDateValue).toISOString();
-            
-            try {
-                const response = await fetch('/api/donation-goal', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(donationGoal)
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    donationGoal = data;
-                    updateWidgetDisplay();
-                    showNotification('Дата окончания установлена', 'success');
-                } else {
-                    throw new Error('Ошибка сервера');
-                }
-            } catch (error) {
-                console.error('Ошибка:', error);
-                showNotification('Ошибка установки даты', 'error');
-            }
-        }
-
-        // Обнуление сбора через виджет
-        async function resetWidgetGoal() {
-            if (!confirm('Вы уверены, что хотите обнулить сбор? Это действие нельзя отменить.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/donation-goal/reset', {
-                    method: 'POST'
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    donationGoal = data;
-                    updateGoalDisplay();
-                    updateWidgetDisplay();
-                    updateAllWidgets();
-                    showNotification('Сбор обнулен', 'success');
-                    loadDonationsHistory();
-                } else {
-                    throw new Error('Ошибка сервера');
-                }
-            } catch (error) {
-                console.error('Ошибка обнуления:', error);
-                showNotification('Ошибка обнуления сбора', 'error');
-            }
-        }
-
-        // Автообновление данных каждые 10 секунд
+        // Автообновление данных каждые 10 секунд (подстраховка поверх WebSocket-обновлений).
+        // applySettings=false: не трогаем форму "Оформление полоски", пока пользователь её редактирует.
         setInterval(() => {
-            loadGoalData();
+            loadGoalData(false);
             loadDonationsHistory();
         }, 10000);
     </script>
 </body>
 </html>
-

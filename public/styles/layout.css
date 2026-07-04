@@ -162,6 +162,50 @@
     height: 100%;
 }
 
+.page-copy-btn {
+    position: fixed;
+    right: var(--spacing-lg);
+    bottom: var(--spacing-lg);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: 10px 16px;
+    border-radius: var(--radius-full, 999px);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    transition: all var(--transition-base);
+}
+
+.page-copy-btn:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--color-neon-blue);
+    color: var(--color-light);
+    transform: translateY(-2px);
+}
+
+.page-copy-btn.copied {
+    border-color: var(--color-neon-green);
+    color: var(--color-neon-green);
+    background: rgba(0, 255, 128, 0.1);
+}
+
+@media (max-width: 768px) {
+    .page-copy-btn {
+        right: var(--spacing-md);
+        bottom: var(--spacing-md);
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+}
+
 .nav-icon {
     font-size: 1.25rem;
     min-width: 24px;

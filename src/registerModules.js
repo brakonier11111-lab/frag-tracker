@@ -47,18 +47,36 @@ function registerModules(app, deps, config) {
     const chatStats = createChatStatsModule(deps);
     chatStats.registerRoutes(app);
 
-    const youtube = createYoutubeIntegrationModule(deps);
+    // Активность зрителей в Tanks Blitz Challenge: сообщения в чате двигают прогресс
+    // такой же наградой, как донат — интеграции получают колбэк поверх общих deps
+    const chatAwareDeps = Object.assign({}, deps, { onChatMessage: blitz.onChatMessageCounted });
+
+    const youtube = createYoutubeIntegrationModule(chatAwareDeps);
     youtube.registerRoutes(app);
     youtube.startPolling();
 
-    const vkplay = createVkplayIntegrationModule(deps);
+    const vkplay = createVkplayIntegrationModule(chatAwareDeps);
     vkplay.registerRoutes(app);
     vkplay.startPolling();
 
-    const twitch = createTwitchIntegrationModule(deps);
+    const twitch = createTwitchIntegrationModule(chatAwareDeps);
     twitch.registerRoutes(app);
     twitch.startPolling();
     twitch.connectTwitchChat();
+
+    // Активность зрителей: лайки (YouTube + VK Play) синкаются в прогресс той же схемой
+    // baseline+delta, что и медали Lesta. Перед синком — свежие данные с платформ.
+    async function syncActivityLikesTick() {
+        try {
+            if (youtube.getState().connected) await deps.withApiQueue('youtube', () => youtube.refreshData());
+        } catch (e) { /* noop */ }
+        try {
+            if (vkplay.getState().connected) await deps.withApiQueue('vkplay', () => vkplay.refreshData({ force: true }));
+        } catch (e) { /* noop */ }
+        blitz.syncBlitzActivityLikes(youtube.getState().likes, vkplay.getState().likes);
+    }
+    setInterval(() => { syncActivityLikesTick().catch(() => {}); }, 30000);
+    syncActivityLikesTick().catch(() => {});
 
     const onlineViewers = createOnlineViewersModule({
         ...deps,

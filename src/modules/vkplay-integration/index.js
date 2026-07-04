@@ -13,7 +13,10 @@
  * youtube-integration) и приходят как deps, как и db/broadcastToClients/wss.
  */
 
-const axios = require('axios');
+// axios по умолчанию читает системные HTTP_PROXY/HTTPS_PROXY и криво их
+// применяет к некоторым запросам (см. тот же фикс в twitch-integration) —
+// идём напрямую, vkvideo.ru доступен без прокси.
+const axios = require('axios').create({ proxy: false });
 const querystring = require('querystring');
 const WebSocket = require('ws');
 const express = require('express');
@@ -38,23 +41,24 @@ function createVkplayIntegrationModule(deps) {
     const VKPLAY_POLLING_ENABLED = process.env.VKPLAY_POLLING === '1';
 
     // Нормализация лайков VK Play: структура counters может отличаться, пробуем несколько вариантов
-    function getVKPlayLikesFromChannelInfo(channelInfo, previousLikes) {
-        if (!channelInfo) return previousLikes || 0;
-        const stream = channelInfo.stream || {};
+    // ВАЖНО: считаем лайки только по объекту ТЕКУЩЕГО стрима (stream.*), а не по
+    // channel.counters — там лежит лайки канала за всю историю, они не имеют
+    // отношения к "сейчас идёт эфир" и никогда не обнуляются, из-за чего лайки
+    // "показывались" даже когда эфира не было вообще (та же категория бага, что
+    // была с viewers/liveTitle). Если стрима нет — честный 0, не прошлое значение.
+    function getVKPlayLikesFromChannelInfo(channelInfo) {
+        if (!channelInfo || !channelInfo.stream) return 0;
+        const stream = channelInfo.stream;
         const streamCounters = stream.counters || {};
-        const channelCounters = channelInfo.channel?.counters || {};
-        const count = channelInfo.count || stream.count || channelInfo.data?.count || {};
+        const count = stream.count || {};
         // VK Play API: reactions в stream.reactions — массив [{type:"heart",count:9}, ...]
-        const reactionsObj = streamCounters.reactions || channelCounters.reactions || {};
-        const reactionsArr = stream.reactions || streamCounters.reactions || channelCounters.reactions;
+        const reactionsObj = streamCounters.reactions || {};
+        const reactionsArr = stream.reactions || streamCounters.reactions;
 
         const candidates = [
             streamCounters.likes,
             streamCounters.likes_count,
             streamCounters.like_count,
-            channelCounters.likes,
-            channelCounters.likes_count,
-            channelCounters.like_count,
             count.likes,
             count.like_count,
             reactionsObj.likes,
@@ -70,27 +74,40 @@ function createVkplayIntegrationModule(deps) {
             if (Number.isNaN(n)) continue;
             if (bestLikes == null || n > bestLikes) bestLikes = n;
         }
-        // stream.reactions = [{type:"heart",count:9}] — суммируем count по всем реакциям
-        const arr = Array.isArray(reactionsArr) ? reactionsArr : (reactionsObj.items || reactionsObj.list || []);
+        // stream.reactions = [{type:"heart",count:9}, {type:"fire",count:80}, ...] — это ВСЕ
+        // реакции на стрим, а не только "лайк". У VK Play аналог лайка — реакция "heart"/"like",
+        // остальные типы (fire, laugh и т.п.) не имеют отношения к счётчику лайков. Раньше здесь
+        // суммировались count всех типов реакций разом, из-за чего "лайки" завышались на сумму
+        // прочих эмодзи-реакций (лишние ~100-200 к настоящему числу лайков).
+        const LIKE_REACTION_TYPES = new Set(['heart', 'hearts', 'like', 'likes']);
+        let arr = Array.isArray(reactionsArr) ? reactionsArr : (reactionsObj.items || reactionsObj.list || []);
+        if (!arr.length && reactionsArr && typeof reactionsArr === 'object' && !Array.isArray(reactionsArr)) {
+            arr = Object.entries(reactionsArr)
+                .filter(([k]) => k !== 'items' && k !== 'list')
+                .map(([type, count]) => ({ type, count }));
+        }
         if (arr.length) {
             let sum = 0;
             for (const r of arr) {
+                const type = String(r?.type || '').toLowerCase();
+                if (!LIKE_REACTION_TYPES.has(type)) continue;
                 const c = r?.count ?? r?.value ?? r?.likes ?? r?.total;
                 if (c != null) sum += Number(c) || 0;
             }
             if (bestLikes == null || sum > bestLikes) bestLikes = sum;
         }
-        if (bestLikes != null) return bestLikes;
-        return previousLikes || 0;
+        return bestLikes != null ? bestLikes : 0;
     }
 
-    // Нормализация зрителей VK Play: пробуем разные пути в ответе API
+    // Нормализация зрителей VK Play: пробуем разные пути в ответе API.
+    // Только по stream.* (текущий эфир) — channel.counters это лайфтайм-статистика
+    // канала, не имеет отношения к тому, идёт ли эфир сейчас (см. тот же фикс
+    // для лайков выше).
     function getVKPlayViewersFromChannelInfo(channelInfo) {
-        if (!channelInfo) return 0;
-        const stream = channelInfo.stream || {};
+        if (!channelInfo || !channelInfo.stream) return 0;
+        const stream = channelInfo.stream;
         const counters = stream.counters || {};
-        const channelCounters = channelInfo.channel?.counters || {};
-        const count = channelInfo.count || stream.count || channelInfo.data?.count || {};
+        const count = stream.count || {};
 
         const candidates = [
             counters.viewers,
@@ -104,10 +121,7 @@ function createVkplayIntegrationModule(deps) {
             stream.viewers,
             stream.viewers_count,
             stream.viewer_count,
-            stream.spectators,
-            channelCounters.viewers,
-            channelCounters.viewers_count,
-            channelCounters.spectators
+            stream.spectators
         ];
 
         for (const v of candidates) {
@@ -170,32 +184,45 @@ function createVkplayIntegrationModule(deps) {
             
             const messages = chatData.data?.data?.chat_messages || [];
             for (const msg of messages) {
-                // Проверяем, есть ли уже такое сообщение
-                db.get('SELECT id FROM chat_messages WHERE platform = ? AND user_id = ? AND message = ? AND created_at > datetime("now", "-5 minutes")', 
-                    ['vkplay', msg.author?.id, msg.parts?.[0]?.text?.content], (err, row) => {
-                    if (!err && !row) {
-                        // Сохраняем новое сообщение
-                        db.run(`INSERT INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
-                            'vkplay',
-                            vkplayIntegration.channelUrl,
-                            msg.author?.id,
-                            msg.author?.nick,
-                            msg.parts?.[0]?.text?.content || '',
-                            msg.author?.is_moderator ? 1 : 0,
-                            msg.author?.is_owner ? 1 : 0,
-                            new Date(msg.created_at * 1000).toISOString()
-                        ]);
-                    }
-                });
+                const messageText = msg.parts?.[0]?.text?.content || '';
+                const insertParams = [
+                    'vkplay',
+                    vkplayIntegration.channelUrl,
+                    msg.author?.id,
+                    msg.author?.nick,
+                    messageText,
+                    msg.author?.is_moderator ? 1 : 0,
+                    msg.author?.is_owner ? 1 : 0,
+                    new Date(msg.created_at * 1000).toISOString(),
+                    msg.id != null ? String(msg.id) : null
+                ];
+                if (msg.id != null) {
+                    // Нативный ID сообщения — надёжная дедупликация без риска дропнуть настоящий повтор
+                    db.run(`INSERT OR IGNORE INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at, message_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, insertParams, function (err) {
+                        if (!err && this.changes > 0 && deps.onChatMessage) deps.onChatMessage('vkplay:' + msg.author?.id);
+                    });
+                } else {
+                    // Fallback (нет msg.id в ответе API) — старая защита по контенту+времени
+                    db.get('SELECT id FROM chat_messages WHERE platform = ? AND user_id = ? AND message = ? AND created_at > datetime("now", "-5 minutes")',
+                        ['vkplay', msg.author?.id, messageText], (err, row) => {
+                        if (!err && !row) {
+                            db.run(`INSERT INTO chat_messages (platform, channel_url, user_id, username, message, is_moderator, is_owner, created_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, insertParams.slice(0, 8), function (insErr) {
+                                if (!insErr && deps.onChatMessage) deps.onChatMessage('vkplay:' + msg.author?.id);
+                            });
+                        }
+                    });
+                }
             }
         } catch (error) {
             console.warn('⚠️ Ошибка сбора чата VK Play:', error?.response?.data || error.message);
         }
     }
 
-    async function updateVKPlayData() {
-        if (!VKPLAY_POLLING_ENABLED) return;
+    async function updateVKPlayData(options = {}) {
+        const force = !!(options && options.force);
+        if (!force && !VKPLAY_POLLING_ENABLED) return;
         if (!vkplayIntegration.connected || !vkplayIntegration.tokens) {
             return;
         }
@@ -314,9 +341,27 @@ function createVkplayIntegrationModule(deps) {
             
         } catch (error) {
             console.warn('⚠️ Ошибка обновления данных VK Play:', error?.response?.data || error.message);
-            if (error.response?.status === 401) {
-                console.warn('🔑 Токен истек, требуется повторная авторизация');
+            // VK возвращает просроченный/невалидный токен не всегда как HTTP 401 —
+            // наблюдался 400 с телом {error:'unauthorized'}, из-за чего проверка
+            // только по status===401 не срабатывала и connected/цифры зависали навсегда.
+            const errCode = error.response?.data?.error;
+            const isAuthError = error.response?.status === 401 || errCode === 'unauthorized' || errCode === 'invalid_token' || errCode === 'invalid_grant';
+            if (isAuthError) {
+                console.warn('🔑 Токен истек или невалиден, требуется повторная авторизация');
                 vkplayIntegration.connected = false;
+                vkplayIntegration.viewers = 0;
+                vkplayIntegration.liveTitle = null;
+                vkplayIntegration.chatEnabled = false;
+                await saveIntegration('vkplay', {
+                    tokens: vkplayIntegration.tokens,
+                    expires_at: vkplayIntegration.expires_at,
+                    channel: vkplayIntegration.channel,
+                    channelUrl: vkplayIntegration.channelUrl,
+                    liveTitle: null,
+                    viewers: 0,
+                    likes: vkplayIntegration.likes,
+                    chatEnabled: false
+                });
             }
         }
     }
@@ -3017,7 +3062,7 @@ function createVkplayIntegrationModule(deps) {
                 }
     }
 
-    return { registerRoutes, startPolling, hydrateFromDb, getState: () => vkplayIntegration };
+    return { registerRoutes, startPolling, hydrateFromDb, getState: () => vkplayIntegration, refreshData: (opts) => updateVKPlayData(opts) };
 }
 
 module.exports = { createVkplayIntegrationModule };
