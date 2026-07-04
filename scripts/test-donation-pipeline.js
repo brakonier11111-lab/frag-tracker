@@ -169,6 +169,98 @@ async function main() {
             assert(Math.abs(diff - 150) < 0.01, `sessionBalance diff = ${diff}, ожидалось 150`);
         });
 
+        // === Точная математика начислений (фраги/таймер/кастом) ===
+        // Ставим известные настройки, чтобы проверять НЕ «стало больше», а точные значения.
+        await getJson('/api/state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                frag_cost: 100, frag_amount: 1, current_balance: 0,
+                cost_per_minute: 60, timer_discount: 0, timer_discount_until_ts: 0, timer_paused: 1,
+                custom_unit_cost: 70, custom_unit_amount: 1, custom_current_balance: 0
+            })
+        });
+        await sleep(300);
+        const stateMath0 = await getState();
+
+        await step('донат 250₽ при цене фрага 100₽: +2 фрага, остаток 50₽', async () => {
+            const r = await post('/api/test-donation', { username: 'MathTest', amount: 250 });
+            assert(r.success, 'нет success');
+            await sleep(900);
+            const s = await getState();
+            const fragsDiff = (s.frags_needed || 0) - (stateMath0.frags_needed || 0);
+            assert(fragsDiff === 2, `frags_needed diff = ${fragsDiff}, ожидалось 2`);
+            assert(Math.abs((s.current_balance || 0) - 50) < 0.01,
+                `current_balance = ${s.current_balance}, ожидалось 50`);
+        });
+
+        await step('тот же донат: таймер +250 сек ровно (60₽/мин, пауза)', async () => {
+            const s = await getState();
+            const diff = (s.timer_seconds || 0) - (stateMath0.timer_seconds || 0);
+            assert(diff === 250, `timer_seconds diff = ${diff}, ожидалось 250`);
+        });
+
+        await step('тот же донат: кастом (70₽/ед) +3 единицы, остаток 40₽', async () => {
+            const s = await getState();
+            const unitsDiff = (s.custom_units_needed || 0) - (stateMath0.custom_units_needed || 0);
+            assert(unitsDiff === 3, `custom_units_needed diff = ${unitsDiff}, ожидалось 3`);
+            assert(Math.abs((s.custom_current_balance || 0) - 40) < 0.01,
+                `custom_current_balance = ${s.custom_current_balance}, ожидалось 40`);
+        });
+
+        await step('в donations записаны frags_earned/time_earned/custom_units_earned', async () => {
+            const rows = await findDonations('test_');
+            const row = rows.find((r) => r.username === 'MathTest');
+            assert(row, 'запись MathTest не найдена');
+            assert(row.frags_earned === 2, `frags_earned = ${row.frags_earned}, ожидалось 2`);
+            assert(row.time_earned === 250, `time_earned = ${row.time_earned}, ожидалось 250`);
+            assert(row.custom_units_earned === 3, `custom_units_earned = ${row.custom_units_earned}, ожидалось 3`);
+        });
+
+        await step('скидка 30₽/мин: донат 50₽ даёт +100 сек (30₽/мин → 2 сек/₽)', async () => {
+            await post('/api/state', { timer_discount: 30, timer_discount_until_ts: 0 });
+            await sleep(300);
+            const before = await getState();
+            const r = await post('/api/test-donation', { username: 'DiscountTest', amount: 50 });
+            assert(r.success, 'нет success');
+            await sleep(900);
+            const s = await getState();
+            const diff = (s.timer_seconds || 0) - (before.timer_seconds || 0);
+            assert(diff === 100, `timer_seconds diff = ${diff}, ожидалось 100`);
+            await post('/api/state', { timer_discount: 0 });
+        });
+
+        await step('температура: донат греет currentAmount на сумму доната', async () => {
+            // минимальное охлаждение, чтобы замер был детерминированным
+            await post('/api/temperature/settings', { coolingRate: 1 });
+            let t = (await getJson('/api/temperature/status')).temperatureMode;
+            if (!t.active) {
+                await post('/api/temperature/toggle', {});
+                t = (await getJson('/api/temperature/status')).temperatureMode;
+            }
+            assert(t.active, 'режим температуры не включился');
+            const before = t.currentAmount || 0;
+            await post('/api/test-donation', { username: 'HeatTest', amount: 40 });
+            await sleep(900);
+            const after = (await getJson('/api/temperature/status')).temperatureMode.currentAmount || 0;
+            // допускаем лёгкое охлаждение между замерами
+            assert(after - before > 38, `нагрев = ${after - before}, ожидалось ~40`);
+            await post('/api/temperature/toggle', {}); // выключаем обратно
+        });
+
+        await step('ручной донат /api/manual-donation обрабатывается', async () => {
+            const before = await getState();
+            const r = await post('/api/manual-donation', { username: 'ManualTest', amount: 80 });
+            assert(r.success, 'нет success');
+            await sleep(900);
+            const s = await getState();
+            const diff = (s.total_donated || 0) - (before.total_donated || 0);
+            assert(Math.abs(diff - 80) < 0.01, `total_donated diff = ${diff}, ожидалось 80`);
+            const rows = await findDonations('manual_');
+            assert(rows.some((row) => row.username === 'ManualTest' && Math.abs(row.amount - 80) < 0.01),
+                'запись manual_ не найдена');
+        });
+
         const dupId = stamp; // уникальный числовой id для dp_
         const webhookPayload = { type: 'donation', status: 'success', id: dupId, sum: 100, what: 'DupDonor', comment: 'dup-test' };
         const stateBeforeDup = await getState();
