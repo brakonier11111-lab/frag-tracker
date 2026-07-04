@@ -9,7 +9,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOG_DIR = process.env.FRAG_LOG_DIR || path.join(__dirname, '..', '..', 'logs');
+const { USER_DATA } = require('../bootstrap/paths');
+
+const LOG_DIR = process.env.FRAG_LOG_DIR || path.join(USER_DATA, 'logs');
 try {
     fs.mkdirSync(LOG_DIR, { recursive: true });
 } catch (e) {

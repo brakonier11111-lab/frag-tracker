@@ -1,20 +1,22 @@
 'use strict';
 /**
- * Резервная копия SQLite-базы. frag_tracker.db лежит в корне проекта рядом с
- * кодом и сейчас вообще никак не бэкапится — это единственная копия данных
- * по донатам/статистике стримов. Скрипт безопасно копирует основной файл
- * плюс -wal/-shm (если есть незакоммиченные в БД данные в WAL), в backups/
+ * Резервная копия SQLite-базы — единственной копии данных по донатам и
+ * статистике стримов. Скрипт безопасно копирует основной файл плюс -wal/-shm
+ * (если есть незакоммиченные в БД данные в WAL) в backups/ рядом с БД
  * с таймстампом, и подчищает старые копии, оставляя последние N.
  *
+ * Путь к БД берётся из src/bootstrap/paths (FRAG_USER_DATA).
  * Запуск: node scripts/backup-db.js
  */
 
 const fs = require('fs');
 const path = require('path');
+const { resolveDbPath } = require('../src/bootstrap/paths');
 
-const APP_ROOT = path.join(__dirname, '..');
-const DB_NAME = 'frag_tracker.db';
-const BACKUPS_DIR = path.join(APP_ROOT, 'backups');
+const DB_PATH = resolveDbPath();
+const DB_DIR = path.dirname(DB_PATH);
+const DB_NAME = path.basename(DB_PATH);
+const BACKUPS_DIR = path.join(DB_DIR, 'backups');
 const KEEP_LAST = Number(process.env.BACKUP_KEEP_LAST || 14);
 
 function timestamp() {
@@ -24,7 +26,7 @@ function timestamp() {
 }
 
 function backupOne(srcName) {
-    const srcPath = path.join(APP_ROOT, srcName);
+    const srcPath = path.join(DB_DIR, srcName);
     if (!fs.existsSync(srcPath)) return null;
     const ts = timestamp();
     const dstName = `${srcName}.${ts}.bak`;
@@ -47,8 +49,8 @@ function cleanupOldBackups() {
 }
 
 function main() {
-    if (!fs.existsSync(path.join(APP_ROOT, DB_NAME))) {
-        console.error(`❌ ${DB_NAME} не найден в ${APP_ROOT}`);
+    if (!fs.existsSync(DB_PATH)) {
+        console.error(`❌ ${DB_NAME} не найден в ${DB_DIR}`);
         process.exit(1);
     }
 

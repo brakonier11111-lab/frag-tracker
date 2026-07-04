@@ -1,7 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'frag_tracker.db');
+const { resolveDbPath } = require('./src/bootstrap/paths');
+const dbPath = resolveDbPath();
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
