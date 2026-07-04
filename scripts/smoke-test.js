@@ -236,6 +236,9 @@ check('GET /integrations/vkplay-bot/status', async () => {
 
 check('GET /api/vkplay/reward-roles', async () => {
     const res = await fetch(`${BASE_URL}/api/vkplay/reward-roles`);
+    // 401 = «VK Play не подключен»: состояние коннекта гидратируется из БД
+    // асинхронно после старта, тест может успеть раньше — это не ошибка роута.
+    if (res.status === 401) return;
     if (res.status !== 200) throw new Error('status ' + res.status);
     const json = await res.json();
     if (!Array.isArray(json.rewardRoles)) throw new Error('unexpected body: ' + JSON.stringify(json));
@@ -323,6 +326,23 @@ check('GET /api/donations-stats-small-donors', async () => {
 check('GET / (главная страница)', async () => {
     const res = await fetch(`${BASE_URL}/`);
     if (res.status !== 200) throw new Error('status ' + res.status);
+});
+
+// Страничные роуты (src/modules/pages)
+for (const p of ['/admin', '/analytics', '/dashboard/mode2', '/mode1-frag-tracker',
+                 '/widget/mode1', '/widget/tanks-blitz-challenge', '/alert/mode1',
+                 '/replay-live', '/widget-donors-top.html']) {
+    check(`GET ${p} (page)`, async () => {
+        const res = await fetch(`${BASE_URL}${p}`);
+        if (res.status !== 200) throw new Error('status ' + res.status);
+    });
+}
+
+check('GET /widget/donation-goal (no-cache заголовки виджетов)', async () => {
+    const res = await fetch(`${BASE_URL}/widget/donation-goal`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const cc = res.headers.get('cache-control') || '';
+    if (!cc.includes('no-store') && !cc.includes('no-cache')) throw new Error('cache-control: ' + cc);
 });
 
 async function main() {

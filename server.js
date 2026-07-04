@@ -1231,34 +1231,15 @@ app.post('/api/widget-assets/upload-gifs', express.json({ limit: '15mb' }), (req
     }
 });
 
-app.get('/widget-donors-top.html', (req, res) => {
-    res.set({
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-    });
-    res.sendFile(path.join(__dirname, 'public', 'widget-donors-top.html'));
+// HTML-страницы/OBS-оверлеи вынесены в src/modules/pages.
+// ВАЖНО: registerEarlyPages — ДО express.static (переопределяет Cache-Control).
+const { createPagesModule } = require('./src/modules/pages');
+const pagesModule = createPagesModule({
+    appRoot: __dirname,
+    razblogEnabled: RAZBLOG_ENABLED,
+    razblogArchiveDir: RAZBLOG_ARCHIVE_DIR
 });
-app.get('/donation-driven-widget', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'donation-driven-widget.html'));
-});
-
-function sendReplayLivePublic(res, filename) {
-    res.set({
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-    });
-    res.sendFile(path.join(__dirname, 'public', filename));
-}
-
-app.get('/replay-live', (req, res) => sendReplayLivePublic(res, 'replay-live.html'));
-app.get('/widget-replay-live', (req, res) => sendReplayLivePublic(res, 'widget-replay-live.html'));
-app.get('/widget-replay-summary', (req, res) => sendReplayLivePublic(res, 'widget-replay-summary.html'));
-app.get('/widget-replay-summary-carousel', (req, res) => sendReplayLivePublic(res, 'widget-replay-summary-carousel.html'));
-app.get('/widget-replay-summary-carousel-cards', (req, res) => sendReplayLivePublic(res, 'widget-replay-summary-carousel-cards.html'));
-app.get('/replay-summary.css', (req, res) => sendReplayLivePublic(res, 'replay-summary.css'));
-app.get('/replay-summary-ui.js', (req, res) => sendReplayLivePublic(res, 'replay-summary-ui.js'));
+pagesModule.registerEarlyPages(app);
 
 // Компоненты (sidebar/header) и стили меняются во время разработки чаще, чем
 // раз в час/сутки — агрессивный Cache-Control тут приводил к тому, что правки
@@ -4893,87 +4874,9 @@ wss.on('connection', (ws, req) => {
 // Broadcast to all clients
 // broadcastToClients вынесен в src/core/websocket.js (см. wsHub в начале файла)
 
-// Маршруты
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-app.get('/analytics', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'analytics.html'));
-});
-
-// /lesta-test, /lesta-api-test, /lesta-stats вынесены в src/modules/lesta-oauth
-
-app.get('/donatepay-test', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'donatepay-test.html'));
-});
-
-app.get('/dashboard/:mode', (req, res) => {
-    const mode = req.params.mode;
-    let file = 'mode1-frag-tracker.html';
-    
-    if (mode === 'mode2') file = 'mode2-timer.html';
-    
-    res.sendFile(path.join(__dirname, 'public', file));
-});
-
-// Прямые маршруты для режимов
-app.get('/mode1-frag-tracker', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'mode1-frag-tracker.html'));
-});
-
-app.get('/mode2-timer', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'mode2-timer.html'));
-});
-
-
-app.get('/widget/:mode', (req, res) => {
-    const mode = req.params.mode;
-    let file = 'widget-mode1.html';
-    let filePath = 'public';
-    
-    if (mode === 'mode2') file = 'widget-mode2.html';
-    else if (mode === 'mode3') file = 'widget-mode3.html';
-    else if (mode === 'marathon') file = 'widget-marathon.html';
-    else if (mode === 'donation-goal') {
-        file = 'donation-goal.html';
-        filePath = 'public/widget';
-    }
-    else if (mode === 'donation-bar') file = 'widget-donation-bar.html';
-    else if (mode === 'donation-driven') file = 'widget-donation-driven.html';
-    else if (mode === 'tanks-blitz-challenge') file = 'widget-tanks-blitz-challenge.html';
-    else if (mode === 'blitz-activity') file = 'widget-blitz-activity.html';
-    else if (mode === 'razblogirovka-gold') {
-        if (!RAZBLOG_ENABLED) {
-            return res.status(410).send('РазБЛОГировка 2026 отключена');
-        }
-        file = 'widget-razblogirovka-gold.html';
-        filePath = path.join(RAZBLOG_ARCHIVE_DIR, 'public');
-    }
-    
-    // Отключаем кэширование для виджетов
-    res.set({
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-    });
-    
-    res.sendFile(path.join(__dirname, filePath, file));
-});
-
-app.get('/alert/:mode', (req, res) => {
-    const mode = req.params.mode;
-    let file = 'alert-mode1.html';
-    
-    if (mode === 'mode2') file = 'alert-mode2.html';
-    else if (mode === 'mode3') file = 'alert-mode3.html';
-    
-    res.sendFile(path.join(__dirname, 'public', file));
-});
+// Маршруты страниц (/, /admin, /dashboard/:mode, /widget/:mode, /alert/:mode…)
+// вынесены в src/modules/pages (создан выше, до express.static).
+pagesModule.registerPages(app);
 
 // API для настройки DonatePay
 app.post('/api/donatepay-config', async (req, res) => {
