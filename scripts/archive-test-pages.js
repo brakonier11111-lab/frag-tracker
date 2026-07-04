@@ -21,7 +21,7 @@ const KEEP = new Set([
     'widget-stream-duration.html', 'widget-stream-duration-borderless.html',
     'widget-schedule.html', 'widget-roulette.html', 'widget-roulette-text.html',
     'widget-last-donation.html', 'widget-tournament-scores.html', 'widget-tournament-bracket.html',
-    'widget-donation-bar.html', 'rewards-manager.html', 'vkplay-rewards.html',
+    'widget-donation-bar.html', 'vkplay-rewards.html',
     'oauth-vkplay-implicit.html', 'components', 'styles', 'uploads', 'widget-assets', '_archive'
 ]);
 
