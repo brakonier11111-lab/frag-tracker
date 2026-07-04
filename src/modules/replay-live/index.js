@@ -33,6 +33,7 @@ const {
     DEFAULT_BATTLE_DURATION_SEC
 } = require('./replayTimeline');
 const { enrichPlayersWithTankNames, getVehicleMaxHp, ensureVehicleHpBlocking } = require('./vehicleNames');
+const { createReplayLiveRoutes } = require('./routes');
 
 const DEFAULT_REPLAYS_DIR = path.join(process.env.USERPROFILE || '', 'Documents', 'TanksBlitz', 'replays');
 const DEFAULT_GAME_INSTALL_DIR = 'E:\\Games\\Tanks_Blitz';
@@ -4246,139 +4247,27 @@ function createReplayLiveModule(deps) {
         });
     }
 
-    function registerRoutes(app) {
-        app.get('/api/replay-live', (req, res) => {
-            res.json({ success: true, data: getState() });
-        });
-
-        app.get('/api/replay-live/config', (req, res) => {
-            res.json({ success: true, config });
-        });
-
-        app.get('/api/replay-live/replays-list', (req, res) => {
-            const items = listReplayZipCandidates({ minSize: 50000 })
-                .sort((a, b) => b.mtime - a.mtime)
-                .slice(0, 40)
-                .map((item) => ({
-                    path: item.full,
-                    name: path.basename(item.full),
-                    folder: path.basename(path.dirname(item.full)),
-                    mtime: item.mtime,
-                    size: item.size
-                }));
-            res.json({ success: true, items });
-        });
-
-        app.post('/api/replay-live/play', (req, res) => {
-            const replayPath = String((req.body && req.body.path) || req.query.path || '').trim();
-            const result = activateManualReplayPath(replayPath, { reason: 'manual_play' });
-            if (!result.ok) {
-                return res.status(400).json({ success: false, error: result.error || 'invalid_path' });
-            }
-            res.json({ success: true, path: result.path, data: getState() });
-        });
-
-        app.put('/api/replay-live/config', (req, res) => {
-            const body = req.body || {};
-            const prevManualPath = (config.playbackReplayPath || '').trim();
-            const next = saveConfig({
-                replaysDir: body.replaysDir ? String(body.replaysDir).trim() : config.replaysDir,
-                gameInstallDir: body.gameInstallDir != null
-                    ? String(body.gameInstallDir).trim()
-                    : config.gameInstallDir,
-                extraReplaysDirs: body.extraReplaysDirs != null
-                    ? body.extraReplaysDirs
-                    : config.extraReplaysDirs,
-                playerName: body.playerName ? String(body.playerName).trim() : config.playerName,
-                pollIntervalMs: body.pollIntervalMs != null ? Number(body.pollIntervalMs) : config.pollIntervalMs,
-                pythonPath: body.pythonPath ? String(body.pythonPath).trim() : config.pythonPath,
-                playbackReplayPath: body.playbackReplayPath != null
-                    ? String(body.playbackReplayPath).trim()
-                    : config.playbackReplayPath,
-                autoPlaybackMinutes: body.autoPlaybackMinutes != null
-                    ? Number(body.autoPlaybackMinutes)
-                    : config.autoPlaybackMinutes,
-                playbackAccessMinutes: body.playbackAccessMinutes != null
-                    ? Number(body.playbackAccessMinutes)
-                    : config.playbackAccessMinutes,
-                playbackSpeed: body.playbackSpeed != null
-                    ? Number(body.playbackSpeed)
-                    : config.playbackSpeed,
-                watchReplayCache: body.watchReplayCache != null
-                    ? Boolean(body.watchReplayCache)
-                    : config.watchReplayCache,
-                playbackLoadDelaySec: body.playbackLoadDelaySec != null
-                    ? Number(body.playbackLoadDelaySec)
-                    : config.playbackLoadDelaySec
-            });
-            const nextManualPath = (next.playbackReplayPath || '').trim();
-            if (nextManualPath
-                && fs.existsSync(nextManualPath)
-                && normalizedReplayPath(nextManualPath) !== normalizedReplayPath(prevManualPath)) {
-                activateManualReplayPath(nextManualPath, {
-                    reason: 'config_manual_path',
-                    persist: false
-                });
-            } else {
-                startWatcher();
-                poll();
-            }
-            res.json({ success: true, config: next, data: getState() });
-        });
-
-        app.post('/api/replay-live/refresh', (req, res) => {
-            const body = req.body || {};
-            if (body.resetTracker || req.query.reset === '1') {
-                replayAccessTracker.reset();
-                replayCacheDiffTracker.reset();
-                timelineCache.reset();
-                replayBufCache.clear();
-                battleResultsCtxCache.clear();
-            }
-            if (body.resetPlaybackClock || req.query.rewind === '1') {
-                resetPlaybackClock();
-                if (state.playbackTimeline) {
-                    state.playbackTimeline.startedAt = playbackSession.startedAt;
-                    state.playbackTimeline.rewindAt = Date.now();
-                }
-            }
-            poll();
-            res.json({ success: true, data: getState() });
-        });
-    }
-
-    function sendPublicNoCache(res, ...parts) {
-        res.set({
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-        });
-        res.sendFile(path.join(deps.appRoot, 'public', ...parts));
-    }
-
-    function registerPages(app) {
-        app.get('/replay-live', (req, res) => {
-            sendPublicNoCache(res, 'replay-live.html');
-        });
-        app.get('/widget-replay-live', (req, res) => {
-            sendPublicNoCache(res, 'widget-replay-live.html');
-        });
-        app.get('/widget-replay-summary', (req, res) => {
-            sendPublicNoCache(res, 'widget-replay-summary.html');
-        });
-        app.get('/widget-replay-summary-carousel', (req, res) => {
-            sendPublicNoCache(res, 'widget-replay-summary-carousel.html');
-        });
-        app.get('/widget-replay-summary-carousel-cards', (req, res) => {
-            sendPublicNoCache(res, 'widget-replay-summary-carousel-cards.html');
-        });
-        app.get('/replay-summary.css', (req, res) => {
-            sendPublicNoCache(res, 'replay-summary.css');
-        });
-        app.get('/replay-summary-ui.js', (req, res) => {
-            sendPublicNoCache(res, 'replay-summary-ui.js');
-        });
-    }
+    const { registerRoutes, registerPages } = createReplayLiveRoutes({
+        appRoot: deps.appRoot,
+        getState,
+        getConfig: () => config,
+        saveConfig,
+        listReplayZipCandidates,
+        activateManualReplayPath,
+        normalizedReplayPath,
+        resetTrackers: () => {
+            replayAccessTracker.reset();
+            replayCacheDiffTracker.reset();
+            timelineCache.reset();
+            replayBufCache.clear();
+            battleResultsCtxCache.clear();
+        },
+        resetPlaybackClock,
+        getInternalState: () => state,
+        getPlaybackSession: () => playbackSession,
+        startWatcher,
+        poll
+    });
 
     function init() {
         startWatcher();

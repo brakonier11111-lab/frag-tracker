@@ -331,12 +331,58 @@ check('GET / (главная страница)', async () => {
 // Страничные роуты (src/modules/pages)
 for (const p of ['/admin', '/analytics', '/dashboard/mode2', '/mode1-frag-tracker',
                  '/widget/mode1', '/widget/tanks-blitz-challenge', '/alert/mode1',
-                 '/replay-live', '/widget-donors-top.html']) {
+                 '/replay-live', '/widget-replay-live', '/widget-replay-summary',
+                 '/widget-replay-summary-carousel', '/widget-replay-summary-carousel-cards',
+                 '/widget-donors-top.html']) {
     check(`GET ${p} (page)`, async () => {
         const res = await fetch(`${BASE_URL}${p}`);
         if (res.status !== 200) throw new Error('status ' + res.status);
     });
 }
+
+// Replay Live API (src/modules/replay-live/routes.js)
+check('GET /api/replay-live', async () => {
+    const res = await fetch(`${BASE_URL}/api/replay-live`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.success !== true || !json.data || typeof json.data.moduleVersion !== 'string') {
+        throw new Error('unexpected body: ' + JSON.stringify(json).slice(0, 200));
+    }
+});
+
+check('GET /api/replay-live/config', async () => {
+    const res = await fetch(`${BASE_URL}/api/replay-live/config`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.success !== true || !json.config || typeof json.config.replaysDir !== 'string') {
+        throw new Error('unexpected body: ' + JSON.stringify(json).slice(0, 200));
+    }
+});
+
+check('GET /api/replay-live/replays-list', async () => {
+    const res = await fetch(`${BASE_URL}/api/replay-live/replays-list`);
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.success !== true || !Array.isArray(json.items)) {
+        throw new Error('unexpected body: ' + JSON.stringify(json).slice(0, 200));
+    }
+});
+
+check('POST /api/replay-live/play (пустой path -> 400)', async () => {
+    const res = await fetch(`${BASE_URL}/api/replay-live/play`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: '' })
+    });
+    if (res.status !== 400) throw new Error('status ' + res.status);
+});
+
+check('POST /api/replay-live/refresh', async () => {
+    const res = await fetch(`${BASE_URL}/api/replay-live/refresh`, { method: 'POST' });
+    if (res.status !== 200) throw new Error('status ' + res.status);
+    const json = await res.json();
+    if (json.success !== true || !json.data) throw new Error('unexpected body: ' + JSON.stringify(json).slice(0, 200));
+});
 
 // Диагностические роуты (src/modules/diagnostics)
 check('GET /api/status', async () => {
