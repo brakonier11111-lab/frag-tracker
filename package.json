@@ -9,6 +9,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "init-db": "node init-db.js",
+    "test": "node --test \"tests/**/*.test.js\" && node scripts/test-donation-poll-filter.js",
+    "test:all": "npm test && npm run smoke-test && npm run test-pipeline && npm run test-lesta",
     "smoke-test": "node scripts/smoke-test.js",
     "test-pipeline": "node scripts/test-donation-pipeline.js",
     "test-lesta": "node scripts/test-lesta-sync.js",
