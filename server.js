@@ -36,7 +36,6 @@ const app = express();
 const server = http.createServer(app);
 const port = process.env.PORT || 3000;
 const { registerModules } = require('./src/registerModules');
-const { classifyDonationForPolling } = require('./src/core/donation-poll-filter');
 const { computeFragAward, computeTimerAward, computeCustomAward } = require('./src/core/donation-math');
 const { createDonationsStore } = require('./src/core/donations-store');
 const { createTemperatureModule } = require('./src/modules/temperature');
@@ -114,7 +113,7 @@ const appStateStore = createAppState({
     dbRead,
     onRowLoaded: (row) => {
         if (row && row.last_donation_id) {
-            try { lastSeenDonationId = row.last_donation_id.toString(); } catch {}
+            try { poller.setLastSeenDonationId(row.last_donation_id.toString()); } catch {}
         }
     }
 });
@@ -693,15 +692,8 @@ const analytics = new Analytics(db);
 
 /** Опрос DonationAlerts/DonatePay — включён по умолчанию (DONATION_POLLING=0 для отключения) */
 const DONATION_POLLING_ENABLED = process.env.DONATION_POLLING !== '0';
-let pollingInterval = null;
-let isPollingInProgress = false;
-let nextPollTimeout = null;
-let pollDelayMs = 5000;
-const MIN_POLL_MS = 5000;
-const MAX_POLL_MS = 30000;
 let processedDonationIds = new Set();
-let firstPollDone = false;
-let lastSeenDonationId = null; // cached from DB
+// Остальное состояние опроса живёт в donation-poller (см. const poller ниже).
 
 // Ensure DB has external stats columns (safe no-op if already exist)
 db.serialize(() => {
@@ -1929,7 +1921,7 @@ function loadDAToken() {
             
             // Запускаем опрос если есть хотя бы одна платформа
             if (DA_CONFIG.accessToken || DP_CONFIG.apiKey) {
-                startPollingDonationAlerts();
+                poller.startPollingDonationAlerts();
             }
             
             // Запускаем автосинхронизацию Lesta Games если настроена
@@ -2074,13 +2066,13 @@ app.get('/oauth/donationalerts/callback', async (req, res) => {
         console.log('✅ DonationAlerts OAuth успешно!');
         
         // Запускаем опрос после авторизации
-        startPollingDonationAlerts();
+        poller.startPollingDonationAlerts();
         
         // Дополнительная проверка донатов через 3 секунды
         setTimeout(() => {
-            if (!isPollingInProgress) {
+            if (!poller.isPollingInProgress()) {
                 console.log('🔄 Проверка донатов после авторизации DonationAlerts...');
-                checkForNewDonations();
+                poller.checkForNewDonations();
             }
         }, 3000);
         
@@ -2320,7 +2312,7 @@ app.post('/api/force-check-donations', async (req, res) => {
     console.log('🔄 Принудительная проверка донатов через API...');
     
     try {
-        await checkForNewDonations();
+        await poller.checkForNewDonations();
         res.json({ success: true, message: 'Проверка донатов выполнена' });
     } catch (error) {
         console.error('❌ Ошибка принудительной проверки:', error);
@@ -2334,18 +2326,18 @@ app.post('/api/force-check-new-donations', async (req, res) => {
     
     try {
         // Сбрасываем фильтры для проверки всех донатов
-        const originalFirstPollDone = firstPollDone;
-        const originalLastSeenDonationId = lastSeenDonationId;
+        const originalFirstPollDone = poller.getFirstPollDone();
+        const originalLastSeenDonationId = poller.getLastSeenDonationId();
         
-        firstPollDone = false;
-        lastSeenDonationId = null;
+        poller.setFirstPollDone(false);
+        poller.setLastSeenDonationId(null);
         
         console.log('🔄 Сброшены фильтры, проверяем все донаты...');
-        await checkForNewDonations();
+        await poller.checkForNewDonations();
         
         // Восстанавливаем фильтры
-        firstPollDone = originalFirstPollDone;
-        lastSeenDonationId = originalLastSeenDonationId;
+        poller.setFirstPollDone(originalFirstPollDone);
+        poller.setLastSeenDonationId(originalLastSeenDonationId);
         
         res.json({ 
             success: true, 
@@ -2363,19 +2355,19 @@ app.post('/api/reset-last-seen-id', async (req, res) => {
     console.log('🔄 Сброс lastSeenDonationId...');
     
     try {
-        const originalLastSeenDonationId = lastSeenDonationId;
-        lastSeenDonationId = null;
+        const originalLastSeenDonationId = poller.getLastSeenDonationId();
+        poller.setLastSeenDonationId(null);
         
         console.log(`🔄 lastSeenDonationId сброшен: ${originalLastSeenDonationId} -> null`);
         
         // Принудительно проверяем донаты
-        await checkForNewDonations();
+        await poller.checkForNewDonations();
         
         res.json({ 
             success: true, 
             message: 'lastSeenDonationId сброшен и выполнена проверка донатов',
             originalId: originalLastSeenDonationId,
-            newId: lastSeenDonationId
+            newId: poller.getLastSeenDonationId()
         });
     } catch (error) {
         console.error('❌ Ошибка сброса lastSeenDonationId:', error);
@@ -2674,348 +2666,7 @@ app.post('/webhook/donatepay', (req, res) => {
 });
 
 // Опрос DonationAlerts и DonatePay
-function startPollingDonationAlerts() {
-    if (!DONATION_POLLING_ENABLED) {
-        return;
-    }
-    if (pollingInterval) {
-        clearInterval(pollingInterval);
-        pollingInterval = null;
-    }
-    if (nextPollTimeout) {
-        clearTimeout(nextPollTimeout);
-        nextPollTimeout = null;
-    }
-
-    console.log('🔄 Запуск опроса DonationAlerts и DonatePay...');
-    firstPollDone = false;
-    
-    // Загружаем все ID донатов из базы данных при старте, чтобы не обрабатывать их повторно
-    loadProcessedDonationIds(() => {
-        firstPollDone = true;
-        scheduleNextPoll(MIN_POLL_MS);
-    });
-    
-    pollingInterval = setInterval(() => {
-        if (!isPollingInProgress) {
-            checkForNewDonations();
-        }
-        checkDiscountExpiration();
-    }, 8000);
-}
-
-function checkDiscountExpiration() {
-    const state = appStateStore.getCachedState();
-    if (!state) return;
-    const now = Math.floor(Date.now() / 1000);
-    const discountUntil = state.timer_discount_until_ts || 0;
-    if (state.timer_discount > 0 && discountUntil > 0 && now >= discountUntil) {
-        updateAppState({
-            timer_discount: 0,
-            timer_discount_until_ts: 0
-        });
-    }
-}
-
-function scheduleNextPoll(delay) {
-    const safeDelay = Math.min(Math.max(delay || pollDelayMs, MIN_POLL_MS), MAX_POLL_MS);
-    pollDelayMs = safeDelay;
-    if (nextPollTimeout) clearTimeout(nextPollTimeout);
-    nextPollTimeout = setTimeout(checkForNewDonations, safeDelay);
-}
-
-// Загрузка всех ID донатов из базы данных при старте
-function loadProcessedDonationIds(callback) {
-    console.log('📋 Загрузка обработанных донатов из базы данных...');
-    db.all('SELECT id FROM donations ORDER BY created_at DESC LIMIT 1000', (err, rows) => {
-        if (err) {
-            console.error('❌ Ошибка загрузки донатов из БД:', err);
-            if (callback) callback();
-            return;
-        }
-        
-        const count = rows ? rows.length : 0;
-        processedDonationIds.clear();
-        
-        if (rows && rows.length > 0) {
-            rows.forEach(row => {
-                if (row.id) {
-                    processedDonationIds.add(row.id.toString());
-                }
-            });
-            console.log(`✅ Загружено ${count} ID донатов из базы данных (будут пропущены при первом опросе)`);
-        } else {
-            console.log('ℹ️ В базе данных нет донатов');
-        }
-        
-        if (callback) callback();
-    });
-}
-
-// checkDonationExists вынесена в src/modules/donation-platforms
-
-async function checkForNewDonations() {
-    if (!DONATION_POLLING_ENABLED) {
-        return;
-    }
-    if (!DA_CONFIG.accessToken && !DP_CONFIG.apiKey) {
-        console.log('⏳ Ожидание настройки DonationAlerts или DonatePay...');
-        scheduleNextPoll(MAX_POLL_MS);
-        return;
-    }
-
-    if (isPollingInProgress) {
-        console.log('⏭️ Предыдущий опрос ещё выполняется, пропуск');
-        scheduleNextPoll(pollDelayMs);
-        return;
-    }
-
-    isPollingInProgress = true;
-    try {
-        // Если DonatePay настроен, но userId не получен, пытаемся получить (опционально для Centrifugo)
-        // ВАЖНО: Основной способ получения донатов - /newTransactions API (как в RutonyChat)
-        // Centrifugo используется только как дополнительный источник
-        if (DP_CONFIG.apiKey && !DP_CONFIG.userId) {
-            const lastError = DP_CONFIG.lastError;
-            const now = Date.now();
-            const errorTimestamp = lastError?.timestamp || 0;
-            const timeSinceError = lastError && lastError.status === 429 ? (now - errorTimestamp) : Infinity;
-            
-            // Увеличиваем таймаут до 10 минут для более безопасного подхода
-            // Используем экспоненциальный backoff: 5 мин -> 10 мин -> 20 мин
-            let timeoutMs = 300000; // 5 минут по умолчанию
-            if (lastError && lastError.status === 429) {
-                // Подсчитываем количество ошибок 429 только если это новая ошибка
-                // Проверяем, не была ли уже засчитана эта ошибка
-                const lastErrorTimestamp = lastError.timestamp || 0;
-                const lastCountedErrorTimestamp = DP_CONFIG._last429ErrorTimestamp || 0;
-                
-                // Если это новая ошибка (новый timestamp), увеличиваем счетчик
-                if (lastErrorTimestamp !== lastCountedErrorTimestamp) {
-                    const errorCount = (DP_CONFIG._429ErrorCount || 0) + 1;
-                    DP_CONFIG._429ErrorCount = errorCount;
-                    DP_CONFIG._last429ErrorTimestamp = lastErrorTimestamp;
-                    // Экспоненциальный backoff: 5, 10, 20 минут
-                    timeoutMs = Math.min(300000 * Math.pow(2, errorCount - 1), 1200000); // Максимум 20 минут
-                    console.log(`⏱️ Новая ошибка 429 #${errorCount}, таймаут увеличен до ${timeoutMs / 60000} минут`);
-                } else {
-                    // Используем уже установленный таймаут для этой ошибки
-                    const errorCount = DP_CONFIG._429ErrorCount || 1;
-                    timeoutMs = Math.min(300000 * Math.pow(2, errorCount - 1), 1200000);
-                }
-            }
-            
-            // Детальное логирование для отладки
-            if (lastError && lastError.status === 429) {
-                const secondsSinceError = Math.floor(timeSinceError / 1000);
-                const minutesSinceError = Math.floor(secondsSinceError / 60);
-                const secondsRemaining = Math.floor((timeoutMs - timeSinceError) / 1000);
-                const minutesRemaining = Math.ceil(secondsRemaining / 60);
-                
-                console.log(`⏱️ Статус ошибки 429: прошло ${minutesSinceError} мин ${secondsSinceError % 60} сек`);
-                console.log(`⏱️ Осталось ждать: ${minutesRemaining} мин ${secondsRemaining % 60} сек`);
-                console.log(`💡 Используйте кнопку "🔄 СБРОСИТЬ ОШИБКУ 429" в админке для немедленного сброса`);
-            }
-            
-            // Пытаемся получить информацию о пользователе только если не было ошибки 429 недавно
-            // И только если прошло достаточно времени с последней попытки (минимум 1 минута между попытками)
-            const lastAttempt = DP_CONFIG.lastUserInfoRequest || 0;
-            const minIntervalBetweenAttempts = 60000; // 1 минута между попытками
-            const canAttempt = (now - lastAttempt) >= minIntervalBetweenAttempts;
-            
-            if ((!lastError || lastError.status !== 429 || timeSinceError > timeoutMs) && canAttempt) {
-                if (timeSinceError > timeoutMs && lastError && lastError.status === 429) {
-                    console.log('✅ Таймаут ошибки 429 истек, пробуем получить userId снова');
-                    DP_CONFIG.lastError = null;
-                    DP_CONFIG._429ErrorCount = 0; // Сбрасываем счетчик ошибок
-                    DP_CONFIG._last429ErrorTimestamp = null; // Сбрасываем timestamp последней ошибки
-                    // Очищаем время ошибки в БД
-                    updateAppState({
-                        dp_last_429_error_ts: null
-                    }, (err) => {
-                        if (err) {
-                            console.error('❌ Ошибка очистки времени ошибки 429:', err);
-                        } else {
-                            console.log('✅ Время ошибки 429 очищено из БД');
-                        }
-                    });
-                }
-                DP_CONFIG.lastUserInfoRequest = now; // Сохраняем время попытки
-                console.log('🔄 Попытка получить информацию о пользователе DonatePay (только для Centrifugo)...');
-                console.log('⏳ Это может занять несколько секунд...');
-                const userInfo = await getDonatePayUser();
-                if (userInfo && DP_CONFIG.userId && !donationPlatformsModule.isCentrifugoConnected()) {
-                    // Подключаемся к Centrifugo если еще не подключены
-                    console.log('📡 Подключение к Centrifugo для real-time уведомлений DonatePay...');
-                    await connectDonatePayCentrifugo();
-                }
-            } else if (!canAttempt) {
-                const secondsUntilNextAttempt = Math.ceil((minIntervalBetweenAttempts - (now - lastAttempt)) / 1000);
-                console.log(`⏸️ Слишком рано для повторной попытки получения userId (осталось: ${secondsUntilNextAttempt} сек)`);
-            } else {
-                const minutesLeft = Math.ceil((timeoutMs - timeSinceError) / 60000);
-                const secondsLeft = Math.ceil((timeoutMs - timeSinceError) / 1000) % 60;
-                console.log(`⏸️ Пропуск получения userId из-за недавней ошибки 429 (осталось ждать: ~${minutesLeft} мин ${secondsLeft} сек)`);
-                console.log(`💡 Centrifugo будет подключен автоматически после получения userId`);
-                console.log(`💡 Используйте кнопку "🔄 СБРОСИТЬ ОШИБКУ 429" в админке для немедленного сброса`);
-            }
-        }
-        
-        // Проверяем статус Centrifugo подключения
-        if (DP_CONFIG.apiKey && DP_CONFIG.userId) {
-            if (!donationPlatformsModule.isCentrifugoConnected()) {
-                console.log('⚠️ Centrifugo не подключен, но userId есть. Пытаемся подключиться...');
-                await connectDonatePayCentrifugo();
-            } else {
-                // Проверяем состояние подключения (если есть метод state)
-                try {
-                    const state = donationPlatformsModule.getCentrifugoState();
-                    if (state === 'disconnected' || state === 'closed') {
-                        console.log('⚠️ Centrifugo отключен, пытаемся переподключиться...');
-                        await connectDonatePayCentrifugo();
-                    } else if (state === 'connected') {
-                        // Все хорошо, подключение активно
-                        // console.log('✅ Centrifugo подключен и активен');
-                    }
-                } catch (e) {
-                    // Если нет свойства state, просто проверяем наличие объекта
-                    // console.log('✅ Centrifugo объект существует');
-                }
-            }
-        } else if (DP_CONFIG.apiKey && !DP_CONFIG.userId) {
-            console.log('⏳ Ожидание получения userId для подключения к Centrifugo...');
-            console.log('💡 После получения userId донаты будут приходить в real-time через Centrifugo');
-        }
-        
-        // Получаем донаты из всех источников
-        // DonatePay: используем ТОЛЬКО /newTransactions API (как в RutonyChat)
-        // Приоритетная проверка DonatePay для быстрого получения донатов
-        const dpNewTransactionsPromise = DP_CONFIG.apiKey ? getDonatePayNewTransactions() : Promise.resolve([]);
-        const daDonationsPromise = DA_CONFIG.accessToken ? getDonationsFromAPI() : Promise.resolve([]);
-        
-        // Сначала проверяем DonatePay (приоритет), затем DonationAlerts
-        const dpNewTransactions = await dpNewTransactionsPromise;
-        const daDonations = await daDonationsPromise;
-        
-        // DonatePay донаты из /newTransactions API
-        const dpDonations = dpNewTransactions || [];
-        
-        // Логируем количество донатов из каждого источника
-        const centrifugoStatus = donationPlatformsModule.isCentrifugoConnected() ?
-            (donationPlatformsModule.getCentrifugoState() === 'connected' ? '✅ Подключен' : `⚠️ ${donationPlatformsModule.getCentrifugoState() || 'Не подключен'}`) :
-            '❌ Не инициализирован';
-        
-        const allDonations = [...daDonations, ...dpDonations];
-        pollLog(`Poll: DA=${daDonations.length} DP=${dpDonations.length} centrifugo=${centrifugoStatus}`);
-        
-        if (allDonations.length > 0) {
-            // Фильтруем донаты по времени - обрабатываем только за последние 2 дня
-            const now = Date.now();
-            const maxAgeMs = 2 * 24 * 60 * 60 * 1000; // 2 дня в миллисекундах
-            let skippedOldCount = 0;
-            let skippedProcessedCount = 0;
-            let skippedByTimeCount = 0;
-            
-            for (let i = allDonations.length - 1; i >= 0; i--) {
-                const donation = allDonations[i];
-                const verdict = classifyDonationForPolling(donation, {
-                    processedIds: processedDonationIds,
-                    lastSeenDonationId,
-                    nowMs: now,
-                    maxAgeMs
-                });
-                const donationId = verdict.donationId;
-                const isNumericId = verdict.isNumericId;
-
-                if (verdict.action === 'skip_old_by_time') {
-                    skippedByTimeCount++;
-                    continue;
-                }
-                if (verdict.action === 'skip_already_processed') {
-                    skippedProcessedCount++;
-                    continue;
-                }
-                if (verdict.action === 'skip_old_by_id') {
-                    skippedOldCount++;
-                    continue;
-                }
-
-                console.log(`💰 Новый донат: ${donation.username} — ${donation.amount}${donation.currency || '₽'} (${donation.platform || 'unknown'}, ID ${donationId})`);
-
-                processDonation({
-                    id: donationId,
-                    username: donation.username,
-                    amount: parseFloat(donation.amount),
-                    message: donation.message || '',
-                    currency: donation.currency || 'RUB',
-                    created_at: donation.created_at,
-                    platform: donation.platform || 'unknown'
-                }, true);
-                
-                processedDonationIds.add(donationId);
-                
-                // Для DonatePay донатов - немедленная проверка новых донатов для ускорения
-                if (donation.platform === 'donatepay') {
-                    setTimeout(() => {
-                        if (!isPollingInProgress) {
-                            console.log('⚡ Немедленная проверка новых DonatePay донатов после обработки...');
-                            checkForNewDonations();
-                        }
-                    }, 500); // Проверка через 0.5 секунды после обработки доната
-                }
-                
-                // Обновляем lastSeenDonationId только для числовых ID
-                if (isNumericId && (!lastSeenDonationId || parseInt(donationId) > parseInt(lastSeenDonationId))) {
-                    lastSeenDonationId = donationId;
-                }
-                
-                if (processedDonationIds.size > 100) {
-                    const first = processedDonationIds.values().next().value;
-                    processedDonationIds.delete(first);
-                }
-            }
-            
-            // Логируем статистику пропущенных донатов (только если есть что пропускать)
-            pollLog(`Skipped donations: old=${skippedByTimeCount} processed=${skippedProcessedCount} id=${skippedOldCount}`);
-
-            // Сохраняем последний увиденный ID
-            if (lastSeenDonationId) {
-                getAppState((state) => {
-                    if (state) {
-                        updateAppState({ last_donation_id: lastSeenDonationId }, () => {});
-                    }
-                });
-            }
-        }
-        // успешный опрос — уменьшим задержку до базовой
-        scheduleNextPoll(5000);
-    } catch (error) {
-        const status = error.response?.status;
-        if (status === 429) {
-            // Превышен лимит запросов - увеличиваем интервал значительно
-            console.warn('⚠️ Превышен лимит запросов API. Увеличиваем интервал опроса до 60 секунд.');
-            scheduleNextPoll(60000); // 60 секунд при rate limit
-        } else {
-            console.error('❌ Ошибка опроса донатных платформ:', error.message);
-            // экспоненциальный бекофф с ограничением
-            const next = Math.min(pollDelayMs * 2, MAX_POLL_MS);
-            scheduleNextPoll(next);
-        }
-    } finally {
-        isPollingInProgress = false;
-        if (!firstPollDone) firstPollDone = true;
-    }
-}
-
-// Принудительная проверка новых донатов
-async function forceCheckDonations() {
-    console.log('🔄 Принудительная проверка донатов...');
-    if (!isPollingInProgress) {
-        await checkForNewDonations();
-    } else {
-        console.log('⏭️ Опрос уже выполняется, пропуск принудительной проверки');
-    }
-}
+// Цикл опроса донат-платформ вынесен в src/core/donation-poller.js (poller ниже).
 
 // Функция для автообновления статистики фрагов
 async function autoRefreshFragStats() {
@@ -3049,7 +2700,7 @@ async function autoRefreshFragStats() {
             
             // Проверяем донаты если настроено
             if (state.da_access_token) {
-                forceCheckDonations();
+                poller.forceCheckDonations();
             }
             
             console.log('✅ Автообновление статистики запущено');
@@ -3626,9 +3277,9 @@ app.post('/api/manage-units', (req, res) => {
                 
                 // Проверяем донаты после изменения фрагов
                 setTimeout(() => {
-                    if (!isPollingInProgress) {
+                    if (!poller.isPollingInProgress()) {
                         console.log('🔄 Проверка донатов после изменения фрагов...');
-                        checkForNewDonations();
+                        poller.checkForNewDonations();
                     }
                 }, 500);
                 
@@ -3722,9 +3373,9 @@ wss.on('connection', (ws, req) => {
     
     // Автоматическая проверка донатов при подключении клиента
     setTimeout(() => {
-        if (!isPollingInProgress) {
+        if (!poller.isPollingInProgress()) {
             console.log(`🔄 Проверка донатов при подключении клиента ${clientId}...`);
-            checkForNewDonations();
+            poller.checkForNewDonations();
         }
     }, 1000);
     
@@ -3853,14 +3504,14 @@ app.post('/api/donatepay-config', async (req, res) => {
                                 await connectDonatePayCentrifugo();
                                 
                                 // Запускаем опрос донатов если еще не запущен
-                                if (!pollingInterval) {
-                                    startPollingDonationAlerts();
+                                if (!poller.hasPollingInterval()) {
+                                    poller.startPollingDonationAlerts();
                                 } else {
                                     // Если опрос уже запущен, принудительно проверяем донаты через 5 секунд
                                     setTimeout(() => {
-                                        if (!isPollingInProgress) {
+                                        if (!poller.isPollingInProgress()) {
                                             console.log('🔄 Проверка донатов после настройки DonatePay...');
-                                            checkForNewDonations();
+                                            poller.checkForNewDonations();
                                         }
                                     }, 5000);
                                 }
@@ -3886,8 +3537,8 @@ app.post('/api/donatepay-config', async (req, res) => {
                                         if (retryUserInfo) {
                                             console.log('✅ Информация о пользователе получена при повторной попытке');
                                             await connectDonatePayCentrifugo();
-                                            if (!pollingInterval) {
-                                                startPollingDonationAlerts();
+                                            if (!poller.hasPollingInterval()) {
+                                                poller.startPollingDonationAlerts();
                                             }
                                         }
                                     }, 120000); // 2 минуты
@@ -4872,9 +4523,9 @@ app.post('/api/manual-donation', (req, res) => {
         
         // Запускаем проверку донатов после ручного добавления
         setTimeout(() => {
-            if (!isPollingInProgress) {
+            if (!poller.isPollingInProgress()) {
                 console.log('🔄 Проверка донатов после ручного добавления...');
-                checkForNewDonations();
+                poller.checkForNewDonations();
             }
         }, 500);
         
@@ -5986,8 +5637,8 @@ async function initializeDonatePay() {
             await connectDonatePayCentrifugo();
             
             // Запускаем опрос донатов
-            if (!pollingInterval) {
-                startPollingDonationAlerts();
+            if (!poller.hasPollingInterval()) {
+                poller.startPollingDonationAlerts();
             }
         }
     } catch (error) {
@@ -6048,6 +5699,25 @@ const getDonatePayUser = donationPlatformsModule.getDonatePayUser;
 const getDonatePayNewTransactions = donationPlatformsModule.getDonatePayNewTransactions;
 const connectDonatePayCentrifugo = donationPlatformsModule.connectDonatePayCentrifugo;
 
+const { createDonationPoller } = require('./src/core/donation-poller');
+const poller = createDonationPoller({
+    db,
+    pollLog,
+    getAppState,
+    updateAppState,
+    appStateStore,
+    DA_CONFIG,
+    DP_CONFIG,
+    DONATION_POLLING_ENABLED,
+    processedDonationIds,
+    processDonation,
+    getDonationsFromAPI,
+    getDonatePayUser,
+    getDonatePayNewTransactions,
+    connectDonatePayCentrifugo,
+    donationPlatformsModule
+});
+
 // Диагностические/тестовые роуты (вынесены в src/modules/diagnostics).
 // Регистрация здесь, а не в registerModules: deps завязаны на функции
 // donation-platforms и polling-переменные, живущие в server.js.
@@ -6064,11 +5734,11 @@ createDiagnosticsModule({
     isCentrifugoConnected: donationPlatformsModule.isCentrifugoConnected,
     getCentrifugoState: donationPlatformsModule.getCentrifugoState,
     getPollingState: () => ({
-        isPollingInProgress,
-        pollDelayMs,
-        hasPollingInterval: !!pollingInterval,
-        firstPollDone,
-        lastSeenDonationId,
+        isPollingInProgress: poller.isPollingInProgress(),
+        pollDelayMs: poller.getPollDelayMs(),
+        hasPollingInterval: poller.hasPollingInterval(),
+        firstPollDone: poller.getFirstPollDone(),
+        lastSeenDonationId: poller.getLastSeenDonationId(),
         processedDonationIdsCount: processedDonationIds.size
     })
 }).registerRoutes(app);
@@ -6206,7 +5876,7 @@ FRAG_SERVER_READY:${port}
     if (!DONATION_POLLING_ENABLED) {
         console.log('⏸️ Опрос донатов отключён (DONATION_POLLING=0)');
     }
-    setInterval(checkDiscountExpiration, 10000);
+    setInterval(() => poller.checkDiscountExpiration(), 10000);
 
     if (process.env.VKPLAY_POLLING !== '1') {
         console.log('⏸️ VK Play polling отключён (VKPLAY_POLLING=1 для включения)');
@@ -6244,7 +5914,7 @@ FRAG_SERVER_READY:${port}
     if (DONATION_POLLING_ENABLED) {
         setTimeout(() => {
             console.log('🔄 Запуск автоматического опроса донатов...');
-            startPollingDonationAlerts();
+            poller.startPollingDonationAlerts();
         }, 2000);
     }
     
@@ -6764,9 +6434,7 @@ setInterval(() => {
 // Graceful shutdown
 process.on('SIGINT', () => {
     console.log('\n🛑 Остановка сервера...');
-    if (pollingInterval) {
-        clearInterval(pollingInterval);
-    }
+    poller.stopPolling();
     if (timerDbFlushTimeout) {
         clearTimeout(timerDbFlushTimeout);
         timerDbFlushTimeout = null;
