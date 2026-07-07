@@ -121,7 +121,14 @@ body{color:#eaf1ff;min-height:100vh;overflow-x:hidden;
                 </div>
                 <div class="cfg-row" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.08)">
                     <label>Цена челленджа на плашке виджета<span class="hint">только надпись «от N р», на создание челленджей не влияет</span></label>
-                    <input type="text" inputmode="decimal" id="cfgThreshold" value="500" onchange="saveThreshold()">
+                    <input type="text" inputmode="decimal" id="cfgThreshold" value="500" onchange="saveConfig()">
+                </div>
+                <div class="cfg-row">
+                    <label>Дополнительная плашка на виджете<span class="hint">между доской челленджей и плашкой с ценой; можно включить и задать свой текст</span></label>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+                        <input type="checkbox" id="cfgBannerEnabled" onchange="saveConfig()">
+                        <input type="text" id="cfgBannerText" placeholder="Текст плашки" maxlength="200" onchange="saveConfig()">
+                    </div>
                 </div>
             </div>
 
@@ -160,7 +167,10 @@ function load(){
 
 function render(){
     renderOrders();
-    document.getElementById('cfgThreshold').value = (DATA.config && DATA.config.thresholdAmount) || 500;
+    const cfg = DATA.config || {};
+    document.getElementById('cfgThreshold').value = cfg.thresholdAmount || 500;
+    document.getElementById('cfgBannerEnabled').checked = !!cfg.bannerEnabled;
+    document.getElementById('cfgBannerText').value = cfg.bannerText || '';
 }
 
 const STATUS_LABEL = { pending:'В очереди', active:'Идёт', done:'Выполнено', failed:'Провалено' };
@@ -203,9 +213,11 @@ function del(id){
         .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); } });
 }
 
-function saveThreshold(){
+function saveConfig(){
     const thresholdAmount = parseAmount(document.getElementById('cfgThreshold').value);
-    fetch('/api/boss-orders/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ thresholdAmount }) })
+    const bannerEnabled = document.getElementById('cfgBannerEnabled').checked;
+    const bannerText = document.getElementById('cfgBannerText').value.trim();
+    fetch('/api/boss-orders/config', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ thresholdAmount, bannerEnabled, bannerText }) })
         .then(r=>r.json()).then(d=>{ if(d.success){ DATA=d; render(); toast('Сохранено'); } });
 }
 

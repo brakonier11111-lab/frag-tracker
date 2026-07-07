@@ -23,6 +23,7 @@ function initBossOrdersSchema(db) {
             "UPDATE boss_orders_config SET header_text = 'ЧЕЛЛЕНДЖ ОТ ЗРИТЕЛЯ' WHERE id = 1 AND header_text = 'ПРИКАЗ ОТ ЗРИТЕЛЯ'",
             () => {}
         );
+        db.run('ALTER TABLE boss_orders_config ADD COLUMN header_enabled INTEGER NOT NULL DEFAULT 0', () => {});
     });
 
     db.run(`CREATE TABLE IF NOT EXISTS boss_orders (

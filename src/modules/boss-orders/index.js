@@ -42,7 +42,11 @@ function createBossOrdersModule(deps) {
                 // разруливает порядок нескольких приказов, созданных подряд за 1 секунду
                 `SELECT * FROM boss_orders WHERE status != 'cancelled' ORDER BY created_at DESC, id DESC LIMIT 50`,
                 (err, rows) => {
-                    const cfgOut = { thresholdAmount: Number(config.threshold_amount) || 0 };
+                    const cfgOut = {
+                        thresholdAmount: Number(config.threshold_amount) || 0,
+                        bannerEnabled: !!Number(config.header_enabled),
+                        bannerText: String(config.header_text || '').trim()
+                    };
                     if (err) {
                         console.error('❌ Ошибка чтения boss_orders:', err);
                         return callback({ config: cfgOut, orders: [], active: null, boardOrders: [] });
@@ -72,18 +76,30 @@ function createBossOrdersModule(deps) {
             getOrdersSnapshot((snapshot) => res.json(Object.assign({ success: true }, snapshot)));
         });
 
-        // Цена челленджа — только для плашки на виджете, доната или автосоздания не запускает
+        // Настройки виджета: цена челленджа и опциональная средняя плашка с произвольным текстом
         app.put('/api/boss-orders/config', (req, res) => {
-            const thresholdAmount = Math.max(0, Number(req.body && req.body.thresholdAmount) || 0);
-            db.run(
-                `UPDATE boss_orders_config SET threshold_amount = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1`,
-                [thresholdAmount],
-                (err) => {
-                    if (err) return res.status(500).json({ success: false, error: 'Ошибка сохранения' });
-                    broadcastUpdate();
-                    getOrdersSnapshot((snapshot) => res.json(Object.assign({ success: true }, snapshot)));
-                }
-            );
+            const body = req.body || {};
+            getConfig((cfgErr, config) => {
+                if (cfgErr) return res.status(500).json({ success: false, error: 'Ошибка чтения настроек' });
+                const thresholdAmount = body.thresholdAmount !== undefined
+                    ? Math.max(0, Number(body.thresholdAmount) || 0)
+                    : Math.max(0, Number(config.threshold_amount) || 0);
+                const headerEnabled = body.bannerEnabled !== undefined
+                    ? (body.bannerEnabled ? 1 : 0)
+                    : (Number(config.header_enabled) || 0);
+                const headerText = body.bannerText !== undefined
+                    ? String(body.bannerText || '').trim().slice(0, 200)
+                    : String(config.header_text || '').trim().slice(0, 200);
+                db.run(
+                    `UPDATE boss_orders_config SET threshold_amount = ?, header_enabled = ?, header_text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1`,
+                    [thresholdAmount, headerEnabled, headerText],
+                    (err) => {
+                        if (err) return res.status(500).json({ success: false, error: 'Ошибка сохранения' });
+                        broadcastUpdate();
+                        getOrdersSnapshot((snapshot) => res.json(Object.assign({ success: true }, snapshot)));
+                    }
+                );
+            });
         });
 
         // Ручное создание приказа стримером/модератором — единственный способ
