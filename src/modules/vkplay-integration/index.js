@@ -23,7 +23,7 @@ const express = require('express');
 const { createRoleRewards } = require('./roleRewards');
 
 function createVkplayIntegrationModule(deps) {
-    const { db, saveIntegration, loadIntegration, withApiQueue, broadcastToClients, wss } = deps;
+    const { db, saveIntegration, loadIntegration, withApiQueue, wss } = deps;
     const port = process.env.PORT || 3000;
 
     let vkplayIntegration = {
@@ -522,10 +522,6 @@ function createVkplayIntegrationModule(deps) {
         wss
     };
     const {
-        getUserRoles,
-        userHasRole,
-        sendChatMessage,
-        cancelRewardActivation,
         getUserInfo,
         saveRoleHistory,
         assignRoleToUser
@@ -571,6 +567,11 @@ function createVkplayIntegrationModule(deps) {
 
     async function connectVKPlayRewardsWebSocket() {
         if (!VKPLAY_POLLING_ENABLED) return;
+        // не копим дублирующиеся таймеры переподключения
+        if (vkplayRewardsWsReconnectTimeout) {
+            clearTimeout(vkplayRewardsWsReconnectTimeout);
+            vkplayRewardsWsReconnectTimeout = null;
+        }
         if (!vkplayIntegration.connected || !vkplayIntegration.tokens || !vkplayIntegration.channelUrl) {
             return;
         }

@@ -718,34 +718,6 @@ function mergeCombatHitEvents(pl33Hits, ramHits, splashHits) {
         .sort((a, b) => a.clock - b.clock || a.entityId - b.entityId);
 }
 
-function reconcileEntityHitsWithFinal(entityHits, final) {
-    if (!entityHits.length) return [];
-
-    const sorted = entityHits
-        .slice()
-        .sort((a, b) => a.clock - b.clock || String(a.source).localeCompare(String(b.source)));
-    const rawSum = sorted.reduce((sum, hit) => sum + (hit.damage || 0), 0);
-
-    if (!final || final <= 0) return sorted;
-    if (rawSum === final) return sorted;
-
-    if (rawSum < final) {
-        const out = sorted.map((hit) => Object.assign({}, hit));
-        const last = out[out.length - 1];
-        out.push({
-            clock: last.clock,
-            entityId: last.entityId,
-            damage: final - rawSum,
-            victimId: 0,
-            penetrated: false,
-            source: 'extra'
-        });
-        return out;
-    }
-
-    return normalizeHitSum(sorted, final);
-}
-
 function isSupplementaryCombatHit(hit) {
     return hit && (hit.source === 'ram' || hit.source === 'splash');
 }

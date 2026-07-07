@@ -71,7 +71,6 @@ function createBlitzChallengeModule(deps) {
 
     function resolveBlitzHeaderTexts(row) {
         row = row || {};
-        const active = row.active_type || 'winrate';
         const parsed = safeJsonParse(row.header_texts, {});
         const hasJson = parsed && typeof parsed === 'object' && (parsed.winrate || parsed.damage || parsed.medals);
         const texts = {

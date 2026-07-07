@@ -2,61 +2,28 @@
 
 const fs = require('fs');
 const path = require('path');
-const { parseDataReplayBuffer, mergePlayerDamage, parseSubtype55VehicleCodes } = require('./replayParser');
-const { parseFinishedReplay, readMetaFromZip } = require('./battleResults');
-const { parseBattleResultsContext, extractDataReplayFromZip, detectReplayDataEntryInZip, enrichPlayersWithCombatStats } = require('./battleResultsParser');
-const { shouldUseBattleResultsStats, isReplayRecordingComplete } = require('./replayCompleteness');
-const { createReplayCacheDiffTracker, replayCacheDir, listReplayCacheFiles, parseCacheEntries, getReplayFileActivity, readReplayCacheEntry, readActiveReplayFromCache, parseReplayPositionFromMeta, inspectReplayMeta, diffMetaReplayPosition, resolveReplayFromGameCache, findRecentlyAccessedReplay, replayPathExists, replayBasenameKey, isReplayArchiveName, isReplayArchivePath, replayArchiveBasename } = require('./replayCache');
-const { buildReplayEndSummary } = require('./replaySummary');
-const { mergeReplayCombatCounters } = require('./combatStatsUtils');
+const { parseDataReplayBuffer, parseSubtype55VehicleCodes } = require('./replayParser');
+const { readMetaFromZip } = require('./battleResults');
+const { parseBattleResultsContext, extractDataReplayFromZip, detectReplayDataEntryInZip } = require('./battleResultsParser');
+const { createReplayCacheDiffTracker, replayCacheDir, listReplayCacheFiles, parseCacheEntries, getReplayFileActivity, readActiveReplayFromCache, replayPathExists, replayBasenameKey, isReplayArchiveName, isReplayArchivePath, replayArchiveBasename } = require('./replayCache');
 const { createReplayAccessTracker, listReplayZipFiles } = require('./replayAccessTracker');
 const {
     createTimelineCache,
-    buildSparsePlayerTimelines,
-    resolveFinalDamageMap,
-    computeTeamHpSnapshot,
-    currentEntityHpAtClock,
-    reconcileStaleAliveHp,
-    parseType5SpawnHpByEntity,
-    resolveEntitySpawnMaxHp,
-    damageAtPoints,
     formatCountdown,
-    resolveBattleStartOffset,
     replayBattleElapsed,
     parseReplayPackets,
-    parsePl33LiveDamageMap,
-    parseDamageHitEvents,
-    aggregateCombatStatsFromHits,
-    countFragsAtClock,
-    buildFragMapFromReplayBuffer,
-    enrichPlayersWithFrags,
     DEFAULT_BATTLE_DURATION_SEC
 } = require('./replayTimeline');
-const { enrichPlayersWithTankNames, getVehicleMaxHp, ensureVehicleHpBlocking } = require('./vehicleNames');
+const { enrichPlayersWithTankNames } = require('./vehicleNames');
 const { createReplayLiveRoutes } = require('./routes');
 const { createReplayDetection } = require('./detection');
 const { createPlaybackClock } = require('./playbackClock');
 const { createTimelineApply } = require('./timelineApply');
 const {
-    STRONG_CACHE_REASONS,
-    WEAK_CACHE_REASONS,
-    GAME_CACHE_INTENT_MS,
-    ZIP_JUST_OPENED_MS,
-    ZIP_SWITCH_TOUCH_DELTA_MS,
-    GAME_CACHE_OPEN_MS,
-    GAME_CACHE_STALE_MS,
     HOT_ZIP_ACCESS_MS,
-    ZIP_LIVE_MS,
-    ZIP_PAUSE_MS,
-    ZIP_PAUSE_IGNORE_MS,
-    CLOCK_SYNC_DELTA_SEC,
-    GAME_POS_EXTRAPOLATE_MAX_SEC,
-    GAME_POS_STALE_MS,
     PLAYBACK_IDLE_GRACE_MS,
     STICKY_META_SILENCE_MS,
-    STICKY_SESSION_MAX_MS,
-    REPLAY_SUMMARY_TTL_MS,
-    REPLAY_SUMMARY_DELAY_MS
+    STICKY_SESSION_MAX_MS
 } = require('./constants');
 
 const DEFAULT_REPLAYS_DIR = path.join(process.env.USERPROFILE || '', 'Documents', 'TanksBlitz', 'replays');
@@ -183,7 +150,6 @@ function createReplayLiveModule(deps) {
     let playbackFinishedSessionKey = null;
     let lastNuclearResetPath = '';
     let lastNuclearResetAt = 0;
-    let lastSpikeHandledKey = '';
     let lastSeenGameCacheMtimeMs = 0;
     let lastGameCacheActivePath = '';
     const lastMetaHexByBasename = new Map();
@@ -755,36 +721,15 @@ function createReplayLiveModule(deps) {
         resolveExtraDirOpenedReplayPick,
         pickExtraDirReplayIfNew,
         findLatestLiveReplayPick,
-        readGameCacheBuffer,
         readGameCacheEntry,
         canonicalCacheReplayPath,
-        metaSessionKeyFromHex,
         resetExclusiveReplayWatchState,
         beginFreshExclusiveReplay,
         exclusiveReplaySessionKey,
-        extraDirHasFreshMetaChangeForOther,
-        findExtraDirReplayByBasenameKey,
-        mapGameCachePathToExtraDir,
-        listExtraDirCacheLinkedCandidates,
-        pickFreshestTouchedExtraDirZip,
         currentExclusivePlaybackPath,
         clearExclusiveIdleSession,
-        collectGameIntentExtraDirBasenames,
-        pickJustOpenedExtraDirZipNotCurrent,
-        scanLiveExtraDirZips,
-        pickLiveExtraDirZipDirect,
-        shouldSwitchExclusiveExtraDirReplay,
-        pickLiveExtraDirReplayFromCache,
-        pickMetaChangedExtraDirReplay,
-        pickCacheDiffExtraDirReplay,
         resolveExclusiveExtraDirPick,
-        tryContinueExclusiveExtraPlayback,
-        pickAccessSpikeExtraReplay,
-        resolveActiveExtraDirReplayFromCache,
-        resolveGameOpenedExtraDirReplay,
         resolveRecentlyOpenedReplayPath,
-        tryHoldCurrentExtraDirSession,
-        readCacheLiveActivePath,
         pickReplayFromSignals,
         returnPlaybackPick
     } = createReplayDetection(h);
@@ -1214,7 +1159,6 @@ function createReplayLiveModule(deps) {
 
         const battleStartOffsetSec = Number(playbackSession.battleStartOffsetSec) || FALLBACK_BATTLE_START_OFFSET_SEC;
         const clockSec = getPlaybackClockSec();
-        const atReplayEnd = replayDurationSec > 0 && clockSec >= replayDurationSec - 0.25;
         const battleElapsedSec = replayBattleElapsed(clockSec, battleStartOffsetSec);
 
         const tankCtx = tankNameContext({
@@ -1576,7 +1520,6 @@ function createReplayLiveModule(deps) {
         const autoMinutes = Number(config.autoPlaybackMinutes) || 0;
         if (autoMinutes <= 0) return null;
 
-        const now = Date.now();
         const windowMs = autoMinutes * 60 * 1000;
         const candidates = listReplayZipCandidates({ minSize: 50000, windowMs })
             .sort((a, b) => b.mtime - a.mtime);
@@ -2047,7 +1990,6 @@ function createReplayLiveModule(deps) {
         replayAccessTracker.reset();
         lastNuclearResetPath = '';
         lastNuclearResetAt = 0;
-        lastSpikeHandledKey = '';
         lastSeenGameCacheMtimeMs = 0;
         lastGameCacheActivePath = '';
         lastMetaHexByBasename.clear();

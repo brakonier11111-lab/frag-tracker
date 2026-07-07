@@ -32,9 +32,6 @@ const helmet = require('helmet');
 const cors = require('cors');
 const Analytics = require('./analytics');
 const https = require('https');
-const { Centrifuge } = require('centrifuge');
-const cheerio = require('cheerio');
-const querystring = require('querystring');
 const app = express();
 const server = http.createServer(app);
 const port = process.env.PORT || 3000;
@@ -189,11 +186,6 @@ const donationWidgetsModule = createDonationWidgetsModule({
     broadcastToClients: (...args) => broadcastToClients(...args)
 });
 const {
-    DONATION_WIDGET_SETTINGS_VERSION,
-    normalizeDonationWidgetSettings,
-    encodeDonationWidgetSettings,
-    buildDonationGoalPayload,
-    buildDonationBarPayload,
     broadcastDonationWidgetState,
     persistDonationGoalSnapshot
 } = donationWidgetsModule;
@@ -1745,7 +1737,6 @@ app.post('/api/tank-queue/save', express.json({ limit: '50mb' }), (req, res) => 
 const donationsStore = createDonationsStore({ db, getAppState });
 const updateDonorAchievement = donationsStore.updateDonorAchievement;
 const normalizeUsername = donationsStore.normalizeUsername;
-const findSimilarUsernames = donationsStore.findSimilarUsernames;
 const saveDonation = donationsStore.saveDonation;
 const getDonations = donationsStore.getDonations;
 
@@ -1771,8 +1762,6 @@ const donationOrchestrator = createDonationOrchestrator({
     getBroadcastState
 });
 const processDonation = donationOrchestrator.processDonation;
-const processDonationCore = donationOrchestrator.processDonationCore;
-const formatTimeDetailed = donationOrchestrator.formatTimeDetailed;
 
 
 // Загрузка токенов из БД при запуске
@@ -2538,22 +2527,6 @@ function fetchLestaHistoryWindow(period, referenceBattles, reliableSinceSec, cal
         }
     );
 }
-
-function fetchLestaPeriodBaseline(period, referenceBattles, reliableSinceSec, callback) {
-    if (typeof reliableSinceSec === 'function') {
-        callback = reliableSinceSec;
-        reliableSinceSec = 0;
-    } else if (typeof referenceBattles === 'function') {
-        callback = referenceBattles;
-        referenceBattles = 0;
-        reliableSinceSec = 0;
-    }
-    fetchLestaHistoryWindow(period, referenceBattles, reliableSinceSec, (err, data) => {
-        if (err) return callback(err);
-        callback(null, data.anchorRow || (data.rows.length ? data.rows[0] : null));
-    });
-}
-
 
 function buildLestaDailyActivity(days, referenceBattles, reliableSinceSec, callback) {
     if (typeof reliableSinceSec === 'function') {
@@ -5987,12 +5960,7 @@ const donationDrivenWidgetModule = createDonationDrivenWidgetModule({
     getAppState: (...args) => getAppState(...args),
     updateAppState: (...args) => updateAppState(...args)
 });
-const {
-    getDonationDrivenWidgetById,
-    normalizeDonationDrivenWidgetRow,
-    enrichDonationDrivenWidgetWithLesta,
-    broadcastDonationDrivenWidgetUpdate
-} = donationDrivenWidgetModule;
+const { broadcastDonationDrivenWidgetUpdate } = donationDrivenWidgetModule;
 donationDrivenWidgetModule.registerRoutes(app);
 
 // Инициализация DonatePay при старте сервера
@@ -6077,7 +6045,6 @@ const donationPlatformsModule = createDonationPlatformsModule({
 });
 const getDonationsFromAPI = donationPlatformsModule.getDonationsFromAPI;
 const getDonatePayUser = donationPlatformsModule.getDonatePayUser;
-const checkDonationExists = donationPlatformsModule.checkDonationExists;
 const getDonatePayNewTransactions = donationPlatformsModule.getDonatePayNewTransactions;
 const connectDonatePayCentrifugo = donationPlatformsModule.connectDonatePayCentrifugo;
 

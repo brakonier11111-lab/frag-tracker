@@ -120,7 +120,6 @@ function createDonationDrivenWidgetModule({ db, broadcastToClients, getAppState,
             const goal_text = body.goal_text != null ? String(body.goal_text).trim() : undefined;
             const unit_label = body.unit_label != null ? String(body.unit_label).trim() : undefined;
             const start_value = body.start_value != null ? parseFloat(body.start_value) : undefined;
-            const current_value = body.current_value != null ? parseFloat(body.current_value) : undefined;
             const cap_value = body.cap_value != null ? parseFloat(body.cap_value) : undefined;
             const per_amount = body.per_amount != null ? parseFloat(body.per_amount) : undefined;
             const add_value = body.add_value != null ? parseFloat(body.add_value) : undefined;

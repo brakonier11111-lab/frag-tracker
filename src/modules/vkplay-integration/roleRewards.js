@@ -165,9 +165,8 @@ function createRoleRewards(h) {
                 requestParams.stream_id = streamId;
             }
 
-            let response;
             try {
-                response = await axios.post(
+                await axios.post(
                     'https://apidev.live.vkvideo.ru/v1/chat/message/send',
                     requestBody,
                     {
@@ -177,7 +176,7 @@ function createRoleRewards(h) {
                 );
             } catch (apiError) {
                 if (apiError?.response?.status === 404) {
-                    response = await axios.post(
+                    await axios.post(
                         'https://api.live.vkvideo.ru/v1/chat/message/send',
                         requestBody,
                         {
@@ -257,9 +256,8 @@ function createRoleRewards(h) {
 
             // Пытаемся отклонить запрос (это должно вернуть баллы)
             try {
-                let rejectResponse;
                 try {
-                    rejectResponse = await axios.post(
+                    await axios.post(
                         'https://apidev.live.vkvideo.ru/v1/channel_point/reward/demand/reject',
                         { demands: [{ id: userDemand.id }] },
                         {
@@ -269,7 +267,7 @@ function createRoleRewards(h) {
                     );
                 } catch (apiError) {
                     if (apiError?.response?.status === 404) {
-                        rejectResponse = await axios.post(
+                        await axios.post(
                             'https://api.live.vkvideo.ru/v1/channel_point/reward/demand/reject',
                             { demands: [{ id: userDemand.id }] },
                             {

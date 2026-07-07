@@ -50,7 +50,6 @@ function createReplayAccessTracker() {
     function resolve(replaysDirOrDirs, options) {
         options = options || {};
         const accessMs = Math.max(30_000, Number(options.accessMs) || 5 * 60 * 1000);
-        const sessionMs = Math.max(5 * 60_000, Number(options.sessionMs) || 45 * 60 * 1000);
         const minDeltaMs = Number(options.minDeltaMs) || 250;
         const now = Date.now();
 

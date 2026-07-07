@@ -1,7 +1,6 @@
 'use strict';
 
 const { BLITZ_DEFAULT_HEADERS } = require('./constants');
-const { safeJsonParse } = require('../../core/utils');
 
 /** Миграции таблиц blitz_challenge — вызывается из db.serialize в server.js */
 function initBlitzChallengeSchema(db) {

@@ -20,7 +20,7 @@ const axios = require('axios');
 function createDonationPlatformsModule(deps) {
     const DA_CONFIG = deps.daConfig;
     const DP_CONFIG = deps.dpConfig;
-    const { getAppState, updateAppState, db, processDonation, pollLog } = deps;
+    const { getAppState, updateAppState, db, pollLog } = deps;
 
     let centrifuge = null;
 

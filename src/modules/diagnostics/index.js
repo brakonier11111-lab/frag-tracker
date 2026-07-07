@@ -441,11 +441,6 @@ function createDiagnosticsModule(deps) {
                 console.log('📌 Все API запросы для получения донатов отключены');
                 console.log('📌 Используется ТОЛЬКО Centrifugo для real-time донатов');
 
-                const newTransactionsDonations = [];
-                const newTransactionsError = null;
-                const widgetDonations = [];
-                const lastEventsDonations = [];
-
                 // Проверяем статус Centrifugo
                 let centrifugoStatus = 'not_connected';
                 let centrifugoConnected = false;

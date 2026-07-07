@@ -63,23 +63,6 @@ function collectZipTouchIncreases(replayPaths, lastZipTouch, minDeltaMs) {
     return increases;
 }
 
-function readActiveReplayWithFreshZip(buf, maxAgeMs) {
-    const entries = parseCacheEntries(buf)
-        .filter((row) => replayPathExists(row.replayPath))
-        .map((row) => {
-            const metaBuf = Buffer.from(row.metaHex, 'hex');
-            const activity = getReplayFileActivity(row.replayPath);
-            return {
-                replayPath: row.replayPath,
-                sessionKey: metaBuf.readUInt32LE(0),
-                ageMs: activity.ageMs
-            };
-        })
-        .filter((row) => row.ageMs != null && row.ageMs <= maxAgeMs)
-        .sort((a, b) => b.sessionKey - a.sessionKey || a.ageMs - b.ageMs);
-    return entries[0] ? entries[0].replayPath : '';
-}
-
 function readActiveReplayFromCache(cacheFilePathOrBuf) {
     try {
         const buf = Buffer.isBuffer(cacheFilePathOrBuf)
@@ -276,7 +259,6 @@ function findRecentlyAccessedReplay(replaysDir, accessMs, options) {
 }
 
 const ZIP_ACTIVE_MS = 60 * 1000;
-const ZIP_LIVE_MS = 5000;
 const MULTI_META_ZIP_MS = 90 * 1000;
 
 function isReplayZipLive(activity, liveMs) {
@@ -292,7 +274,6 @@ function createReplayCacheDiffTracker() {
     let bootstrapped = false;
     let lastEntries = new Map();
     let lastZipTouch = new Map();
-    let lastChangeAt = 0;
     let lastSelectedPath = '';
     let sessionMetaAt = 0;
     let lastCacheMtimeMs = 0;
@@ -433,7 +414,6 @@ function createReplayCacheDiffTracker() {
         }
 
         if (pick && replayPathExists(pick)) {
-            const changed = pick !== lastSelectedPath;
             lastSelectedPath = pick;
             if (metaChanges.includes(pick)
                 || reason === 'cache_meta_pos'
@@ -448,15 +428,6 @@ function createReplayCacheDiffTracker() {
                 || reason === 'cache_active_read'
                 || reason === 'cache_file_touch') {
                 sessionMetaAt = Date.now();
-            }
-            if (changed
-                || reason === 'cache_meta'
-                || reason === 'cache_meta_pos'
-                || reason === 'cache_switch'
-                || reason === 'cache_switch_multi'
-                || reason === 'cache_zip_spike'
-                || reason === 'cache_zip_spike_multi') {
-                lastChangeAt = Date.now();
             }
             const activity = getReplayFileActivity(pick);
             const pickLive = isReplayZipLive(activity, zipActiveMs);
@@ -514,7 +485,6 @@ function createReplayCacheDiffTracker() {
         if (!replayPath) return;
         if (lastSelectedPath !== replayPath) {
             lastSelectedPath = replayPath;
-            lastChangeAt = Date.now();
         }
     }
 
@@ -522,7 +492,6 @@ function createReplayCacheDiffTracker() {
         bootstrapped = false;
         lastEntries = new Map();
         lastZipTouch = new Map();
-        lastChangeAt = 0;
         lastSelectedPath = '';
         sessionMetaAt = 0;
         lastCacheMtimeMs = 0;

@@ -10,7 +10,6 @@ const { getReplayFileActivity, inspectReplayMeta, diffMetaReplayPosition } = req
 const { DEFAULT_BATTLE_DURATION_SEC } = require('./replayTimeline');
 const {
     HOT_ZIP_ACCESS_MS,
-    ZIP_LIVE_MS,
     ZIP_PAUSE_MS,
     CLOCK_SYNC_DELTA_SEC,
     GAME_POS_EXTRAPOLATE_MAX_SEC,
@@ -23,12 +22,6 @@ function createPlaybackClock(h) {
         const clock = h.playbackSession.clockOffsetSec + elapsed;
         const cap = maxSec > 0 ? maxSec : clock;
         return Math.max(0, Math.min(clock, cap));
-    }
-
-    function isZipLive(replayPath) {
-        if (!replayPath) return false;
-        const activity = getReplayFileActivity(replayPath);
-        return Boolean(activity.exists && activity.ageMs != null && activity.ageMs <= ZIP_LIVE_MS);
     }
 
     function isZipActiveForPlayback(replayPath) {
@@ -486,12 +479,6 @@ function createPlaybackClock(h) {
         maybeStartPlaybackClock(replayPath, reason);
     }
 
-    function alignPlaybackClockTo(positionSec, battleDurationSec) {
-        const maxSec = battleDurationSec > 0 ? battleDurationSec : positionSec;
-        const pos = Math.max(0, Math.min(Number(positionSec) || 0, maxSec));
-        applyGamePosition(pos, maxSec, 'align');
-    }
-
     function maybeRestartPlaybackFromGameCache(replayDurationSec) {
         const snap = readGameCacheSnapshot(h.playbackSession.path, replayDurationSec);
         if (!snap) return;
@@ -598,11 +585,6 @@ function createPlaybackClock(h) {
             h.playbackSession.clockRunning = false;
         }
         h.state.replayAtEnd = false;
-    }
-
-    function hasGameCachePlayback(replayPath) {
-        if (!replayPath) return false;
-        return Boolean(h.readGameCacheEntry(replayPath));
     }
 
     function isPlaybackPaused(replayPath) {
