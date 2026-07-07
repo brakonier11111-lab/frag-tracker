@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'frag_tracker.db');
+const dbPath = require('./src/bootstrap/paths').resolveDbPath();
 const db = new sqlite3.Database(dbPath);
 
 // 3 дня 4ч 55м = 3*86400 + 4*3600 + 55*60 = 259200 + 14400 + 3300 = 276900 секунд

@@ -28,7 +28,7 @@ const BASE = { battles: 1000, frags: 500, wins: 600, losses: 400, damage_dealt: 
 
 function makeTmpUserData() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frag-lesta-'));
-    const srcDb = path.join(APP_ROOT, 'frag_tracker.db');
+    const srcDb = require('../src/bootstrap/paths').resolveDbPath();
     fs.copyFileSync(srcDb, path.join(dir, 'frag_tracker.db'));
     return dir;
 }

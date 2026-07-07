@@ -19,7 +19,7 @@ const BASE_URL = `http://localhost:${PORT}`;
 
 function makeTmpUserData() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'frag-smoke-'));
-    const srcDb = path.join(APP_ROOT, 'frag_tracker.db');
+    const srcDb = require('../src/bootstrap/paths').resolveDbPath();
     const dstDb = path.join(dir, 'frag_tracker.db');
     if (fs.existsSync(srcDb)) {
         fs.copyFileSync(srcDb, dstDb);

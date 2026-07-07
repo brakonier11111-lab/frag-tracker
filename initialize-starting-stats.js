@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 // Подключение к базе данных
-const dbPath = path.join(__dirname, 'frag_tracker.db');
+const dbPath = require('./src/bootstrap/paths').resolveDbPath();
 const db = new sqlite3.Database(dbPath);
 
 console.log('🚀 Инициализация стартовых значений статистики');
