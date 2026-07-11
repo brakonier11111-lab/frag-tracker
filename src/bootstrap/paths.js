@@ -36,9 +36,37 @@ function loadEnv() {
     return fallback;
 }
 
+// Перенос БД с другой машины (см. /api/admin/db-restore): вместо рискованной
+// подмены файла под открытым sqlite-соединением, загруженный файл сначала
+// откладывается рядом как `<db>.import`, а подхватывается только здесь, на
+// старте — до того как что-либо открыло соединение с БД.
+function applyPendingDbImport(userDb) {
+    const pending = userDb + '.import';
+    if (!fs.existsSync(pending)) return;
+    try {
+        if (fs.existsSync(userDb)) {
+            const backupPath = userDb + '.pre-import-' + Date.now() + '.bak';
+            fs.copyFileSync(userDb, backupPath);
+            console.log('📦 Текущая БД сохранена перед импортом в:', backupPath);
+        }
+        fs.copyFileSync(pending, userDb);
+        fs.unlinkSync(pending);
+        // Импортированный файл — самодостаточный снапшот (VACUUM INTO), поэтому
+        // старые -wal/-shm от предыдущей БД не должны к нему подмешиваться.
+        for (const suffix of ['-wal', '-shm']) {
+            const sidecar = userDb + suffix;
+            if (fs.existsSync(sidecar)) fs.unlinkSync(sidecar);
+        }
+        console.log('✅ БД импортирована из', pending);
+    } catch (e) {
+        console.warn('⚠️ Не удалось применить импортированную БД:', e.message);
+    }
+}
+
 function resolveDbPath() {
     const userDb = path.join(USER_DATA, 'frag_tracker.db');
     if (USER_DATA !== APP_ROOT) {
+        applyPendingDbImport(userDb);
         if (!fs.existsSync(userDb)) {
             const legacyDb = path.join(APP_ROOT, 'frag_tracker.db');
             if (fs.existsSync(legacyDb)) {
@@ -62,7 +90,9 @@ function resolveDbPath() {
         }
         return userDb;
     }
-    return path.join(APP_ROOT, 'frag_tracker.db');
+    const rootDb = path.join(APP_ROOT, 'frag_tracker.db');
+    applyPendingDbImport(rootDb);
+    return rootDb;
 }
 
 module.exports = { APP_ROOT, USER_DATA, loadEnv, resolveDbPath };

@@ -133,6 +133,71 @@ function createVkplayIntegrationModule(deps) {
         return 0;
     }
 
+    // Обновление access_token через refresh_token (без этого интеграция молча
+    // отваливается каждые ~час-два и требует ручного повторного логина).
+    // VK Play отдаёт токен на том же эндпоинте, что и обмен code -> token,
+    // только с grant_type=refresh_token (см. /oauth/vkplay/callback в routes.js).
+    async function refreshVkplayToken() {
+        const refreshToken = vkplayIntegration.tokens?.refresh_token;
+        const clientId = process.env.VKPLAY_CLIENT_ID;
+        const clientSecret = process.env.VKPLAY_CLIENT_SECRET;
+        if (!refreshToken || !clientId || !clientSecret) {
+            console.warn('⚠️ Не удалось обновить токен VK Play: нет refresh_token или не настроены client_id/secret');
+            return false;
+        }
+
+        const querystring = require('querystring');
+        const basic = Buffer.from(`${clientId.trim()}:${clientSecret.trim()}`).toString('base64');
+        const body = querystring.stringify({ grant_type: 'refresh_token', refresh_token: refreshToken });
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${basic}`
+        };
+
+        try {
+            let tokenRes;
+            try {
+                tokenRes = await axios.post('https://api.live.vkvideo.ru/oauth/server/token', body, { headers });
+            } catch (apiError) {
+                if (apiError?.response?.status === 404) {
+                    tokenRes = await axios.post('https://apidev.live.vkvideo.ru/oauth/server/token', body, { headers });
+                } else {
+                    throw apiError;
+                }
+            }
+
+            const tokens = tokenRes.data;
+            if (!tokens?.access_token) {
+                console.warn('⚠️ Ответ на обновление токена VK Play без access_token:', tokens);
+                return false;
+            }
+
+            const nowSec = Math.floor(Date.now() / 1000);
+            vkplayIntegration.tokens = {
+                access_token: tokens.access_token,
+                refresh_token: tokens.refresh_token || refreshToken
+            };
+            vkplayIntegration.expires_at = nowSec + (tokens.expires_in || 0);
+
+            await saveIntegration('vkplay', {
+                tokens: vkplayIntegration.tokens,
+                expires_at: vkplayIntegration.expires_at,
+                channel: vkplayIntegration.channel,
+                channelUrl: vkplayIntegration.channelUrl,
+                liveTitle: vkplayIntegration.liveTitle,
+                viewers: vkplayIntegration.viewers,
+                likes: vkplayIntegration.likes,
+                chatEnabled: vkplayIntegration.chatEnabled
+            });
+
+            console.log('✅ Токен VK Play обновлён, действует до', new Date(vkplayIntegration.expires_at * 1000).toISOString());
+            return true;
+        } catch (error) {
+            console.error('❌ Ошибка обновления токена VK Play:', error?.response?.data || error.message);
+            return false;
+        }
+    }
+
     // Rutony Chat вынесен в src/modules/rutony-chat
 
     // Интеграция VK Play для чат-бота (отдельный аккаунт)
@@ -234,7 +299,15 @@ function createVkplayIntegrationModule(deps) {
             const now = Math.floor(Date.now() / 1000);
             if (now >= vkplayIntegration.expires_at - 60) { // обновляем за минуту до истечения
                 console.log('🔄 Обновление токена VK Play...');
-                // TODO: реализовать обновление токена через refresh_token
+                const refreshed = await refreshVkplayToken();
+                if (!refreshed) {
+                    console.warn('🔑 Не удалось обновить токен VK Play, требуется повторная авторизация');
+                    vkplayIntegration.connected = false;
+                    vkplayIntegration.viewers = 0;
+                    vkplayIntegration.liveTitle = null;
+                    vkplayIntegration.chatEnabled = false;
+                    return;
+                }
             }
             
             // Получаем данные канала (пробуем оба варианта URL)

@@ -12,6 +12,14 @@ const axios = require('axios').create({ proxy: false });
 const WebSocket = require('ws');
 
 function createRoleRewards(h) {
+    // Выдача роли по награде приходит из двух источников (WebSocket и polling),
+    // которые могут сработать почти одновременно на одну и ту же активацию.
+    // Без этой защиты второй вызов видит уже выданную первым роль и решает,
+    // что "роль уже есть" — отменяет награду и возвращает баллы пользователю,
+    // хотя всё прошло штатно.
+    const recentAssignments = new Map(); // `${userId}:${rewardId}` -> timestamp
+    const ASSIGNMENT_DEDUP_WINDOW_MS = 5 * 60 * 1000;
+
     async function getUserRoles(userId) {
         try {
             if (!h.vkplayIntegration.connected || !h.vkplayIntegration.tokens || !h.vkplayIntegration.channelUrl) {
@@ -591,6 +599,18 @@ function createRoleRewards(h) {
                 console.warn('⚠️ VK Play не подключен для выдачи роли');
                 return { success: false, reason: 'not_connected' };
             }
+
+            // Защита от повторной обработки одной и той же активации (WebSocket + polling)
+            const dedupKey = `${userId}:${rewardId}`;
+            const now = Date.now();
+            for (const [key, ts] of recentAssignments) {
+                if (now - ts > ASSIGNMENT_DEDUP_WINDOW_MS) recentAssignments.delete(key);
+            }
+            if (recentAssignments.has(dedupKey)) {
+                console.log(`⏭️ Пропускаем повторную обработку награды ${rewardId} для пользователя ${userId} (уже обработана недавно)`);
+                return { success: false, reason: 'duplicate_processing' };
+            }
+            recentAssignments.set(dedupKey, now);
 
             // Получаем информацию о пользователе (ник)
             let userNick = null;

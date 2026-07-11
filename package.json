@@ -95,5 +95,11 @@
     "donationalerts",
     "tracker",
     "streaming"
-  ]
+  ],
+  "allowScripts": {
+    "electron@33.2.0": true,
+    "fsevents@2.3.3": true,
+    "protobufjs@7.6.4": true,
+    "sqlite3@5.1.7": true
+  }
 }

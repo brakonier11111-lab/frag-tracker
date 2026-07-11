@@ -7,7 +7,7 @@
             </svg>
         </button>
         <div class="header-breadcrumb" id="breadcrumb">
-            <span class="breadcrumb-item">Главная</span>
+            <a href="/index.html" class="breadcrumb-item">Главная</a>
         </div>
     </div>
     
@@ -32,8 +32,9 @@
 </header>
 
 <button type="button" class="page-copy-btn" id="copyPageContextBtn"
+    title="Скопировать ссылку на эту страницу — вставьте её в OBS как Custom Browser Dock (Просмотр → Панели инструментов → Добавить панель)"
     onclick="(function(btn){
-        var text = document.title + ' — ' + window.location.href;
+        var text = window.location.href;
         var done = function(){
             var label = btn.querySelector('.page-copy-text');
             var original = label.textContent;
@@ -54,7 +55,7 @@
         }
     })(this)">
     <span>📋</span>
-    <span class="page-copy-text">Скопировать страницу</span>
+    <span class="page-copy-text">Скопировать ссылку для OBS Dock</span>
 </button>
 
 <script>
@@ -81,8 +82,10 @@
     };
 
     const currentPage = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
-    if (breadcrumb && pageTitles[currentPage]) {
-        breadcrumb.innerHTML = `<span class="breadcrumb-item">${pageTitles[currentPage]}</span>`;
+    if (breadcrumb && pageTitles[currentPage] && currentPage !== 'index') {
+        breadcrumb.innerHTML = `<a href="/index.html" class="breadcrumb-item">Главная</a>` +
+            `<span class="breadcrumb-sep">/</span>` +
+            `<span class="breadcrumb-current">${pageTitles[currentPage]}</span>`;
     }
 
     // Мобильное меню

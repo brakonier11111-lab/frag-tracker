@@ -15,6 +15,7 @@ process.on('uncaughtException', (err) => {
 
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const express = require('express');
 const axios = require('axios');
@@ -2225,6 +2226,45 @@ function resolveConfigEnvPath() {
     }
     return path.join(__dirname, 'config.env');
 }
+
+// Перенос БД между машинами: экспорт скачивает консистентный снапшот текущей
+// БД (VACUUM INTO — не задевает открытое WAL-соединение), импорт откладывает
+// загруженный файл рядом и подхватывает его на следующем запуске приложения
+// (см. applyPendingDbImport в src/bootstrap/paths.js) — так безопаснее, чем
+// подменять файл под живым sqlite-соединением на лету.
+app.get('/api/admin/db-backup', (req, res) => {
+    const snapshotPath = path.join(os.tmpdir(), `frag_tracker_backup_${Date.now()}.db`);
+    db.run(`VACUUM INTO '${snapshotPath.replace(/'/g, "''")}'`, (err) => {
+        if (err) {
+            console.error('❌ Ошибка создания снапшота БД:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        const stamp = new Date().toISOString().slice(0, 10);
+        res.download(snapshotPath, `frag_tracker_${stamp}.db`, (dlErr) => {
+            if (dlErr) console.error('❌ Ошибка отдачи снапшота БД:', dlErr);
+            fs.unlink(snapshotPath, () => {});
+        });
+    });
+});
+
+app.post('/api/admin/db-restore', express.raw({ type: '*/*', limit: '500mb' }), (req, res) => {
+    try {
+        const buf = req.body;
+        if (!Buffer.isBuffer(buf) || buf.length < 16) {
+            return res.status(400).json({ error: 'Пустой или повреждённый файл' });
+        }
+        // Заголовок формата SQLite: первые 16 байт файла всегда "SQLite format 3\0"
+        if (buf.toString('utf8', 0, 15) !== 'SQLite format 3') {
+            return res.status(400).json({ error: 'Файл не похож на базу данных SQLite (frag_tracker.db)' });
+        }
+        fs.writeFileSync(dbPath + '.import', buf);
+        console.log('📥 Загруженная БД отложена для импорта:', dbPath + '.import');
+        res.json({ success: true, message: 'Файл принят. Перезапустите приложение, чтобы применить.' });
+    } catch (e) {
+        console.error('❌ Ошибка сохранения загруженной БД:', e);
+        res.status(500).json({ error: e.message });
+    }
+});
 
 // GET — отдать текущие настройки (секреты маскируются)
 app.get('/api/admin/config', (req, res) => {

@@ -394,6 +394,18 @@
             setTimeout(initCollapsedSections, 100);
         }
 
+        async function describeLoadError(response) {
+            if (response.status === 401) {
+                return 'VK Play не подключен. <a href="/stream-integrations.html">Подключить в разделе интеграций →</a>';
+            }
+            try {
+                const data = await response.json();
+                const msg = (typeof data.error === 'string') ? data.error : (data.error?.error_description || data.error?.message || JSON.stringify(data.error));
+                if (msg) return `Ошибка сервера (${response.status}): ${msg}`;
+            } catch (_) {}
+            return `Ошибка сервера (${response.status})`;
+        }
+
         async function loadRewards() {
             try {
                 const response = await fetch('/api/vkplay/rewards');
@@ -402,13 +414,13 @@
                     rewards = data.data?.rewards || [];
                     renderRewards();
                 } else {
-                    document.getElementById('rewards-container').innerHTML = 
-                        '<div class="empty-state">Ошибка загрузки наград. Убедитесь, что VK Play подключен.</div>';
+                    document.getElementById('rewards-container').innerHTML =
+                        `<div class="empty-state">Не удалось загрузить награды: ${await describeLoadError(response)}</div>`;
                 }
             } catch (error) {
                 console.error('Ошибка загрузки наград:', error);
-                document.getElementById('rewards-container').innerHTML = 
-                    '<div class="empty-state">Ошибка загрузки наград</div>';
+                document.getElementById('rewards-container').innerHTML =
+                    `<div class="empty-state">Не удалось загрузить награды: сеть/сервер недоступен (${error.message})</div>`;
             }
         }
 
@@ -420,13 +432,13 @@
                     roles = data.data?.roles || [];
                     renderRoles();
                 } else {
-                    document.getElementById('roles-container').innerHTML = 
-                        '<div class="empty-state">Ошибка загрузки ролей. Убедитесь, что VK Play подключен.</div>';
+                    document.getElementById('roles-container').innerHTML =
+                        `<div class="empty-state">Не удалось загрузить роли: ${await describeLoadError(response)}</div>`;
                 }
             } catch (error) {
                 console.error('Ошибка загрузки ролей:', error);
-                document.getElementById('roles-container').innerHTML = 
-                    '<div class="empty-state">Ошибка загрузки ролей</div>';
+                document.getElementById('roles-container').innerHTML =
+                    `<div class="empty-state">Не удалось загрузить роли: сеть/сервер недоступен (${error.message})</div>`;
             }
         }
 
@@ -437,9 +449,14 @@
                     const data = await response.json();
                     mappings = data.rewardRoles || [];
                     renderMappings();
+                } else {
+                    document.getElementById('mappings-container').innerHTML =
+                        `<div class="empty-state">Не удалось загрузить связи: ${await describeLoadError(response)}</div>`;
                 }
             } catch (error) {
                 console.error('Ошибка загрузки связей:', error);
+                document.getElementById('mappings-container').innerHTML =
+                    `<div class="empty-state">Не удалось загрузить связи: сеть/сервер недоступен (${error.message})</div>`;
             }
         }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Конструктор Виджетов - Frag Tracker</title>
+    <title>Конструктор Виджетов - STREAM HUB</title>
     <link rel="stylesheet" href="/styles/global.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -517,6 +517,38 @@
             window.open(url, 'Widget Preview', `width=${currentWidget.config.width},height=${currentWidget.config.height}`);
         }
     </script>
+
+    <button type="button" id="copyPageContextBtn"
+        title="Скопировать ссылку на эту страницу — вставьте её в OBS как Custom Browser Dock (Просмотр → Панели инструментов → Добавить панель)"
+        style="position:fixed;right:20px;bottom:20px;z-index:10001;display:flex;align-items:center;gap:8px;
+            padding:10px 16px;border-radius:999px;background:rgba(255,255,255,.08);backdrop-filter:blur(8px);
+            border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.75);font-size:.9rem;font-weight:600;
+            font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:all .2s;"
+        onclick="(function(btn){
+            var text = window.location.href;
+            var done = function(){
+                var label = btn.querySelector('.page-copy-text');
+                var original = label.textContent;
+                label.textContent = 'Скопировано!';
+                btn.style.borderColor = '#00ff80';
+                btn.style.color = '#00ff80';
+                setTimeout(function(){ label.textContent = original; btn.style.borderColor = 'rgba(255,255,255,.15)'; btn.style.color = 'rgba(255,255,255,.75)'; }, 1500);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done).catch(done);
+            } else {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch (e) {}
+                document.body.removeChild(ta);
+                done();
+            }
+        })(this)">
+        <span>📋</span>
+        <span class="page-copy-text">Скопировать ссылку для OBS Dock</span>
+    </button>
 </body>
 </html>
 

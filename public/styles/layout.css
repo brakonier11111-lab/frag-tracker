@@ -275,6 +275,20 @@ body.sidebar-collapsed .app-header {
 .breadcrumb-item {
     color: var(--color-light);
     font-weight: 500;
+    text-decoration: none;
+}
+
+a.breadcrumb-item:hover {
+    color: var(--color-neon-purple);
+}
+
+.breadcrumb-sep {
+    color: rgba(255, 255, 255, 0.35);
+}
+
+.breadcrumb-current {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
 }
 
 .header-right {

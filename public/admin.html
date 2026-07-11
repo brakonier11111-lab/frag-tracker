@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ФРАГ-ТРЕКЕР | АДМИНКА</title>
+    <title>STREAM HUB | АДМИНКА</title>
     <link rel="stylesheet" href="/styles/design-system.css">
     <link rel="stylesheet" href="/styles/layout.css">
     <style>
@@ -657,6 +657,20 @@
                     <button class="btn btn-info" onclick="diagnoseFragStats()">🔍 Диагностика фрагов</button>
                     <button class="btn btn-info" onclick="testBattleFragLogic()">🧪 Тест логики боёв</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- ПЕРЕНОС БАЗЫ ДАННЫХ -->
+        <div class="panel panel-info">
+            <h2>🗄️ Перенос базы данных между компьютерами</h2>
+            <p class="admin-hint">
+                База (донаты, награды VK Play, история и т.д.) хранится локально на этом компьютере и не синхронизируется с другими автоматически.
+                Скачайте файл здесь и загрузите его на другой машине, чтобы перенести все данные.
+            </p>
+            <div class="admin-actions">
+                <button class="btn btn-info" onclick="downloadDbBackup()">⬇️ Скачать базу</button>
+                <button class="btn btn-warning" onclick="document.getElementById('dbRestoreInput').click()">⬆️ Загрузить базу</button>
+                <input type="file" id="dbRestoreInput" accept=".db" style="display:none" onchange="uploadDbRestore(this.files[0])">
             </div>
         </div>
 
@@ -1938,6 +1952,35 @@
                             showNotification('❌ Ошибка очистки донатов', true);
                         }
                     });
+            }
+        }
+
+        function downloadDbBackup() {
+            window.location.href = '/api/admin/db-backup';
+        }
+
+        async function uploadDbRestore(file) {
+            if (!file) return;
+            if (!confirm(`Загрузить "${file.name}" и заменить текущую базу данных этого компьютера? Текущая база будет сохранена как резервная копия рядом.`)) {
+                document.getElementById('dbRestoreInput').value = '';
+                return;
+            }
+            try {
+                const res = await fetch('/api/admin/db-restore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: file
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showNotification('✅ Файл принят. Закройте и заново откройте приложение, чтобы применить базу.');
+                } else {
+                    showNotification('❌ ' + (data.error || 'Не удалось загрузить базу'), true);
+                }
+            } catch (error) {
+                showNotification('❌ Ошибка загрузки: ' + error.message, true);
+            } finally {
+                document.getElementById('dbRestoreInput').value = '';
             }
         }
 
