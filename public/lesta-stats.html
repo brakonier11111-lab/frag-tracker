@@ -1023,6 +1023,15 @@
                 </div>
             </div>
 
+            <div class="stat-block" id="sessionTanksBlock">
+                <div class="stat-block-title">Техника за сессию</div>
+                <p class="section-hint" id="sessionTanksNote">Загрузка…</p>
+                <div class="tank-table-header" id="sessionTanksTableHeader" style="display:none;">
+                    <span>Танк</span><span>Ур.</span><span>Боёв</span><span>С/У</span><span>ВР%</span><span>Фраги</span>
+                </div>
+                <div id="sessionTanksList"></div>
+            </div>
+
             <div class="stat-block">
                 <div class="stat-block-title">История сессий</div>
                 <div id="sessionsHistory">
@@ -1054,7 +1063,7 @@
 
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            ws = new WebSocket(`${protocol}//${window.location.host}`);
+            ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
             ws.onopen = function() {
                 console.log('✅ WebSocket подключен');
@@ -1085,29 +1094,10 @@
             };
         }
 
-        async function loadPreviousStats() {
-            try {
-                const response = await fetch(`/api/lesta-history?period=1d`);
-                const data = await response.json();
-                
-                if (data.success && data.history && data.history.length > 1) {
-                    const previousRecord = data.history[1];
-                    previousStats = {
-                        battles: previousRecord.battles || 0,
-                        wins: previousRecord.wins || 0,
-                        losses: previousRecord.losses || 0,
-                        winRate: previousRecord.win_rate || 0,
-                        frags: previousRecord.frags || 0,
-                        fragsPerBattle: previousRecord.frags_per_battle || 0,
-                        damageDealt: previousRecord.damage_dealt || 0,
-                        xp: previousRecord.xp || 0
-                    };
-                    console.log('📊 Загружены предыдущие значения для delta:', previousStats);
-                }
-            } catch (error) {
-                console.error('❌ Ошибка загрузки предыдущих значений:', error);
-            }
-        }
+        // Дельты «Всего на аккаунте» считаются от базлайна выбранного периода
+        // (кнопки СУТКИ/НЕДЕЛЯ/МЕСЯЦ/ПОЛГОДА/ГОД), данные приходят из /api/lesta-period.
+        let periodDeltas = null;    // periodStats: сколько сыграно за период
+        let periodBaseline = null;  // счётчики аккаунта на начало периода
 
         async function updateUI(state) {
             // Обновляем информацию об игроке
@@ -1155,11 +1145,6 @@
                 lastSyncTimeElement.textContent = 'Последняя синхронизация: никогда';
             }
 
-            // Загружаем предыдущие значения для вычисления delta
-            if (!previousStats) {
-                await loadPreviousStats();
-            }
-
             // Сохраняем текущие статистики
             currentStats = {
                 battles: state.lesta_last_battles || 0,
@@ -1185,7 +1170,13 @@
 
             // Обновляем отображение статистики
             updateStatsDisplay();
-            
+
+            // После свежего синка Lesta периодные дельты могли устареть — обновляем,
+            // но не чаще раза в минуту, чтобы не дёргать API на каждый STATE_UPDATE
+            if (Date.now() - lastPeriodLoadAt > 60000) {
+                loadPeriodStats(currentPeriod);
+            }
+
             // Обновляем полную статистику
             updateFullStatsDisplay(state);
             
@@ -1196,7 +1187,7 @@
             }
         }
 
-        let previousStats = null;
+        let lastPeriodLoadAt = 0;
 
         function formatNumber(num) {
             if (num === null || num === undefined || num === '—') return '—';
@@ -1245,94 +1236,66 @@
         function updateStatsDisplay() {
             if (!currentStats) return;
 
-            // Получаем предыдущие значения из истории или состояния
-            const previousBattles = previousStats?.battles || 0;
-            const previousWins = previousStats?.wins || 0;
-            const previousLosses = previousStats?.losses || 0;
-            const previousWinRate = previousStats?.winRate || 0;
-            const previousFrags = previousStats?.frags || 0;
-            const previousFragsPerBattle = previousStats?.fragsPerBattle || 0;
-            const previousDamageDealt = previousStats?.damageDealt || 0;
-            const previousAvgDamage = previousBattles > 0 ? previousDamageDealt / previousBattles : 0;
-            const previousXp = previousStats?.xp || 0;
-            const previousAvgXp = previousBattles > 0 ? previousXp / previousBattles : 0;
+            const pd = periodDeltas;   // сыграно за выбранный период
+            const base = periodBaseline; // счётчики на начало периода
 
-            // Обновляем основные значения с delta и форматированием
-            const battlesDelta = calculateDelta(currentStats.battles, previousBattles);
-            const battlesDeltaFormatted = formatDelta(battlesDelta);
+            // Счётчики: дельта = сколько добавилось за период
             document.getElementById('battlesCount').textContent = formatNumber(currentStats.battles);
-            updateDeltaElement('battlesChange', battlesDeltaFormatted);
+            updateDeltaElement('battlesChange', formatDelta(pd ? pd.battlesPlayed : null));
 
-            const winsDelta = calculateDelta(currentStats.wins, previousWins);
-            const winsDeltaFormatted = formatDelta(winsDelta);
             document.getElementById('winsCount').textContent = formatNumber(currentStats.wins);
-            updateDeltaElement('winsChange', winsDeltaFormatted);
+            updateDeltaElement('winsChange', formatDelta(pd ? pd.wins : null));
 
-            const lossesDelta = calculateDelta(currentStats.losses, previousLosses);
-            const lossesDeltaFormatted = formatDelta(lossesDelta);
             document.getElementById('lossesCount').textContent = formatNumber(currentStats.losses);
-            updateDeltaElement('lossesChange', lossesDeltaFormatted);
+            updateDeltaElement('lossesChange', formatDelta(pd ? pd.losses : null));
 
-            const winRateDelta = calculateDelta(parseFloat(currentStats.winRate), parseFloat(previousWinRate));
-            const winRateDeltaFormatted = formatDelta(winRateDelta, { isPercentage: true });
-            document.getElementById('winRate').textContent = currentStats.winRate ? `${parseFloat(currentStats.winRate).toFixed(1)}%` : '—';
-            updateDeltaElement('winRateChange', winRateDeltaFormatted);
-            
-            // Фраги
-            const fragsDelta = calculateDelta(currentStats.frags, previousFrags);
-            const fragsDeltaFormatted = formatDelta(fragsDelta);
             document.getElementById('fragsCount').textContent = formatNumber(currentStats.frags);
-            updateDeltaElement('fragsChange', fragsDeltaFormatted);
+            updateDeltaElement('fragsChange', formatDelta(pd ? pd.frags : null));
 
-            const fragsPerBattleDelta = calculateDelta(parseFloat(currentStats.fragsPerBattle), parseFloat(previousFragsPerBattle));
-            const fragsPerBattleDeltaFormatted = formatDelta(fragsPerBattleDelta, { isDecimal: true });
-            document.getElementById('fragsPerBattle').textContent = currentStats.fragsPerBattle ? parseFloat(currentStats.fragsPerBattle).toFixed(2) : '—';
-            updateDeltaElement('fragsPerBattleChange', fragsPerBattleDeltaFormatted);
+            document.getElementById('damageDealt').textContent = formatNumber(currentStats.damageDealt);
+            updateDeltaElement('damageDealtChange', formatDelta(pd ? pd.damageDealt : null));
+
+            document.getElementById('xpCount').textContent = formatNumber(currentStats.xp);
+            updateDeltaElement('xpChange', formatDelta(pd ? pd.xp : null));
+
+            // Производные показатели: дельта = текущее значение минус значение на начало периода
+            const baseBattles = base && base.battles > 0 ? base.battles : 0;
+            const curWinRate = parseFloat(currentStats.winRate) || 0;
+            const baseWinRate = baseBattles > 0 ? (base.wins || 0) / baseBattles * 100 : null;
+            document.getElementById('winRate').textContent = currentStats.winRate ? `${curWinRate.toFixed(2)}%` : '—';
+            updateDeltaElement('winRateChange', formatDelta(baseWinRate !== null ? curWinRate - baseWinRate : null, { isPercentage: true }));
+
+            const avgDamage = currentStats.battles > 0 ? Math.round(currentStats.damageDealt / currentStats.battles) : 0;
+            const baseAvgDamage = baseBattles > 0 ? (base.damage_dealt || 0) / baseBattles : null;
+            document.getElementById('avgDamage').textContent = formatNumber(avgDamage);
+            updateDeltaElement('avgDamageChange', formatDelta(baseAvgDamage !== null ? Math.round(avgDamage - baseAvgDamage) : null));
+
+            const curFpb = parseFloat(currentStats.fragsPerBattle) || 0;
+            const baseFpb = baseBattles > 0 ? (base.frags || 0) / baseBattles : null;
+            document.getElementById('fragsPerBattle').textContent = currentStats.fragsPerBattle ? curFpb.toFixed(2) : '—';
+            updateDeltaElement('fragsPerBattleChange', formatDelta(baseFpb !== null ? curFpb - baseFpb : null, { isDecimal: true }));
+
+            const avgXp = currentStats.battles > 0 ? Math.round(currentStats.xp / currentStats.battles) : 0;
+            const baseAvgXp = baseBattles > 0 ? (base.xp || 0) / baseBattles : null;
+            document.getElementById('avgXp').textContent = formatNumber(avgXp);
+            updateDeltaElement('avgXpChange', formatDelta(baseAvgXp !== null ? Math.round(avgXp - baseAvgXp) : null));
 
             document.getElementById('maxFrags').textContent = formatNumber(currentStats.maxFrags);
             document.getElementById('frags8p').textContent = formatNumber(currentStats.frags8p);
-            
-            // Урон
-            const damageDealtDelta = calculateDelta(currentStats.damageDealt, previousDamageDealt);
-            const damageDealtDeltaFormatted = formatDelta(damageDealtDelta);
-            document.getElementById('damageDealt').textContent = formatNumber(currentStats.damageDealt);
-            updateDeltaElement('damageDealtChange', damageDealtDeltaFormatted);
-
             document.getElementById('damageReceived').textContent = formatNumber(currentStats.damageReceived);
-            const avgDamage = currentStats.battles > 0 ? Math.round(currentStats.damageDealt / currentStats.battles) : 0;
-            const avgDamageDelta = calculateDelta(avgDamage, Math.round(previousAvgDamage));
-            const avgDamageDeltaFormatted = formatDelta(avgDamageDelta);
-            document.getElementById('avgDamage').textContent = formatNumber(avgDamage);
-            updateDeltaElement('avgDamageChange', avgDamageDeltaFormatted);
-            
-            // Опыт
-            const xpDelta = calculateDelta(currentStats.xp, previousXp);
-            const xpDeltaFormatted = formatDelta(xpDelta);
-            document.getElementById('xpCount').textContent = formatNumber(currentStats.xp);
-            updateDeltaElement('xpChange', xpDeltaFormatted);
-
-            const avgXp = currentStats.battles > 0 ? Math.round(currentStats.xp / currentStats.battles) : 0;
-            const avgXpDelta = calculateDelta(avgXp, Math.round(previousAvgXp));
-            const avgXpDeltaFormatted = formatDelta(avgXpDelta);
-            document.getElementById('avgXp').textContent = formatNumber(avgXp);
-            updateDeltaElement('avgXpChange', avgXpDeltaFormatted);
-
             document.getElementById('maxXp').textContent = formatNumber(currentStats.maxXp);
             document.getElementById('survivedBattles').textContent = formatNumber(currentStats.survivedBattles);
-            
+
             // Дополнительно
             document.getElementById('hits').textContent = formatNumber(currentStats.hits);
             document.getElementById('shots').textContent = formatNumber(currentStats.shots);
             document.getElementById('accuracy').textContent = currentStats.shots > 0 ? `${(currentStats.hits / currentStats.shots * 100).toFixed(1)}%` : '—';
             document.getElementById('spotted').textContent = formatNumber(currentStats.spotted);
-            
+
             // Захват баз
             document.getElementById('capturePoints').textContent = formatNumber(currentStats.capturePoints);
             document.getElementById('droppedCapturePoints').textContent = formatNumber(currentStats.droppedCapturePoints);
             document.getElementById('winAndSurvived').textContent = formatNumber(currentStats.winAndSurvived);
-
-            // Сохраняем текущие значения как предыдущие для следующего обновления
-            previousStats = { ...currentStats };
         }
 
 
@@ -1786,9 +1749,60 @@
                 } else {
                     updateCurrentSessionUI(null);
                 }
+                await loadSessionTanks();
             } catch (error) {
                 console.error('Ошибка загрузки данных сессии:', error);
                 updateCurrentSessionUI(null);
+            }
+        }
+
+        async function loadSessionTanks() {
+            const list = document.getElementById('sessionTanksList');
+            const note = document.getElementById('sessionTanksNote');
+            const header = document.getElementById('sessionTanksTableHeader');
+            if (!list || !note) return;
+
+            header.style.display = 'none';
+            list.innerHTML = '';
+
+            try {
+                const response = await fetch('/api/lesta-session-tanks');
+                const data = await response.json();
+
+                if (!data.success) {
+                    note.textContent = 'Не удалось загрузить технику за сессию.';
+                    return;
+                }
+                if (data.hidden) {
+                    note.textContent = data.message || 'Статистика по танкам скрыта в настройках Lesta.';
+                    return;
+                }
+                if (!data.hasBaseline) {
+                    note.textContent = data.message || 'Базовый снимок сохранён. После боёв здесь появятся танки сессии.';
+                    return;
+                }
+
+                const changes = data.changes || [];
+                if (!changes.length) {
+                    note.textContent = 'За текущую сессию боёв по технике пока не зафиксировано.';
+                    return;
+                }
+
+                header.style.display = 'grid';
+                note.textContent = `${changes.length} танк(ов) в сессии с ${new Date(data.baselineAt).toLocaleString('ru-RU')}.`;
+                list.innerHTML = changes.map((tank) => `
+                    <div class="tank-row-compact">
+                        <span class="tank-name-cell" title="${tank.name}">${tank.name}</span>
+                        <span>${tankTierLabel(tank.tier)}</span>
+                        <span>${formatNumber(tank.battlesPlayed)}</span>
+                        <span>${formatNumber(tank.avgDamage)}</span>
+                        <span>${tank.winRate}%</span>
+                        <span>${formatNumber(tank.frags)}</span>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Ошибка загрузки техники за сессию:', error);
+                note.textContent = 'Ошибка загрузки техники за сессию.';
             }
         }
 
@@ -2072,6 +2086,9 @@
                 const data = await periodRes.json();
                 const tankData = tanksRes.ok ? await tanksRes.json() : null;
                 if (!data.success) return;
+                periodDeltas = data.periodStats || null;
+                periodBaseline = data.baseline || null;
+                lastPeriodLoadAt = Date.now();
                 renderPeriodSummary(data);
                 renderActivityChart(data.daily || []);
                 renderPeriodTankChanges(tankData, data.periodStats);
@@ -2225,22 +2242,6 @@
             }
 
             await loadPeriodStats(period);
-        }
-
-        function applyHistoryForPeriod(historyData) {
-            if (!historyData || !historyData.success || !historyData.history || !historyData.history.length) return;
-            const firstRecord = historyData.history[historyData.history.length - 1];
-            previousStats = {
-                battles: firstRecord.battles || 0,
-                wins: firstRecord.wins || 0,
-                losses: firstRecord.losses || 0,
-                winRate: firstRecord.win_rate || 0,
-                frags: firstRecord.frags || 0,
-                fragsPerBattle: firstRecord.frags_per_battle || 0,
-                damageDealt: firstRecord.damage_dealt || 0,
-                xp: firstRecord.xp || 0
-            };
-            if (currentStats) updateStatsDisplay();
         }
 
         // Инициализация — один запрос истории + state параллельно

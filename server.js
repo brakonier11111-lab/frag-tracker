@@ -44,6 +44,8 @@ const { createFragStats, processFragStatsData } = require('./src/core/frag-stats
 const { createDonationOrchestrator } = require('./src/core/donation-orchestrator');
 const { initBlitzChallengeSchema } = require('./src/modules/blitz-challenge/schema');
 const { initBossOrdersSchema } = require('./src/modules/boss-orders/schema');
+const { initBattleTrackerSchema } = require('./src/modules/battle-tracker/schema');
+const { initViewerVotingSchema } = require('./src/modules/viewer-voting/schema');
 let blitzModule = null;
 let razblogModuleRef = null;
 let rouletteModuleRef = null;
@@ -465,6 +467,8 @@ db.serialize(() => {
 
     initBlitzChallengeSchema(db);
     initBossOrdersSchema(db);
+    initBattleTrackerSchema(db);
+    initViewerVotingSchema(db);
 
     // Таблица для очереди танков
     db.run(`CREATE TABLE IF NOT EXISTS tank_queue (

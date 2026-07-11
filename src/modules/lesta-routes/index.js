@@ -820,6 +820,81 @@ function createLestaRoutesModule(deps) {
             });
         });
 
+        // Танки, на которых были бои за текущую сессию (ручную или авто за сутки):
+        // текущие показатели с Lesta API против ближайшего танко-снапшота к началу сессии
+        app.get('/api/lesta-session-tanks', async (req, res) => {
+            try {
+                const state = await ensureLestaConfigFromState();
+                const accountId = state?.lesta_account_id;
+                if (!accountId) {
+                    return res.json({ success: true, hasData: false, changes: [], message: 'Привяжите аккаунт Lesta' });
+                }
+
+                const tankResult = await fetchAccountTanksForAccount(accountId);
+                if (tankResult.hidden || tankResult.error === 'STATS_HIDDEN') {
+                    return res.json({
+                        success: true, hasData: false, hidden: true, changes: [],
+                        message: 'Статистика по танкам скрыта в Lesta'
+                    });
+                }
+                if (tankResult.error) {
+                    return res.status(400).json({ success: false, error: tankResult.error, message: tankResult.message });
+                }
+
+                const currentMap = tanksToSnapshotMap(tankResult.tanks);
+                const startedAt = Number(state.lesta_session_started_at) || 0;
+
+                const respond = (baselineRow, mode) => {
+                    if (!baselineRow) {
+                        insertLestaTankSnapshot(accountId, currentMap, () => {
+                            res.json({
+                                success: true, mode, hasData: false, hasBaseline: false, changes: [],
+                                message: 'Базовый снимок техники сохранён — после боёв здесь появятся танки сессии.'
+                            });
+                        });
+                        return;
+                    }
+                    const changes = computeTankPeriodChanges(currentMap, parseTankSnapshotMap(baselineRow));
+                    res.json({
+                        success: true, mode, hasData: changes.length > 0, hasBaseline: true,
+                        baselineAt: baselineRow.timestamp, changes
+                    });
+                };
+
+                if (startedAt > 0) {
+                    dbRead.get(
+                        `SELECT * FROM lesta_tank_snapshots
+                         WHERE account_id = ? AND timestamp <= datetime(?, 'unixepoch')
+                         ORDER BY timestamp DESC LIMIT 1`,
+                        [String(accountId), startedAt],
+                        (err, row) => {
+                            if (err) return res.status(500).json({ success: false, error: 'Ошибка чтения снимков техники' });
+                            if (row) return respond(row, 'manual');
+                            dbRead.get(
+                                `SELECT * FROM lesta_tank_snapshots
+                                 WHERE account_id = ? AND timestamp >= datetime(?, 'unixepoch')
+                                 ORDER BY timestamp ASC LIMIT 1`,
+                                [String(accountId), startedAt],
+                                (err2, row2) => {
+                                    if (err2) return res.status(500).json({ success: false, error: 'Ошибка чтения снимков техники' });
+                                    respond(row2, 'manual');
+                                }
+                            );
+                        }
+                    );
+                } else {
+                    const reliableSince = Number(state.lesta_reliable_since) || 0;
+                    fetchTankSnapshotBaseline('1d', accountId, reliableSince, (err, row) => {
+                        if (err) return res.status(500).json({ success: false, error: 'Ошибка чтения снимков техники' });
+                        respond(row, 'today');
+                    });
+                }
+            } catch (error) {
+                console.error('❌ lesta-session-tanks:', error.message);
+                res.status(500).json({ success: false, error: error.message });
+            }
+        });
+
         app.post('/api/lesta-session/start', (req, res) => {
             startLestaSession((err, data) => {
                 if (err) return res.status(err.status).json({ success: false, error: err.error });

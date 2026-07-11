@@ -151,6 +151,20 @@
 				Данные берутся из общей таблицы чата (`chat_messages`) и обновляются автоматически по мере работы бота.
 			</div>
 		</div>
+
+		<div class="card">
+			<div class="card-header">
+				<div>
+					<div class="card-title">Игнорируемые ники</div>
+					<div class="card-sub">Эти пользователи (боты и т.п.) не учитываются в статистике.</div>
+				</div>
+			</div>
+			<div class="filters" style="margin-bottom:12px;">
+				<input id="ignore-input" class="select" placeholder="Ник для игнорирования" style="width:240px;" />
+				<button class="btn" id="btn-ignore-add">Добавить</button>
+			</div>
+			<div id="ignore-list" style="display:flex; flex-wrap:wrap; gap:8px;">Загрузка...</div>
+		</div>
 	</div>
 
 	<script>
@@ -307,8 +321,68 @@
 			renderStatsTable(ALL_STATS, period);
 		});
 
+		// --- Игнор-лист ---
+		function escapeHtml(s) {
+			return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+		}
+
+		async function loadIgnoredUsers() {
+			const box = document.getElementById('ignore-list');
+			try {
+				const res = await fetch('/api/chat/ignored-users');
+				const data = await res.json();
+				const users = (data && data.users) || [];
+				if (!users.length) {
+					box.innerHTML = '<span class="badge">Список пуст</span>';
+					return;
+				}
+				box.innerHTML = users.map(u => `
+					<span class="badge" style="gap:8px;">
+						${escapeHtml(u.username)}
+						<button data-unignore="${escapeHtml(u.username)}" title="Убрать из игнора"
+							style="background:none;border:0;color:var(--error);cursor:pointer;font-weight:700;">✕</button>
+					</span>
+				`).join('');
+				box.querySelectorAll('[data-unignore]').forEach(btn => {
+					btn.addEventListener('click', async () => {
+						await fetch('/api/chat/ignored-users/' + encodeURIComponent(btn.getAttribute('data-unignore')), { method: 'DELETE' });
+						await loadIgnoredUsers();
+						await loadStats();
+					});
+				});
+			} catch (e) {
+				box.innerHTML = '<span class="badge" style="color:var(--error);">Ошибка загрузки игнор-листа</span>';
+			}
+		}
+
+		async function addIgnoredUser() {
+			const input = document.getElementById('ignore-input');
+			const username = (input.value || '').trim();
+			if (!username) return;
+			try {
+				const res = await fetch('/api/chat/ignored-users', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ username })
+				});
+				const data = await res.json();
+				if (!res.ok) throw new Error(data.error || 'Ошибка');
+				input.value = '';
+				await loadIgnoredUsers();
+				await loadStats();
+			} catch (e) {
+				alert('Не удалось добавить: ' + e.message);
+			}
+		}
+
+		document.getElementById('btn-ignore-add').addEventListener('click', addIgnoredUser);
+		document.getElementById('ignore-input').addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') addIgnoredUser();
+		});
+
 		// Первая загрузка
 		loadStats();
+		loadIgnoredUsers();
 	</script>
 </body>
 </html>

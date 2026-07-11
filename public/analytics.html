@@ -473,6 +473,22 @@
                 })
                 .catch(error => console.error('Ошибка загрузки статистики платформ:', error));
 
+            // Загружаем статистику подключений
+            fetch('/api/analytics/connections')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const c = data.connections;
+                        document.getElementById('totalConnections').textContent = c.total_connections || 0;
+                        document.getElementById('uniqueUsers').textContent = c.unique_users || 0;
+                        const mins = Math.floor((c.avg_session_sec || 0) / 60);
+                        const secs = (c.avg_session_sec || 0) % 60;
+                        document.getElementById('avgSession').textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+                        document.getElementById('bounceRate').textContent = `${c.bounce_rate || 0}%`;
+                    }
+                })
+                .catch(error => console.error('Ошибка загрузки статистики подключений:', error));
+
             // Загружаем топ донатеров
             fetch('/api/analytics/top-donors')
                 .then(response => response.json())

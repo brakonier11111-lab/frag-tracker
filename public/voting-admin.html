@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Голосования зрителей — управление</title>
+<style>
+:root{--bg:#0b0d16;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.1);
+    --blue:#4be0ff;--red:#ff2a45;--gold:#ffce46;--green:#36f5a0;--text:#fff;--muted:rgba(255,255,255,.6);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(1200px 800px at 10% -10%,#161b2e,#0b0d16 60%);color:var(--text);
+    font-family:'Segoe UI',Roboto,sans-serif;min-height:100vh;padding:28px;}
+.wrap{max-width:960px;margin:0 auto;}
+a.back{color:var(--muted);text-decoration:none;font-size:.85rem;}
+a.back:hover{color:#fff;}
+h1{font-size:1.5rem;margin:10px 0 4px;}
+.sub{color:var(--muted);font-size:.85rem;margin-bottom:24px;}
+
+.panel{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:20px;}
+.panel h2{font-size:1.05rem;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+
+.row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+input[type=text]{flex:1;min-width:140px;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;
+    padding:10px 12px;color:#fff;font-size:.9rem;}
+input[type=text]:focus{outline:none;border-color:var(--blue);}
+select{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;color:#fff;padding:10px 12px;font-size:.85rem;}
+button{cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-size:.85rem;font-weight:700;
+    background:var(--card);color:#fff;border:1px solid var(--border);transition:.15s;}
+button:hover{background:rgba(255,255,255,.09);}
+button:disabled{opacity:.4;cursor:not-allowed;}
+button.primary{background:linear-gradient(135deg,var(--blue),#2a9dff);color:#04121a;border:none;}
+button.danger{background:linear-gradient(135deg,var(--red),#c2003a);color:#fff;border:none;}
+button.gold{background:linear-gradient(135deg,var(--gold),#ff9d00);color:#241400;border:none;}
+button.green{background:linear-gradient(135deg,var(--green),#0a9e5c);color:#052014;border:none;}
+button.small{padding:6px 10px;font-size:.75rem;}
+
+.hint{font-size:.75rem;color:var(--muted);margin-top:4px;}
+
+.option-row{display:flex;gap:10px;align-items:center;margin-bottom:8px;background:rgba(0,0,0,.25);
+    border:1px solid var(--border);border-radius:12px;padding:10px;transition:border-color .15s;}
+.option-row:hover{border-color:rgba(255,255,255,.22);}
+.option-row img{width:44px;height:44px;object-fit:cover;border-radius:10px;background:rgba(255,255,255,.06);flex:none;border:1px solid var(--border);}
+.option-row .fields{flex:1;display:flex;gap:8px;flex-wrap:wrap;}
+.option-row input[type=text]{min-width:120px;}
+.option-row .rm{color:var(--red);font-weight:900;cursor:pointer;padding:4px 8px;flex:none;font-size:1.1rem;border-radius:8px;transition:background .15s;}
+.option-row .rm:hover{background:rgba(255,42,69,.15);}
+.upload-btn{flex:none;font-size:.75rem;padding:8px 10px;}
+
+.platform-toggles{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.platform-toggles label{display:flex;align-items:center;gap:6px;font-size:.85rem;background:rgba(0,0,0,.25);
+    border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;transition:border-color .15s,background .15s;}
+.platform-toggles label:has(input:checked){border-color:rgba(75,224,255,.5);background:rgba(75,224,255,.08);}
+
+.poll-card{background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;
+    box-shadow:0 6px 20px rgba(0,0,0,.25);transition:border-color .2s;}
+.poll-card:has(.badge.active){border-color:rgba(54,245,160,.3);}
+.poll-card .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap;}
+.poll-card .title{font-weight:800;font-size:1.1rem;}
+.badge{font-size:.7rem;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.03em;}
+.badge.draft{background:rgba(255,255,255,.1);color:var(--muted);}
+.badge.active{background:rgba(54,245,160,.15);color:var(--green);border:1px solid rgba(54,245,160,.4);box-shadow:0 0 10px rgba(54,245,160,.25);}
+.badge.closed{background:rgba(255,42,69,.12);color:var(--red);border:1px solid rgba(255,42,69,.3);}
+
+.opt-bar-row{margin-bottom:10px;}
+.opt-bar-row .lbl{display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:5px;}
+.opt-bar-row .lbl span.name{display:flex;align-items:center;gap:7px;font-weight:600;}
+.opt-bar-row .lbl img{width:22px;height:22px;border-radius:6px;object-fit:cover;}
+.opt-bar-row .track{height:15px;border-radius:8px;background:rgba(0,0,0,.5);overflow:hidden;border:1px solid var(--border);}
+.opt-bar-row .fill{height:100%;background:linear-gradient(90deg,var(--blue),#2a9dff);transition:width .5s ease;border-radius:8px;}
+.opt-bar-row.leader .fill{background:linear-gradient(90deg,var(--gold),#ff9d00);}
+.opt-bar-row.leader .lbl span.name{color:var(--gold);}
+.total-votes{font-size:.8rem;color:var(--muted);margin-top:8px;}
+
+.actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+.links{display:flex;flex-direction:column;gap:8px;}
+.link-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;}
+.link-row code{flex:1;color:var(--muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.link-row button{padding:6px 10px;font-size:.75rem;}
+
+.toast{position:fixed;bottom:20px;right:20px;background:#181e30;border:1px solid var(--border);border-radius:10px;
+    padding:12px 18px;font-size:.85rem;opacity:0;transform:translateY(10px);transition:.25s;z-index:100;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.err{border-color:var(--red);}
+.empty{color:var(--muted);font-size:.85rem;padding:10px 0;}
+
+/* Свой confirm вместо window.confirm() — нативный диалог в Electron
+   (sandboxed BrowserWindow) после закрытия иногда не возвращает клавиатурный
+   фокус окну, из-за чего все поля ввода на странице переставали печататься. */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:200;}
+.confirm-overlay.show{display:flex;}
+.confirm-box{background:#161b2e;border:1px solid var(--border);border-radius:14px;padding:20px 22px;max-width:360px;box-shadow:0 20px 50px rgba(0,0,0,.5);}
+.confirm-box p{font-size:.9rem;margin-bottom:16px;line-height:1.4;}
+.confirm-actions{display:flex;gap:10px;justify-content:flex-end;}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <a class="back" href="/">← На главную</a>
+    <h1>🗳️ Голосования зрителей</h1>
+    <div class="sub">Ключевые слова в чате считаются за голос. Один зритель — один голос за опрос (по ID аккаунта на платформе).</div>
+
+    <div class="panel">
+        <h2>🆕 Новое голосование</h2>
+        <div class="row">
+            <input type="text" id="pollTitle" placeholder="Название голосования (например: Куда едем в следующем бою?)">
+        </div>
+        <div class="platform-toggles">
+            <label><input type="checkbox" class="platform-chk" value="vkplay" checked> VK Play</label>
+            <label><input type="checkbox" class="platform-chk" value="twitch" checked> Twitch</label>
+            <label><input type="checkbox" class="platform-chk" value="youtube" checked> YouTube</label>
+        </div>
+        <div id="optionsList"></div>
+        <div class="row">
+            <button onclick="addOptionRow()">+ Добавить вариант</button>
+        </div>
+        <button class="primary" onclick="createPoll()">🗳️ Создать голосование</button>
+        <div class="hint">Ключевое слово ищется как отдельное слово в сообщении чата (без учёта регистра). После создания голосование в статусе "черновик" — запустите его кнопкой "Активировать".</div>
+    </div>
+
+    <div class="panel">
+        <h2>📋 Голосования</h2>
+        <div id="pollsList"><div class="empty">Загрузка...</div></div>
+    </div>
+
+    <div class="panel">
+        <h2>🔗 Ссылка на виджет для OBS</h2>
+        <div class="hint" style="margin:0 0 6px;">Без параметра poll виджет показывает последнее активное голосование. Можно закрепить конкретное: добавьте ?poll=ID и ?layout=vertical|horizontal (по умолчанию — вертикально). У каждого голосования ниже своя готовая ссылка с выбором расположения.</div>
+        <div class="links">
+            <div class="link-row"><code id="linkWidget"></code><button onclick="copyLink('linkWidget')">Копировать</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <p id="confirmMessage"></p>
+        <div class="confirm-actions">
+            <button onclick="resolveConfirm(false)">Отмена</button>
+            <button class="danger" onclick="resolveConfirm(true)">Подтвердить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let optionRowSeq = 0;
+let confirmResolver = null;
+
+function showConfirm(message) {
+    document.getElementById('confirmMessage').textContent = message;
+    document.getElementById('confirmOverlay').classList.add('show');
+    return new Promise((resolve) => { confirmResolver = resolve; });
+}
+
+function resolveConfirm(result) {
+    document.getElementById('confirmOverlay').classList.remove('show');
+    if (confirmResolver) { confirmResolver(result); confirmResolver = null; }
+}
+
+function toast(msg, isErr) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isErr ? ' err' : '');
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+function addOptionRow(prefill) {
+    const id = 'opt' + (optionRowSeq++);
+    const box = document.getElementById('optionsList');
+    const el = document.createElement('div');
+    el.className = 'option-row';
+    el.id = id;
+    el.innerHTML = `
+        <img id="${id}_img" src="${prefill?.imageUrl || ''}" style="display:${prefill?.imageUrl ? 'block' : 'none'}">
+        <div class="fields">
+            <input type="text" id="${id}_label" placeholder="Название варианта" value="${prefill?.label || ''}">
+            <input type="text" id="${id}_keyword" placeholder="Ключевое слово (1, огонь, лес...)" value="${prefill?.keyword || ''}">
+        </div>
+        <input type="file" accept="image/*" id="${id}_file" style="display:none" onchange="onImagePicked('${id}')">
+        <button type="button" class="upload-btn" onclick="document.getElementById('${id}_file').click()">🖼️ Картинка</button>
+        <span class="rm" onclick="document.getElementById('${id}').remove()">✕</span>
+    `;
+    box.appendChild(el);
+}
+
+async function onImagePicked(id) {
+    const file = document.getElementById(id + '_file').files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+        try {
+            const r = await fetch('/api/voting/upload-image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageData: reader.result })
+            });
+            const d = await r.json();
+            if (!d.success) return toast(d.error || 'Ошибка загрузки', true);
+            const img = document.getElementById(id + '_img');
+            img.src = d.url;
+            img.style.display = 'block';
+            img.dataset.url = d.url;
+        } catch (e) {
+            toast('Ошибка загрузки картинки', true);
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+async function createPoll() {
+    const title = document.getElementById('pollTitle').value.trim();
+    const platforms = Array.from(document.querySelectorAll('.platform-chk:checked')).map((c) => c.value);
+    const rows = Array.from(document.getElementById('optionsList').children);
+    const options = rows.map((row) => {
+        const img = document.getElementById(row.id + '_img');
+        return {
+            label: document.getElementById(row.id + '_label').value.trim(),
+            keyword: document.getElementById(row.id + '_keyword').value.trim(),
+            imageUrl: (img && (img.dataset.url || img.getAttribute('src'))) || ''
+        };
+    }).filter((o) => o.label || o.keyword);
+
+    if (!options.length) return toast('Добавьте хотя бы один вариант', true);
+    if (!platforms.length) return toast('Выберите хотя бы одну платформу', true);
+
+    try {
+        const r = await fetch('/api/voting/polls', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, options, platforms })
+        });
+        const d = await r.json();
+        if (!d.success) return toast(d.error || 'Ошибка создания', true);
+        toast('Голосование создано');
+        document.getElementById('pollTitle').value = '';
+        document.getElementById('optionsList').innerHTML = '';
+        loadPolls();
+    } catch (e) {
+        toast('Ошибка сети', true);
+    }
+}
+
+async function activatePoll(id) {
+    try {
+        const r = await fetch(`/api/voting/polls/${id}/activate`, { method: 'POST' });
+        const d = await r.json();
+        if (!d.success) return toast(d.error || 'Ошибка', true);
+        toast('Голосование запущено');
+        loadPolls();
+    } catch (e) { toast('Ошибка сети', true); }
+}
+
+async function closePoll(id) {
+    try {
+        const r = await fetch(`/api/voting/polls/${id}/close`, { method: 'POST' });
+        const d = await r.json();
+        if (!d.success) return toast(d.error || 'Ошибка', true);
+        toast('Голосование остановлено');
+        loadPolls();
+    } catch (e) { toast('Ошибка сети', true); }
+}
+
+async function resetPoll(id) {
+    if (!(await showConfirm('Обнулить все голоса этого опроса?'))) return;
+    try {
+        const r = await fetch(`/api/voting/polls/${id}/reset`, { method: 'POST' });
+        const d = await r.json();
+        if (!d.success) return toast(d.error || 'Ошибка', true);
+        toast('Голоса обнулены');
+        loadPolls();
+    } catch (e) { toast('Ошибка сети', true); }
+}
+
+async function deletePoll(id) {
+    if (!(await showConfirm('Удалить голосование целиком? Это необратимо.'))) return;
+    try {
+        const r = await fetch(`/api/voting/polls/${id}`, { method: 'DELETE' });
+        const d = await r.json();
+        if (!d.success) return toast(d.error || 'Ошибка', true);
+        toast('Голосование удалено');
+        loadPolls();
+    } catch (e) { toast('Ошибка сети', true); }
+}
+
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderPoll(poll) {
+    const el = document.createElement('div');
+    el.className = 'poll-card';
+    const badgeCls = poll.status === 'active' ? 'active' : poll.status === 'closed' ? 'closed' : 'draft';
+    const badgeText = poll.status === 'active' ? 'Активно' : poll.status === 'closed' ? 'Завершено' : 'Черновик';
+
+    const optsHtml = poll.options.map((o) => `
+        <div class="opt-bar-row ${o.isLeader ? 'leader' : ''}">
+            <div class="lbl">
+                <span class="name">${o.isLeader ? '👑 ' : ''}${o.imageUrl ? `<img src="${esc(o.imageUrl)}">` : ''}${esc(o.label)} <span style="color:var(--muted)">(${esc(o.keyword)})</span></span>
+                <span>${o.votes} · ${o.pct}%</span>
+            </div>
+            <div class="track"><div class="fill" style="width:${o.pct}%"></div></div>
+        </div>
+    `).join('');
+
+    const actionsHtml = [
+        poll.status !== 'active' ? `<button class="green small" onclick="activatePoll(${poll.id})">▶ Активировать</button>` : '',
+        poll.status === 'active' ? `<button class="danger small" onclick="closePoll(${poll.id})">⏸ Остановить</button>` : '',
+        `<button class="small" onclick="resetPoll(${poll.id})">↺ Обнулить голоса</button>`,
+        `<select id="layout_${poll.id}" style="padding:6px 8px;font-size:.75rem;"><option value="vertical">Вертикально</option><option value="horizontal">Горизонтально</option></select>`,
+        `<button class="small" onclick="copyWidgetLink(${poll.id})">🔗 Ссылка на виджет</button>`,
+        `<button class="danger small" onclick="deletePoll(${poll.id})">🗑 Удалить</button>`
+    ].join('');
+
+    el.innerHTML = `
+        <div class="head">
+            <span class="title">${esc(poll.title)} <span class="badge ${badgeCls}">${badgeText}</span></span>
+        </div>
+        ${optsHtml}
+        <div class="total-votes">Всего голосов: ${poll.totalVotes} · платформы: ${poll.platforms.join(', ')}</div>
+        <div class="actions" style="margin-top:10px;">${actionsHtml}</div>
+    `;
+    return el;
+}
+
+function copyWidgetLink(id) {
+    const layoutSelect = document.getElementById('layout_' + id);
+    const layout = layoutSelect ? layoutSelect.value : 'vertical';
+    const url = location.origin + '/widget-voting.html?poll=' + id + '&layout=' + layout;
+    navigator.clipboard.writeText(url).then(() => toast('Ссылка на виджет скопирована'));
+}
+
+async function loadPolls() {
+    const box = document.getElementById('pollsList');
+    try {
+        const r = await fetch('/api/voting/polls');
+        const d = await r.json();
+        if (!d.success || !d.polls.length) {
+            box.innerHTML = '<div class="empty">Пока нет голосований</div>';
+            return;
+        }
+        box.innerHTML = '';
+        d.polls.forEach((p) => box.appendChild(renderPoll(p)));
+    } catch (e) {
+        box.innerHTML = '<div class="empty">Ошибка загрузки</div>';
+    }
+}
+
+function copyLink(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => toast('Ссылка скопирована'));
+}
+
+function connectWS() {
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws');
+    ws.onmessage = (ev) => {
+        try {
+            const m = JSON.parse(ev.data);
+            if (m.type === 'VOTING_UPDATE' || m.type === 'VOTING_CLOSED' || m.type === 'VOTING_DELETED') loadPolls();
+        } catch (e) { /* noop */ }
+    };
+    ws.onclose = () => setTimeout(connectWS, 3000);
+    ws.onerror = () => ws.close();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('linkWidget').textContent = location.origin + '/widget-voting.html';
+    addOptionRow();
+    addOptionRow();
+    loadPolls();
+    connectWS();
+});
+</script>
+</body>
+</html>

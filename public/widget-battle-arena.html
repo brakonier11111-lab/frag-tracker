@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battle Widget — Arena</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800;900&family=Orbitron:wght@700;800;900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --me:#4be0ff; --opp:#ff2a45; --oppL:#ff6274; --gold:#ffce46; --goldD:#ff9d00;
+  --meDeep:#123b52; --oppDeep:#4a0f18;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;min-height:100vh;overflow:hidden;background:transparent;}
+body{font-family:'Exo 2',sans-serif;color:#fff;display:flex;align-items:center;justify-content:center;}
+
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 10px rgba(255,206,70,.35));}50%{filter:drop-shadow(0 0 20px rgba(255,206,70,.6));}}
+@keyframes popIn{0%{transform:scale(.7);opacity:0;}60%{transform:scale(1.06);}100%{transform:scale(1);opacity:1;}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+.wrap{width:720px;}
+.inner{position:relative;padding:22px 26px 24px;}
+.battles-row{text-align:center;font-family:'Orbitron',sans-serif;font-weight:700;font-size:11px;letter-spacing:.14em;color:rgba(255,255,255,.85);text-shadow:0 1px 4px rgba(0,0,0,.95);margin-bottom:16px;}
+.battles-row .lbl{color:rgba(255,255,255,.6);}
+
+.matchup{display:flex;align-items:stretch;gap:0;}
+.plate{flex:1;min-width:0;position:relative;padding:10px 14px;overflow:hidden;transition:box-shadow .3s;}
+.plate.me{background:linear-gradient(120deg,var(--meDeep) 0%,#0a0d16 100%);border:1.5px solid var(--me);border-right:none;border-radius:14px 0 0 14px;}
+.plate.opp{background:linear-gradient(240deg,var(--oppDeep) 0%,#0a0d16 100%);border:1.5px solid var(--opp);border-left:none;border-radius:0 14px 14px 0;}
+.plate.leading.me{box-shadow:0 12px 30px rgba(0,0,0,.35), 0 0 20px rgba(75,224,255,.35);}
+.plate.leading.opp{box-shadow:0 12px 30px rgba(0,0,0,.35), 0 0 20px rgba(255,42,69,.35);}
+
+.nick{text-align:center;font-weight:900;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:10px;}
+.nick.me{color:#eaffff;text-shadow:0 2px 3px rgba(0,0,0,.9),0 0 5px rgba(75,224,255,.4);}
+.nick.opp{color:#ffeaed;text-shadow:0 2px 3px rgba(0,0,0,.9),0 0 5px rgba(255,42,69,.4);}
+
+.stats{display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:6px;margin-bottom:10px;}
+.stat{text-align:center;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:6px 2px;}
+.stat .lbl{font-family:'Oswald',sans-serif;font-size:8px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.9);margin-bottom:2px;}
+.stat .val{font-family:'Orbitron',sans-serif;font-weight:800;font-size:13px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);}
+
+.scorebox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:rgba(0,0,0,.75);border-radius:10px;padding:6px 10px;}
+.scorebox.me{border:1.5px solid var(--me);}
+.scorebox.opp{border:1.5px solid var(--opp);}
+.scorebox .lbl{font-family:'Oswald',sans-serif;font-size:8.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.85);text-shadow:0 1px 3px rgba(0,0,0,.9);}
+.scorebox .val{font-family:'Orbitron',sans-serif;font-weight:900;font-size:20px;}
+.scorebox.me .val{color:var(--me);text-shadow:0 0 16px rgba(75,224,255,.55);}
+.scorebox.opp .val{color:var(--oppL);text-shadow:0 0 16px rgba(255,42,69,.55);}
+
+.vsbox{flex:none;width:64px;margin:0 -20px;z-index:3;display:flex;align-items:center;justify-content:center;position:relative;}
+.vsbox .inner2{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;animation:glow 3s ease-in-out infinite;}
+.vsbox .vs{font-family:'Orbitron',sans-serif;font-weight:900;font-size:17px;background:linear-gradient(180deg,#fff,var(--gold) 60%,var(--goldD));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 3px rgba(0,0,0,.7));}
+.vsbox .price-short{font-family:'Orbitron',sans-serif;font-weight:700;font-size:9px;color:rgba(255,255,255,.55);}
+
+.meter{position:relative;width:100%;height:9px;border-radius:5px;overflow:hidden;margin-top:18px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);}
+.meter .fill{position:absolute;top:0;bottom:0;transition:width .9s cubic-bezier(.4,0,.2,1);}
+.meter .fill.me{left:0;background:linear-gradient(90deg,rgba(75,224,255,.5),var(--me));width:50%;}
+.meter .fill.opp{right:0;background:linear-gradient(270deg,rgba(255,42,69,.5),var(--opp));width:50%;}
+.meter .marker{position:absolute;top:-2.5px;bottom:-2.5px;width:3px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.9);transform:translateX(-50%);transition:left .9s cubic-bezier(.4,0,.2,1);left:50%;}
+.pctline{display:flex;justify-content:space-between;margin-top:7px;font-family:'Orbitron',sans-serif;font-weight:800;font-size:13px;}
+.pctline .me{color:var(--me);text-shadow:0 1px 3px rgba(0,0,0,.9);}
+.pctline .opp{color:var(--oppL);text-shadow:0 1px 3px rgba(0,0,0,.9);}
+
+.prizewrap{display:flex;justify-content:center;margin-top:14px;}
+.prize{position:relative;display:inline-flex;align-items:center;gap:9px;padding:6px 20px;background:linear-gradient(92deg,var(--gold),var(--goldD));border-radius:6px;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 50%,calc(100% - 8px) 100%,8px 100%,0 50%);box-shadow:0 6px 18px rgba(255,157,0,.35);}
+.prize .lbl{font-family:'Oswald',sans-serif;font-weight:700;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:rgba(20,10,0,.72);}
+.prize .val{font-family:'Orbitron',sans-serif;font-weight:900;font-size:15px;color:#1a0f00;}
+
+.idlecard{position:relative;border-radius:18px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.55);background:#07090f;padding:30px;display:flex;align-items:center;gap:20px;justify-content:center;}
+.idlecard .ico{font-size:34px;}
+.idlecard .txt{font-family:'Oswald',sans-serif;font-weight:700;font-size:18px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.6);}
+
+.winner-banner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:50;background:rgba(4,5,10,.72);}
+.winner-banner.show{display:flex;animation:fadeIn .4s ease;}
+.winner-card{text-align:center;padding:40px 60px;border-radius:24px;background:linear-gradient(165deg,rgba(13,16,28,.95),rgba(8,10,19,.95));border:2px solid var(--gold);box-shadow:0 0 80px rgba(255,206,70,.4);animation:popIn .6s cubic-bezier(.16,1,.3,1);}
+.winner-card .wt{font-size:.9rem;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:10px;}
+.winner-card .wn{font-family:'Orbitron',sans-serif;font-weight:900;font-size:3rem;background:linear-gradient(180deg,#fff,var(--gold) 60%,var(--goldD));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 rgba(0,0,0,.5));}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="inner" id="arena">
+    <div class="battles-row"><span id="battlesMe">0</span> <span class="lbl">боёв</span> / <span id="battlesOpp">0</span> <span class="lbl">боёв</span></div>
+
+    <div class="matchup">
+      <div class="plate me" id="plateMe">
+        <div class="nick me" id="myNick">Стример</div>
+        <div class="stats">
+          <div class="stat"><div class="lbl">Урон</div><div class="val" id="myDmg">0</div></div>
+          <div class="stat"><div class="lbl">Фраги</div><div class="val" id="myFrags">0</div></div>
+          <div class="stat"><div class="lbl">Выжив.</div><div class="val" id="mySurv">0%</div></div>
+        </div>
+        <div class="scorebox me"><div class="lbl">Очки</div><div class="val" id="myScore">0</div></div>
+      </div>
+
+      <div class="vsbox">
+        <div class="inner2">
+          <span class="vs">VS</span>
+          <span class="price-short" id="priceShort"></span>
+        </div>
+      </div>
+
+      <div class="plate opp" id="plateOpp">
+        <div class="nick opp" id="oppNick">Зритель</div>
+        <div class="stats">
+          <div class="stat"><div class="lbl">Урон</div><div class="val" id="oppDmg">0</div></div>
+          <div class="stat"><div class="lbl">Фраги</div><div class="val" id="oppFrags">0</div></div>
+          <div class="stat"><div class="lbl">Выжив.</div><div class="val" id="oppSurv">0%</div></div>
+        </div>
+        <div class="scorebox opp"><div class="lbl">Очки</div><div class="val" id="oppScore">0</div></div>
+      </div>
+    </div>
+
+    <div class="meter">
+      <div class="fill me" id="barMe"></div>
+      <div class="fill opp" id="barOpp"></div>
+      <div class="marker" id="barMarker"></div>
+    </div>
+    <div class="pctline"><span class="me" id="myPct">50%</span><span class="opp" id="oppPct">50%</span></div>
+
+    <div class="prizewrap" id="priceLine" style="display:none;">
+      <div class="prize"><span class="lbl">На кону</span><span class="val" id="priceVal">—</span></div>
+    </div>
+  </div>
+
+  <div class="idlecard" id="idleCard" style="display:none;">
+    <span class="ico">⚔️</span>
+    <div class="txt">Ожидание начала баттла</div>
+  </div>
+
+</div>
+
+<div class="winner-banner" id="winnerBanner">
+  <div class="winner-card">
+    <div class="wt">Победитель баттла</div>
+    <div class="wn" id="winnerName">—</div>
+  </div>
+</div>
+
+<script>
+// Тема — поменяй значения здесь, чтобы применить другой пресет (Классика/Неон/Изумруд/Плазма)
+const THEME = { me:'#4be0ff', opp:'#ff2a45', oppL:'#ff6274', gold:'#ffce46', goldD:'#ff9d00', meDeep:'#123b52', oppDeep:'#4a0f18' };
+const root = document.documentElement;
+Object.entries(THEME).forEach(([k, v]) => root.style.setProperty('--' + k, v));
+
+function fmt(n) { return Math.round(Number(n) || 0).toLocaleString('ru-RU'); }
+
+function render(state) {
+    const arena = document.getElementById('arena');
+    const idle = document.getElementById('idleCard');
+    if (!state || !state.active) {
+        arena.style.display = 'none';
+        idle.style.display = 'flex';
+        return;
+    }
+    arena.style.display = 'block';
+    idle.style.display = 'none';
+
+    document.getElementById('myNick').textContent = state.myNickname || 'Стример';
+    document.getElementById('oppNick').textContent = state.opponentNickname || 'Зритель';
+
+    const my = state.myTotals || {};
+    const opp = state.opponentTotals || {};
+    document.getElementById('myDmg').textContent = fmt(my.avgDamage);
+    document.getElementById('oppDmg').textContent = fmt(opp.avgDamage);
+    document.getElementById('myFrags').textContent = fmt(my.frags);
+    document.getElementById('oppFrags').textContent = fmt(opp.frags);
+    document.getElementById('mySurv').textContent = (my.survivalRate || 0) + '%';
+    document.getElementById('oppSurv').textContent = (opp.survivalRate || 0) + '%';
+    document.getElementById('battlesMe').textContent = my.battles || 0;
+    document.getElementById('battlesOpp').textContent = opp.battles || 0;
+
+    const myScore = fmt(state.myScore);
+    const oppScore = fmt(state.opponentScore);
+    document.getElementById('myScore').textContent = myScore;
+    document.getElementById('oppScore').textContent = oppScore;
+
+    const myScoreNum = Number(state.myScore) || 0;
+    const oppScoreNum = Number(state.opponentScore) || 0;
+    document.getElementById('plateMe').classList.toggle('leading', myScoreNum > oppScoreNum);
+    document.getElementById('plateOpp').classList.toggle('leading', oppScoreNum > myScoreNum);
+
+    const myPct = Math.max(0, Math.min(100, state.myPct != null ? state.myPct : 50));
+    const oppPct = 100 - myPct;
+    document.getElementById('barMe').style.width = myPct + '%';
+    document.getElementById('barOpp').style.width = oppPct + '%';
+    document.getElementById('barMarker').style.left = myPct + '%';
+    document.getElementById('myPct').textContent = Math.round(myPct) + '%';
+    document.getElementById('oppPct').textContent = Math.round(oppPct) + '%';
+
+    const priceLine = document.getElementById('priceLine');
+    const priceShort = document.getElementById('priceShort');
+    if (state.price) {
+        priceLine.style.display = 'flex';
+        document.getElementById('priceVal').textContent = state.price;
+        priceShort.textContent = state.price;
+    } else {
+        priceLine.style.display = 'none';
+        priceShort.textContent = '';
+    }
+}
+
+function showWinner(state) {
+    if (!state || !state.winner) return;
+    const name = state.winner === 'me' ? (state.myNickname || 'Стример') : (state.opponentNickname || 'Зритель');
+    document.getElementById('winnerName').textContent = name;
+    document.getElementById('winnerBanner').classList.add('show');
+    setTimeout(() => {
+        document.getElementById('winnerBanner').classList.remove('show');
+    }, 6000);
+}
+
+async function loadState() {
+    try {
+        const r = await fetch('/api/battle/state');
+        const d = await r.json();
+        if (d.success) render(d.battle);
+    } catch (e) { /* noop */ }
+}
+
+function connectWS() {
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws');
+    ws.onmessage = (ev) => {
+        try {
+            const m = JSON.parse(ev.data);
+            if (m.type === 'BATTLE_UPDATE' && m.battle) {
+                render(m.battle);
+            } else if (m.type === 'BATTLE_ENDED' && m.battle) {
+                render(m.battle);
+                showWinner(m.battle);
+            }
+        } catch (e) { /* noop */ }
+    };
+    ws.onclose = () => setTimeout(connectWS, 3000);
+    ws.onerror = () => ws.close();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    connectWS();
+    setInterval(loadState, 5000);
+});
+</script>
+</body>
+</html>

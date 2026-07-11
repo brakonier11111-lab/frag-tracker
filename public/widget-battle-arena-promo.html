@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battle Promo Widget — Arena</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800;900&family=Orbitron:wght@700;800;900&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --me:#4be0ff; --opp:#ff2a45; --oppL:#ff6274; --gold:#ffce46; --goldD:#ff9d00;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;min-height:100vh;overflow:hidden;background:transparent;}
+body{font-family:'Exo 2',sans-serif;color:#fff;display:flex;align-items:center;justify-content:center;}
+
+.wrap{width:500px;}
+@keyframes sheen{0%{transform:translateX(-60%) skewX(-18deg);opacity:0;}15%{opacity:.9;}45%{opacity:0;}100%{transform:translateX(320%) skewX(-18deg);opacity:0;}}
+@keyframes floaty{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 10px rgba(255,206,70,.35));}50%{filter:drop-shadow(0 0 20px rgba(255,206,70,.6));}}
+@keyframes fillShine{0%{transform:translateX(-120%);}100%{transform:translateX(240%);}}
+
+.card{position:relative;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6);background:#07090f;}
+.card .bgsplit{position:absolute;inset:0;background:linear-gradient(105deg, color-mix(in srgb, var(--me) 22%, transparent) 0%, color-mix(in srgb, var(--me) 5%, transparent) 42%, transparent 48%, color-mix(in srgb, var(--opp) 5%, transparent) 54%, color-mix(in srgb, var(--opp) 22%, transparent) 100%);}
+.card .bgshade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1),rgba(0,0,0,.55));}
+.card .sheen{position:absolute;top:0;bottom:0;left:0;width:35%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.14),transparent);animation:sheen 5s ease-in-out infinite;pointer-events:none;}
+.inner{position:relative;padding:20px 22px 18px;}
+.headline{text-align:center;font-family:'Oswald',sans-serif;font-weight:700;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:16px;}
+
+.matchup{display:flex;align-items:center;gap:0;}
+.side{flex:1;min-width:0;text-align:center;padding:14px 8px;}
+.side.me{clip-path:polygon(0 0,100% 0,88% 100%,0 100%);background:linear-gradient(120deg, color-mix(in srgb, var(--me) 28%, transparent), color-mix(in srgb, var(--me) 6%, transparent));border:1.5px solid color-mix(in srgb, var(--me) 42%, transparent);border-right:none;border-radius:12px 0 0 12px;}
+.side.opp{clip-path:polygon(12% 0,100% 0,100% 100%,0 100%);background:linear-gradient(240deg, color-mix(in srgb, var(--opp) 28%, transparent), color-mix(in srgb, var(--opp) 6%, transparent));border:1.5px solid color-mix(in srgb, var(--opp) 42%, transparent);border-left:none;border-radius:0 12px 12px 0;}
+.side .role{font-family:'Oswald',sans-serif;font-size:9px;font-weight:600;letter-spacing:.24em;text-transform:uppercase;margin-bottom:4px;}
+.side.me .role{color:color-mix(in srgb, var(--me) 80%, white);}
+.side.opp .role{color:var(--oppL);}
+.side .name{font-weight:900;font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.side.me .name{color:#eaffff;text-shadow:0 2px 6px rgba(0,0,0,.8), 0 0 16px color-mix(in srgb, var(--me) 55%, transparent);}
+.side.opp .name{color:#ffeaed;text-shadow:0 2px 6px rgba(0,0,0,.8), 0 0 16px color-mix(in srgb, var(--opp) 55%, transparent);}
+.side .pct{font-family:'Orbitron',sans-serif;font-weight:900;font-size:22px;margin-top:4px;}
+.side.me .pct{color:var(--me);text-shadow:0 0 18px color-mix(in srgb, var(--me) 60%, transparent);}
+.side.opp .pct{color:var(--oppL);text-shadow:0 0 18px color-mix(in srgb, var(--opp) 60%, transparent);}
+.side .pct small{font-size:12px;}
+
+.vshex{flex:none;width:60px;height:68px;margin:0 -18px;z-index:3;display:flex;align-items:center;justify-content:center;position:relative;}
+.vshex .a{position:absolute;width:60px;height:68px;background:linear-gradient(180deg,#2a2f45,#0a0d16);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);box-shadow:0 0 26px color-mix(in srgb, var(--gold) 50%, transparent);animation:glow 3s ease-in-out infinite;}
+.vshex .b{position:absolute;width:54px;height:61px;background:radial-gradient(circle at 45% 35%,#191d2e,#07090f);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);box-shadow:inset 0 0 14px color-mix(in srgb, var(--gold) 30%, transparent);}
+.vshex span{position:relative;font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;background:linear-gradient(180deg,#fff,var(--gold) 60%,var(--goldD));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 3px rgba(0,0,0,.7));}
+
+.meter{position:relative;width:100%;height:8px;border-radius:4px;overflow:hidden;margin-top:16px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);}
+.meter .fill{position:absolute;top:0;bottom:0;transition:width .9s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+.meter .fill.me{left:0;background:linear-gradient(90deg, color-mix(in srgb, var(--me) 50%, transparent), var(--me));width:50%;}
+.meter .fill.opp{right:0;background:linear-gradient(270deg, color-mix(in srgb, var(--opp) 50%, transparent), var(--opp));width:50%;}
+.meter .fill.me .shine{position:absolute;inset:0;width:40%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);animation:fillShine 3.4s ease-in-out infinite;}
+.meter .marker{position:absolute;top:-2px;bottom:-2px;width:2.5px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.9);transform:translateX(-50%);transition:left .9s cubic-bezier(.4,0,.2,1);left:50%;}
+
+.prizewrap{display:flex;justify-content:center;margin-top:16px;}
+.prize{position:relative;display:inline-flex;align-items:center;gap:9px;padding:7px 22px;background:linear-gradient(92deg,var(--gold),var(--goldD));border-radius:6px;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 50%,calc(100% - 8px) 100%,8px 100%,0 50%);box-shadow:0 6px 18px color-mix(in srgb, var(--goldD) 40%, transparent);}
+.prize .lbl{font-family:'Oswald',sans-serif;font-weight:700;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:rgba(20,10,0,.72);}
+.prize .val{font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:#1a0f00;}
+
+.idlecard{padding:22px;display:flex;align-items:center;gap:18px;justify-content:center;}
+.idlecard .ico{font-size:30px;animation:floaty 3s ease-in-out infinite;}
+.idlecard .promo{font-family:'Oswald',sans-serif;font-weight:700;font-size:17px;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(92deg,#fff6da,var(--gold) 60%,var(--goldD));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.idlecard .sub{font-size:13px;font-weight:600;color:rgba(255,255,255,.72);margin-top:4px;}
+.idlecard .sub b{color:var(--me);}
+
+.rules{position:relative;margin-top:12px;border-radius:16px;overflow:hidden;background:linear-gradient(165deg,rgba(15,18,32,.96),rgba(8,10,19,.97));box-shadow:0 16px 40px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);}
+.rules .accent{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(92deg,var(--me),var(--gold) 50%,var(--opp));}
+.rules .body{padding:16px 20px 18px;}
+.rules .head{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.rules .ico{width:22px;height:22px;flex:none;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;background:color-mix(in srgb, var(--gold) 18%, transparent);border:1px solid color-mix(in srgb, var(--gold) 40%, transparent);}
+.rules .title{font-family:'Oswald',sans-serif;font-weight:700;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);}
+.rules .text{font-size:13px;font-weight:500;line-height:1.5;color:rgba(255,255,255,.78);}
+.rules .chips{display:flex;gap:8px;margin-top:13px;}
+.rules .chip{flex:1;text-align:center;padding:8px 4px;border-radius:9px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);}
+.rules .chip .e{font-size:15px;line-height:1;}
+.rules .chip .l{font-family:'Oswald',sans-serif;font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.62);margin-top:5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card" id="activeCard">
+    <div class="bgsplit"></div><div class="bgshade"></div><div class="sheen"></div>
+    <div class="inner">
+      <div class="headline">ДУЭЛЬ В ЭФИРЕ</div>
+      <div class="matchup">
+        <div class="side me">
+          <div class="role">Стример</div>
+          <div class="name" id="myNick">Стример</div>
+          <div class="pct" id="myPctEl">50<small>%</small></div>
+        </div>
+        <div class="vshex"><div class="a"></div><div class="b"></div><span>VS</span></div>
+        <div class="side opp">
+          <div class="role">Зритель</div>
+          <div class="name" id="oppNick">Зритель</div>
+          <div class="pct" id="oppPctEl">50<small>%</small></div>
+        </div>
+      </div>
+      <div class="meter">
+        <div class="fill me" id="barMe" style="width:50%"><span class="shine"></span></div>
+        <div class="fill opp" id="barOpp" style="width:50%"></div>
+        <div class="marker" id="barMarker" style="left:50%"></div>
+      </div>
+      <div class="prizewrap" id="priceLine" style="display:none;">
+        <div class="prize"><span class="lbl">КИНУТЬ ВЫЗОВ ОТ</span><span class="val" id="priceVal">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" id="idleCard" style="display:none;">
+    <div class="bgsplit" style="opacity:.6;"></div><div class="sheen"></div>
+    <div class="idlecard">
+      <div class="ico">⚔️</div>
+      <div>
+        <div class="promo">ВЫЗОВИ МЕНЯ НА ДУЭЛЬ</div>
+        <div class="sub">Пиши свой ник <b>Tanks Blitz</b> в чат</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rules">
+    <div class="accent"></div>
+    <div class="body">
+      <div class="head"><span class="ico">ⓘ</span><span class="title">Как это работает</span></div>
+      <div class="text">Играем со зрителем во взводе. За действия в бою начисляются очки — победит сильнейший.</div>
+      <div class="chips">
+        <div class="chip"><div class="e">⚔️</div><div class="l">Урон</div></div>
+        <div class="chip"><div class="e">💥</div><div class="l">Фраги</div></div>
+        <div class="chip"><div class="e">🛡️</div><div class="l">Выживание</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Тема (можно переключить на другой пресет вручную, поменяв значения ниже)
+const THEME = { me:'#4be0ff', opp:'#ff2a45', oppL:'#ff6274', gold:'#ffce46', goldD:'#ff9d00' };
+const root = document.documentElement;
+root.style.setProperty('--me', THEME.me);
+root.style.setProperty('--opp', THEME.opp);
+root.style.setProperty('--oppL', THEME.oppL);
+root.style.setProperty('--gold', THEME.gold);
+root.style.setProperty('--goldD', THEME.goldD);
+
+function render(state) {
+    const active = !!(state && state.active);
+    document.getElementById('activeCard').style.display = active ? 'block' : 'none';
+    document.getElementById('idleCard').style.display = active ? 'none' : 'block';
+    if (!active) return;
+
+    document.getElementById('myNick').textContent = state.myNickname || 'Стример';
+    document.getElementById('oppNick').textContent = state.opponentNickname || 'Зритель';
+
+    const myPct = Math.max(0, Math.min(100, state.myPct != null ? state.myPct : 50));
+    const oppPct = 100 - myPct;
+    document.getElementById('barMe').style.width = myPct + '%';
+    document.getElementById('barOpp').style.width = oppPct + '%';
+    document.getElementById('barMarker').style.left = myPct + '%';
+    document.getElementById('myPctEl').innerHTML = Math.round(myPct) + '<small>%</small>';
+    document.getElementById('oppPctEl').innerHTML = Math.round(oppPct) + '<small>%</small>';
+
+    const priceLine = document.getElementById('priceLine');
+    if (state.price) {
+        priceLine.style.display = 'flex';
+        document.getElementById('priceVal').textContent = state.price;
+    } else {
+        priceLine.style.display = 'none';
+    }
+}
+
+async function loadState() {
+    try {
+        const r = await fetch('/api/battle/state');
+        const d = await r.json();
+        if (d.success) render(d.battle);
+    } catch (e) { /* noop */ }
+}
+
+function connectWS() {
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws');
+    ws.onmessage = (ev) => {
+        try {
+            const m = JSON.parse(ev.data);
+            if ((m.type === 'BATTLE_UPDATE' || m.type === 'BATTLE_ENDED') && m.battle) render(m.battle);
+        } catch (e) { /* noop */ }
+    };
+    ws.onclose = () => setTimeout(connectWS, 3000);
+    ws.onerror = () => ws.close();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    connectWS();
+    setInterval(loadState, 8000);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Стример vs Зритель — управление</title>
+<style>
+:root{--bg:#0b0d16;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.1);
+    --blue:#4be0ff;--red:#ff2a45;--gold:#ffce46;--green:#36f5a0;--text:#fff;--muted:rgba(255,255,255,.6);}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:radial-gradient(1200px 800px at 10% -10%,#161b2e,#0b0d16 60%);color:var(--text);
+    font-family:'Segoe UI',Roboto,sans-serif;min-height:100vh;padding:28px;}
+.wrap{max-width:920px;margin:0 auto;}
+a.back{color:var(--muted);text-decoration:none;font-size:.85rem;}
+a.back:hover{color:#fff;}
+h1{font-size:1.5rem;margin:10px 0 4px;}
+.sub{color:var(--muted);font-size:.85rem;margin-bottom:24px;}
+
+.panel{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:20px;}
+.panel h2{font-size:1.05rem;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+
+.row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+input[type=text]{flex:1;min-width:180px;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:10px;
+    padding:10px 12px;color:#fff;font-size:.9rem;}
+input[type=text]:focus{outline:none;border-color:var(--blue);}
+button{cursor:pointer;border:none;border-radius:10px;padding:10px 16px;font-size:.85rem;font-weight:700;
+    background:var(--card);color:#fff;border:1px solid var(--border);transition:.15s;}
+button:hover{background:rgba(255,255,255,.09);}
+button:disabled{opacity:.4;cursor:not-allowed;}
+button.primary{background:linear-gradient(135deg,var(--blue),#2a9dff);color:#04121a;border:none;}
+button.danger{background:linear-gradient(135deg,var(--red),#c2003a);color:#fff;border:none;}
+button.gold{background:linear-gradient(135deg,var(--gold),#ff9d00);color:#241400;border:none;}
+
+.candidates{max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;margin-top:6px;display:none;}
+.candidates.show{display:block;}
+.candidate{padding:9px 12px;font-size:.85rem;cursor:pointer;border-bottom:1px solid var(--border);}
+.candidate:last-child{border-bottom:none;}
+.candidate:hover{background:rgba(255,255,255,.06);}
+.candidate small{color:var(--muted);margin-left:6px;}
+
+.selected-chip{display:none;align-items:center;gap:8px;background:rgba(75,224,255,.12);border:1px solid rgba(75,224,255,.4);
+    border-radius:10px;padding:8px 12px;font-size:.85rem;margin-top:6px;}
+.selected-chip.show{display:flex;}
+.selected-chip .x{cursor:pointer;color:var(--red);font-weight:900;margin-left:auto;}
+
+.hint{font-size:.75rem;color:var(--muted);margin-top:4px;}
+
+.vs-live{display:none;}
+.vs-live.show{display:block;}
+.vs-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin-bottom:16px;}
+.side{background:rgba(0,0,0,.3);border-radius:12px;padding:14px;text-align:center;border:1.5px solid var(--border);}
+.side.me{border-color:rgba(75,224,255,.4);}
+.side.opp{border-color:rgba(255,42,69,.4);}
+.side .nm{font-weight:800;margin-bottom:8px;}
+.side.me .nm{color:var(--blue);}
+.side.opp .nm{color:var(--red);}
+.side .sc{font-size:1.6rem;font-weight:900;font-family:Consolas,monospace;}
+.side .mini{font-size:.72rem;color:var(--muted);margin-top:6px;line-height:1.6;}
+.vscol{text-align:center;font-weight:900;color:var(--gold);}
+
+.bar{position:relative;width:100%;height:12px;border-radius:6px;overflow:hidden;background:rgba(0,0,0,.5);
+    border:1px solid var(--border);margin-bottom:16px;}
+.bar-fill{position:absolute;top:0;bottom:0;transition:width .6s ease;}
+.bar-fill.me{left:0;background:var(--blue);width:50%;}
+.bar-fill.opp{right:0;background:var(--red);width:50%;}
+
+.actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+.feed-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);font-size:.85rem;}
+.feed-item:last-child{border-bottom:none;}
+.feed-item .win{font-weight:800;}
+.feed-item .win.me{color:var(--blue);}
+.feed-item .win.opp{color:var(--red);}
+.feed-empty{color:var(--muted);font-size:.85rem;padding:10px 0;}
+
+.links{display:flex;flex-direction:column;gap:8px;}
+.link-row{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:8px 12px;}
+.link-row code{flex:1;color:var(--muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.link-row button{padding:6px 10px;font-size:.75rem;}
+
+.toast{position:fixed;bottom:20px;right:20px;background:#181e30;border:1px solid var(--border);border-radius:10px;
+    padding:12px 18px;font-size:.85rem;opacity:0;transform:translateY(10px);transition:.25s;z-index:100;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.err{border-color:var(--red);}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <a class="back" href="/">← На главную</a>
+    <h1>⚔️ Стример vs Зритель</h1>
+    <div class="sub">Управление баттлом со зрителем по реальной статистике Tanks Blitz</div>
+
+    <div class="panel" id="startPanel">
+        <h2>🆕 Начать новый баттл</h2>
+        <div class="row">
+            <input type="text" id="nickInput" placeholder="Ник зрителя в Tanks Blitz (или ник/ID, например Idontplay/124422972)">
+            <button id="searchBtn" onclick="searchOpponent()">🔍 Найти</button>
+        </div>
+        <div class="candidates" id="candidates"></div>
+        <div class="selected-chip" id="selectedChip">
+            <span id="selectedLabel"></span>
+            <span class="x" onclick="clearSelection()">✕</span>
+        </div>
+        <div class="row" style="margin-top:14px;">
+            <input type="text" id="priceInput" placeholder="Ставка / приз (необязательно, например: донат 500₽)">
+        </div>
+        <button class="primary" id="startBtn" onclick="startBattle()" disabled>▶ Начать баттл</button>
+        <div class="hint">Мой аккаунт Lesta берётся автоматически из уже привязанной статистики.</div>
+    </div>
+
+    <div class="panel vs-live" id="livePanel">
+        <h2>🔥 Текущий баттл</h2>
+        <div class="vs-grid">
+            <div class="side me">
+                <div class="nm" id="liveMyNick">—</div>
+                <div class="sc" id="liveMyScore">0</div>
+                <div class="mini" id="liveMyMini"></div>
+            </div>
+            <div class="vscol">VS</div>
+            <div class="side opp">
+                <div class="nm" id="liveOppNick">—</div>
+                <div class="sc" id="liveOppScore">0</div>
+                <div class="mini" id="liveOppMini"></div>
+            </div>
+        </div>
+        <div class="bar"><div class="bar-fill me" id="liveBarMe"></div><div class="bar-fill opp" id="liveBarOpp"></div></div>
+        <div class="actions">
+            <button class="primary" id="winMeBtn" onclick="endBattle('me')">🏆 Победил я</button>
+            <button class="danger" id="winOppBtn" onclick="endBattle('opponent')">🏆 Победил зритель</button>
+            <button onclick="cancelBattle()">✖ Отменить баттл</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>🎛 Ссылка на панель управления</h2>
+        <div class="hint" style="margin:0 0 6px;">Для OBS Dock (Просмотр → Панели инструментов → Настроить панели инструментов)</div>
+        <div class="links">
+            <div class="link-row"><code id="linkAdminPanel"></code><button onclick="copyLink('linkAdminPanel')">Копировать</button></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>🔗 Ссылки для OBS</h2>
+        <div class="hint" style="margin:0 0 6px;">Основной дизайн</div>
+        <div class="links">
+            <div class="link-row"><code id="linkBattle"></code><button onclick="copyLink('linkBattle')">Копировать</button></div>
+            <div class="link-row"><code id="linkPromo"></code><button onclick="copyLink('linkPromo')">Копировать</button></div>
+        </div>
+        <div class="hint" style="margin:14px 0 6px;">Альтернативный дизайн (Arena)</div>
+        <div class="links">
+            <div class="link-row"><code id="linkBattleArena"></code><button onclick="copyLink('linkBattleArena')">Копировать</button></div>
+            <div class="link-row"><code id="linkPromoArena"></code><button onclick="copyLink('linkPromoArena')">Копировать</button></div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>📜 Лента баттлов <button class="gold" style="float:right;padding:6px 12px;font-size:.75rem;" onclick="clearFeed()">Очистить ленту</button></h2>
+        <div id="feedList"><div class="feed-empty">Загрузка...</div></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let selectedOpponent = null;
+
+function toast(msg, isErr) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isErr ? ' err' : '');
+    setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+async function searchOpponent() {
+    const raw = document.getElementById('nickInput').value.trim();
+    if (!raw) return;
+
+    // Прямой ввод "ник/ID" (например Idontplay/124422972) — не ищем через API,
+    // а сразу подставляем как выбранного соперника.
+    const directMatch = raw.match(/^(.+)\/(\d+)$/);
+    if (directMatch) {
+        selectOpponent({ nickname: directMatch[1].trim(), account_id: Number(directMatch[2]) });
+        return;
+    }
+
+    const nickname = raw;
+    const box = document.getElementById('candidates');
+    box.innerHTML = '<div class="candidate">Поиск...</div>';
+    box.classList.add('show');
+    try {
+        const r = await fetch('/api/lesta-search?nickname=' + encodeURIComponent(nickname));
+        const d = await r.json();
+        if (!d.success || !d.players || !d.players.length) {
+            box.innerHTML = '<div class="candidate">Никого не найдено</div>';
+            return;
+        }
+        box.innerHTML = '';
+        d.players.slice(0, 20).forEach((p) => {
+            const el = document.createElement('div');
+            el.className = 'candidate';
+            el.innerHTML = `${p.nickname} <small>ID ${p.account_id}</small>`;
+            el.onclick = () => selectOpponent(p);
+            box.appendChild(el);
+        });
+    } catch (e) {
+        box.innerHTML = '<div class="candidate">Ошибка поиска</div>';
+    }
+}
+
+function selectOpponent(p) {
+    selectedOpponent = p;
+    document.getElementById('selectedLabel').textContent = `${p.nickname} (ID ${p.account_id})`;
+    document.getElementById('selectedChip').classList.add('show');
+    document.getElementById('candidates').classList.remove('show');
+    document.getElementById('startBtn').disabled = false;
+}
+
+function clearSelection() {
+    selectedOpponent = null;
+    document.getElementById('selectedChip').classList.remove('show');
+    document.getElementById('startBtn').disabled = true;
+}
+
+async function startBattle() {
+    if (!selectedOpponent) return;
+    const price = document.getElementById('priceInput').value.trim();
+    try {
+        const r = await fetch('/api/battle/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                opponentNickname: selectedOpponent.nickname,
+                opponentAccountId: selectedOpponent.account_id,
+                price
+            })
+        });
+        const d = await r.json();
+        if (!d.success) return toast(d.error || 'Не удалось начать баттл', true);
+        toast('Баттл начат!');
+        clearSelection();
+        document.getElementById('nickInput').value = '';
+        document.getElementById('priceInput').value = '';
+        renderState(d.battle);
+    } catch (e) {
+        toast('Ошибка сети', true);
+    }
+}
+
+async function endBattle(winner) {
+    try {
+        const r = await fetch('/api/battle/end', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ winner })
+        });
+        const d = await r.json();
+        if (!d.success) return toast(d.error || 'Ошибка', true);
+        toast('Победитель объявлен!');
+        renderState({ active: false });
+        loadFeed();
+    } catch (e) {
+        toast('Ошибка сети', true);
+    }
+}
+
+async function cancelBattle() {
+    if (!confirm('Отменить текущий баттл без объявления победителя?')) return;
+    try {
+        const r = await fetch('/api/battle/cancel', { method: 'POST' });
+        const d = await r.json();
+        if (!d.success) return toast(d.error || 'Ошибка', true);
+        toast('Баттл отменён');
+        renderState({ active: false });
+    } catch (e) {
+        toast('Ошибка сети', true);
+    }
+}
+
+async function clearFeed() {
+    if (!confirm('Очистить ленту прошлых баттлов?')) return;
+    try {
+        await fetch('/api/battle/feed/clear', { method: 'POST' });
+        toast('Лента очищена');
+        loadFeed();
+    } catch (e) {
+        toast('Ошибка сети', true);
+    }
+}
+
+function fmt(n) { return Math.round(Number(n) || 0).toLocaleString('ru-RU'); }
+
+function renderState(state) {
+    const startPanel = document.getElementById('startPanel');
+    const livePanel = document.getElementById('livePanel');
+    if (!state || !state.active) {
+        startPanel.style.display = 'block';
+        livePanel.classList.remove('show');
+        return;
+    }
+    startPanel.style.display = 'none';
+    livePanel.classList.add('show');
+
+    document.getElementById('liveMyNick').textContent = state.myNickname || 'Стример';
+    document.getElementById('liveOppNick').textContent = state.opponentNickname || 'Зритель';
+    document.getElementById('liveMyScore').textContent = fmt(state.myScore);
+    document.getElementById('liveOppScore').textContent = fmt(state.opponentScore);
+
+    const my = state.myTotals || {};
+    const opp = state.opponentTotals || {};
+    document.getElementById('liveMyMini').textContent =
+        `${my.battles || 0} боёв · урон ${fmt(my.avgDamage)} · фраги ${my.frags || 0} · выживание ${my.survivalRate || 0}%`;
+    document.getElementById('liveOppMini').textContent =
+        `${opp.battles || 0} боёв · урон ${fmt(opp.avgDamage)} · фраги ${opp.frags || 0} · выживание ${opp.survivalRate || 0}%`;
+
+    const myPct = state.myPct != null ? state.myPct : 50;
+    document.getElementById('liveBarMe').style.width = myPct + '%';
+    document.getElementById('liveBarOpp').style.width = (100 - myPct) + '%';
+}
+
+async function loadState() {
+    try {
+        const r = await fetch('/api/battle/state');
+        const d = await r.json();
+        if (d.success) renderState(d.battle);
+    } catch (e) { /* noop */ }
+}
+
+async function loadFeed() {
+    const box = document.getElementById('feedList');
+    try {
+        const r = await fetch('/api/battle/feed');
+        const d = await r.json();
+        if (!d.success || !d.feed.length) {
+            box.innerHTML = '<div class="feed-empty">Пока нет завершённых баттлов</div>';
+            return;
+        }
+        box.innerHTML = '';
+        d.feed.forEach((b) => {
+            const winnerName = b.winner === 'me' ? (b.myNickname || 'Стример') : (b.opponentNickname || 'Зритель');
+            const cls = b.winner === 'me' ? 'me' : 'opp';
+            const date = b.endedAt ? new Date(b.endedAt.replace(' ', 'T') + 'Z').toLocaleString('ru-RU') : '';
+            const el = document.createElement('div');
+            el.className = 'feed-item';
+            el.innerHTML = `
+                <span>vs <b>${b.opponentNickname || '—'}</b>${b.price ? ' · ' + b.price : ''} <small style="color:var(--muted)">${date}</small></span>
+                <span class="win ${cls}">🏆 ${winnerName} (${fmt(b.myScore)} : ${fmt(b.opponentScore)})</span>
+            `;
+            box.appendChild(el);
+        });
+    } catch (e) {
+        box.innerHTML = '<div class="feed-empty">Ошибка загрузки</div>';
+    }
+}
+
+function copyLink(id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => toast('Ссылка скопирована'));
+}
+
+function connectWS() {
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws');
+    ws.onmessage = (ev) => {
+        try {
+            const m = JSON.parse(ev.data);
+            if (m.type === 'BATTLE_UPDATE' && m.battle) renderState(m.battle);
+            else if (m.type === 'BATTLE_ENDED') { renderState({ active: false }); loadFeed(); }
+        } catch (e) { /* noop */ }
+    };
+    ws.onclose = () => setTimeout(connectWS, 3000);
+    ws.onerror = () => ws.close();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('linkAdminPanel').textContent = location.origin + '/battle-admin';
+    document.getElementById('linkBattle').textContent = location.origin + '/widget/battle';
+    document.getElementById('linkPromo').textContent = location.origin + '/widget/battle-promo';
+    document.getElementById('linkBattleArena').textContent = location.origin + '/widget/battle-arena';
+    document.getElementById('linkPromoArena').textContent = location.origin + '/widget/battle-arena-promo';
+    loadState();
+    loadFeed();
+    connectWS();
+    setInterval(loadState, 5000);
+});
+</script>
+</body>
+</html>

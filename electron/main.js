@@ -287,6 +287,14 @@ function createWindow() {
         mainWindow.focus();
     });
 
+    // Навигация между страницами (window.location.href на /battle-admin,
+    // /voting-admin и т.д.) иногда оставляет ОС-фокус на окне, но не передаёт
+    // его внутреннему webContents — тогда клик по инпуту не показывает каретку
+    // и клавиатурный ввод никуда не попадает. Дожимаем фокус после каждой загрузки.
+    mainWindow.webContents.on('did-finish-load', () => {
+        mainWindow.webContents.focus();
+    });
+
     mainWindow.webContents.on('did-fail-load', (_event, _code, desc) => {
         logStartup(`page load failed: ${desc}`);
         dialog.showErrorBox('Frag Tracker', `Не удалось загрузить панель:\n${desc}`);

@@ -8,10 +8,56 @@ const path = require('path');
  * чисто DB-логика, зависит только от db.
  */
 
+const DEFAULT_IGNORED_USERS = ['ChatBot', 'Nightbot', 'Gray_Body'];
+
 function createChatStatsModule(deps) {
     const { db } = deps;
 
+    // Игнор-лист ников для статистики чата (боты и технические аккаунты).
+    // Сиды вставляются один раз; удалённые пользователем ники повторно не добавляем.
+    db.run(`CREATE TABLE IF NOT EXISTS chat_ignored_users (
+        username TEXT PRIMARY KEY,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`, (err) => {
+        if (err) return console.error('Ошибка создания chat_ignored_users:', err);
+        db.run(`CREATE TABLE IF NOT EXISTS chat_stats_meta (key TEXT PRIMARY KEY, value TEXT)`, (mErr) => {
+            if (mErr) return console.error('Ошибка создания chat_stats_meta:', mErr);
+            db.get(`SELECT value FROM chat_stats_meta WHERE key = 'ignored_seeded'`, (sErr, row) => {
+                if (sErr || row) return;
+                DEFAULT_IGNORED_USERS.forEach((name) => {
+                    db.run(`INSERT OR IGNORE INTO chat_ignored_users (username) VALUES (?)`, [name]);
+                });
+                db.run(`INSERT OR REPLACE INTO chat_stats_meta (key, value) VALUES ('ignored_seeded', '1')`);
+            });
+        });
+    });
+
     function registerRoutes(app) {
+        // CRUD игнор-листа статистики чата
+        app.get('/api/chat/ignored-users', (req, res) => {
+            db.all(`SELECT username, created_at FROM chat_ignored_users ORDER BY username COLLATE NOCASE`, (err, rows) => {
+                if (err) return res.status(500).json({ error: 'Ошибка чтения игнор-листа' });
+                res.json({ users: rows || [] });
+            });
+        });
+
+        app.post('/api/chat/ignored-users', (req, res) => {
+            const username = String(req.body && req.body.username || '').trim();
+            if (!username) return res.status(400).json({ error: 'Укажите ник' });
+            db.run(`INSERT OR IGNORE INTO chat_ignored_users (username) VALUES (?)`, [username], function(err) {
+                if (err) return res.status(500).json({ error: 'Ошибка добавления в игнор-лист' });
+                res.json({ success: true, added: this.changes > 0, username });
+            });
+        });
+
+        app.delete('/api/chat/ignored-users/:username', (req, res) => {
+            const username = String(req.params.username || '').trim();
+            db.run(`DELETE FROM chat_ignored_users WHERE username = ? COLLATE NOCASE`, [username], function(err) {
+                if (err) return res.status(500).json({ error: 'Ошибка удаления из игнор-листа' });
+                res.json({ success: true, removed: this.changes > 0 });
+            });
+        });
+
         app.get('/api/chat/messages', (req, res) => {
             const { platform = 'vkplay', limit = 50 } = req.query;
 
@@ -34,7 +80,8 @@ function createChatStatsModule(deps) {
             const whereParts = [
                 'username IS NOT NULL',
                 'username != ""',
-                "username != 'Gray_Body'" // исключаем технического/шумового пользователя
+                // игнор-лист (боты и технические аккаунты), управляется через /api/chat/ignored-users
+                'LOWER(username) NOT IN (SELECT LOWER(username) FROM chat_ignored_users)'
             ];
             const params = [];
 

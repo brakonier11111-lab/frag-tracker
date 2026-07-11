@@ -15,35 +15,99 @@
  * последующее обновление флага после асинхронной проверки схемы БД.
  */
 
+// Общий SQL date-filter по периоду — используется всеми /api/analytics/* ниже,
+// т.к. они читают из двух разных таблиц (donations.created_at, analytics.timestamp)
+// с одинаковым набором периодов.
+function periodSqlFilter(column, period) {
+    switch (period) {
+        case '1d': return `${column} >= datetime('now', '-1 day')`;
+        case '7d': return `${column} >= datetime('now', '-7 days')`;
+        case '30d': return `${column} >= datetime('now', '-30 days')`;
+        case 'all': return '1=1';
+        default: return `${column} >= datetime('now', '-7 days')`;
+    }
+}
+
 function createDonationsAnalyticsModule(deps) {
     const { db, normalizeUsername, analytics, getDonationsHasNormalizedUsername } = deps;
 
     function registerRoutes(app) {
+        // Общая статистика: считаем напрямую по исходным таблицам (donations, analytics),
+        // а не по агрегатам donation_stats/platform_stats — те заполняются только через
+        // Analytics.updateDonationStats и дают некорректные средние при усреднении по дням.
         app.get('/api/analytics/stats', (req, res) => {
             const { period = '7d' } = req.query;
+            const donationsFilter = periodSqlFilter('created_at', period);
+            const eventsFilter = periodSqlFilter('timestamp', period);
 
-            analytics.getStats(period, (err, stats) => {
-                if (err) {
-                    console.error('❌ Ошибка получения статистики:', err);
+            db.get(`SELECT COUNT(*) as total_events FROM analytics WHERE ${eventsFilter}`, (eErr, eRow) => {
+                if (eErr) {
+                    console.error('❌ Ошибка получения статистики:', eErr);
                     return res.status(500).json({ error: 'Ошибка получения статистики' });
                 }
-
-                res.json({ success: true, stats });
+                db.get(
+                    `SELECT COUNT(*) as total_donations, COALESCE(SUM(amount), 0) as total_amount, COALESCE(AVG(amount), 0) as avg_amount
+                     FROM donations WHERE ${donationsFilter}`,
+                    (dErr, dRow) => {
+                        if (dErr) {
+                            console.error('❌ Ошибка получения статистики:', dErr);
+                            return res.status(500).json({ error: 'Ошибка получения статистики' });
+                        }
+                        res.json({
+                            success: true,
+                            stats: {
+                                total_events: eRow.total_events || 0,
+                                total_donations: dRow.total_donations || 0,
+                                total_amount: Math.round(dRow.total_amount || 0),
+                                avg_amount: Math.round(dRow.avg_amount || 0)
+                            }
+                        });
+                    }
+                );
             });
         });
 
-        // API для получения статистики по платформам
+        // Статистика по платформам: DonationAlerts/DonatePay — из таблицы donations
+        // (DonatePay помечает свои id префиксом dp_, см. donation-platforms/index.js);
+        // Lesta Games/Система — из event_type в таблице analytics.
         app.get('/api/analytics/platforms', (req, res) => {
             const { period = '7d' } = req.query;
+            const donationsFilter = periodSqlFilter('created_at', period);
+            const eventsFilter = periodSqlFilter('timestamp', period);
 
-            analytics.getPlatformStats(period, (err, stats) => {
-                if (err) {
-                    console.error('❌ Ошибка получения статистики платформ:', err);
-                    return res.status(500).json({ error: 'Ошибка получения статистики платформ' });
+            db.get(
+                `SELECT
+                    COALESCE(SUM(CASE WHEN id LIKE 'dp_%' THEN 0 ELSE 1 END), 0) as donation_alerts,
+                    COALESCE(SUM(CASE WHEN id LIKE 'dp_%' THEN 1 ELSE 0 END), 0) as donatepay
+                 FROM donations WHERE ${donationsFilter}`,
+                (dErr, dRow) => {
+                    if (dErr) {
+                        console.error('❌ Ошибка получения статистики платформ:', dErr);
+                        return res.status(500).json({ error: 'Ошибка получения статистики платформ' });
+                    }
+                    db.get(
+                        `SELECT
+                            COALESCE(SUM(CASE WHEN event_type LIKE 'lesta_%' THEN 1 ELSE 0 END), 0) as lesta_games,
+                            COALESCE(SUM(CASE WHEN event_type NOT LIKE 'lesta_%' AND event_type != 'donation_received' THEN 1 ELSE 0 END), 0) as system
+                         FROM analytics WHERE ${eventsFilter}`,
+                        (eErr, eRow) => {
+                            if (eErr) {
+                                console.error('❌ Ошибка получения статистики платформ:', eErr);
+                                return res.status(500).json({ error: 'Ошибка получения статистики платформ' });
+                            }
+                            res.json({
+                                success: true,
+                                platforms: {
+                                    donation_alerts: dRow.donation_alerts || 0,
+                                    donatepay: dRow.donatepay || 0,
+                                    lesta_games: eRow.lesta_games || 0,
+                                    system: eRow.system || 0
+                                }
+                            });
+                        }
+                    );
                 }
-
-                res.json({ success: true, stats });
-            });
+            );
         });
 
         // API для получения топ донатеров
@@ -60,7 +124,8 @@ function createDonationsAnalyticsModule(deps) {
             });
         });
 
-        // API для получения активности по часам
+        // API для получения активности по часам — считаем пик и среднее на сервере,
+        // т.к. фронту нужны готовые агрегаты, а не сырой список часов.
         app.get('/api/analytics/hourly', (req, res) => {
             analytics.getHourlyActivity((err, activity) => {
                 if (err) {
@@ -68,7 +133,23 @@ function createDonationsAnalyticsModule(deps) {
                     return res.status(500).json({ error: 'Ошибка получения почасовой активности' });
                 }
 
-                res.json({ success: true, activity });
+                const rows = activity || [];
+                let peak = null;
+                let totalCount = 0;
+                rows.forEach((row) => {
+                    const count = row.donation_count || 0;
+                    totalCount += count;
+                    if (!peak || count > (peak.donation_count || 0)) peak = row;
+                });
+
+                res.json({
+                    success: true,
+                    hourly: {
+                        peak_hour: peak ? `${peak.hour}:00` : '—',
+                        avg_per_hour: rows.length ? Math.round(totalCount / rows.length) : 0,
+                        activity: rows
+                    }
+                });
             });
         });
 
@@ -84,6 +165,63 @@ function createDonationsAnalyticsModule(deps) {
 
                 res.json({ success: true, events });
             });
+        });
+
+        // API статистики подключений клиентов (WS): считаем по парам
+        // client_connected/client_disconnected из analytics.event_data (clientId).
+        app.get('/api/analytics/connections', (req, res) => {
+            const { period = '7d' } = req.query;
+            const eventsFilter = periodSqlFilter('timestamp', period);
+
+            db.all(
+                `SELECT event_type, event_data, timestamp FROM analytics
+                 WHERE event_type IN ('client_connected', 'client_disconnected') AND ${eventsFilter}
+                 ORDER BY timestamp ASC`,
+                (err, rows) => {
+                    if (err) {
+                        console.error('❌ Ошибка получения статистики подключений:', err);
+                        return res.status(500).json({ error: 'Ошибка получения статистики подключений' });
+                    }
+
+                    const list = rows || [];
+                    const totalConnections = list.filter((r) => r.event_type === 'client_connected').length;
+                    const clientIds = new Set();
+                    const openByClient = {};
+                    const durationsSec = [];
+
+                    list.forEach((row) => {
+                        let clientId = null;
+                        try { clientId = JSON.parse(row.event_data || '{}').clientId; } catch { /* пропускаем битые записи */ }
+                        if (!clientId) return;
+                        clientIds.add(clientId);
+                        const ts = new Date(String(row.timestamp).replace(' ', 'T') + 'Z').getTime();
+                        if (row.event_type === 'client_connected') {
+                            openByClient[clientId] = ts;
+                        } else if (openByClient[clientId] != null) {
+                            durationsSec.push((ts - openByClient[clientId]) / 1000);
+                            delete openByClient[clientId];
+                        }
+                    });
+
+                    const avgSessionSec = durationsSec.length
+                        ? Math.round(durationsSec.reduce((a, b) => a + b, 0) / durationsSec.length)
+                        : 0;
+                    const bounceThresholdSec = 10;
+                    const bounceRate = durationsSec.length
+                        ? Math.round((durationsSec.filter((d) => d < bounceThresholdSec).length / durationsSec.length) * 100)
+                        : 0;
+
+                    res.json({
+                        success: true,
+                        connections: {
+                            total_connections: totalConnections,
+                            unique_users: clientIds.size,
+                            avg_session_sec: avgSessionSec,
+                            bounce_rate: bounceRate
+                        }
+                    });
+                }
+            );
         });
 
         app.get('/api/donations-analytics', (req, res) => {

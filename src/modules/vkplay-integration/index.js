@@ -527,43 +527,6 @@ function createVkplayIntegrationModule(deps) {
     } = createRoleRewards(h);
 
 
-    async function getWebSocketToken(channels = 'channel_point_rewards') {
-        try {
-            if (!vkplayIntegration.connected || !vkplayIntegration.tokens) {
-                return null;
-            }
-
-            let response;
-            try {
-                response = await axios.get('https://apidev.live.vkvideo.ru/v1/websocket/subscription_token', {
-                    params: { channels },
-                    headers: { Authorization: `Bearer ${vkplayIntegration.tokens.access_token}` }
-                });
-            } catch (apiError) {
-                if (apiError?.response?.status === 404) {
-                    response = await axios.get('https://api.live.vkvideo.ru/v1/websocket/subscription_token', {
-                        params: { channels },
-                        headers: { Authorization: `Bearer ${vkplayIntegration.tokens.access_token}` }
-                    });
-                } else {
-                    throw apiError;
-                }
-            }
-
-            const token = response.data?.data?.channel_tokens?.[0]?.token || null;
-            if (token) {
-                console.log(`✅ WebSocket токен получен для каналов: ${channels}`);
-            } else {
-                console.warn(`⚠️ WebSocket токен не получен для каналов: ${channels}`);
-                console.warn('   Ответ API:', JSON.stringify(response.data, null, 2));
-            }
-            return token;
-        } catch (error) {
-            console.error('❌ Ошибка получения WebSocket токена:', error?.response?.data || error.message);
-            return null;
-        }
-    }
-
     async function connectVKPlayRewardsWebSocket() {
         if (!VKPLAY_POLLING_ENABLED) return;
         // не копим дублирующиеся таймеры переподключения
@@ -576,18 +539,6 @@ function createVkplayIntegrationModule(deps) {
         }
 
         try {
-            // Получаем токен для подписки
-            // Пробуем оба варианта: channel_point_rewards и channel_points
-            let wsToken = await getWebSocketToken('channel_point_rewards');
-            if (!wsToken) {
-                console.log('⚠️ Не удалось получить токен для channel_point_rewards, пробуем channel_points...');
-                wsToken = await getWebSocketToken('channel_points');
-            }
-            if (!wsToken) {
-                console.warn('⚠️ Не удалось получить WebSocket токен для наград (ни channel_point_rewards, ни channel_points)');
-                return;
-            }
-
             // Получаем WebSocket URL из данных канала
             let channelData;
             try {

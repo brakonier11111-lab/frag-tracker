@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Battle Promo Widget</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;800;900&family=Orbitron:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#4be0ff;--blue-rgb:75,224,255;--red:#ff2a45;--red-rgb:255,42,69;--gold:#ffce46;--text-shadow:0 2px 0 rgba(0,0,0,.5);}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;min-height:100vh;overflow:hidden;background:transparent;}
+body{font-family:'Exo 2',sans-serif;color:#fff;display:flex;align-items:center;justify-content:center;}
+
+.card{width:440px;position:relative;padding:16px 22px;border-radius:16px;overflow:hidden;
+    background:linear-gradient(165deg,rgba(13,16,28,0.92),rgba(8,10,19,0.92));
+    box-shadow:0 20px 50px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05);}
+.card::before{content:'';position:absolute;inset:0;border-radius:16px;padding:1.5px;pointer-events:none;z-index:2;
+    background:linear-gradient(150deg,rgba(255,206,70,.8),rgba(255,255,255,.15) 30%,transparent 55%,rgba(255,206,70,.4));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;}
+.inner{position:relative;z-index:3;}
+
+.badge{display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Exo 2';font-weight:900;font-size:1rem;
+    text-transform:uppercase;letter-spacing:.08em;text-align:center;margin-bottom:12px;
+    background:linear-gradient(92deg,#fff6da,var(--gold) 55%,#ff9d00);-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 2px 0 rgba(0,0,0,.5));}
+
+.matchup{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px;}
+.side{flex:1;text-align:center;min-width:0;}
+.side .name{font-weight:800;font-size:.95rem;text-shadow:var(--text-shadow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.side.me .name{color:var(--blue);}
+.side.opp .name{color:var(--red);}
+.vslabel{font-family:'Orbitron';font-weight:900;font-size:1rem;color:var(--gold);text-shadow:var(--text-shadow);flex:none;}
+
+.bar{position:relative;width:100%;height:12px;border-radius:6px;overflow:hidden;background:rgba(0,0,0,.5);
+    border:1px solid rgba(255,255,255,.15);}
+.bar-fill{position:absolute;top:0;bottom:0;transition:width 1s ease;}
+.bar-fill.me{left:0;background:linear-gradient(90deg,rgba(var(--blue-rgb),.5),var(--blue));width:50%;}
+.bar-fill.opp{right:0;background:linear-gradient(270deg,rgba(var(--red-rgb),.5),var(--red));width:50%;}
+
+.price-line{margin-top:10px;text-align:center;font-size:.72rem;font-weight:700;color:rgba(255,255,255,.6);}
+.price-line b{color:var(--gold);font-family:'Orbitron';}
+
+.idle-cta{text-align:center;font-size:.82rem;font-weight:700;color:rgba(255,255,255,.75);}
+.idle-cta b{color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="card">
+    <div class="inner">
+        <div class="badge">⚔️ Стример vs Зритель</div>
+
+        <div id="activeBlock" style="display:none;">
+            <div class="matchup">
+                <div class="side me"><div class="name" id="myNick">Стример</div></div>
+                <div class="vslabel">VS</div>
+                <div class="side opp"><div class="name" id="oppNick">Зритель</div></div>
+            </div>
+            <div class="bar"><div class="bar-fill me" id="barMe"></div><div class="bar-fill opp" id="barOpp"></div></div>
+            <div class="price-line" id="priceLine" style="display:none;">На кону: <b id="priceVal">—</b></div>
+        </div>
+
+        <div id="idleBlock">
+            <div class="idle-cta">Хочешь бросить вызов? Напиши свой ник <b>Tanks Blitz</b> в чат!</div>
+        </div>
+    </div>
+</div>
+
+<script>
+function render(state) {
+    const active = !!(state && state.active);
+    document.getElementById('activeBlock').style.display = active ? 'block' : 'none';
+    document.getElementById('idleBlock').style.display = active ? 'none' : 'block';
+    if (!active) return;
+
+    document.getElementById('myNick').textContent = state.myNickname || 'Стример';
+    document.getElementById('oppNick').textContent = state.opponentNickname || 'Зритель';
+    const myPct = state.myPct != null ? state.myPct : 50;
+    document.getElementById('barMe').style.width = myPct + '%';
+    document.getElementById('barOpp').style.width = (100 - myPct) + '%';
+
+    const priceLine = document.getElementById('priceLine');
+    if (state.price) {
+        priceLine.style.display = 'block';
+        document.getElementById('priceVal').textContent = state.price;
+    } else {
+        priceLine.style.display = 'none';
+    }
+}
+
+async function loadState() {
+    try {
+        const r = await fetch('/api/battle/state');
+        const d = await r.json();
+        if (d.success) render(d.battle);
+    } catch (e) { /* noop */ }
+}
+
+function connectWS() {
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws');
+    ws.onmessage = (ev) => {
+        try {
+            const m = JSON.parse(ev.data);
+            if ((m.type === 'BATTLE_UPDATE' || m.type === 'BATTLE_ENDED') && m.battle) render(m.battle);
+        } catch (e) { /* noop */ }
+    };
+    ws.onclose = () => setTimeout(connectWS, 3000);
+    ws.onerror = () => ws.close();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    connectWS();
+    setInterval(loadState, 8000);
+});
+</script>
+</body>
+</html>

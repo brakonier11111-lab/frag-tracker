@@ -14,6 +14,8 @@ const { createOnlineViewersModule } = require('./modules/online-viewers');
 const { createLestaOAuthModule } = require('./modules/lesta-oauth');
 const { createDonationsAnalyticsModule } = require('./modules/donations-analytics');
 const { createBossOrdersModule } = require('./modules/boss-orders');
+const { createBattleTrackerModule } = require('./modules/battle-tracker');
+const { createViewerVotingModule } = require('./modules/viewer-voting');
 
 /**
  * Подключает вынесенные модули к Express-приложению.
@@ -97,7 +99,15 @@ function registerModules(app, deps, config) {
     bossOrders.registerPages(app);
     bossOrders.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, twitch, onlineViewers, lestaOAuth, donationsAnalytics, bossOrders };
+    const battleTracker = createBattleTrackerModule(deps);
+    battleTracker.registerPages(app);
+    battleTracker.registerRoutes(app);
+
+    const viewerVoting = createViewerVotingModule(deps);
+    viewerVoting.registerPages(app);
+    viewerVoting.registerRoutes(app);
+
+    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, twitch, onlineViewers, lestaOAuth, donationsAnalytics, bossOrders, battleTracker, viewerVoting };
 }
 
 module.exports = { registerModules };

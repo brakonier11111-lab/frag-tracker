@@ -79,6 +79,10 @@ function createPagesModule(deps) {
             else if (mode === 'donation-driven') file = 'widget-donation-driven.html';
             else if (mode === 'tanks-blitz-challenge') file = 'widget-tanks-blitz-challenge.html';
             else if (mode === 'blitz-activity') file = 'widget-blitz-activity.html';
+            else if (mode === 'battle') file = 'widget-battle.html';
+            else if (mode === 'battle-promo') file = 'widget-battle-promo.html';
+            else if (mode === 'battle-arena') file = 'widget-battle-arena.html';
+            else if (mode === 'battle-arena-promo') file = 'widget-battle-arena-promo.html';
             else if (mode === 'razblogirovka-gold') {
                 if (!razblogEnabled) {
                     return res.status(410).send('РазБЛОГировка 2026 отключена');
