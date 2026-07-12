@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alert - Twitch Follow</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --neon-purple: #b300ff;
+            --neon-blue: #00f0ff;
+            --neon-green: #00ff47;
+            --alert-opacity: 0.95;
+            --strip-color: var(--neon-purple);
+        }
+
+        body {
+            background: transparent;
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .alert-container {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%) translateX(400px);
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .alert-visible {
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .alert-card {
+            background: linear-gradient(135deg,
+                rgba(5, 5, 15, var(--alert-opacity)) 0%,
+                rgba(8, 8, 20, calc(var(--alert-opacity) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--alert-opacity) * 0.85)) 100%
+            );
+            border: 1px solid rgba(179, 0, 255, 0.4);
+            border-radius: 12px;
+            padding: 25px 25px;
+            min-width: 320px;
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: visible;
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 25px rgba(179, 0, 255, 0.2);
+        }
+
+        .alert-card::before,
+        .alert-card::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background:
+                radial-gradient(12px 2px at left center, var(--strip-color), rgba(0,0,0,0) 70%),
+                linear-gradient(90deg, var(--strip-color), var(--strip-color)),
+                radial-gradient(12px 2px at right center, var(--strip-color), rgba(0,0,0,0) 70%);
+            background-repeat: no-repeat;
+            background-size: 12px 100%, calc(100% - 24px) 100%, 12px 100%;
+            background-position: left center, center, right center;
+        }
+        .alert-card::before { top: 6px; }
+        .alert-card::after { bottom: 6px; }
+
+        .alert-header {
+            color: var(--neon-purple);
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .follower-name {
+            color: var(--neon-blue);
+            font-size: 1.6rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 10px 0;
+            text-shadow: 0 0 15px var(--neon-blue);
+            font-family: 'Orbitron', monospace;
+        }
+
+        .follower-sub {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .alert-hide {
+            animation: slideOut 0.5s ease-in-out forwards;
+        }
+
+        @keyframes slideOut {
+            to {
+                transform: translateY(-50%) translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .pulse {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(179, 0, 255, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(179, 0, 255, 0.4);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="alert-container" id="alertContainer">
+        <div class="alert-card" id="alertCard">
+            <div class="alert-header">Новый фолловер Twitch</div>
+            <div class="follower-name" id="followerName">username</div>
+            <div class="follower-sub">теперь подписан(а) на канал 💜</div>
+        </div>
+    </div>
+
+    <script>
+        let alertTimeout = null;
+        let ws = null;
+
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws?type=alert`;
+
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('✅ Twitch Follow Alert: WebSocket подключен');
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        if (message.type === 'TWITCH_NEW_FOLLOWER') {
+                            showAlert(message);
+                        }
+                    } catch (error) {
+                        console.error('❌ Twitch Follow Alert: ошибка обработки сообщения:', error);
+                    }
+                };
+
+                ws.onclose = () => {
+                    setTimeout(connectWebSocket, 3000);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('❌ Twitch Follow Alert: WebSocket ошибка:', error);
+                };
+            } catch (error) {
+                console.error('❌ Twitch Follow Alert: ошибка подключения WebSocket:', error);
+            }
+        }
+
+        function showAlert(data) {
+            document.getElementById('followerName').textContent = data.username || 'Аноним';
+
+            const alertContainer = document.getElementById('alertContainer');
+            const alertCard = document.getElementById('alertCard');
+
+            alertContainer.classList.remove('alert-hide');
+            alertContainer.classList.add('alert-visible');
+            alertCard.classList.add('pulse');
+
+            if (alertTimeout) clearTimeout(alertTimeout);
+            alertTimeout = setTimeout(hideCurrentAlert, 7000);
+        }
+
+        function hideCurrentAlert() {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertCard = document.getElementById('alertCard');
+
+            alertCard.classList.remove('pulse');
+            alertContainer.classList.remove('alert-visible');
+            alertContainer.classList.add('alert-hide');
+
+            if (alertTimeout) {
+                clearTimeout(alertTimeout);
+                alertTimeout = null;
+            }
+        }
+
+        function testAlert() {
+            showAlert({ username: 'ТестовыйФолловер' });
+        }
+
+        connectWebSocket();
+    </script>
+</body>
+</html>

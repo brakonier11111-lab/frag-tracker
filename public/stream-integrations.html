@@ -275,6 +275,15 @@
 				</div>
 				<div class="small">Ключи задаются в <a href="/admin.html" style="color:var(--accent);">Настройках</a> (группа «Twitch»), рестарт сервера подхватит их без OAuth.</div>
 
+				<div class="hr"></div>
+				<h3 style="margin:0 0 8px;">🔔 Новые фолловеры (EventSub)</h3>
+				<div class="kv"><div>Авторизация</div><span id="tw-follow-status" class="badge err">Не подключено</span></div>
+				<div class="row">
+					<button class="btn ghost" onclick="window.location.href='/oauth/twitch/start'">Авторизовать канал</button>
+					<a class="btn ghost" href="/alert-twitch-follow.html" target="_blank">Открыть OBS-виджет</a>
+				</div>
+				<div class="small">Требует TW_REDIRECT_URI/TW_EVENTSUB_CALLBACK_URL/TW_EVENTSUB_SECRET в config.env и публичный HTTPS-домен.</div>
+
 				<div class="chat-section" id="tw-chat-section" style="display: none;">
 					<div class="chat-header">
 						<h3>💬 Чат Twitch</h3>
@@ -521,6 +530,12 @@
 			setBadge('vk-status', vk && vk.connected, { channel: vk.channel || '—', live: vk.liveTitle || '—' });
 			const tw = await api('/integrations/twitch/status');
 			setBadge('tw-status', tw && tw.connected, { channel: tw.channel || '—', live: tw.liveTitle || '—', viewers: tw && tw.connected ? tw.viewers : null });
+			const twFollowBadge = document.getElementById('tw-follow-status');
+			if (twFollowBadge) {
+				const followersOk = !!(tw && tw.followers && tw.followers.subscriptionActive);
+				twFollowBadge.className = 'badge ' + (followersOk ? 'ok' : 'err');
+				twFollowBadge.textContent = followersOk ? `Подключено (${tw.followers.channel || '—'})` : 'Не подключено';
+			}
 
 			const ov = await api('/api/online-viewers');
 			if (ov && !ov.error) {

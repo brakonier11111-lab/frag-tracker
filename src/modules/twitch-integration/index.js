@@ -1,21 +1,26 @@
 'use strict';
 
 /**
- * Twitch: онлайн + чат БЕЗ user OAuth. Онлайн — через App Access Token
- * (client_credentials grant, id.twitch.tv/oauth2/token) для Helix Get Streams.
- * Чат — анонимное чтение IRC по WebSocket (irc-ws.chat.twitch.tv), без токена:
- * стандартный публичный способ читать чат Twitch (ник justinfan<random>).
- * Поэтому здесь нет /oauth/twitch/*, нет saveIntegration/loadIntegration —
- * App Access Token не персистится в БД, просто перезапрашивается при рестарте.
+ * Twitch: онлайн + чат БЕЗ user OAuth (App Access Token, client_credentials) +
+ * анонимный IRC-чат — как и раньше. Плюс отдельный user-OAuth flow бродкастера
+ * (scope moderator:read:followers) только для EventSub channel.follow —
+ * отслеживание новых фолловеров канала в реальном времени через webhook.
  */
 
 const axios = require('axios');
+const crypto = require('crypto');
+const querystring = require('querystring');
 const WebSocket = require('ws');
 
 // Twitch-домены доступны напрямую (проверено), но axios по умолчанию читает
 // системные HTTP_PROXY/HTTPS_PROXY и криво их применяет к этим запросам
 // ("plain HTTP request was sent to HTTPS port") — принудительно идём напрямую.
 const twitchAxiosOpts = { proxy: false };
+
+const EVENTSUB_MESSAGE_TYPE_HEADER = 'twitch-eventsub-message-type';
+const EVENTSUB_SIGNATURE_HEADER = 'twitch-eventsub-message-signature';
+const EVENTSUB_MESSAGE_ID_HEADER = 'twitch-eventsub-message-id';
+const EVENTSUB_TIMESTAMP_HEADER = 'twitch-eventsub-message-timestamp';
 
 function defaultTwitchIntegration() {
     return {
@@ -27,10 +32,23 @@ function defaultTwitchIntegration() {
     };
 }
 
+function defaultTwitchUserAuth() {
+    return {
+        connected: false,
+        userId: null,
+        userNick: null,
+        channel: null,
+        tokens: null,
+        expires_at: 0,
+        followersSubscriptionActive: false
+    };
+}
+
 function createTwitchIntegrationModule(deps) {
-    const { db, withApiQueue } = deps;
+    const { db, saveIntegration, loadIntegration, broadcastToClients, withApiQueue } = deps;
 
     let twitchIntegration = defaultTwitchIntegration();
+    let twitchUserAuth = defaultTwitchUserAuth();
 
     let appToken = null; // { token, expiresAt } — unix seconds
     let ws = null;
@@ -39,6 +57,10 @@ function createTwitchIntegrationModule(deps) {
 
     function isConfigured() {
         return !!(process.env.TW_CLIENT_ID && process.env.TW_CLIENT_SECRET && process.env.TW_CHANNEL);
+    }
+
+    function isUserOAuthConfigured() {
+        return !!(process.env.TW_CLIENT_ID && process.env.TW_CLIENT_SECRET && process.env.TW_EVENTSUB_SECRET && process.env.TW_EVENTSUB_CALLBACK_URL);
     }
 
     async function getAppAccessToken() {
@@ -223,16 +245,287 @@ function createTwitchIntegrationModule(deps) {
         });
     }
 
+    // --- User OAuth бродкастера (только для EventSub channel.follow) ---
+
+    function getUserRedirectUri() {
+        return (process.env.TW_REDIRECT_URI || '').trim();
+    }
+
+    async function refreshUserTokenIfNeeded() {
+        if (!twitchUserAuth.tokens?.refresh_token) return;
+        const now = Math.floor(Date.now() / 1000);
+        if (now < twitchUserAuth.expires_at - 60) return;
+
+        try {
+            const res = await axios.post('https://id.twitch.tv/oauth2/token', null, {
+                params: {
+                    client_id: process.env.TW_CLIENT_ID,
+                    client_secret: process.env.TW_CLIENT_SECRET,
+                    grant_type: 'refresh_token',
+                    refresh_token: twitchUserAuth.tokens.refresh_token
+                },
+                ...twitchAxiosOpts
+            });
+
+            twitchUserAuth.tokens = res.data;
+            twitchUserAuth.expires_at = now + (res.data.expires_in || 0);
+            await saveIntegration('twitch_user', {
+                tokens: twitchUserAuth.tokens,
+                expires_at: twitchUserAuth.expires_at,
+                userId: twitchUserAuth.userId,
+                userNick: twitchUserAuth.userNick,
+                channel: twitchUserAuth.channel
+            });
+        } catch (e) {
+            console.warn('⚠️ Twitch: не удалось обновить user-токен:', e?.response?.data || e.message);
+        }
+    }
+
+    async function ensureFollowersEventSubSubscription() {
+        if (!isUserOAuthConfigured() || !twitchUserAuth.connected || !twitchUserAuth.userId) return;
+
+        try {
+            await refreshUserTokenIfNeeded();
+            const appTok = await getAppAccessToken();
+
+            const existing = await axios.get('https://api.twitch.tv/helix/eventsub/subscriptions', {
+                params: { type: 'channel.follow', user_id: twitchUserAuth.userId },
+                headers: {
+                    'Client-Id': process.env.TW_CLIENT_ID,
+                    'Authorization': `Bearer ${appTok}`
+                },
+                ...twitchAxiosOpts
+            });
+
+            const active = (existing.data?.data || []).find((sub) =>
+                sub.condition?.broadcaster_user_id === twitchUserAuth.userId && sub.status === 'enabled'
+            );
+            if (active) {
+                twitchUserAuth.followersSubscriptionActive = true;
+                console.log('✅ Twitch EventSub channel.follow уже активна для канала', twitchUserAuth.channel);
+                return;
+            }
+
+            const callbackUrl = process.env.TW_EVENTSUB_CALLBACK_URL.replace(/\/$/, '') + '/webhook/twitch/eventsub';
+            await axios.post('https://api.twitch.tv/helix/eventsub/subscriptions', {
+                type: 'channel.follow',
+                version: '2',
+                condition: {
+                    broadcaster_user_id: twitchUserAuth.userId,
+                    moderator_user_id: twitchUserAuth.userId
+                },
+                transport: {
+                    method: 'webhook',
+                    callback: callbackUrl,
+                    secret: process.env.TW_EVENTSUB_SECRET
+                }
+            }, {
+                headers: {
+                    'Client-Id': process.env.TW_CLIENT_ID,
+                    'Authorization': `Bearer ${appTok}`,
+                    'Content-Type': 'application/json'
+                },
+                ...twitchAxiosOpts
+            });
+
+            twitchUserAuth.followersSubscriptionActive = true;
+            console.log('✅ Twitch EventSub channel.follow подписка создана для канала', twitchUserAuth.channel);
+        } catch (e) {
+            twitchUserAuth.followersSubscriptionActive = false;
+            console.warn('⚠️ Twitch EventSub channel.follow: ошибка подписки:', e?.response?.data || e.message);
+        }
+    }
+
+    async function restoreUserAuthFromDb() {
+        try {
+            const row = await loadIntegration('twitch_user');
+            if (!row || !row.access_token) return;
+
+            twitchUserAuth.connected = true;
+            twitchUserAuth.tokens = { access_token: row.access_token, refresh_token: row.refresh_token };
+            twitchUserAuth.expires_at = row.expires_at || 0;
+            twitchUserAuth.userId = row.user_id || null;
+            twitchUserAuth.userNick = row.user_nick || null;
+            twitchUserAuth.channel = row.channel_name || null;
+
+            await ensureFollowersEventSubSubscription();
+        } catch (e) {
+            console.warn('⚠️ Twitch: не удалось восстановить user-авторизацию из БД:', e.message);
+        }
+    }
+
+    function verifyEventSubSignature(req) {
+        const secret = process.env.TW_EVENTSUB_SECRET;
+        if (!secret || !req.rawBody) return false;
+
+        const messageId = req.headers[EVENTSUB_MESSAGE_ID_HEADER] || '';
+        const timestamp = req.headers[EVENTSUB_TIMESTAMP_HEADER] || '';
+        const signature = req.headers[EVENTSUB_SIGNATURE_HEADER] || '';
+
+        const hmacMessage = messageId + timestamp + req.rawBody.toString();
+        const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(hmacMessage).digest('hex');
+
+        if (expected.length !== signature.length) return false;
+        return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+    }
+
+    function recordEventSubMessageOnce(messageId, callback) {
+        db.run('INSERT OR IGNORE INTO twitch_eventsub_events (message_id) VALUES (?)', [messageId], function (err) {
+            if (err) {
+                console.warn('⚠️ Twitch EventSub: ошибка записи message_id:', err.message);
+                callback(false);
+                return;
+            }
+            callback(this.changes > 0);
+        });
+    }
+
     function registerRoutes(app) {
         app.get('/integrations/twitch/status', (req, res) => {
-            res.json(twitchIntegration);
+            res.json({ ...twitchIntegration, followers: {
+                connected: twitchUserAuth.connected,
+                channel: twitchUserAuth.channel,
+                subscriptionActive: twitchUserAuth.followersSubscriptionActive
+            } });
         });
+
+        app.get('/oauth/twitch/start', (req, res) => {
+            const clientId = process.env.TW_CLIENT_ID;
+            const redirectUri = getUserRedirectUri();
+            if (!clientId || !redirectUri) {
+                return res.status(500).send('Twitch OAuth is not configured (TW_CLIENT_ID/TW_REDIRECT_URI missing).');
+            }
+
+            const state = Math.random().toString(36).slice(2);
+            const params = {
+                client_id: clientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: 'moderator:read:followers',
+                state
+            };
+            const authUrl = `https://id.twitch.tv/oauth2/authorize?${querystring.stringify(params)}`;
+            res.redirect(authUrl);
+        });
+
+        app.get('/oauth/twitch/callback', async (req, res) => {
+            try {
+                const { code, error, error_description } = req.query;
+                if (error) {
+                    return res.status(400).send(`Twitch OAuth error: ${error} ${error_description || ''}`);
+                }
+                if (!code) return res.status(400).send('Missing code');
+
+                const clientId = process.env.TW_CLIENT_ID;
+                const clientSecret = process.env.TW_CLIENT_SECRET;
+                const redirectUri = getUserRedirectUri();
+                if (!clientId || !clientSecret || !redirectUri) {
+                    return res.status(500).send('Twitch OAuth is not configured (client id/secret/redirect missing).');
+                }
+
+                const tokenRes = await axios.post('https://id.twitch.tv/oauth2/token', null, {
+                    params: {
+                        client_id: clientId,
+                        client_secret: clientSecret,
+                        code,
+                        grant_type: 'authorization_code',
+                        redirect_uri: redirectUri
+                    },
+                    ...twitchAxiosOpts
+                });
+
+                const tokens = tokenRes.data; // access_token, refresh_token, expires_in
+                const nowSec = Math.floor(Date.now() / 1000);
+
+                twitchUserAuth.connected = true;
+                twitchUserAuth.tokens = tokens;
+                twitchUserAuth.expires_at = nowSec + (tokens.expires_in || 0);
+
+                const meRes = await axios.get('https://api.twitch.tv/helix/users', {
+                    headers: {
+                        'Client-Id': clientId,
+                        'Authorization': `Bearer ${tokens.access_token}`
+                    },
+                    ...twitchAxiosOpts
+                });
+                const me = meRes.data?.data?.[0];
+                if (me) {
+                    twitchUserAuth.userId = me.id;
+                    twitchUserAuth.userNick = me.login;
+                    twitchUserAuth.channel = me.display_name || me.login;
+                }
+
+                await saveIntegration('twitch_user', {
+                    tokens,
+                    expires_at: twitchUserAuth.expires_at,
+                    userId: twitchUserAuth.userId,
+                    userNick: twitchUserAuth.userNick,
+                    channel: twitchUserAuth.channel
+                });
+
+                await ensureFollowersEventSubSubscription();
+
+                res.redirect('/stream-integrations.html');
+            } catch (err) {
+                console.error('Twitch OAuth callback error:', err?.response?.data || err.message);
+                res.status(500).send('Twitch OAuth error');
+            }
+        });
+
+        app.post('/oauth/twitch/logout', (req, res) => {
+            twitchUserAuth = defaultTwitchUserAuth();
+            res.json({ ok: true });
+        });
+
+        app.post('/webhook/twitch/eventsub', (req, res) => {
+            if (!verifyEventSubSignature(req)) {
+                return res.status(403).send('Invalid signature');
+            }
+
+            const messageType = req.headers[EVENTSUB_MESSAGE_TYPE_HEADER];
+
+            if (messageType === 'webhook_callback_verification') {
+                return res.status(200).send(req.body.challenge);
+            }
+
+            if (messageType === 'revocation') {
+                twitchUserAuth.followersSubscriptionActive = false;
+                console.warn('⚠️ Twitch EventSub подписка отозвана:', req.body.subscription?.status);
+                return res.status(200).send();
+            }
+
+            if (messageType === 'notification' && req.body.subscription?.type === 'channel.follow') {
+                const messageId = req.headers[EVENTSUB_MESSAGE_ID_HEADER];
+                recordEventSubMessageOnce(messageId, (isNew) => {
+                    if (isNew) {
+                        const event = req.body.event || {};
+                        broadcastToClients({
+                            type: 'TWITCH_NEW_FOLLOWER',
+                            username: event.user_name || event.user_login || 'Аноним',
+                            followedAt: event.followed_at || new Date().toISOString()
+                        });
+                    }
+                });
+                return res.status(200).send();
+            }
+
+            res.status(200).send();
+        });
+    }
+
+    function startFollowersTracking() {
+        if (!isUserOAuthConfigured()) {
+            console.log('⚠️ Twitch EventSub (фолловеры) не настроен (TW_EVENTSUB_SECRET/TW_EVENTSUB_CALLBACK_URL/TW_REDIRECT_URI missing)');
+            return;
+        }
+        restoreUserAuthFromDb();
     }
 
     return {
         registerRoutes,
         startPolling,
         connectTwitchChat,
+        startFollowersTracking,
         getState: () => twitchIntegration
     };
 }

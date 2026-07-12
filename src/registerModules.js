@@ -65,6 +65,7 @@ function registerModules(app, deps, config) {
     twitch.registerRoutes(app);
     twitch.startPolling();
     twitch.connectTwitchChat();
+    twitch.startFollowersTracking();
 
     // Активность зрителей: лайки (YouTube + VK Play) синкаются в прогресс той же схемой
     // baseline+delta, что и медали Lesta. Перед синком — свежие данные с платформ.

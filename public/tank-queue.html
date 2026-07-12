@@ -82,10 +82,22 @@
         }
 
         .content-grid {
-            display: grid;
-            grid-template-columns: 1fr 400px;
+            display: flex;
+            flex-direction: column;
             gap: 30px;
             margin-bottom: 30px;
+        }
+
+        .controls-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .controls-row {
+                grid-template-columns: 1fr;
+            }
         }
 
         .panel {
@@ -295,12 +307,17 @@
 
         .queue-list {
             list-style: none;
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            align-content: start;
             gap: 12px;
-            max-height: 500px;
+            max-height: 420px;
             overflow-y: auto;
             padding-right: 5px;
+        }
+
+        .queue-list:has(.empty-queue) {
+            grid-template-columns: 1fr;
         }
 
         .queue-list::-webkit-scrollbar {
@@ -492,10 +509,95 @@
             animation: slideOut 0.3s ease-in forwards;
         }
 
-        @media (max-width: 1024px) {
-            .content-grid {
-                grid-template-columns: 1fr;
-            }
+
+        .link-copy-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .link-copy-group .form-input {
+            flex: 1;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: text;
+        }
+
+        .link-copy-group .btn {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .link-row + .link-row {
+            margin-top: 15px;
+        }
+
+        .widget-link-strip {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 25px;
+            flex-wrap: wrap;
+        }
+
+        .widget-link-strip-label {
+            color: var(--neon-blue);
+            font-weight: 700;
+            white-space: nowrap;
+            font-size: 0.95rem;
+        }
+
+        .widget-link-strip .form-input {
+            flex: 1;
+            min-width: 220px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            padding: 10px 14px;
+        }
+
+        .widget-link-strip .btn {
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .tabs-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: 'Rajdhani', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text);
+            border-color: var(--neon-blue);
+        }
+
+        .tab-btn.active {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--neon-blue);
+            color: var(--neon-blue);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
         }
     </style>
     <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
@@ -510,49 +612,52 @@
         <p class="page-subtitle">Управление очередью заказанных танков</p>
 
         <div class="content-grid">
-            <!-- Левая панель: Очередь -->
-            <div class="panel">
-                <div class="panel-title">📋 ОЧЕРЕДЬ ТАНКОВ</div>
-                <ul class="queue-list" id="queueList">
-                    <li class="empty-queue">
-                        <div class="empty-queue-icon">🚗</div>
-                        <div>Очередь пуста</div>
-                    </li>
-                </ul>
-            </div>
+            <!-- Верхний ряд: очередь слева, быстрое добавление справа -->
+            <div class="controls-row">
+                <div class="panel">
+                    <div class="panel-title">📋 ОЧЕРЕДЬ ТАНКОВ</div>
+                    <ul class="queue-list" id="queueList">
+                        <li class="empty-queue">
+                            <div class="empty-queue-icon">🚗</div>
+                            <div>Очередь пуста</div>
+                        </li>
+                    </ul>
 
-            <!-- Правая панель: Управление -->
-            <div>
-                <!-- Текущий бой -->
-                <div class="panel current-battle-panel">
-                    <div class="panel-title">⚔️ ТЕКУЩИЙ БОЙ</div>
-                    <div id="currentBattleDisplay" class="current-tank-display" style="display: none;">
-                        <div class="current-tank-name" id="currentTankName">-</div>
-                        <div class="current-tank-details">
-                            <span class="current-tank-price" id="currentTankPrice">0₽</span>
-                            <span class="current-tank-conditions" id="currentTankConditions"></span>
+                    <!-- Текущий бой / запуск следующего -->
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                        <div id="currentBattleDisplay" class="current-tank-display" style="display: none;">
+                            <div class="current-tank-name" id="currentTankName">-</div>
+                            <div class="current-tank-details">
+                                <span class="current-tank-price" id="currentTankPrice">0₽</span>
+                                <span class="current-tank-conditions" id="currentTankConditions"></span>
+                            </div>
+                            <div class="battle-controls">
+                                <button class="btn btn-success" onclick="finishBattle()">✅ Завершить бой</button>
+                                <button class="btn btn-danger" onclick="cancelBattle()">❌ Отменить</button>
+                            </div>
                         </div>
-                        <div class="battle-controls">
-                            <button class="btn btn-success" onclick="finishBattle()">✅ Завершить бой</button>
-                            <button class="btn btn-danger" onclick="cancelBattle()">❌ Отменить</button>
+                        <div id="noBattleDisplay">
+                            <button class="btn btn-primary" onclick="startNextBattle()" style="width: 100%;">
+                                ▶️ Начать следующий бой
+                            </button>
                         </div>
-                    </div>
-                    <div id="noBattleDisplay" class="empty-queue">
-                        <div class="empty-queue-icon">⏸️</div>
-                        <div>Нет активного боя</div>
-                        <button class="btn btn-primary" onclick="startNextBattle()" style="margin-top: 15px;">
-                            ▶️ Начать следующий бой
-                        </button>
+                        <button class="btn btn-danger" onclick="clearQueue()" style="width: 100%; margin-top: 10px;">🗑️ Очистить очередь</button>
                     </div>
                 </div>
 
                 <!-- Быстрое добавление по фикс цене -->
                 <div class="panel">
                     <div class="panel-title">⚡ БЫСТРОЕ ДОБАВЛЕНИЕ</div>
-                    
+
                     <div style="margin-bottom: 20px;">
                         <div class="form-group">
-                            <label class="form-label" id="quickLabel150">Заказ танка (<span id="quickPrice150">150</span>₽)</label>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+                                <label class="form-label" id="quickLabel150" style="margin-bottom: 0;">Заказ танка (<span id="quickPrice150">150</span>₽)</label>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <input type="number" class="form-input" id="quickPriceEdit150" placeholder="Цена" min="0" style="width: 90px; padding: 6px 8px; font-size: 0.85rem;">
+                                    <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="quickSetPrice('normal')" title="Применить цену">✓</button>
+                                </div>
+                            </div>
                             <div style="display: flex; gap: 10px;">
                                 <input type="text" class="form-input" id="quickTankName150" placeholder="Название танка" style="flex: 1;">
                                 <button class="btn btn-primary" onclick="addQuickTank('normal', 1)">Добавить</button>
@@ -569,7 +674,13 @@
                     <!-- Приоритетный заказ -->
                     <div style="padding-top: 20px; border-top: 1px solid var(--border);">
                         <div class="form-group">
-                            <label class="form-label" id="quickLabelPriority">Приоритетный заказ (<span id="quickPricePriority">0</span>₽)</label>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+                                <label class="form-label" id="quickLabelPriority" style="margin-bottom: 0;">Приоритетный заказ (<span id="quickPricePriority">0</span>₽)</label>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <input type="number" class="form-input" id="quickPriceEditPriority" placeholder="Цена" min="0" style="width: 90px; padding: 6px 8px; font-size: 0.85rem;">
+                                    <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="quickSetPrice('priority')" title="Применить цену">✓</button>
+                                </div>
+                            </div>
                             <div style="display: flex; gap: 10px;">
                                 <input type="text" class="form-input" id="quickTankNamePriority" placeholder="Название танка" style="flex: 1;">
                                 <button class="btn btn-warning" onclick="addQuickTank('priority', 1)">Добавить</button>
@@ -586,7 +697,13 @@
                     <!-- Мегаприоритет -->
                     <div style="padding-top: 20px; border-top: 1px solid var(--border);">
                         <div class="form-group">
-                            <label class="form-label" id="quickLabelMega">Мегаприоритет (<span id="quickPriceMega">0</span>₽)</label>
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+                                <label class="form-label" id="quickLabelMega" style="margin-bottom: 0;">Мегаприоритет (<span id="quickPriceMega">0</span>₽)</label>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <input type="number" class="form-input" id="quickPriceEditMega" placeholder="Цена" min="0" style="width: 90px; padding: 6px 8px; font-size: 0.85rem;">
+                                    <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.8rem;" onclick="quickSetPrice('mega')" title="Применить цену">✓</button>
+                                </div>
+                            </div>
                             <div style="display: flex; gap: 10px;">
                                 <input type="text" class="form-input" id="quickTankNameMega" placeholder="Название танка" style="flex: 1;">
                                 <button class="btn btn-danger" onclick="addQuickTank('mega', 1)">Добавить</button>
@@ -599,46 +716,19 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Заказ до топ 1 - скрыто по умолчанию -->
-                    <div id="quickTop1Section" style="padding-top: 20px; border-top: 1px solid var(--border); display: none;">
-                        <div class="form-group">
-                            <label class="form-label" id="quickLabel500">Заказ танка до топ 1 (<span id="quickPrice500">500</span>₽)</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="text" class="form-input" id="quickTankName500" placeholder="Название танка" style="flex: 1;">
-                                <button class="btn btn-warning" onclick="addQuickTank('top1', 1)">Добавить</button>
-                            </div>
-                            <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('top1', 2)">+2</button>
-                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('top1', 3)">+3</button>
-                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('top1', 4)">+4</button>
-                                <button class="btn btn-secondary" style="padding: 6px 10px; font-size: 0.95rem;" onclick="addQuickTank('top1', 5)">+5</button>
-                            </div>
-                        </div>
-                    </div>
                 </div>
+            </div>
 
-                <!-- Добавление танка -->
-                <div class="panel">
-                    <div class="panel-title">➕ ДОБАВИТЬ ТАНК (ПОЛНАЯ ФОРМА)</div>
-                    <form id="tankForm">
-                        <div class="form-group">
-                            <label class="form-label">Название танка</label>
-                            <input type="text" class="form-input" id="tankName" placeholder="Введите название танка" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Стоимость (₽)</label>
-                            <input type="number" class="form-input" id="tankPrice" placeholder="Введите стоимость" min="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Дополнительные условия (необязательно)</label>
-                            <textarea class="form-input form-textarea" id="tankConditions" placeholder="Например: Только в клане, С определенным экипажем и т.д."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Добавить в очередь</button>
-                    </form>
-                </div>
+            <!-- Компактная строка со ссылкой на виджет -->
+            <div class="panel widget-link-strip">
+                <span class="widget-link-strip-label">🔗 Виджет для OBS:</span>
+                <input type="text" class="form-input" id="widgetLinkObs" readonly onclick="this.select()">
+                <button class="btn btn-primary" onclick="copyWidgetLink('widgetLinkObs', this)">📋 Копировать</button>
+            </div>
 
-                <!-- Настройка цены -->
+            <!-- Нижний ряд: цена за заказ слева, вкладки управления справа -->
+            <div class="controls-row">
+                <!-- Настройка цены (перенесено сюда, всегда видно) -->
                 <div class="panel">
                     <div class="panel-title">💰 ЦЕНА ЗА ЗАКАЗ</div>
                     <div class="price-settings">
@@ -704,111 +794,148 @@
                             </div>
                             <button class="btn btn-warning" onclick="setOrderPriceMega()" style="width: 100%; margin-bottom: 20px;">Установить цену мегаприоритета</button>
                         </div>
-                        
-                        <!-- Заказ до топ 1 - скрыто по умолчанию -->
-                        <div id="top1SectionToggle" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
-                            <button class="btn btn-secondary" onclick="toggleTop1Section()" style="width: 100%; margin-bottom: 15px;">
-                                <span id="top1ToggleText">🔓 Включить "Заказ танка до топ 1"</span>
-                            </button>
-                        </div>
-                        
-                        <div id="top1Section" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); display: none;">
-                            <div class="price-display">
-                                <div class="price-label" id="orderPriceTop1LabelDisplay">Заказ танка до топ 1</div>
-                                <div class="price-value" id="orderPriceTop1Display">0₽</div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Установить цену до топ 1</label>
-                                <input type="number" class="form-input" id="orderPriceTop1Input" placeholder="Цена за заказ танка до топ 1" min="0">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Надпись в виджете</label>
-                                <input type="text" class="form-input" id="orderPriceTop1LabelInput" placeholder="Заказ танка до топ 1" value="Заказ танка до топ 1">
-                            </div>
-                            <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
-                                <input type="checkbox" id="orderPriceTop1Enabled" checked style="width: 20px; height: 20px; cursor: pointer;">
-                                <label for="orderPriceTop1Enabled" style="cursor: pointer; margin: 0;">Отображать в виджете</label>
-                            </div>
-                            <button class="btn btn-warning" onclick="setOrderPriceTop1()" style="width: 100%; margin-bottom: 20px;">Установить цену до топ 1</button>
-                            <button class="btn btn-secondary" onclick="toggleTop1Section()" style="width: 100%;">Скрыть</button>
-                        </div>
-                        
-                        <!-- Карусель цен/текстов (5 полей) -->
+
                         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
-                            <div class="form-group">
-                                <label class="form-label" style="font-weight: 600; margin-bottom: 15px; display: block;">📺 Карусель цен/текстов (отображается в нижнем окне)</label>
-                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">
-                                    Формат: если в тексте указана цена (например, "150₽" или "200 руб"), будет показан текст сверху и цена снизу. Если только текст - текст будет крупнее и по центру.
-                                </div>
+                            <!-- Заказ до топ 1 -->
+                            <div id="top1SectionToggle">
+                                <button class="btn btn-secondary" onclick="toggleTop1Section()" style="width: 100%; margin-bottom: 15px;">
+                                    <span id="top1ToggleText">➕ Включить плашку "до топ 1" в виджете</span>
+                                </button>
                             </div>
-                            
-                            <!-- Поле 1 -->
-                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
-                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                    <input type="checkbox" id="priceCarouselEnabled1" checked style="width: 20px; height: 20px; cursor: pointer;">
-                                    <label for="priceCarouselEnabled1" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 1 (включено в карусель)</label>
+
+                            <div id="top1Section" style="display: none;">
+                                <div class="price-display">
+                                    <div class="price-label" id="orderPriceTop1LabelDisplay">Заказ танка до топ 1</div>
+                                    <div class="price-value" id="orderPriceTop1Display">0₽</div>
                                 </div>
                                 <div class="form-group">
-                                    <input type="text" class="form-input" id="priceCarouselText1" placeholder="Например: Заказ танка 150₽ или просто текст">
-                                </div>
-                            </div>
-                            
-                            <!-- Поле 2 -->
-                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
-                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                    <input type="checkbox" id="priceCarouselEnabled2" checked style="width: 20px; height: 20px; cursor: pointer;">
-                                    <label for="priceCarouselEnabled2" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 2 (включено в карусель)</label>
+                                    <label class="form-label">Установить цену до топ 1</label>
+                                    <input type="number" class="form-input" id="orderPriceTop1Input" placeholder="Цена за заказ танка до топ 1" min="0">
                                 </div>
                                 <div class="form-group">
-                                    <input type="text" class="form-input" id="priceCarouselText2" placeholder="Например: Приоритетный заказ 300₽ или просто текст">
+                                    <label class="form-label">Надпись в виджете</label>
+                                    <input type="text" class="form-input" id="orderPriceTop1LabelInput" placeholder="Заказ танка до топ 1" value="Заказ танка до топ 1">
                                 </div>
+                                <button class="btn btn-warning" onclick="setOrderPriceTop1()" style="width: 100%;">Установить цену до топ 1</button>
                             </div>
-                            
-                            <!-- Поле 3 -->
-                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
-                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                    <input type="checkbox" id="priceCarouselEnabled3" style="width: 20px; height: 20px; cursor: pointer;">
-                                    <label for="priceCarouselEnabled3" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 3 (выключено из карусели)</label>
-                                </div>
-                                <div class="form-group">
-                                    <input type="text" class="form-input" id="priceCarouselText3" placeholder="Например: Мегаприоритет 500₽ или просто текст">
-                                </div>
-                            </div>
-                            
-                            <!-- Поле 4 -->
-                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
-                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                    <input type="checkbox" id="priceCarouselEnabled4" style="width: 20px; height: 20px; cursor: pointer;">
-                                    <label for="priceCarouselEnabled4" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 4 (выключено из карусели)</label>
-                                </div>
-                                <div class="form-group">
-                                    <input type="text" class="form-input" id="priceCarouselText4" placeholder="Введите текст или текст с ценой">
-                                </div>
-                            </div>
-                            
-                            <!-- Поле 5 -->
-                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
-                                <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                    <input type="checkbox" id="priceCarouselEnabled5" style="width: 20px; height: 20px; cursor: pointer;">
-                                    <label for="priceCarouselEnabled5" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 5 (выключено из карусели)</label>
-                                </div>
-                                <div class="form-group">
-                                    <input type="text" class="form-input" id="priceCarouselText5" placeholder="Введите текст или текст с ценой">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group" style="margin-top: 20px;">
-                                <label class="form-label">⏱️ Время смены элементов карусели (секунды)</label>
-                                <input type="number" class="form-input" id="priceCarouselInterval" placeholder="15" min="1" max="300" value="15">
-                                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
-                                    Минимум: 1 секунда, Максимум: 300 секунд
-                                </div>
-                            </div>
-                            
-                            <button class="btn btn-primary" onclick="savePriceCarousel()" style="width: 100%;">💾 Сохранить карусель</button>
                         </div>
                     </div>
                 </div>
+
+                <!-- Вкладки управления -->
+                <div>
+                <div class="tabs-nav">
+                    <button type="button" class="tab-btn active" data-tab="add">📝 Полная форма</button>
+                    <button type="button" class="tab-btn" data-tab="photos">📸 Фото</button>
+                    <button type="button" class="tab-btn" data-tab="actions">⚙️ Действия</button>
+                </div>
+
+                <div class="tab-panel active" data-tab-panel="add">
+
+                <!-- Добавление танка -->
+                <div class="panel">
+                    <div class="panel-title">➕ ДОБАВИТЬ ТАНК (ПОЛНАЯ ФОРМА)</div>
+                    <form id="tankForm">
+                        <div class="form-group">
+                            <label class="form-label">Название танка</label>
+                            <input type="text" class="form-input" id="tankName" placeholder="Введите название танка" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Стоимость (₽)</label>
+                            <input type="number" class="form-input" id="tankPrice" placeholder="Введите стоимость" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Дополнительные условия (необязательно)</label>
+                            <textarea class="form-input form-textarea" id="tankConditions" placeholder="Например: Только в клане, С определенным экипажем и т.д."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Количество танков</label>
+                            <input type="number" class="form-input" id="tankCount" placeholder="1" min="1" value="1">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                                Столько танков с этим названием, ценой и условиями будет добавлено в очередь
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Добавить в очередь</button>
+                    </form>
+                </div>
+
+                <!-- Карусель цен/текстов (5 полей) -->
+                <div class="panel">
+                    <div class="panel-title">📺 КАРУСЕЛЬ ЦЕН/ТЕКСТОВ</div>
+                    <div class="form-group">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 15px;">
+                            Отображается в нижнем окне виджета. Формат: если в тексте указана цена (например, "150₽" или "200 руб"), будет показан текст сверху и цена снизу. Если только текст - текст будет крупнее и по центру.
+                        </div>
+                    </div>
+
+                    <!-- Поле 1 -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <input type="checkbox" id="priceCarouselEnabled1" checked style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="priceCarouselEnabled1" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 1 (включено в карусель)</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-input" id="priceCarouselText1" placeholder="Например: Заказ танка 150₽ или просто текст">
+                        </div>
+                    </div>
+
+                    <!-- Поле 2 -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <input type="checkbox" id="priceCarouselEnabled2" checked style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="priceCarouselEnabled2" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 2 (включено в карусель)</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-input" id="priceCarouselText2" placeholder="Например: Приоритетный заказ 300₽ или просто текст">
+                        </div>
+                    </div>
+
+                    <!-- Поле 3 -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <input type="checkbox" id="priceCarouselEnabled3" style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="priceCarouselEnabled3" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 3 (выключено из карусели)</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-input" id="priceCarouselText3" placeholder="Например: Мегаприоритет 500₽ или просто текст">
+                        </div>
+                    </div>
+
+                    <!-- Поле 4 -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <input type="checkbox" id="priceCarouselEnabled4" style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="priceCarouselEnabled4" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 4 (выключено из карусели)</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-input" id="priceCarouselText4" placeholder="Введите текст или текст с ценой">
+                        </div>
+                    </div>
+
+                    <!-- Поле 5 -->
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border: 1px solid var(--border);">
+                        <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <input type="checkbox" id="priceCarouselEnabled5" style="width: 20px; height: 20px; cursor: pointer;">
+                            <label for="priceCarouselEnabled5" style="cursor: pointer; margin: 0; font-weight: 600;">Поле 5 (выключено из карусели)</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" class="form-input" id="priceCarouselText5" placeholder="Введите текст или текст с ценой">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label class="form-label">⏱️ Время смены элементов карусели (секунды)</label>
+                        <input type="number" class="form-input" id="priceCarouselInterval" placeholder="15" min="1" max="300" value="15">
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 5px;">
+                            Минимум: 1 секунда, Максимум: 300 секунд
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="savePriceCarousel()" style="width: 100%;">💾 Сохранить карусель</button>
+                </div>
+
+                </div>
+                <div class="tab-panel" data-tab-panel="photos">
 
                 <!-- Фото стримера -->
                 <div class="panel">
@@ -861,18 +988,20 @@
                     </div>
                 </div>
 
+                </div>
+                <div class="tab-panel" data-tab-panel="actions">
+
                 <!-- Действия -->
                 <div class="panel">
                     <div class="panel-title">⚙️ ДЕЙСТВИЯ</div>
                     <div style="display: flex; flex-direction: column; gap: 10px;">
-                        <button class="btn btn-danger" onclick="clearQueue()">🗑️ Очистить очередь</button>
-                        <a href="/widget-tank-queue.html" target="_blank" class="widget-link">
-                            📺 Открыть виджет (полный)
-                        </a>
                         <a href="/widget-tank-queue-obs.html" target="_blank" class="widget-link">
                             🎬 Открыть виджет для OBS
                         </a>
                     </div>
+                </div>
+
+                </div>
                 </div>
             </div>
         </div>
@@ -954,7 +1083,6 @@
         const orderPriceTop1Input = document.getElementById('orderPriceTop1Input');
         const orderPriceTop1LabelDisplay = document.getElementById('orderPriceTop1LabelDisplay');
         const orderPriceTop1LabelInput = document.getElementById('orderPriceTop1LabelInput');
-        const orderPriceTop1EnabledCheckbox = document.getElementById('orderPriceTop1Enabled');
         // priceInfoInput удален - теперь используется карусель
         const quickPrice150 = document.getElementById('quickPrice150');
         const quickPrice500 = document.getElementById('quickPrice500');
@@ -1178,18 +1306,15 @@
                     updateCurrentBattle();
                 }, 200);
             
-            // Восстанавливаем состояние секции топ 1
-            if (top1SectionVisible) {
-                const top1Section = document.getElementById('top1Section');
-                const top1ToggleText = document.getElementById('top1ToggleText');
-                const quickTop1Section = document.getElementById('quickTop1Section');
-                if (top1Section) {
-                    top1Section.style.display = 'block';
-                    if (top1ToggleText) top1ToggleText.textContent = '🔒 Скрыть "Заказ танка до топ 1"';
-                }
-                if (quickTop1Section) {
-                    quickTop1Section.style.display = 'block';
-                }
+            // Восстанавливаем состояние плашки "до топ 1" (видимость формы синхронна с orderPriceTop1Enabled)
+            const top1Section = document.getElementById('top1Section');
+            const top1ToggleText = document.getElementById('top1ToggleText');
+            if (orderPriceTop1Enabled) {
+                if (top1Section) top1Section.style.display = 'block';
+                if (top1ToggleText) top1ToggleText.textContent = '✅ Плашка "до топ 1" включена в виджете (нажмите, чтобы выключить)';
+            } else {
+                if (top1Section) top1Section.style.display = 'none';
+                if (top1ToggleText) top1ToggleText.textContent = '➕ Включить плашку "до топ 1" в виджете';
             }
         }
 
@@ -1406,10 +1531,7 @@
             if (orderPriceTop1LabelInput) {
                 orderPriceTop1LabelInput.value = orderPriceTop1Label;
             }
-            if (orderPriceTop1EnabledCheckbox && orderPriceTop1EnabledCheckbox.checked !== orderPriceTop1Enabled) {
-                orderPriceTop1EnabledCheckbox.checked = orderPriceTop1Enabled;
-            }
-            
+
             // priceInfoInput удален - теперь используется карусель
             // priceInfo сохраняется для обратной совместимости, но не отображается в UI
             
@@ -1506,7 +1628,17 @@
             if (quickLabel500) quickLabel500.innerHTML = `${orderPriceTop1Label} (<span id="quickPrice500">${orderPriceTop1}</span>₽)`;
             if (quickLabelPriority) quickLabelPriority.innerHTML = `${orderPricePriorityLabel} (<span id="quickPricePriority">${orderPricePriority}</span>₽)`;
             if (quickLabelMega) quickLabelMega.innerHTML = `${orderPriceMegaLabel} (<span id="quickPriceMega">${orderPriceMega}</span>₽)`;
-            
+
+            // Обновляем плейсхолдеры компактных полей быстрого изменения цены
+            const quickPriceEdit150 = document.getElementById('quickPriceEdit150');
+            const quickPriceEditPriority = document.getElementById('quickPriceEditPriority');
+            const quickPriceEditMega = document.getElementById('quickPriceEditMega');
+            const quickPriceEdit500 = document.getElementById('quickPriceEdit500');
+            if (quickPriceEdit150) quickPriceEdit150.placeholder = orderPrice;
+            if (quickPriceEditPriority) quickPriceEditPriority.placeholder = orderPricePriority;
+            if (quickPriceEditMega) quickPriceEditMega.placeholder = orderPriceMega;
+            if (quickPriceEdit500) quickPriceEdit500.placeholder = orderPriceTop1;
+
             // Сбрасываем флаг после небольшой задержки
             setTimeout(() => {
                 isUpdatingDisplay = false;
@@ -1617,7 +1749,7 @@
             }
             orderPriceTop1 = price;
             orderPriceTop1Label = orderPriceTop1LabelInput.value.trim() || 'Заказ танка до топ 1';
-            orderPriceTop1Enabled = orderPriceTop1EnabledCheckbox.checked;
+            // orderPriceTop1Enabled управляется кнопкой "Включить/Выключить" (toggleTop1Section), не этой формой
             updateOrderPriceDisplay();
             saveData();
         }
@@ -1641,14 +1773,12 @@
             orderPricePriorityLabel = labelInput.value.trim() || 'Приоритетный заказ';
             orderPricePriorityEnabled = enabledCheckbox.checked;
             console.log('💾 Сохранение приоритетной цены:', orderPricePriority, 'Метка:', orderPricePriorityLabel);
-            
+
             // Обновляем отображение
             updateOrderPriceDisplay();
-            
+
             // Сохраняем данные
             saveData();
-            
-            alert('Цена приоритетного заказа сохранена: ' + orderPricePriority + '₽');
         }
 
         function setOrderPriceMega() {
@@ -1664,38 +1794,56 @@
             orderPriceMegaLabel = labelInput.value.trim() || 'Мегаприоритет';
             orderPriceMegaEnabled = enabledCheckbox.checked;
             console.log('💾 Сохранение мегаприоритетной цены:', orderPriceMega, 'Метка:', orderPriceMegaLabel);
-            
+
             // Обновляем отображение
             updateOrderPriceDisplay();
-            
+
             // Сохраняем данные
             saveData();
-            
-            alert('Цена мегаприоритета сохранена: ' + orderPriceMega + '₽');
         }
 
+        // Включает/выключает отображение плашки "до топ 1" в виджете и одновременно
+        // показывает/скрывает форму её настройки в админке — это одно и то же переключение.
         function toggleTop1Section() {
             const top1Section = document.getElementById('top1Section');
             const top1ToggleText = document.getElementById('top1ToggleText');
-            const quickTop1Section = document.getElementById('quickTop1Section');
-            
-            top1SectionVisible = !top1SectionVisible;
-            
-            if (top1SectionVisible) {
+
+            orderPriceTop1Enabled = !orderPriceTop1Enabled;
+            top1SectionVisible = orderPriceTop1Enabled;
+
+            if (orderPriceTop1Enabled) {
                 top1Section.style.display = 'block';
-                top1ToggleText.textContent = '🔒 Скрыть "Заказ танка до топ 1"';
-                if (quickTop1Section) {
-                    quickTop1Section.style.display = 'block';
-                }
+                top1ToggleText.textContent = '✅ Плашка "до топ 1" включена в виджете (нажмите, чтобы выключить)';
             } else {
                 top1Section.style.display = 'none';
-                top1ToggleText.textContent = '🔓 Включить "Заказ танка до топ 1"';
-                if (quickTop1Section) {
-                    quickTop1Section.style.display = 'none';
-                }
+                top1ToggleText.textContent = '➕ Включить плашку "до топ 1" в виджете';
             }
-            
+
             localStorage.setItem(TOP1_SECTION_VISIBLE_KEY, top1SectionVisible.toString());
+            saveData();
+        }
+
+        // Быстрое изменение цены прямо из блока "Быстрое добавление", без перехода на вкладку "Цены"
+        function quickSetPrice(type) {
+            const config = {
+                normal: { editId: 'quickPriceEdit150', targetId: 'orderPriceInput', setter: setOrderPrice },
+                priority: { editId: 'quickPriceEditPriority', targetId: 'orderPricePriorityInput', setter: setOrderPricePriority },
+                mega: { editId: 'quickPriceEditMega', targetId: 'orderPriceMegaInput', setter: setOrderPriceMega },
+                top1: { editId: 'quickPriceEdit500', targetId: 'orderPriceTop1Input', setter: setOrderPriceTop1 }
+            };
+            const cfg = config[type];
+            if (!cfg) return;
+            const editInput = document.getElementById(cfg.editId);
+            const targetInput = document.getElementById(cfg.targetId);
+            if (!editInput || !targetInput) return;
+            const value = parseInt(editInput.value);
+            if (isNaN(value) || value < 0) {
+                alert('Введите корректную цену');
+                return;
+            }
+            targetInput.value = value;
+            cfg.setter();
+            editInput.value = '';
         }
 
         function addQuickTank(type, count = 1) {
@@ -1847,25 +1995,15 @@
             const hadActiveTank = currentTankIndex >= 0 && currentTankIndex < tanks.length;
             const activeTankRef = hadActiveTank ? tanks[currentTankIndex] : null;
 
-            // Сортируем сначала по приоритету (2 > 1 > 0), затем по времени добавления (старые выше, новые ниже)
+            // Ранжирование по цене (выше цена — выше в очереди), при равной цене — по порядку добавления
             tanks.sort((a, b) => {
-                const priorityA = a.priority || 0;
-                const priorityB = b.priority || 0;
-                
-                // Сначала по приоритету
-                if (priorityA !== priorityB) {
-                    return priorityB - priorityA; // Мегаприоритет (2) > Приоритетный (1) > Базовый (0)
+                if (a.price !== b.price) {
+                    return b.price - a.price;
                 }
-                
-                // Если приоритет одинаковый, то по времени добавления (старые выше, новые ниже)
+
                 const timeA = a.addedAt || 0;
                 const timeB = b.addedAt || 0;
-                if (timeA !== timeB) {
-                    return timeA - timeB; // Старые выше (меньшее время = выше в очереди)
-                }
-                
-                // Если время одинаковое, то по цене (выше цена = выше в очереди)
-                return b.price - a.price;
+                return timeA - timeB; // Раньше добавлен — выше в очереди
             });
 
             // После сортировки индекс активного боя должен указывать на тот же объект танка.
@@ -2039,11 +2177,9 @@
         }
 
         function cancelBattle() {
-            if (confirm('Вы уверены, что хотите отменить текущий бой?')) {
-                currentTankIndex = -1;
-                saveData();
-                updateCurrentBattle();
-            }
+            currentTankIndex = -1;
+            saveData();
+            updateCurrentBattle();
         }
 
         function deleteTank(index) {
@@ -2113,6 +2249,8 @@
             const name = document.getElementById('tankName').value.trim();
             const price = parseInt(document.getElementById('tankPrice').value);
             const conditions = document.getElementById('tankConditions').value.trim();
+            const countInput = document.getElementById('tankCount');
+            const count = Math.max(1, parseInt(countInput?.value) || 1);
 
             if (!name) {
                 alert('Введите название танка');
@@ -2123,17 +2261,18 @@
                 return;
             }
 
-            const newTank = {
-                name,
-                price,
-                conditions,
-                addedAt: Date.now()
-            };
-            
-            // Обычный танк - добавляем в конец очереди
-            tanks.push(newTank);
+            // Добавляем нужное количество танков с одинаковым названием, ценой и условиями в конец очереди
+            for (let i = 0; i < count; i++) {
+                tanks.push({
+                    name,
+                    price,
+                    conditions,
+                    addedAt: Date.now() + i
+                });
+            }
 
             tankForm.reset();
+            if (countInput) countInput.value = 1;
             saveData();
             renderQueue();
         });
@@ -2144,14 +2283,6 @@
             // Не сохраняем, если это программная установка
             if (isUpdatingDisplay) return;
             orderPriceEnabled = orderPriceEnabledCheckbox.checked;
-            saveData();
-        }
-
-        function handleOrderPriceTop1EnabledChange(e) {
-            if (e) e.stopPropagation();
-            // Не сохраняем, если это программная установка
-            if (isUpdatingDisplay) return;
-            orderPriceTop1Enabled = orderPriceTop1EnabledCheckbox.checked;
             saveData();
         }
 
@@ -2175,15 +2306,6 @@
                 // Добавляем обработчик на click для более надежной работы
                 orderPriceEnabledCheckbox.addEventListener('click', handleOrderPriceEnabledChange);
                 orderPriceEnabledCheckbox.addEventListener('change', handleOrderPriceEnabledChange);
-            }
-
-            if (orderPriceTop1EnabledCheckbox) {
-                // Удаляем старые обработчики, если есть
-                orderPriceTop1EnabledCheckbox.removeEventListener('change', handleOrderPriceTop1EnabledChange);
-                orderPriceTop1EnabledCheckbox.removeEventListener('click', handleOrderPriceTop1EnabledChange);
-                // Добавляем обработчик на click для более надежной работы
-                orderPriceTop1EnabledCheckbox.addEventListener('click', handleOrderPriceTop1EnabledChange);
-                orderPriceTop1EnabledCheckbox.addEventListener('change', handleOrderPriceTop1EnabledChange);
             }
 
             // Обработчики для автоматического сохранения при изменении надписей
@@ -2484,7 +2606,43 @@
 
         // Инициализируем обработчики сразу после получения элементов
         initEventHandlers();
-        
+
+        // Вкладки правой панели
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                const panel = document.querySelector(`.tab-panel[data-tab-panel="${btn.dataset.tab}"]`);
+                if (panel) panel.classList.add('active');
+            });
+        });
+
+        // Ссылки на виджет
+        function copyWidgetLink(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            const finish = () => {
+                const original = btn.textContent;
+                btn.textContent = '✅ Скопировано';
+                setTimeout(() => { btn.textContent = original; }, 1500);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(input.value).then(finish).catch(() => {
+                    input.select();
+                    document.execCommand('copy');
+                    finish();
+                });
+            } else {
+                input.select();
+                document.execCommand('copy');
+                finish();
+            }
+        }
+
+        const widgetLinkObsInput = document.getElementById('widgetLinkObs');
+        if (widgetLinkObsInput) widgetLinkObsInput.value = `${location.origin}/widget-tank-queue-obs.html`;
+
         // Инициализация данных
         loadData();
 

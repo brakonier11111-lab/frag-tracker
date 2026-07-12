@@ -4,12 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Стример vs Зритель — управление</title>
+<link rel="stylesheet" href="/styles/design-system.css">
+<link rel="stylesheet" href="/styles/layout.css">
 <style>
 :root{--bg:#0b0d16;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.1);
     --blue:#4be0ff;--red:#ff2a45;--gold:#ffce46;--green:#36f5a0;--text:#fff;--muted:rgba(255,255,255,.6);}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:radial-gradient(1200px 800px at 10% -10%,#161b2e,#0b0d16 60%);color:var(--text);
-    font-family:'Segoe UI',Roboto,sans-serif;min-height:100vh;padding:28px;}
+    font-family:'Segoe UI',Roboto,sans-serif;min-height:100vh;padding:28px;
+    padding-top:98px;padding-left:308px;transition:padding-left var(--transition-base,0.3s);}
+body.sidebar-collapsed{padding-left:108px;}
+@media (max-width:768px){body{padding-left:28px;}}
 .wrap{max-width:920px;margin:0 auto;}
 a.back{color:var(--muted);text-decoration:none;font-size:.85rem;}
 a.back:hover{color:#fff;}
@@ -85,6 +90,9 @@ button.gold{background:linear-gradient(135deg,var(--gold),#ff9d00);color:#241400
 </style>
 </head>
 <body>
+<script>if(localStorage.getItem('sidebarCollapsed')==='true'){document.body.classList.add('sidebar-collapsed');}</script>
+<div id="sidebar-placeholder"></div>
+<div id="header-placeholder"></div>
 <div class="wrap">
     <a class="back" href="/">← На главную</a>
     <h1>⚔️ Стример vs Зритель</h1>
@@ -381,6 +389,15 @@ document.addEventListener('DOMContentLoaded', () => {
     connectWS();
     setInterval(loadState, 5000);
 });
+</script>
+<script>
+    Promise.all([
+        fetch('/components/sidebar.html').then(r => r.text()),
+        fetch('/components/header.html').then(r => r.text())
+    ]).then(([sidebar, header]) => {
+        document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+        document.getElementById('header-placeholder').innerHTML = header;
+    });
 </script>
 </body>
 </html>

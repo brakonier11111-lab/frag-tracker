@@ -310,6 +310,11 @@ db.serialize(() => {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    db.run(`CREATE TABLE IF NOT EXISTS twitch_eventsub_events (
+        message_id TEXT PRIMARY KEY,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     // Создаем таблицу для чата
     db.run(`CREATE TABLE IF NOT EXISTS chat_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1204,7 +1209,7 @@ app.use(express.json({
     limit: '50mb',
     // Сырое тело нужно вебхуку DonatePay для проверки HMAC-подписи
     verify: (req, res, buf) => {
-        if (req.originalUrl && req.originalUrl.startsWith('/webhook/donatepay')) {
+        if (req.originalUrl && (req.originalUrl.startsWith('/webhook/donatepay') || req.originalUrl.startsWith('/webhook/twitch/eventsub'))) {
             req.rawBody = buf;
         }
     }

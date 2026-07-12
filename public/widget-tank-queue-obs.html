@@ -1,617 +1,333 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tank Queue OBS Widget</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tank Queue OBS Widget</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* Единый стиль с widget-boss-orders: нейтральный графит, один тёплый акцент (золото),
+   зелёный — для высокого приоритета/топ-1. Табличные цифры, геометрический гротеск. */
+:root{
+    --bg:#131417;--bg-2:#1a1b1f;--line:rgba(255,255,255,.09);--line-gold:rgba(217,180,101,.35);
+    --gold:#d9b465;--gold-soft:rgba(217,180,101,.4);
+    --text:#f5f6f8;--text-dim:#9a9ea8;--text-mut:#686c76;
+    --green:#5fe3a3;--green-soft:rgba(95,227,163,.35);
+    --red:#ff6b6b;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;min-height:100vh;overflow:hidden;}
+body{font-family:'Manrope',sans-serif;background:transparent;color:var(--text);
+    display:flex;align-items:flex-end;justify-content:center;-webkit-font-smoothing:antialiased;}
 
-        :root {
-            --neon-red: #ff003c;
-            --neon-blue: #00f0ff;
-            --neon-purple: #b300ff;
-            --neon-green: #00ff47;
-            --neon-yellow: #ffff00;
-            --widget-bg-opacity: 0.95;
-        }
+.scale{width:100%;transform-origin:bottom center;transform:scale(var(--s,1));padding-bottom:6px;}
+.stage{width:100%;max-width:420px;padding:0 12px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:9px;}
 
-        body {
-            font-family: 'Rajdhani', sans-serif;
-            background: transparent;
-            color: #f5f5f5;
-            min-height: 100vh;
-            display: flex;
-            align-items: flex-end; /* Прижимаем виджет к низу */
-            justify-content: center;
-            padding: 20px;
-            padding-bottom: 20px; /* Отступ снизу */
-        }
+/* заголовок — плашка как у boss-orders, с числом в очереди */
+.title-pill{display:inline-flex;align-items:center;gap:12px;
+    padding:13px 28px;border-radius:999px;max-width:100%;
+    background:rgba(19,20,23,0.92);border:1px solid var(--line-gold);
+    box-shadow:0 10px 26px rgba(0,0,0,0.45),0 0 26px rgba(217,180,101,.1);}
+.title-pill .tx{font-size:1.1rem;font-weight:800;letter-spacing:.04em;color:var(--text);white-space:normal;text-align:center;text-shadow:2px 2px 0 rgba(0,0,0,.7);}
+.title-pill .cnt{color:var(--gold);font-weight:900;}
 
-        .tank-widget {
-            background: linear-gradient(135deg, 
-                rgba(5, 5, 15, var(--widget-bg-opacity)) 0%,
-                rgba(8, 8, 20, var(--widget-bg-opacity)) 50%,
-                rgba(12, 12, 25, var(--widget-bg-opacity)) 100%
-            );
-            border: none;
-            border-radius: 15px;
-            padding: 18px 20px;
-            width: 450px;
-            box-shadow: none;
-            position: relative;
-            transition: all 0.5s ease-in-out;
-            overflow: visible;
-        }
+.board{position:relative;width:100%;display:flex;flex-direction:column;gap:8px;}
 
+/* ===== строка очереди ===== */
+.q-item{position:relative;z-index:1;border-radius:13px;overflow:hidden;
+    background:linear-gradient(150deg,var(--bg),var(--bg-2));border:1px solid var(--line);
+    box-shadow:0 10px 26px rgba(0,0,0,0.4);}
+.q-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--text-mut);z-index:2;}
 
-        /* Widget title */
-        .widget-title {
-            text-align: center;
-            margin-bottom: 20px;
-        }
+/* ===== появление и исчезновение карточки в очереди ===== */
+.q-item.q-item-enter{animation:qEnter .5s cubic-bezier(.16,1,.3,1);}
+@keyframes qEnter{from{opacity:0;transform:translateY(16px) scale(.94);}to{opacity:1;transform:none;}}
 
-        .widget-title-text {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--neon-yellow);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 
-                0 0 15px rgba(255, 255, 0, 0.8),
-                0 0 25px rgba(255, 255, 0, 0.6),
-                0 2px 4px rgba(0, 0, 0, 0.8);
-        }
+/* Приоритетный заказ — солидно: ровная золотая полоска и лёгкая статичная подсветка, без анимации */
+.q-item.priority{border-color:rgba(217,180,101,.32);}
+.q-item.priority::before{background:var(--gold);}
+.q-item.priority::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:linear-gradient(120deg,rgba(217,180,101,.12) 0%,rgba(217,180,101,.03) 65%);}
+.q-item.priority .price{color:#e9d5a3;}
 
+/* Мегаприоритет — аккуратный золотой отлив: мягкий, медленный перелив по всей карточке */
+.q-item.mega{border-color:rgba(217,180,101,.5);box-shadow:0 10px 26px rgba(0,0,0,.4),0 0 22px rgba(217,180,101,.14);}
+.q-item.mega::before{background:linear-gradient(180deg,#f3d999,var(--gold) 55%,#b8924c);}
+.q-item.mega::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:linear-gradient(120deg,
+        rgba(217,180,101,.06) 0%,
+        rgba(246,223,163,.26) 50%,
+        rgba(217,180,101,.06) 100%);
+    background-size:260% 260%;
+    animation:goldFlow 9s ease-in-out infinite alternate;}
+@keyframes goldFlow{0%{background-position:0% 50%;}100%{background-position:100% 50%;}}
+.q-item.mega .name{color:#fbeecb;}
+.q-item.mega .price{color:#f0d488;text-shadow:2px 2px 0 rgba(0,0,0,.7),0 0 10px rgba(217,180,101,.45);}
 
-        /* Queue section */
-        .queue-section {
-            margin-top: 20px;
-        }
+.q-row{position:relative;z-index:1;display:flex;flex-wrap:wrap;align-items:center;row-gap:4px;column-gap:10px;
+    padding:11px 14px 11px 16px;}
+.rank{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;
+    font-size:.68rem;font-weight:800;color:var(--bg);background:var(--gold);}
+.who{flex:1 1 150px;min-width:150px;}
+.who .name-line{display:flex;align-items:baseline;gap:7px;min-width:0;}
+.who .name{flex:1;min-width:0;font-weight:800;font-size:1.1rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:2px 2px 0 rgba(0,0,0,.7);}
+.who .cond{margin-top:2px;font-size:.86rem;font-weight:600;color:var(--text-dim);line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-style:italic;text-shadow:1px 1px 0 rgba(0,0,0,.7);}
+/* Когда карточке не хватает ширины на строку целиком, цена переносится на отдельную
+   строку и прижимается вправо — а не сжимается вместе с текстом. */
+.price-wrap{flex:none;margin-left:auto;display:flex;align-items:baseline;gap:5px;}
+.price-wrap .pre{font-size:.78rem;font-weight:600;color:var(--text-dim);white-space:nowrap;text-shadow:1px 1px 0 rgba(0,0,0,.7);}
+.price{font-weight:900;font-size:1.02rem;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap;text-shadow:2px 2px 0 rgba(0,0,0,.7);}
 
-        .queue-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 300px;
-            overflow-y: auto;
-            padding-right: 5px;
-        }
+/* ===== заглушка пустой очереди ===== */
+.waiting{position:relative;width:100%;border-radius:16px;overflow:hidden;padding:20px 22px;text-align:center;
+    background:linear-gradient(150deg,var(--bg),var(--bg-2));border:1px solid var(--line-gold);
+    box-shadow:0 12px 30px rgba(0,0,0,0.4),0 0 0 1px rgba(217,180,101,.05) inset;
+    animation:qEnter .5s cubic-bezier(.16,1,.3,1);}
+.waiting::before{content:'';position:absolute;inset:-40%;background:radial-gradient(circle at 50% 30%,rgba(217,180,101,.16),transparent 60%);
+    animation:waitGlow 3.2s ease-in-out infinite;}
+@keyframes waitGlow{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+.waiting-inner{position:relative;z-index:1;}
+.waiting .wicon{width:30px;height:30px;margin:0 auto 9px;animation:waitBreathe 2.4s ease-in-out infinite;}
+@keyframes waitBreathe{0%,100%{transform:scale(1);filter:drop-shadow(0 0 4px var(--gold-soft))}50%{transform:scale(1.14);filter:drop-shadow(0 0 12px var(--gold-soft))}}
+.waiting .wtitle{font-size:.92rem;font-weight:800;letter-spacing:.02em;color:var(--text);text-shadow:2px 2px 0 rgba(0,0,0,.7);}
+.waiting .wsub{margin-top:3px;font-size:.74rem;font-weight:600;color:var(--text-dim);text-shadow:1px 1px 0 rgba(0,0,0,.7);}
 
-        .queue-list::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .queue-list::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 2px;
-        }
-
-        .queue-list::-webkit-scrollbar-thumb {
-            background: var(--neon-blue);
-            border-radius: 2px;
-        }
-
-        .queue-item {
-            background: rgba(20, 25, 35, 0.6);
-            border-left: 4px solid;
-            border-radius: 8px;
-            padding: 12px 15px 12px 30px;
-            position: relative;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .queue-item.low-price {
-            border-color: var(--neon-red);
-            background: linear-gradient(90deg, 
-                rgba(255, 0, 60, 0.15),
-                rgba(20, 25, 35, 0.6)
-            );
-        }
-
-        .queue-item.medium-price {
-            border-color: var(--neon-yellow);
-            background: linear-gradient(90deg, 
-                rgba(255, 255, 0, 0.15),
-                rgba(20, 25, 35, 0.6)
-            );
-        }
-
-        .queue-item.high-price {
-            border-color: var(--neon-green);
-            background: linear-gradient(90deg, 
-                rgba(0, 255, 71, 0.15),
-                rgba(20, 25, 35, 0.6)
-            );
-        }
-
-        .queue-item.top1 {
-            border-left-width: 4px;
-            border-color: var(--neon-yellow);
-            background: linear-gradient(135deg, 
-                rgba(255, 255, 0, 0.15) 0%,
-                rgba(20, 25, 35, 0.6) 100%
-            );
-        }
-
-        .queue-item-number {
-            position: absolute;
-            left: 4px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-weight: 700;
-            font-size: 0.9rem;
-            font-family: 'Orbitron', monospace;
-            color: rgba(0, 240, 255, 0.9);
-            min-width: 18px;
-            text-align: right;
-            text-shadow: 
-                0 0 8px rgba(0, 240, 255, 0.6),
-                0 0 12px rgba(0, 240, 255, 0.4),
-                0 1px 2px rgba(0, 0, 0, 0.8);
-            letter-spacing: 0.5px;
-        }
-
-        .queue-item-info {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding-left: 8px;
-        }
-
-        .queue-item-name {
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: #ffffff;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            text-shadow: 
-                0 1px 3px rgba(0, 0, 0, 0.8),
-                0 0 5px rgba(255, 255, 255, 0.2);
-            line-height: 1.3;
-        }
-
-        .queue-item-conditions {
-            font-size: 0.75rem;
-            color: rgba(255, 255, 0, 0.7);
-            font-weight: 500;
-            font-style: italic;
-            margin-top: 3px;
-            font-family: 'Rajdhani', sans-serif;
-        }
-
-        .queue-item.top1 .queue-item-conditions {
-            color: rgba(255, 255, 0, 0.85);
-            font-size: 0.7rem;
-            font-weight: 600;
-            font-style: normal;
-            letter-spacing: 0.5px;
-        }
-
-        .queue-item-price {
-            font-weight: 900;
-            font-size: 1.15rem;
-            font-family: 'Orbitron', monospace;
-            color: var(--neon-green);
-            white-space: nowrap;
-            text-shadow: 
-                0 0 12px rgba(0, 255, 71, 0.8),
-                0 0 20px rgba(0, 255, 71, 0.5),
-                0 2px 4px rgba(0, 0, 0, 0.8);
-        }
-
-        .empty-queue {
-            text-align: center;
-            padding: 15px 20px;
-            color: #888;
-            font-size: 0.85rem;
-        }
-
-        .empty-queue-icon {
-            font-size: 2rem;
-            margin-bottom: 5px;
-            display: inline-block;
-            animation: boredTank 3s ease-in-out infinite;
-        }
-
-        @keyframes boredTank {
-            0%, 100% {
-                transform: translateY(0) rotate(0deg);
-            }
-            25% {
-                transform: translateY(-5px) rotate(-2deg);
-            }
-            50% {
-                transform: translateY(0) rotate(0deg);
-            }
-            75% {
-                transform: translateY(-5px) rotate(2deg);
-            }
-        }
-
-        /* Queue counter */
-        .queue-counter {
-            margin-top: 15px;
-            text-align: center;
-            font-size: 1.1rem;
-            color: #f0f0f0;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-weight: 600;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-        }
-
-        .queue-counter-value {
-            color: var(--neon-purple);
-            font-weight: 900;
-            font-size: 1.8rem;
-            font-family: 'Orbitron', monospace;
-            text-shadow: 
-                0 0 15px rgba(179, 0, 255, 0.9),
-                0 0 25px rgba(179, 0, 255, 0.6),
-                0 2px 6px rgba(0, 0, 0, 0.9);
-            margin-left: 5px;
-        }
-
-        /* Price info */
-        .price-info {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-        }
-
-        .price-item {
-            font-size: 1rem;
-            color: #f5f5f5;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .price-item-label {
-            color: #e0e0e0;
-        }
-
-        .price-item-value {
-            font-family: 'Orbitron', monospace;
-            color: var(--neon-yellow);
-            text-shadow: 
-                0 0 5px rgba(255, 255, 0, 0.4),
-                0 0 10px rgba(255, 255, 0, 0.2);
-            font-weight: 700;
-        }
-
-        .price-info-text {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 1rem;
-            color: #f5f5f5;
-            line-height: 1.6;
-            text-align: center;
-            text-shadow: 
-                0 1px 3px rgba(0, 0, 0, 0.9),
-                0 0 8px rgba(255, 255, 255, 0.2);
-            white-space: pre-line;
-            font-weight: 500;
-            letter-spacing: 0.3px;
-        }
-
-        /* Animations */
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .queue-item.slide-in {
-            animation: slideIn 0.4s ease-out forwards;
-        }
-    </style>
+/* ===== цены/инфо — компактные плашки под доской ===== */
+.price-panel{width:100%;display:flex;flex-direction:column;gap:6px;align-items:center;}
+.price-pill{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 8px;
+    padding:11px 22px;border-radius:999px;max-width:100%;
+    background:rgba(19,20,23,0.92);border:1px solid var(--line);
+    box-shadow:0 6px 18px rgba(0,0,0,0.38);}
+.price-pill .lbl{font-size:.92rem;font-weight:700;color:var(--text);letter-spacing:.02em;text-shadow:1px 1px 0 rgba(0,0,0,.7);}
+.price-pill .val{font-size:1.08rem;font-weight:900;color:#f0d488;font-variant-numeric:tabular-nums;text-shadow:1px 1px 0 rgba(0,0,0,.7),0 0 10px rgba(217,180,101,.45);}
+.info-text{max-width:100%;text-align:center;font-size:.78rem;font-weight:600;color:var(--text-dim);
+    line-height:1.5;white-space:pre-line;text-shadow:1px 1px 0 rgba(0,0,0,.7);}
+</style>
 </head>
 <body>
-    <div class="tank-widget">
-        <div class="widget-title">
-            <div class="widget-title-text">ОЧЕРЕДЬ ТАНКОВ</div>
+<div class="scale" id="scale">
+    <div class="stage">
+        <div class="title-pill">
+            <span class="tx">ОЧЕРЕДЬ ТАНКОВ<span id="cntWrap" style="display:none"> · <span class="cnt" id="cnt">0</span></span></span>
         </div>
-
-        <!-- Queue -->
-        <div class="queue-section">
-            <ul class="queue-list" id="queueList">
-                <li class="empty-queue">
-                    <div class="empty-queue-icon">⚔️</div>
-                    <div>Очередь пуста</div>
-                </li>
-            </ul>
-            <div class="queue-counter" id="queueCounter" style="display: none;">
-                Танков в очереди: <span class="queue-counter-value" id="queueCount">0</span>
-            </div>
-        </div>
-
-        <!-- Price info -->
-        <div class="price-info">
-            <div class="price-item" id="orderPriceItem" style="display: none;">
-                <span class="price-item-label" id="orderPriceLabel">Заказ танка = </span>
-                <span class="price-item-value" id="orderPrice">0₽</span>
-            </div>
-            <div class="price-item" id="orderPriceTop1Item" style="display: none;">
-                <span class="price-item-label" id="orderPriceTop1Label">Заказ танка до топ 1 = </span>
-                <span class="price-item-value" id="orderPriceTop1">0₽</span>
-            </div>
-            <div class="price-info-text" id="priceInfoText"></div>
-        </div>
+        <div class="board" id="queueList"></div>
+        <div class="price-panel" id="pricePanel"></div>
     </div>
+</div>
 
-    <script>
-        let tanks = [];
-        let currentTankIndex = -1;
-        let orderPrice = 0;
-        let orderPriceTop1 = 0;
-        let priceInfo = '';
-        let orderPriceLabel = 'Заказ танка';
-        let orderPriceTop1Label = 'Заказ танка до топ 1';
-        let orderPriceEnabled = true;
-        let orderPriceTop1Enabled = true;
+<script>
+const DESIGN_W = 460;
+let tanks = [];
+let currentTankIndex = -1;
+let orderPrice = 0;
+let orderPriceTop1 = 0;
+let priceInfo = '';
+let orderPriceLabel = 'Заказ танка';
+let orderPriceTop1Label = 'Заказ танка до топ 1';
+let orderPriceEnabled = true;
+let orderPriceTop1Enabled = true;
+let lastKeys = null;
 
+document.addEventListener('DOMContentLoaded', () => { scale(); addEventListener('resize', scale); loadData(); });
+function scale(){
+    // Увеличиваем виджет только на широких канвасах; на узких ширина и раскладка
+    // подстраиваются самой вёрсткой (clamp/flex), а не общим уменьшением масштаба.
+    const s = innerWidth > DESIGN_W ? Math.min(innerWidth / DESIGN_W, 1.3) : 1;
+    document.getElementById('scale').style.setProperty('--s', s);
+}
+function esc(s){ const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
+
+async function loadData(){
+    try {
+        const res = await fetch(`/api/tank-queue?t=${Date.now()}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Ошибка загрузки данных');
+
+        tanks = Array.isArray(data.tanks) ? data.tanks : [];
+        currentTankIndex = data.currentTankIndex !== undefined ? data.currentTankIndex : -1;
+        orderPrice = data.orderPrice !== undefined ? data.orderPrice : 0;
+        orderPriceTop1 = data.orderPriceTop1 !== undefined ? data.orderPriceTop1 : 0;
+        priceInfo = data.priceInfo !== undefined ? data.priceInfo : '';
+        orderPriceLabel = data.orderPriceLabel || 'Заказ танка';
+        orderPriceTop1Label = data.orderPriceTop1Label || 'Заказ танка до топ 1';
+        orderPriceEnabled = data.orderPriceEnabled !== undefined ? (data.orderPriceEnabled === 1 || data.orderPriceEnabled === true) : true;
+        orderPriceTop1Enabled = data.orderPriceTop1Enabled !== undefined ? (data.orderPriceTop1Enabled === 1 || data.orderPriceTop1Enabled === true) : true;
+
+        renderPricePanel();
+        renderQueue();
+    } catch (err) {
+        console.error('Error loading data:', err);
         const queueList = document.getElementById('queueList');
-        const queueCounter = document.getElementById('queueCounter');
-        const queueCountEl = document.getElementById('queueCount');
-        const orderPriceEl = document.getElementById('orderPrice');
-        const orderPriceLabelEl = document.getElementById('orderPriceLabel');
-        const orderPriceItemEl = document.getElementById('orderPriceItem');
-        const orderPriceTop1El = document.getElementById('orderPriceTop1');
-        const orderPriceTop1LabelEl = document.getElementById('orderPriceTop1Label');
-        const orderPriceTop1ItemEl = document.getElementById('orderPriceTop1Item');
-        const priceInfoTextEl = document.getElementById('priceInfoText');
+        if (queueList) queueList.innerHTML = `<div class="waiting"><div class="waiting-inner">
+            <div class="wtitle">Ошибка загрузки данных</div>
+        </div></div>`;
+    }
+}
 
-        async function loadData() {
-            try {
-                // Загружаем данные с сервера (как в виджете расписания)
-                const res = await fetch(`/api/tank-queue?t=${Date.now()}`);
-                const data = await res.json();
-                
-                if (data.success) {
-                    tanks = Array.isArray(data.tanks) ? data.tanks : [];
-                    currentTankIndex = data.currentTankIndex !== undefined ? data.currentTankIndex : -1;
-                    orderPrice = data.orderPrice !== undefined ? data.orderPrice : 0;
-                    orderPriceTop1 = data.orderPriceTop1 !== undefined ? data.orderPriceTop1 : 0;
-                    priceInfo = data.priceInfo !== undefined ? data.priceInfo : '';
-                    orderPriceLabel = data.orderPriceLabel || 'Заказ танка';
-                    orderPriceTop1Label = data.orderPriceTop1Label || 'Заказ танка до топ 1';
-                    orderPriceEnabled = data.orderPriceEnabled !== undefined ? (data.orderPriceEnabled === 1 || data.orderPriceEnabled === true) : true;
-                    orderPriceTop1Enabled = data.orderPriceTop1Enabled !== undefined ? (data.orderPriceTop1Enabled === 1 || data.orderPriceTop1Enabled === true) : true;
-                    
-                    updateOrderPrice();
-                    renderQueue();
-                } else {
-                    throw new Error(data.error || 'Ошибка загрузки данных');
-                }
-            } catch (err) {
-                console.error('Error loading data:', err);
-                // Показываем пустое состояние при ошибке
-                if (queueList) {
-                    queueList.innerHTML = `
-                        <li class="empty-queue">
-                            <div class="empty-queue-icon">⚔️</div>
-                            <div>Ошибка загрузки данных</div>
-                        </li>
-                    `;
-                }
-            }
+function renderPricePanel(){
+    const panel = document.getElementById('pricePanel');
+    let html = '';
+    if (orderPriceEnabled) {
+        html += `<div class="price-pill"><span class="lbl">${esc(orderPriceLabel)}</span><span class="val">${orderPrice}р</span></div>`;
+    }
+    if (orderPriceTop1Enabled) {
+        html += `<div class="price-pill"><span class="lbl">${esc(orderPriceTop1Label)}</span><span class="val">${orderPriceTop1}р</span></div>`;
+    }
+    if (priceInfo) {
+        html += `<div class="info-text">${esc(priceInfo)}</div>`;
+    }
+    panel.innerHTML = html;
+}
+
+function sortTanks(list){ return [...list].sort((a, b) => b.price - a.price); }
+
+function priorityTier(tank){
+    if (tank.priority === 2) return 'mega';
+    if (tank.priority === 1) return 'priority';
+    return '';
+}
+
+function tankKey(t){ return (t.addedAt != null ? t.addedAt : '') + '|' + t.name + '|' + t.price; }
+
+function buildItemEl(tank, index){
+    const tier = priorityTier(tank);
+    const el = document.createElement('div');
+    el.className = 'q-item' + (tier ? ' ' + tier : '');
+    el.dataset.key = tankKey(tank);
+    el.innerHTML = `<div class="q-row">
+        <div class="rank">${index + 1}</div>
+        <div class="who">
+            <div class="name-line"><span class="name"></span></div>
+        </div>
+        <div class="price-wrap"><span class="pre">за</span><span class="price"></span></div>
+    </div>`;
+    updateItemContent(el, tank, index);
+    return el;
+}
+
+function updateItemContent(el, tank, index){
+    const tier = priorityTier(tank);
+    el.className = 'q-item' + (tier ? ' ' + tier : '');
+    el.querySelector('.rank').textContent = index + 1;
+    el.querySelector('.name').textContent = tank.name || '';
+    const who = el.querySelector('.who');
+    let condEl = who.querySelector('.cond');
+    if (tank.conditions) {
+        if (!condEl) { condEl = document.createElement('div'); condEl.className = 'cond'; who.appendChild(condEl); }
+        condEl.textContent = tank.conditions;
+    } else if (condEl) {
+        condEl.remove();
+    }
+    el.querySelector('.price').textContent = tank.price + 'р';
+}
+
+/* Плавное исчезновение карточки: снимаем её с потока (FLIP), она уезжает в сторону и тает,
+   а соседние карточки сами занимают освободившееся место. */
+function animateItemOut(el){
+    if (el.dataset.leaving) return;
+    el.dataset.leaving = '1';
+    const rect = el.getBoundingClientRect();
+    const parentRect = el.parentElement.getBoundingClientRect();
+    el.style.position = 'absolute';
+    el.style.left = (rect.left - parentRect.left) + 'px';
+    el.style.top = (rect.top - parentRect.top) + 'px';
+    el.style.width = rect.width + 'px';
+    el.style.margin = '0';
+    el.style.zIndex = '0';
+    el.style.transition = 'opacity .32s ease, transform .32s cubic-bezier(.4,0,.2,1)';
+    void el.offsetHeight;
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(26px) scale(.94)';
+    el.addEventListener('transitionend', () => el.remove(), { once: true });
+}
+
+function renderQueue(){
+    const queueList = document.getElementById('queueList');
+    const cntWrap = document.getElementById('cntWrap');
+    const cnt = document.getElementById('cnt');
+    if (!queueList) return;
+
+    const sorted = sortTanks(tanks);
+    const queueTanks = sorted.filter((_, i) => i !== currentTankIndex);
+
+    if (queueTanks.length > 5) {
+        cnt.textContent = queueTanks.length;
+        cntWrap.style.display = 'inline';
+    } else {
+        cntWrap.style.display = 'none';
+    }
+
+    const visible = queueTanks.slice(0, 5);
+    const keys = visible.map(t => tankKey(t) + ':' + (t.conditions || '') + ':' + (t.priority || 0)).join(',');
+    if (keys === lastKeys) return;
+    lastKeys = keys;
+
+    const waitingEl = queueList.querySelector('.waiting');
+
+    if (!visible.length) {
+        queueList.querySelectorAll(':scope > .q-item:not([data-leaving])').forEach(animateItemOut);
+        if (!waitingEl) {
+            const w = document.createElement('div');
+            w.className = 'waiting';
+            w.innerHTML = `<div class="waiting-inner">
+                <div class="wtitle">Очередь пуста</div>
+                <div class="wsub">Стань первым в очереди</div>
+            </div>`;
+            queueList.appendChild(w);
         }
+        return;
+    }
 
-        function updateOrderPrice() {
-            try {
-                // Обычный заказ
-                if (orderPriceEl) {
-                    orderPriceEl.textContent = `${orderPrice}₽`;
-                }
-                if (orderPriceLabelEl) {
-                    orderPriceLabelEl.textContent = `${orderPriceLabel} = `;
-                }
-                if (orderPriceItemEl) {
-                    orderPriceItemEl.style.display = orderPriceEnabled ? 'block' : 'none';
-                }
-                
-                // Заказ до топ 1
-                if (orderPriceTop1El) {
-                    orderPriceTop1El.textContent = `${orderPriceTop1}₽`;
-                }
-                if (orderPriceTop1LabelEl) {
-                    orderPriceTop1LabelEl.textContent = `${orderPriceTop1Label} = `;
-                }
-                if (orderPriceTop1ItemEl) {
-                    orderPriceTop1ItemEl.style.display = orderPriceTop1Enabled ? 'block' : 'none';
-                }
-                
-                // Информация под ценой
-                if (priceInfoTextEl) {
-                    priceInfoTextEl.textContent = priceInfo || '';
-                    priceInfoTextEl.style.display = priceInfo ? 'block' : 'none';
-                }
-            } catch (e) {
-                console.error('Error updating order price:', e);
-            }
+    if (waitingEl) waitingEl.remove();
+
+    const existing = new Map();
+    queueList.querySelectorAll(':scope > .q-item:not([data-leaving])').forEach(el => existing.set(el.dataset.key, el));
+    const firstRects = new Map();
+    existing.forEach((el, key) => firstRects.set(key, el.getBoundingClientRect()));
+
+    const newKeys = new Set(visible.map(tankKey));
+    existing.forEach((el, key) => { if (!newKeys.has(key)) animateItemOut(el); });
+
+    let prevEl = null;
+    const entering = [];
+    visible.forEach((tank, i) => {
+        const key = tankKey(tank);
+        let el = existing.get(key);
+        if (el) {
+            updateItemContent(el, tank, i);
+        } else {
+            el = buildItemEl(tank, i);
+            entering.push(el);
         }
+        if (prevEl) prevEl.after(el); else queueList.prepend(el);
+        prevEl = el;
+    });
 
-        function sortTanks() {
-            tanks.sort((a, b) => b.price - a.price);
-        }
-
-        function getPriceClass(price) {
-            if (price >= 200) return 'high-price';
-            if (price >= 101) return 'medium-price';
-            if (price >= 75) return 'low-price';
-            return '';
-        }
-
-        function renderQueue() {
-            if (!queueList || !queueCountEl) return;
-            
-            sortTanks();
-            
-            // Рендерим очередь (исключая текущий танк)
-            const queueTanks = tanks.filter((_, index) => index !== currentTankIndex);
-            
-            // Обновляем счетчик и показываем только если танков больше 5
-            if (queueCountEl) queueCountEl.textContent = queueTanks.length;
-            if (queueCounter) {
-                queueCounter.style.display = queueTanks.length > 5 ? 'block' : 'none';
-            }
-
-            if (queueTanks.length === 0) {
-                queueList.innerHTML = `
-                    <li class="empty-queue">
-                        <div class="empty-queue-icon">⚔️</div>
-                        <div>Очередь пуста</div>
-                    </li>
-                `;
-                return;
-            }
-
-            // Показываем только первые 5 танков
-            const visibleTanks = queueTanks.slice(0, 5);
-            
-            // Сохраняем текущее содержимое для сравнения
-            const currentHTML = queueList.innerHTML;
-            let newHTML = '';
-
-            visibleTanks.forEach((tank, queueIndex) => {
-                // Определяем классы для элемента
-                let itemClasses = `queue-item ${getPriceClass(tank.price)}`;
-                if (tank.conditions && tank.conditions.toLowerCase().includes('топ 1')) {
-                    itemClasses += ' top1';
-                }
-                
-                let conditionsHTML = '';
-                if (tank.conditions) {
-                    conditionsHTML = `<div class="queue-item-conditions">${tank.conditions}</div>`;
-                }
-                
-                newHTML += `
-                    <li class="${itemClasses}">
-                        <span class="queue-item-number">${queueIndex + 1}</span>
-                        <div class="queue-item-info">
-                            <div class="queue-item-name">${tank.name}</div>
-                            ${conditionsHTML}
-                        </div>
-                        <span class="queue-item-price">${tank.price}₽</span>
-                    </li>
-                `;
+    // FLIP: карточки, которые остались в очереди, плавно доезжают на новое место при сортировке/сдвиге
+    existing.forEach((el, key) => {
+        if (!newKeys.has(key)) return;
+        const first = firstRects.get(key);
+        const last = el.getBoundingClientRect();
+        const dx = first.left - last.left;
+        const dy = first.top - last.top;
+        if (dx || dy) {
+            el.style.transition = 'none';
+            el.style.transform = `translate(${dx}px, ${dy}px)`;
+            requestAnimationFrame(() => {
+                el.style.transition = 'transform .38s cubic-bezier(.4,0,.2,1)';
+                el.style.transform = '';
             });
-
-            // Обновляем только если содержимое изменилось
-            if (currentHTML !== newHTML) {
-                queueList.innerHTML = newHTML;
-            }
         }
+    });
 
-        async function updateData() {
-            try {
-                // Загружаем данные с сервера (как в виджете расписания)
-                const res = await fetch(`/api/tank-queue?t=${Date.now()}`);
-                const data = await res.json();
-                
-                if (data.success) {
-                    let changed = false;
-                    
-                    // Проверяем изменения в очереди
-                    const newTanks = Array.isArray(data.tanks) ? data.tanks : [];
-                    if (JSON.stringify(newTanks) !== JSON.stringify(tanks)) {
-                        tanks = newTanks;
-                        changed = true;
-                    }
-                    
-                    // Проверяем изменения в текущем танке
-                    const newIndex = data.currentTankIndex !== undefined ? data.currentTankIndex : -1;
-                    if (newIndex !== currentTankIndex) {
-                        currentTankIndex = newIndex;
-                        changed = true;
-                    }
-                    
-                    // Проверяем изменения в ценах
-                    const newPrice = data.orderPrice !== undefined ? data.orderPrice : 0;
-                    if (newPrice !== orderPrice) {
-                        orderPrice = newPrice;
-                        changed = true;
-                    }
-                    
-                    const newPriceTop1 = data.orderPriceTop1 !== undefined ? data.orderPriceTop1 : 0;
-                    if (newPriceTop1 !== orderPriceTop1) {
-                        orderPriceTop1 = newPriceTop1;
-                        changed = true;
-                    }
-                    
-                    // Проверяем изменения в информации
-                    const newInfo = data.priceInfo !== undefined ? data.priceInfo : '';
-                    if (newInfo !== priceInfo) {
-                        priceInfo = newInfo;
-                        changed = true;
-                    }
-                    
-                    // Проверяем изменения в надписях и включении/выключении
-                    const newPriceLabel = data.orderPriceLabel || 'Заказ танка';
-                    if (newPriceLabel !== orderPriceLabel) {
-                        orderPriceLabel = newPriceLabel;
-                        changed = true;
-                    }
-                    
-                    const newPriceTop1Label = data.orderPriceTop1Label || 'Заказ танка до топ 1';
-                    if (newPriceTop1Label !== orderPriceTop1Label) {
-                        orderPriceTop1Label = newPriceTop1Label;
-                        changed = true;
-                    }
-                    
-                    const newPriceEnabled = data.orderPriceEnabled !== undefined ? (data.orderPriceEnabled === 1 || data.orderPriceEnabled === true) : true;
-                    if (newPriceEnabled !== orderPriceEnabled) {
-                        orderPriceEnabled = newPriceEnabled;
-                        changed = true;
-                    }
-                    
-                    const newPriceTop1Enabled = data.orderPriceTop1Enabled !== undefined ? (data.orderPriceTop1Enabled === 1 || data.orderPriceTop1Enabled === true) : true;
-                    if (newPriceTop1Enabled !== orderPriceTop1Enabled) {
-                        orderPriceTop1Enabled = newPriceTop1Enabled;
-                        changed = true;
-                    }
-                    
-                    // Всегда обновляем отображение цен (для учета изменений enabled/disabled)
-                    updateOrderPrice();
-                    
-                    // Обновляем очередь только если она изменилась
-                    if (changed) {
-                        renderQueue();
-                    }
-                }
-            } catch (err) {
-                console.error('Error updating data:', err);
-            }
-        }
+    entering.forEach(el => {
+        el.classList.add('q-item-enter');
+        el.addEventListener('animationend', () => el.classList.remove('q-item-enter'), { once: true });
+    });
+}
 
-        // Периодическая проверка обновлений (как в виджете расписания)
-        setInterval(updateData, 2000);
-
-        // Инициализация (как в виджете расписания)
-        loadData();
-    </script>
+setInterval(loadData, 2000);
+</script>
 </body>
 </html>
-
