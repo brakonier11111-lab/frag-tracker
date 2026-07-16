@@ -845,6 +845,15 @@ db.serialize(() => {
     db.run(`ALTER TABLE app_state ADD COLUMN lesta_last_max_xp INTEGER`, (err) => {
         if (!err) console.log('✅ Добавлено поле lesta_last_max_xp');
     });
+    db.run(`ALTER TABLE app_state ADD COLUMN lesta_last_gold INTEGER`, (err) => {
+        if (!err) console.log('✅ Добавлено поле lesta_last_gold');
+    });
+    db.run(`ALTER TABLE app_state ADD COLUMN lesta_last_credits INTEGER`, (err) => {
+        if (!err) console.log('✅ Добавлено поле lesta_last_credits');
+    });
+    db.run(`ALTER TABLE app_state ADD COLUMN lesta_last_free_xp INTEGER`, (err) => {
+        if (!err) console.log('✅ Добавлено поле lesta_last_free_xp');
+    });
     // Поля для сессионного винрейта Lesta для виджета «параметр от донатов»
     db.run(`ALTER TABLE app_state ADD COLUMN dd_lesta_session_active INTEGER DEFAULT 0`, (err) => {
         if (!err) console.log('✅ Добавлено поле dd_lesta_session_active');
@@ -955,6 +964,16 @@ db.serialize(() => {
     });
     db.run(`ALTER TABLE app_state ADD COLUMN lesta_reliable_since INTEGER DEFAULT 0`, (err) => {
         if (!err) console.log('✅ Добавлено поле lesta_reliable_since');
+    });
+    // Отслеживание трат/дохода золота (открытие контейнеров) — виджет gold-tracker
+    db.run(`ALTER TABLE app_state ADD COLUMN gold_tracker_active INTEGER DEFAULT 0`, (err) => {
+        if (!err) console.log('✅ Добавлено поле gold_tracker_active');
+    });
+    db.run(`ALTER TABLE app_state ADD COLUMN gold_tracker_started_at INTEGER DEFAULT 0`, (err) => {
+        if (!err) console.log('✅ Добавлено поле gold_tracker_started_at');
+    });
+    db.run(`ALTER TABLE app_state ADD COLUMN gold_tracker_baseline_gold INTEGER DEFAULT 0`, (err) => {
+        if (!err) console.log('✅ Добавлено поле gold_tracker_baseline_gold');
     });
     db.run(`ALTER TABLE app_state ADD COLUMN lesta_last_tank_snapshot_at INTEGER DEFAULT 0`, (err) => {
         if (!err) console.log('✅ Добавлено поле lesta_last_tank_snapshot_at');

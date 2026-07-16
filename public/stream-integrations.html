@@ -60,6 +60,11 @@
 		.small { font-size: 12px; color: var(--muted); margin-top: 10px; }
 		.hr { height: 1px; background: var(--card-border); margin: 14px 0; }
 
+		.obs-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+		.obs-input { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(0,0,0,0.4); color: var(--muted); font-size: 12px; }
+		.obs-copy-btn { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.05); color: var(--text); cursor: pointer; white-space: nowrap; }
+		.obs-copy-btn:hover { background: rgba(255,255,255,0.12); }
+
 		.list { display: grid; gap: 8px; }
 		.item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(255,255,255,.04); border: 1px solid var(--card-border); border-radius: 10px; }
 		.item label { color: var(--muted); font-size: 13px; }
@@ -166,7 +171,13 @@
 			<div class="kv"><div>Twitch</div><div id="ov-twitch" class="value">—</div></div>
 			<div class="kv"><div>Всего</div><div id="ov-total" class="value">—</div></div>
 			<div class="hr"></div>
-			<div class="small">Ссылка для OBS (Browser Source): <code>/widget-online-viewers.html</code></div>
+			<div class="small">
+				Ссылка для OBS (Browser Source):
+				<div class="obs-row">
+					<input id="obs-url-online-full" class="obs-input" readonly>
+					<button class="obs-copy-btn" onclick="copyObsUrl('obs-url-online-full')">Скопировать</button>
+				</div>
+			</div>
 		</div>
 
 		<div class="grid">
@@ -335,6 +346,24 @@
 			document.getElementById('sidebar-placeholder').innerHTML = sidebar;
 			document.getElementById('header-placeholder').innerHTML = header;
 		});
+
+		document.getElementById('obs-url-online-full').value =
+			(window.location.origin || 'http://localhost:3000') + '/widget-online-viewers.html';
+
+		async function copyObsUrl(inputId) {
+			try {
+				const el = document.getElementById(inputId);
+				if (!el || !el.value) return;
+				if (navigator.clipboard && navigator.clipboard.writeText) {
+					await navigator.clipboard.writeText(el.value);
+				} else {
+					el.select();
+					document.execCommand('copy');
+				}
+			} catch (e) {
+				console.warn('Не удалось скопировать OBS URL:', e);
+			}
+		}
 
 		// Helpers
 		function setBadge(id, ok, extra = {}) {

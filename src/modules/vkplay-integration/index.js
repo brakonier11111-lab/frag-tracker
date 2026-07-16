@@ -22,7 +22,7 @@ const { createRoleRewards } = require('./roleRewards');
 const { createVkplayRoutes } = require('./routes');
 
 function createVkplayIntegrationModule(deps) {
-    const { db, saveIntegration, loadIntegration, withApiQueue, wss } = deps;
+    const { db, saveIntegration, loadIntegration, withApiQueue, wss, broadcastToClients } = deps;
     const port = process.env.PORT || 3000;
 
     let vkplayIntegration = {
@@ -34,8 +34,44 @@ function createVkplayIntegrationModule(deps) {
         likes: 0,
         tokens: null,
         expires_at: 0,
-        channelUrl: null  // ВАЖНО: URL канала для API запросов
+        channelUrl: null,  // ВАЖНО: URL канала для API запросов
+        followersCount: null // база для сравнения при опросе подписчиков (null = ещё не опрашивали)
     };
+
+    // Именные события (кто конкретно зафолловил/оформил платную подписку) — отдельный
+    // токен от OAuth-приложения. VK Play отдаёт это через internal-эндпоинт
+    // actions_journal, который принимает только Bearer-токен веб-сессии сайта
+    // (localStorage.auth в браузере после логина как владелец канала), а не наш
+    // публичный OAuth-токен приложения (проверено: OAuth-токен получает 401 на
+    // этом эндпоинте). Токен веб-сессии живёт очень долго (наблюдался ~год),
+    // поэтому получаем его один раз через /integrations/vkplay/session-token
+    // (см. routes.js) и просто опрашиваем — без сложного refresh-флоу.
+    let vkplaySessionAuth = {
+        accessToken: null,
+        refreshToken: null,
+        expiresAt: 0
+    };
+    let lastActionsJournalTime = 0; // unix-секунды последнего обработанного события
+
+    // Персистентность lastActionsJournalTime — без этого рестарт сервера каждый раз
+    // обнулял метку, и все фолловеры/платные подписки, случившиеся между рестартами,
+    // тихо уходили в "базу" первого опроса без алерта (тот же баг, что чинили для
+    // YouTube-подписчиков, см. youtube-integration/index.js).
+    db.run(`CREATE TABLE IF NOT EXISTS vkplay_actions_journal_state (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        last_action_time INTEGER NOT NULL
+    )`, (err) => {
+        if (err) console.error('❌ Ошибка создания vkplay_actions_journal_state:', err);
+    });
+
+    function persistLastActionsJournalTime(time) {
+        db.run(
+            `INSERT INTO vkplay_actions_journal_state (id, last_action_time) VALUES (1, ?)
+             ON CONFLICT(id) DO UPDATE SET last_action_time = excluded.last_action_time`,
+            [time],
+            (err) => { if (err) console.warn('⚠️ vkplay_actions_journal_state upsert:', err.message); }
+        );
+    }
 
     /** VK Play polling выключен по умолчанию — задайте VKPLAY_POLLING=1 чтобы включить */
     const VKPLAY_POLLING_ENABLED = process.env.VKPLAY_POLLING === '1';
@@ -131,6 +167,82 @@ function createVkplayIntegrationModule(deps) {
             }
         }
         return 0;
+    }
+
+    // Число подписчиков канала VK Play. В отличие от лайков/зрителей (только
+    // stream.*, обнуляются вне эфира) — берём из channel.*, это лайфтайм-счётчик
+    // подписчиков канала и должен быть доступен независимо от того, идёт ли стрим.
+    function getVKPlayFollowersFromChannelInfo(channelInfo) {
+        if (!channelInfo || !channelInfo.channel) return null;
+        const channel = channelInfo.channel;
+        const counters = channel.counters || {};
+
+        const candidates = [
+            counters.followers,
+            counters.followers_count,
+            counters.follower_count,
+            counters.subscribers,
+            counters.subscribers_count,
+            channel.followers_count,
+            channel.subscribers_count
+        ];
+
+        for (const v of candidates) {
+            if (v != null) {
+                const n = Number(v);
+                if (!Number.isNaN(n)) return n;
+            }
+        }
+        return null;
+    }
+
+    // Опрос именных событий фолловеров/платных подписок VK Play (см. комментарий
+    // у vkplaySessionAuth выше). События идут от новых к старым — берём только те,
+    // что новее lastActionsJournalTime, и алертим в хронологическом порядке.
+    // Первый опрос после установки токена/старта сервера — только база (без алерта),
+    // иначе рестарт даст ложный шквал "новых" событий из истории.
+    async function pollActionsJournal() {
+        if (!vkplaySessionAuth.accessToken || !vkplayIntegration.channelUrl) return;
+
+        try {
+            const res = await axios.get(`https://api.live.vkvideo.ru/v1/blog/${vkplayIntegration.channelUrl}/actions_journal/?limit=30`, {
+                headers: { Authorization: `Bearer ${vkplaySessionAuth.accessToken}` }
+            });
+            const events = res.data?.data?.actionsJournal?.events || [];
+            const isFirstPoll = lastActionsJournalTime === 0;
+
+            const newEvents = events.filter(e => e.actionTime > lastActionsJournalTime);
+            for (const e of newEvents) {
+                if (e.actionTime > lastActionsJournalTime) lastActionsJournalTime = e.actionTime;
+            }
+            if (newEvents.length) persistLastActionsJournalTime(lastActionsJournalTime);
+            if (isFirstPoll || !broadcastToClients) return;
+
+            newEvents.sort((a, b) => a.actionTime - b.actionTime);
+            for (const e of newEvents) {
+                if (e.type === 'following' && e.follower) {
+                    const username = e.follower.displayName || e.follower.name || e.follower.nick || 'Аноним';
+                    broadcastToClients({ type: 'VKPLAY_NEW_FOLLOWER', username });
+                    if (deps.recordSubscriberEvent) {
+                        deps.recordSubscriberEvent({ platform: 'vkplay', eventType: 'follower', username });
+                    }
+                } else if (e.type === 'subscription' && e.subscriber) {
+                    const username = e.subscriber.displayName || e.subscriber.name || e.subscriber.nick || 'Аноним';
+                    const plan = e.subscriptionLevel?.name || null;
+                    broadcastToClients({ type: 'VKPLAY_NEW_PAID_SUBSCRIBER', username, plan });
+                    if (deps.recordSubscriberEvent) {
+                        deps.recordSubscriberEvent({ platform: 'vkplay', eventType: 'paid_subscriber', username, plan });
+                    }
+                }
+            }
+        } catch (e) {
+            const status = e?.response?.status;
+            if (status === 401 || status === 403) {
+                console.warn('⚠️ VK Play actions_journal: токен веб-сессии невалиден/просрочен — нужно заново получить через /integrations/vkplay/session-token');
+            } else {
+                console.warn('⚠️ Ошибка опроса actions_journal VK Play:', e?.response?.data || e.message);
+            }
+        }
     }
 
     // Обновление access_token через refresh_token (без этого интеграция молча
@@ -359,7 +471,17 @@ function createVkplayIntegrationModule(deps) {
                     vkplayIntegration.likes = getVKPlayLikesFromChannelInfo(channelInfo, vkplayIntegration.likes);
                     vkplayIntegration.chatEnabled = !!channelInfo.channel?.web_socket_channels?.chat;
                     vkplayIntegration.channelUrl = data.channel.url;
-                    
+
+                    // Подписчики: сравниваем с предыдущим значением, алертим только рост.
+                    // Первый успешный опрос после старта — база без алерта (иначе рестарт
+                    // сервера даст ложный "+N" на разнице с null/0).
+                    const newFollowers = getVKPlayFollowersFromChannelInfo(channelInfo);
+                    if (newFollowers != null) {
+                        // Только счётчик для статистики — алерт по имени шлёт
+                        // pollActionsJournal() (см. выше), не дублируем безымянным.
+                        vkplayIntegration.followersCount = newFollowers;
+                    }
+
                     // Сохраняем обновленные данные в БД
                     await saveIntegration('vkplay', {
                         tokens: vkplayIntegration.tokens,
@@ -590,6 +712,8 @@ function createVkplayIntegrationModule(deps) {
         set vkplayIntegration(v) { vkplayIntegration = v; },
         get vkplayBotIntegration() { return vkplayBotIntegration; },
         set vkplayBotIntegration(v) { vkplayBotIntegration = v; },
+        get vkplaySessionAuth() { return vkplaySessionAuth; },
+        set vkplaySessionAuth(v) { vkplaySessionAuth = v; },
         db,
         wss
     };
@@ -834,6 +958,9 @@ function createVkplayIntegrationModule(deps) {
             setInterval(() => withApiQueue('vkplay', () => updateVKPlayData()), 5000);
             setInterval(() => withApiQueue('vkplay-rewards', () => checkVKPlayRewardActivations()), 10000);
         }
+        // Именные фолловеры/платные подписки — независимо от VKPLAY_POLLING,
+        // требует только сохранённый токен веб-сессии (см. pollActionsJournal)
+        setInterval(() => withApiQueue('vkplay-actions-journal', () => pollActionsJournal()), 20000);
     }
 
     async function hydrateFromDb() {
@@ -890,6 +1017,29 @@ function createVkplayIntegrationModule(deps) {
                         channelUrl: vkplayBotIntegration.channelUrl,
                         connected: vkplayBotIntegration.connected
                     });
+                }
+
+                // Токен веб-сессии для именных событий actions_journal (см. vkplaySessionAuth)
+                const vkplaySession = await loadIntegration('vkplay_session');
+                if (vkplaySession && vkplaySession.access_token) {
+                    vkplaySessionAuth = {
+                        accessToken: vkplaySession.access_token,
+                        refreshToken: vkplaySession.refresh_token,
+                        expiresAt: vkplaySession.expires_at || 0
+                    };
+                    console.log('✅ VK Play session-токен (именные фолловеры/подписки) загружен из БД');
+                }
+
+                // Метка последнего обработанного события actions_journal — без неё
+                // рестарт сервера тихо съедал бы новых фолловеров/подписчиков как "базу"
+                const journalState = await new Promise((resolve) => {
+                    db.get('SELECT last_action_time FROM vkplay_actions_journal_state WHERE id = 1', (err, row) => {
+                        resolve(err ? null : row);
+                    });
+                });
+                if (journalState && journalState.last_action_time) {
+                    lastActionsJournalTime = journalState.last_action_time;
+                    console.log(`✅ VK Play actions_journal: метка последнего события загружена из БД (${lastActionsJournalTime})`);
                 }
     }
 

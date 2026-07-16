@@ -34,6 +34,8 @@ function createPagesModule(deps) {
         app.get('/widget-donors-top.html', (req, res) => sendNoCachePublic(res, 'widget-donors-top.html'));
         app.get('/donation-driven-widget', (req, res) => sendPublic(res, 'donation-driven-widget.html'));
 
+        app.get('/widget-gold-tracker.html', (req, res) => sendNoCachePublic(res, 'widget-gold-tracker.html'));
+
         app.get('/replay-live', (req, res) => sendNoCachePublic(res, 'replay-live.html'));
         app.get('/widget-replay-live', (req, res) => sendNoCachePublic(res, 'widget-replay-live.html'));
         app.get('/widget-replay-summary', (req, res) => sendNoCachePublic(res, 'widget-replay-summary.html'));
@@ -62,6 +64,15 @@ function createPagesModule(deps) {
 
         app.get('/mode1-frag-tracker', (req, res) => sendPublic(res, 'mode1-frag-tracker.html'));
         app.get('/mode2-timer', (req, res) => sendPublic(res, 'mode2-timer.html'));
+
+        app.get('/widget/custom/:id', (req, res) => {
+            res.set({
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            });
+            sendPublic(res, 'widget/custom-renderer.html');
+        });
 
         app.get('/widget/:mode', (req, res) => {
             const mode = req.params.mode;

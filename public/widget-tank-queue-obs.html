@@ -90,17 +90,18 @@ body{font-family:'Manrope',sans-serif;background:transparent;color:var(--text);
 .waiting-inner{position:relative;z-index:1;}
 .waiting .wicon{width:30px;height:30px;margin:0 auto 9px;animation:waitBreathe 2.4s ease-in-out infinite;}
 @keyframes waitBreathe{0%,100%{transform:scale(1);filter:drop-shadow(0 0 4px var(--gold-soft))}50%{transform:scale(1.14);filter:drop-shadow(0 0 12px var(--gold-soft))}}
-.waiting .wtitle{font-size:.92rem;font-weight:800;letter-spacing:.02em;color:var(--text);text-shadow:2px 2px 0 rgba(0,0,0,.7);}
-.waiting .wsub{margin-top:3px;font-size:.74rem;font-weight:600;color:var(--text-dim);text-shadow:1px 1px 0 rgba(0,0,0,.7);}
+.waiting .wtitle{font-size:1.08rem;font-weight:800;letter-spacing:.02em;color:var(--text);text-shadow:2px 2px 0 rgba(0,0,0,.7);}
 
 /* ===== цены/инфо — компактные плашки под доской ===== */
 .price-panel{width:100%;display:flex;flex-direction:column;gap:6px;align-items:center;}
-.price-pill{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 8px;
-    padding:11px 22px;border-radius:999px;max-width:100%;
-    background:rgba(19,20,23,0.92);border:1px solid var(--line);
-    box-shadow:0 6px 18px rgba(0,0,0,0.38);}
-.price-pill .lbl{font-size:.92rem;font-weight:700;color:var(--text);letter-spacing:.02em;text-shadow:1px 1px 0 rgba(0,0,0,.7);}
-.price-pill .val{font-size:1.08rem;font-weight:900;color:#f0d488;font-variant-numeric:tabular-nums;text-shadow:1px 1px 0 rgba(0,0,0,.7),0 0 10px rgba(217,180,101,.45);}
+.price-pill{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 12px;
+    padding:14px 28px;border-radius:999px;max-width:100%;
+    background:rgba(19,20,23,0.92);border:1px solid var(--line-gold);
+    box-shadow:0 10px 26px rgba(0,0,0,0.45),0 0 26px rgba(217,180,101,.1);}
+.price-pill .lbl{font-size:1.05rem;font-weight:800;color:var(--text);letter-spacing:.03em;text-shadow:1px 1px 0 rgba(0,0,0,.7);}
+.price-pill .val{font-size:1.28rem;font-weight:900;color:#f0d488;font-variant-numeric:tabular-nums;text-shadow:1px 1px 0 rgba(0,0,0,.7),0 0 10px rgba(217,180,101,.45);}
+.price-pill.fade{animation:priceFade .35s ease;}
+@keyframes priceFade{from{opacity:.35;transform:translateY(4px)}to{opacity:1;transform:none}}
 .info-text{max-width:100%;text-align:center;font-size:.78rem;font-weight:600;color:var(--text-dim);
     line-height:1.5;white-space:pre-line;text-shadow:1px 1px 0 rgba(0,0,0,.7);}
 </style>
@@ -112,7 +113,17 @@ body{font-family:'Manrope',sans-serif;background:transparent;color:var(--text);
             <span class="tx">ОЧЕРЕДЬ ТАНКОВ<span id="cntWrap" style="display:none"> · <span class="cnt" id="cnt">0</span></span></span>
         </div>
         <div class="board" id="queueList"></div>
-        <div class="price-panel" id="pricePanel"></div>
+        <div class="price-panel" id="pricePanel">
+            <div class="price-pill" id="mainPricePill">
+                <span class="lbl" id="mainPriceLabel">Заказ танка</span>
+                <span class="val" id="mainPriceValue">0р</span>
+            </div>
+            <div class="price-pill" id="top1PricePill" style="display:none">
+                <span class="lbl" id="top1PriceLabel"></span>
+                <span class="val" id="top1PriceValue"></span>
+            </div>
+            <div class="info-text" id="priceInfoEl" style="display:none"></div>
+        </div>
     </div>
 </div>
 
@@ -122,11 +133,21 @@ let tanks = [];
 let currentTankIndex = -1;
 let orderPrice = 0;
 let orderPriceTop1 = 0;
+let orderPricePriority = 0;
+let orderPriceMega = 0;
 let priceInfo = '';
 let orderPriceLabel = 'Заказ танка';
 let orderPriceTop1Label = 'Заказ танка до топ 1';
+let orderPricePriorityLabel = 'Приоритетный заказ';
+let orderPriceMegaLabel = 'Мегаприоритет';
 let orderPriceEnabled = true;
 let orderPriceTop1Enabled = true;
+let orderPricePriorityEnabled = true;
+let orderPriceMegaEnabled = true;
+let priceCarouselInterval = 15;
+let currentCarouselIndex = 0;
+let carouselTimer = null;
+let lastMainPriceSignature = '';
 let lastKeys = null;
 
 document.addEventListener('DOMContentLoaded', () => { scale(); addEventListener('resize', scale); loadData(); });
@@ -140,7 +161,7 @@ function esc(s){ const d = document.createElement('div'); d.textContent = String
 
 async function loadData(){
     try {
-        const res = await fetch(`/api/tank-queue?t=${Date.now()}`);
+        const res = await fetch(`/api/tank-queue?lite=1&t=${Date.now()}`);
         const data = await res.json();
         if (!data.success) throw new Error(data.error || 'Ошибка загрузки данных');
 
@@ -148,13 +169,20 @@ async function loadData(){
         currentTankIndex = data.currentTankIndex !== undefined ? data.currentTankIndex : -1;
         orderPrice = data.orderPrice !== undefined ? data.orderPrice : 0;
         orderPriceTop1 = data.orderPriceTop1 !== undefined ? data.orderPriceTop1 : 0;
+        orderPricePriority = data.orderPricePriority !== undefined ? data.orderPricePriority : 0;
+        orderPriceMega = data.orderPriceMega !== undefined ? data.orderPriceMega : 0;
         priceInfo = data.priceInfo !== undefined ? data.priceInfo : '';
         orderPriceLabel = data.orderPriceLabel || 'Заказ танка';
         orderPriceTop1Label = data.orderPriceTop1Label || 'Заказ танка до топ 1';
+        orderPricePriorityLabel = data.orderPricePriorityLabel || 'Приоритетный заказ';
+        orderPriceMegaLabel = data.orderPriceMegaLabel || 'Мегаприоритет';
         orderPriceEnabled = data.orderPriceEnabled !== undefined ? (data.orderPriceEnabled === 1 || data.orderPriceEnabled === true) : true;
         orderPriceTop1Enabled = data.orderPriceTop1Enabled !== undefined ? (data.orderPriceTop1Enabled === 1 || data.orderPriceTop1Enabled === true) : true;
+        orderPricePriorityEnabled = data.orderPricePriorityEnabled !== undefined ? (data.orderPricePriorityEnabled === 1 || data.orderPricePriorityEnabled === true) : true;
+        orderPriceMegaEnabled = data.orderPriceMegaEnabled !== undefined ? (data.orderPriceMegaEnabled === 1 || data.orderPriceMegaEnabled === true) : true;
+        priceCarouselInterval = data.priceCarouselInterval !== undefined ? (parseInt(data.priceCarouselInterval, 10) || 15) : 15;
 
-        renderPricePanel();
+        syncPricePanel();
         renderQueue();
     } catch (err) {
         console.error('Error loading data:', err);
@@ -165,19 +193,88 @@ async function loadData(){
     }
 }
 
-function renderPricePanel(){
-    const panel = document.getElementById('pricePanel');
-    let html = '';
-    if (orderPriceEnabled) {
-        html += `<div class="price-pill"><span class="lbl">${esc(orderPriceLabel)}</span><span class="val">${orderPrice}р</span></div>`;
+function getMainPriceSlides(){
+    const slides = [];
+    if (orderPriceEnabled) slides.push({ label: orderPriceLabel, price: orderPrice });
+    if (orderPricePriorityEnabled) slides.push({ label: orderPricePriorityLabel, price: orderPricePriority });
+    if (orderPriceMegaEnabled) slides.push({ label: orderPriceMegaLabel, price: orderPriceMega });
+    return slides;
+}
+
+function updatePricePanelView(){
+    const slides = getMainPriceSlides();
+    const mainPill = document.getElementById('mainPricePill');
+    const mainLbl = document.getElementById('mainPriceLabel');
+    const mainVal = document.getElementById('mainPriceValue');
+    const top1Pill = document.getElementById('top1PricePill');
+    const top1Lbl = document.getElementById('top1PriceLabel');
+    const top1Val = document.getElementById('top1PriceValue');
+    const infoEl = document.getElementById('priceInfoEl');
+
+    if (slides.length && mainPill && mainLbl && mainVal) {
+        const s = slides[currentCarouselIndex % slides.length];
+        mainPill.style.display = 'inline-flex';
+        mainPill.classList.remove('fade');
+        void mainPill.offsetWidth;
+        mainPill.classList.add('fade');
+        mainLbl.textContent = s.label;
+        mainVal.textContent = s.price + 'р';
+    } else if (mainPill) {
+        mainPill.style.display = 'none';
     }
-    if (orderPriceTop1Enabled) {
-        html += `<div class="price-pill"><span class="lbl">${esc(orderPriceTop1Label)}</span><span class="val">${orderPriceTop1}р</span></div>`;
+
+    if (top1Pill && top1Lbl && top1Val) {
+        if (orderPriceTop1Enabled) {
+            top1Pill.style.display = 'inline-flex';
+            top1Lbl.textContent = orderPriceTop1Label;
+            top1Val.textContent = orderPriceTop1 + 'р';
+        } else {
+            top1Pill.style.display = 'none';
+        }
     }
-    if (priceInfo) {
-        html += `<div class="info-text">${esc(priceInfo)}</div>`;
+
+    if (infoEl) {
+        if (priceInfo) {
+            infoEl.textContent = priceInfo;
+            infoEl.style.display = '';
+        } else {
+            infoEl.style.display = 'none';
+        }
     }
-    panel.innerHTML = html;
+}
+
+function stopPriceCarousel(){
+    if (carouselTimer) {
+        clearInterval(carouselTimer);
+        carouselTimer = null;
+    }
+}
+
+function startPriceCarousel(){
+    stopPriceCarousel();
+    const slides = getMainPriceSlides();
+    if (slides.length <= 1) return;
+    const ms = Math.max(1000, (priceCarouselInterval || 15) * 1000);
+    carouselTimer = setInterval(() => {
+        const count = getMainPriceSlides().length;
+        if (count <= 1) { stopPriceCarousel(); return; }
+        currentCarouselIndex = (currentCarouselIndex + 1) % count;
+        updatePricePanelView();
+    }, ms);
+}
+
+function syncPricePanel(){
+    const slides = getMainPriceSlides();
+    const signature = JSON.stringify(slides) + '|' + priceCarouselInterval + '|' + orderPriceTop1Enabled + '|' + orderPriceTop1 + '|' + orderPriceTop1Label;
+
+    if (signature !== lastMainPriceSignature) {
+        currentCarouselIndex = 0;
+        if (currentCarouselIndex >= slides.length) currentCarouselIndex = 0;
+        lastMainPriceSignature = signature;
+        updatePricePanelView();
+        stopPriceCarousel();
+        if (slides.length > 1) startPriceCarousel();
+    }
 }
 
 function sortTanks(list){ return [...list].sort((a, b) => b.price - a.price); }
@@ -272,7 +369,6 @@ function renderQueue(){
             w.className = 'waiting';
             w.innerHTML = `<div class="waiting-inner">
                 <div class="wtitle">Очередь пуста</div>
-                <div class="wsub">Стань первым в очереди</div>
             </div>`;
             queueList.appendChild(w);
         }

@@ -102,6 +102,9 @@ function createBroadcastState({ dbRead, broadcastToClients, getWssClientCount })
             lesta_last_survived_battles: fullState.lesta_last_survived_battles,
             lesta_last_win_and_survived: fullState.lesta_last_win_and_survived,
             lesta_last_max_xp: fullState.lesta_last_max_xp,
+            lesta_last_gold: fullState.lesta_last_gold,
+            lesta_last_credits: fullState.lesta_last_credits,
+            lesta_last_free_xp: fullState.lesta_last_free_xp,
             lesta_previous_frags: fullState.lesta_previous_frags,
             lesta_auto_deduct: fullState.lesta_auto_deduct,
             lesta_last_sync_time: fullState.lesta_last_sync_time

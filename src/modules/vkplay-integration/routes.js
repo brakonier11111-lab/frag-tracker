@@ -12,6 +12,41 @@ const querystring = require('querystring');
 
 function createVkplayRoutes(h) {
     function registerRoutes(app) {
+        // Токен веб-сессии сайта VK Play (не OAuth-приложения) для именных
+        // событий фолловеров/платных подписок через actions_journal — берётся
+        // один раз из localStorage.auth в браузере (владелец канала должен быть
+        // залогинен на live.vkvideo.ru), см. комментарий у vkplaySessionAuth в index.js.
+        app.post('/integrations/vkplay/session-token', express.json(), async (req, res) => {
+            const { accessToken, refreshToken, expiresAt } = req.body || {};
+            if (!accessToken || typeof accessToken !== 'string') {
+                return res.status(400).json({ error: 'accessToken is required' });
+            }
+
+            h.vkplaySessionAuth = {
+                accessToken,
+                refreshToken: refreshToken || null,
+                expiresAt: Number(expiresAt) || 0
+            };
+
+            try {
+                await h.saveIntegration('vkplay_session', {
+                    tokens: { access_token: accessToken, refresh_token: refreshToken || null },
+                    expires_at: expiresAt ? Math.floor(Number(expiresAt) / 1000) : 0
+                });
+            } catch (e) {
+                console.warn('⚠️ Не удалось сохранить VK Play session-токен в БД:', e.message);
+            }
+
+            res.json({ ok: true });
+        });
+
+        app.get('/integrations/vkplay/session-status', (req, res) => {
+            res.json({
+                connected: !!h.vkplaySessionAuth.accessToken,
+                expiresAt: h.vkplaySessionAuth.expiresAt || 0
+            });
+        });
+
         app.get('/integrations/vkplay/status', async (req, res) => {
             // Если channelUrl отсутствует, но есть токен - обновляем данные
             if (!h.vkplayIntegration.channelUrl && h.vkplayIntegration.connected && h.vkplayIntegration.tokens?.access_token) {

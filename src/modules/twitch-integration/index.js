@@ -499,11 +499,15 @@ function createTwitchIntegrationModule(deps) {
                 recordEventSubMessageOnce(messageId, (isNew) => {
                     if (isNew) {
                         const event = req.body.event || {};
+                        const username = event.user_name || event.user_login || 'Аноним';
                         broadcastToClients({
                             type: 'TWITCH_NEW_FOLLOWER',
-                            username: event.user_name || event.user_login || 'Аноним',
+                            username,
                             followedAt: event.followed_at || new Date().toISOString()
                         });
+                        if (deps.recordSubscriberEvent) {
+                            deps.recordSubscriberEvent({ platform: 'twitch', eventType: 'follower', username });
+                        }
                     }
                 });
                 return res.status(200).send();

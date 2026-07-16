@@ -16,6 +16,8 @@ const { createDonationsAnalyticsModule } = require('./modules/donations-analytic
 const { createBossOrdersModule } = require('./modules/boss-orders');
 const { createBattleTrackerModule } = require('./modules/battle-tracker');
 const { createViewerVotingModule } = require('./modules/viewer-voting');
+const { createSubscriberStatsModule } = require('./modules/subscriber-stats');
+const { createWidgetConstructorModule } = require('./modules/widget-constructor');
 
 /**
  * Подключает вынесенные модули к Express-приложению.
@@ -49,9 +51,18 @@ function registerModules(app, deps, config) {
     const chatStats = createChatStatsModule(deps);
     chatStats.registerRoutes(app);
 
+    // Учёт новых фолловеров/подписчиков по платформам — создаём до интеграций,
+    // чтобы прокинуть record() в них (пишут события параллельно с broadcast в виджет)
+    const subscriberStats = createSubscriberStatsModule(deps);
+    subscriberStats.registerRoutes(app);
+
     // Активность зрителей в Tanks Blitz Challenge: сообщения в чате двигают прогресс
-    // такой же наградой, как донат — интеграции получают колбэк поверх общих deps
-    const chatAwareDeps = Object.assign({}, deps, { onChatMessage: blitz.onChatMessageCounted });
+    // такой же наградой, как донат — интеграции получают колбэк поверх общих deps.
+    // Плюс recordSubscriberEvent — чтобы фолловеры/подписки писались в статистику.
+    const chatAwareDeps = Object.assign({}, deps, {
+        onChatMessage: blitz.onChatMessageCounted,
+        recordSubscriberEvent: subscriberStats.record
+    });
 
     const youtube = createYoutubeIntegrationModule(chatAwareDeps);
     youtube.registerRoutes(app);
@@ -88,6 +99,7 @@ function registerModules(app, deps, config) {
         getTwitchState: twitch.getState
     });
     onlineViewers.registerRoutes(app);
+    onlineViewers.startBroadcasting();
 
     const lestaOAuth = createLestaOAuthModule(deps);
     lestaOAuth.registerPages(app);
@@ -108,7 +120,10 @@ function registerModules(app, deps, config) {
     viewerVoting.registerPages(app);
     viewerVoting.registerRoutes(app);
 
-    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, twitch, onlineViewers, lestaOAuth, donationsAnalytics, bossOrders, battleTracker, viewerVoting };
+    const widgetConstructor = createWidgetConstructorModule(deps);
+    widgetConstructor.registerRoutes(app);
+
+    return { blitz, replayLive, yandexMusic, roulette, razblog, donorAchievements, chatStats, youtube, vkplay, twitch, onlineViewers, lestaOAuth, donationsAnalytics, bossOrders, battleTracker, viewerVoting, subscriberStats, widgetConstructor };
 }
 
 module.exports = { registerModules };

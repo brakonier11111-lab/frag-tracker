@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alert - New Follower</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --neon-purple: #b300ff;
+            --neon-blue: #00f0ff;
+            --neon-green: #00ff47;
+            --neon-red: #ff003c;
+            --alert-opacity: 0.95;
+            --strip-color: var(--neon-purple);
+        }
+
+        body {
+            background: transparent;
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .alert-container {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%) translateX(400px);
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .alert-visible {
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .alert-card {
+            background: linear-gradient(135deg,
+                rgba(5, 5, 15, var(--alert-opacity)) 0%,
+                rgba(8, 8, 20, calc(var(--alert-opacity) * 0.9)) 50%,
+                rgba(12, 12, 25, calc(var(--alert-opacity) * 0.85)) 100%
+            );
+            border: 1px solid rgba(179, 0, 255, 0.4);
+            border-radius: 12px;
+            padding: 25px 25px;
+            min-width: 320px;
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: visible;
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                0 0 25px rgba(179, 0, 255, 0.2);
+        }
+
+        .alert-card::before,
+        .alert-card::after {
+            content: '';
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            height: 4px;
+            background:
+                radial-gradient(12px 2px at left center, var(--strip-color), rgba(0,0,0,0) 70%),
+                linear-gradient(90deg, var(--strip-color), var(--strip-color)),
+                radial-gradient(12px 2px at right center, var(--strip-color), rgba(0,0,0,0) 70%);
+            background-repeat: no-repeat;
+            background-size: 12px 100%, calc(100% - 24px) 100%, 12px 100%;
+            background-position: left center, center, right center;
+        }
+        .alert-card::before { top: 6px; }
+        .alert-card::after { bottom: 6px; }
+
+        .alert-header {
+            color: var(--strip-color);
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 700;
+            font-family: 'Orbitron', monospace;
+        }
+
+        .follower-name {
+            color: var(--neon-blue);
+            font-size: 1.6rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 10px 0;
+            text-shadow: 0 0 15px var(--neon-blue);
+            font-family: 'Orbitron', monospace;
+        }
+
+        .follower-sub {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .alert-hide {
+            animation: slideOut 0.5s ease-in-out forwards;
+        }
+
+        @keyframes slideOut {
+            to {
+                transform: translateY(-50%) translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .pulse {
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(179, 0, 255, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(179, 0, 255, 0.4);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="alert-container" id="alertContainer">
+        <div class="alert-card" id="alertCard">
+            <div class="alert-header" id="alertHeader">Новый фолловер</div>
+            <div class="follower-name" id="followerName">username</div>
+            <div class="follower-sub" id="followerSub">теперь подписан(а) на канал 💜</div>
+        </div>
+    </div>
+
+    <script>
+        // Один виджет на все три платформы: Twitch шлёт событие с именем
+        // фолловера, YouTube/VK Play не отдают имя нового подписчика через
+        // публичный API — только рост общего счётчика, поэтому там алерт
+        // безымянный ("+N подписчик(ов)").
+        const PLATFORM_STYLES = {
+            twitch: { color: '#b300ff', label: 'Новый фолловер Twitch' },
+            youtube: { color: '#ff003c', label: 'YouTube' },
+            vkplay: { color: '#00f0ff', label: 'VK Play' }
+        };
+
+        let alertQueue = [];
+        let alertShowing = false;
+        let alertTimeout = null;
+        let ws = null;
+
+        function connectWebSocket() {
+            try {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws?type=alert`;
+
+                ws = new WebSocket(wsUrl);
+
+                ws.onopen = () => {
+                    console.log('✅ New Follower Alert: WebSocket подключен');
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        if (message.type === 'TWITCH_NEW_FOLLOWER') {
+                            enqueueAlert({
+                                platform: 'twitch',
+                                header: 'Новый фолловер Twitch',
+                                name: message.username || 'Аноним',
+                                sub: 'теперь подписан(а) на канал 💜'
+                            });
+                        } else if (message.type === 'YOUTUBE_NEW_SUBSCRIBER') {
+                            enqueueAlert({
+                                platform: 'youtube',
+                                header: 'Новый подписчик YouTube',
+                                name: message.username || 'Аноним',
+                                sub: 'подписался(ась) на канал ❤️'
+                            });
+                        } else if (message.type === 'VKPLAY_NEW_FOLLOWER') {
+                            enqueueAlert({
+                                platform: 'vkplay',
+                                header: 'Новый фолловер VK Play',
+                                name: message.username || 'Аноним',
+                                sub: 'теперь подписан(а) на канал 💜'
+                            });
+                        } else if (message.type === 'VKPLAY_NEW_PAID_SUBSCRIBER') {
+                            enqueueAlert({
+                                platform: 'vkplay',
+                                header: 'Новая подписка VK Play',
+                                name: message.username || 'Аноним',
+                                sub: message.plan ? `Тариф: ${message.plan}` : 'платная подписка 💎'
+                            });
+                        }
+                    } catch (error) {
+                        console.error('❌ New Follower Alert: ошибка обработки сообщения:', error);
+                    }
+                };
+
+                ws.onclose = () => {
+                    setTimeout(connectWebSocket, 3000);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('❌ New Follower Alert: WebSocket ошибка:', error);
+                };
+            } catch (error) {
+                console.error('❌ New Follower Alert: ошибка подключения WebSocket:', error);
+            }
+        }
+
+        function enqueueAlert(data) {
+            alertQueue.push(data);
+            if (!alertShowing) processQueue();
+        }
+
+        function processQueue() {
+            if (!alertQueue.length) {
+                alertShowing = false;
+                return;
+            }
+            alertShowing = true;
+            showAlert(alertQueue.shift());
+        }
+
+        function showAlert(data) {
+            const style = PLATFORM_STYLES[data.platform] || PLATFORM_STYLES.twitch;
+            document.documentElement.style.setProperty('--strip-color', style.color);
+            document.getElementById('alertHeader').textContent = data.header;
+            document.getElementById('followerName').textContent = data.name;
+            document.getElementById('followerSub').textContent = data.sub || '';
+
+            const alertContainer = document.getElementById('alertContainer');
+            const alertCard = document.getElementById('alertCard');
+
+            alertContainer.classList.remove('alert-hide');
+            alertContainer.classList.add('alert-visible');
+            alertCard.classList.add('pulse');
+
+            if (alertTimeout) clearTimeout(alertTimeout);
+            alertTimeout = setTimeout(hideCurrentAlert, 7000);
+        }
+
+        function hideCurrentAlert() {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertCard = document.getElementById('alertCard');
+
+            alertCard.classList.remove('pulse');
+            alertContainer.classList.remove('alert-visible');
+            alertContainer.classList.add('alert-hide');
+
+            if (alertTimeout) {
+                clearTimeout(alertTimeout);
+                alertTimeout = null;
+            }
+
+            setTimeout(processQueue, 500);
+        }
+
+        function testAlert() {
+            enqueueAlert({ platform: 'twitch', header: 'Новый фолловер Twitch', name: 'ТестовыйФолловер', sub: 'теперь подписан(а) на канал 💜' });
+        }
+
+        connectWebSocket();
+    </script>
+</body>
+</html>

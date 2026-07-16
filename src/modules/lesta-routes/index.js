@@ -199,7 +199,10 @@ function createLestaRoutesModule(deps) {
                                 winRate: state.lesta_last_win_rate || 0,
                                 fragsPerBattle: state.lesta_last_frags_per_battle || 0,
                                 avgDamage: state.lesta_last_battles > 0 ? Math.round((state.lesta_last_damage_dealt || 0) / state.lesta_last_battles) : 0,
-                                avgXp: state.lesta_last_battles > 0 ? Math.round((state.lesta_last_xp || 0) / state.lesta_last_battles) : 0
+                                avgXp: state.lesta_last_battles > 0 ? Math.round((state.lesta_last_xp || 0) / state.lesta_last_battles) : 0,
+                                gold: state.lesta_last_gold,
+                                credits: state.lesta_last_credits,
+                                free_xp: state.lesta_last_free_xp
                             };
                             res.json({ success: true, stats: savedStats, source: 'database' });
                         } else {
@@ -906,6 +909,61 @@ function createLestaRoutesModule(deps) {
             resetLestaSession((err) => {
                 if (err) return res.status(err.status).json({ success: false, error: err.error });
                 res.json({ success: true });
+            });
+        });
+
+        // Трекер золота за сессию (открытие контейнеров). Lesta API отдаёт только
+        // снимок текущего баланса, без истории транзакций — спенд и приход в
+        // рамках одного открытия контейнера списываются/зачисляются атомарно на
+        // стороне Lesta, поэтому раздельно их увидеть нельзя. Показываем честный
+        // чистый итог: баланс сейчас минус баланс на момент старта.
+        app.post('/api/gold-tracker/start', (req, res) => {
+            getAppState((state) => {
+                if (!state || !state.lesta_account_id) {
+                    return res.status(400).json({ success: false, error: 'Сначала привяжите аккаунт Lesta' });
+                }
+                // Повторный старт при уже активной сессии не должен переставлять baseline —
+                // иначе случайный повторный клик/запрос обнуляет весь накопленный net.
+                if (state.gold_tracker_active) {
+                    return res.json({
+                        success: true,
+                        startedAt: state.gold_tracker_started_at || 0,
+                        baselineGold: state.gold_tracker_baseline_gold || 0
+                    });
+                }
+                const nowSec = Math.floor(Date.now() / 1000);
+                const currentGold = state.lesta_last_gold || 0;
+                updateAppState({
+                    gold_tracker_active: 1,
+                    gold_tracker_started_at: nowSec,
+                    gold_tracker_baseline_gold: currentGold
+                }, (err) => {
+                    if (err) return res.status(500).json({ success: false, error: err.message });
+                    res.json({ success: true, startedAt: nowSec, baselineGold: currentGold });
+                });
+            });
+        });
+
+        app.post('/api/gold-tracker/stop', (req, res) => {
+            updateAppState({ gold_tracker_active: 0 }, (err) => {
+                if (err) return res.status(500).json({ success: false, error: err.message });
+                res.json({ success: true });
+            });
+        });
+
+        app.get('/api/gold-tracker/status', (req, res) => {
+            getAppState((state) => {
+                if (!state) return res.status(500).json({ success: false, error: 'Не удалось получить состояние' });
+                const currentGold = state.lesta_last_gold || 0;
+                const baselineGold = state.gold_tracker_baseline_gold || 0;
+                res.json({
+                    success: true,
+                    active: !!state.gold_tracker_active,
+                    startedAt: state.gold_tracker_started_at || 0,
+                    baselineGold,
+                    currentGold,
+                    net: currentGold - baselineGold
+                });
             });
         });
 

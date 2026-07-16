@@ -29,15 +29,38 @@ function defaultYoutubeIntegration() {
         manualVideoId: false, // true — videoId задан вручную, авто-детект не трогает/не сбрасывает его
         pollIntervalSec: 60, // базовый интервал опроса YouTube (секунды)
         lastPollTime: 0,     // последний успешный опрос videos.list/liveChat
-        lastLiveDetectTime: 0 // последний авто-поиск активного live (чтобы не жечь квоту)
+        lastLiveDetectTime: 0, // последний авто-поиск активного live (чтобы не жечь квоту)
+        seenSubscriberIds: new Set(), // subscription.id уже отслеженных подписчиков (дедуп алертов)
+        subscribersInitialized: false // false = первый опрос подписчиков ещё не сделан (будет базой без алертов)
     };
 }
 
 function createYoutubeIntegrationModule(deps) {
-    const { db, saveIntegration, loadIntegration, withApiQueue } = deps;
+    const { db, saveIntegration, loadIntegration, withApiQueue, broadcastToClients } = deps;
     const port = process.env.PORT || 3000;
 
     let youtubeIntegration = defaultYoutubeIntegration();
+
+    // Персистентность seenSubscriberIds/subscribersInitialized — без этого рестарт
+    // сервера каждый раз сбрасывал базу подписчиков заново, и все, кто подписался
+    // между последним опросом и рестартом, никогда не засчитывались как «новые».
+    db.run(`CREATE TABLE IF NOT EXISTS youtube_seen_subscribers (
+        subscription_id TEXT PRIMARY KEY
+    )`, (err) => {
+        if (err) console.error('❌ Ошибка создания youtube_seen_subscribers:', err);
+    });
+
+    function persistSeenSubscriberIds(ids) {
+        for (const id of ids) {
+            db.run('INSERT OR IGNORE INTO youtube_seen_subscribers (subscription_id) VALUES (?)', [id], () => {});
+        }
+    }
+
+    function trimSeenSubscribersInDb(keepIds) {
+        db.run('DELETE FROM youtube_seen_subscribers', () => {
+            persistSeenSubscriberIds(keepIds);
+        });
+    }
 
     // Поиск активного live-стрима YouTube.
     // Используем совместимый запрос liveBroadcasts(mine=true) без broadcastStatus
@@ -316,6 +339,121 @@ function createYoutubeIntegrationModule(deps) {
                 console.warn('⚠️ YouTube API: Доступ запрещен. Проверьте права доступа приложения.');
             } else {
                 console.warn('⚠️ Ошибка обновления данных YouTube:', e?.response?.data || e.message);
+            }
+        }
+    }
+
+    // Обновление access_token YouTube через refresh_token. В отличие от остального
+    // YouTube-модуля (который при истечении токена просто гасит connected до ручной
+    // переавторизации), фоновому опросу подписчиков нужен self-healing токен, как у
+    // MiniChat — иначе имена перестанут приходить через ~час. Google не возвращает
+    // новый refresh_token при рефреше, поэтому сохраняем прежний.
+    async function refreshYouTubeToken() {
+        const refreshToken = youtubeIntegration.tokens?.refresh_token;
+        const clientId = process.env.YT_CLIENT_ID;
+        const clientSecret = process.env.YT_CLIENT_SECRET;
+        if (!refreshToken || !clientId || !clientSecret) return false;
+        try {
+            const res = await axios.post('https://oauth2.googleapis.com/token', querystring.stringify({
+                client_id: clientId,
+                client_secret: clientSecret,
+                refresh_token: refreshToken,
+                grant_type: 'refresh_token'
+            }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+            if (!res.data?.access_token) return false;
+            youtubeIntegration.tokens = {
+                access_token: res.data.access_token,
+                refresh_token: refreshToken
+            };
+            youtubeIntegration.connected = true;
+            await saveIntegration('youtube', {
+                tokens: youtubeIntegration.tokens,
+                channel: youtubeIntegration.channel,
+                liveTitle: youtubeIntegration.liveTitle,
+                viewers: youtubeIntegration.viewers,
+                likes: youtubeIntegration.likes,
+                chatEnabled: youtubeIntegration.chatEnabled,
+                pollIntervalSec: youtubeIntegration.pollIntervalSec || 60
+            });
+            console.log('✅ YouTube: access-токен обновлён через refresh_token');
+            return true;
+        } catch (e) {
+            console.warn('⚠️ YouTube: не удалось обновить токен:', e?.response?.data || e.message);
+            return false;
+        }
+    }
+
+    // Имена новых подписчиков YouTube через официальный subscriptions.list с
+    // myRecentSubscribers=true (part=subscriberSnippet) — тот же путь, что у MiniChat
+    // (обычный OAuth, не веб-сессия). API отдаёт последних подписчиков новыми-сверху;
+    // дедуп по subscription.id в seenSubscriberIds, новые алертим в хронологическом
+    // порядке. Первый опрос после старта — только база (без алерта), иначе рестарт
+    // сервера дал бы шквал "новых" из истории. Подписчики, скрывшие свои подписки,
+    // в выдачу не попадают — это ограничение YouTube, не наше.
+    async function updateYouTubeSubscribers(isRetry = false) {
+        if (!youtubeIntegration.connected || !youtubeIntegration.tokens) return;
+        try {
+            // myRecentSubscribers=true не гарантирует хронологическую сортировку (это не
+            // задокументированный параметр YouTube API), поэтому реально новый подписчик
+            // может оказаться не в первых 50 записях. Листаем все страницы, пока не
+            // упрёмся в конец списка или в уже известный (seen) id — дальше него все
+            // записи заведомо старые, дальше листать незачем.
+            const items = [];
+            let pageToken = null;
+            do {
+                const res = await axios.get('https://www.googleapis.com/youtube/v3/subscriptions', {
+                    params: {
+                        part: 'subscriberSnippet',
+                        myRecentSubscribers: true,
+                        maxResults: 50,
+                        ...(pageToken ? { pageToken } : {})
+                    },
+                    headers: { Authorization: `Bearer ${youtubeIntegration.tokens.access_token}` }
+                });
+                const pageItems = res.data?.items || [];
+                items.push(...pageItems);
+                pageToken = res.data?.nextPageToken || null;
+                // Если на первом опросе (subscribersInitialized уже true) встретили уже
+                // известный id — дальше страницы можно не листать, там только старые.
+                if (youtubeIntegration.subscribersInitialized && pageItems.some(it => youtubeIntegration.seenSubscriberIds.has(it.id))) {
+                    break;
+                }
+            } while (pageToken);
+
+            if (!youtubeIntegration.subscribersInitialized) {
+                for (const it of items) youtubeIntegration.seenSubscriberIds.add(it.id);
+                youtubeIntegration.subscribersInitialized = true;
+                persistSeenSubscriberIds(items.map(it => it.id));
+                return;
+            }
+
+            const fresh = items.filter(it => !youtubeIntegration.seenSubscriberIds.has(it.id));
+            fresh.reverse(); // API отдаёт новыми-сверху — алертим старые→новые
+            for (const it of fresh) {
+                youtubeIntegration.seenSubscriberIds.add(it.id);
+                persistSeenSubscriberIds([it.id]);
+                const username = it.subscriberSnippet?.title || 'Аноним';
+                if (broadcastToClients) {
+                    broadcastToClients({ type: 'YOUTUBE_NEW_SUBSCRIBER', username });
+                }
+                if (deps.recordSubscriberEvent) {
+                    deps.recordSubscriberEvent({ platform: 'youtube', eventType: 'follower', username });
+                }
+            }
+
+            // Не даём seen-множеству расти бесконечно — обрезаем до текущего окна выдачи
+            if (youtubeIntegration.seenSubscriberIds.size > 500) {
+                youtubeIntegration.seenSubscriberIds = new Set(items.map(it => it.id));
+                trimSeenSubscribersInDb(items.map(it => it.id));
+            }
+        } catch (e) {
+            const status = e?.response?.status;
+            if (status === 401 && !isRetry) {
+                // Токен протух — рефрешим и пробуем один раз ещё
+                if (await refreshYouTubeToken()) return updateYouTubeSubscribers(true);
+            }
+            if (status !== 401 && status !== 403) {
+                console.warn('⚠️ Ошибка опроса подписчиков YouTube:', e?.response?.data || e.message);
             }
         }
     }
@@ -646,6 +784,11 @@ function createYoutubeIntegrationModule(deps) {
     async function hydrateFromDb() {
         const yt = await loadIntegration('youtube');
         if (yt && yt.access_token) {
+            const seenIds = await new Promise((resolve) => {
+                db.all('SELECT subscription_id FROM youtube_seen_subscribers', (err, rows) => {
+                    resolve(err ? [] : (rows || []).map(r => r.subscription_id));
+                });
+            });
             youtubeIntegration = {
                 connected: true,
                 channel: yt.channel_name,
@@ -662,15 +805,22 @@ function createYoutubeIntegrationModule(deps) {
                 videoId: yt.video_id || null,
                 pollIntervalSec: yt.poll_interval_sec || 60,
                 lastPollTime: 0,
-                lastLiveDetectTime: 0
+                lastLiveDetectTime: 0,
+                // Если раньше уже сохраняли базу подписчиков — не сбрасываем её при
+                // рестарте, иначе подписавшиеся между опросами никогда не засчитаются.
+                seenSubscriberIds: new Set(seenIds),
+                subscribersInitialized: seenIds.length > 0
             };
-            console.log('✅ YouTube интеграция загружена из БД');
+            console.log(`✅ YouTube интеграция загружена из БД (подписчиков в базе: ${seenIds.length})`);
         }
     }
 
     function startPolling() {
         // YouTube: таймер раз в 30 сек (реальный интервал опроса — pollIntervalSec; реже тикаем, чтобы не нагружать цикл)
         setInterval(() => withApiQueue('youtube', () => updateYouTubeData()), 30000);
+        // Подписчики опрашиваются отдельно (не завязано на live-статус). Раз в 60с:
+        // subscriptions.list стоит 1 единицу квоты → ~1440/день при лимите 10000.
+        setInterval(() => withApiQueue('youtube-subscribers', () => updateYouTubeSubscribers()), 60000);
     }
 
     return { registerRoutes, hydrateFromDb, startPolling, getState: () => youtubeIntegration, refreshData: () => updateYouTubeData() };

@@ -86,6 +86,34 @@
             padding: 20px;
         }
 
+        .resize-handle {
+            position: absolute;
+            right: -6px;
+            bottom: -6px;
+            width: 12px;
+            height: 12px;
+            background: var(--neon-green);
+            border-radius: 3px;
+            cursor: nwse-resize;
+        }
+
+        .saved-widget-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        .saved-widget-item span { cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .saved-widget-item button {
+            background: none; border: none; cursor: pointer; opacity: 0.7; font-size: 13px; margin-left: 6px;
+        }
+        .saved-widget-item button:hover { opacity: 1; }
+
         .widget-preview.selected {
             border-color: var(--neon-green);
             border-style: solid;
@@ -220,17 +248,33 @@
                 <div class="element-item" draggable="true" data-type="timer">
                     ⏱️ Таймер
                 </div>
+                <div class="element-item" draggable="true" data-type="list">
+                    📋 Список / лидерборд
+                </div>
+                <div class="element-item" draggable="true" data-type="video">
+                    🎬 Видео-фон
+                </div>
+                <div class="element-item" draggable="true" data-type="chart">
+                    📈 График (история значений)
+                </div>
             </div>
 
             <p class="help-text" style="padding: 0 15px;">
                 Перетащите элементы на холст для создания виджета
             </p>
+
+            <div style="padding: 15px;">
+                <h3 style="font-size: 14px; color: #333; margin-bottom: 10px;">💾 Мои виджеты</h3>
+                <div id="saved-widgets-list" style="font-size: 13px; color: #999;">Загрузка…</div>
+            </div>
         </div>
 
         <!-- Центральная область: Холст -->
         <div>
             <div class="toolbar">
                 <h1>Конструктор виджетов</h1>
+                <button class="btn" style="width: auto; background:rgba(255,255,255,.08); color:#fff;" onclick="undoAction()" title="Отменить (Ctrl+Z)">↩️</button>
+                <button class="btn" style="width: auto; background:rgba(255,255,255,.08); color:#fff;" onclick="redoAction()" title="Повторить (Ctrl+Y)">↪️</button>
                 <button class="btn btn-success" style="width: auto;" onclick="saveWidget()">
                     💾 Сохранить
                 </button>
@@ -240,7 +284,7 @@
             </div>
             <div class="canvas" id="canvas">
                 <div class="canvas-inner" id="canvas-inner">
-                    <div style="text-align: center; padding: 100px; color: #999;">
+                    <div id="canvas-placeholder" style="text-align: center; padding: 100px; color: #999;">
                         <h2>Выберите шаблон или перетащите элементы</h2>
                         <p>Холст 1920x1080px</p>
                     </div>
@@ -290,6 +334,13 @@
 
             <hr style="margin: 20px 0;">
 
+            <h3 style="font-size: 14px;">🎬 OBS-профили</h3>
+            <p class="help-text" style="margin: 4px 0 10px;">Разные варианты оформления одного виджета для разных сцен OBS — ссылка вида /widget/custom/ID?profile=имя.</p>
+            <div id="obs-profiles-list" style="margin-bottom: 8px;"></div>
+            <button class="btn" style="background:rgba(255,255,255,.08); color:#fff;" onclick="addObsProfile()">➕ Новый профиль</button>
+
+            <hr style="margin: 20px 0;">
+
             <div id="element-properties">
                 <p style="color: #999; font-size: 13px; text-align: center;">
                     Выберите элемент для редактирования
@@ -310,18 +361,101 @@
 
     <script>
         let currentWidget = {
+            id: null,
             name: 'Новый виджет',
             type: 'custom',
-            config: {
-                width: 800,
-                height: 200,
-                backgroundColor: '#ffffff',
-                opacity: 1
-            },
+            config: { width: 800, height: 200 },
             elements: []
         };
 
         let selectedElement = null;
+        let dataSources = [];
+        let activeProfileId = null;
+
+        if (!currentWidget.obsProfiles) currentWidget.obsProfiles = [];
+
+        fetch('/api/widgets/data-sources').then(r => r.json()).then(res => {
+            dataSources = res.sources || [];
+        }).catch(() => {});
+
+        // --- OBS-профили: альтернативные наборы стилей элементов, выбираемые через ?profile= ---
+        function renderObsProfilesList() {
+            const container = document.getElementById('obs-profiles-list');
+            if (!container) return;
+            const profiles = currentWidget.obsProfiles || [];
+            let html = `<div class="saved-widget-item" style="${!activeProfileId ? 'border-color:var(--neon-green);' : ''}">
+                <span onclick="setActiveProfile(null)">⚪ Базовое оформление</span>
+            </div>`;
+            profiles.forEach(p => {
+                html += `<div class="saved-widget-item" style="${activeProfileId === p.id ? 'border-color:var(--neon-green);' : ''}">
+                    <span onclick="setActiveProfile('${p.id}')" title="?profile=${p.id}">${p.name}</span>
+                    <button title="Удалить профиль" onclick="deleteObsProfile('${p.id}')">🗑️</button>
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function setActiveProfile(id) {
+            activeProfileId = id;
+            renderObsProfilesList();
+            if (selectedElement) showElementProperties(selectedElement);
+        }
+
+        function addObsProfile() {
+            const name = prompt('Название профиля (например, "Вертикальная сцена"):');
+            if (!name) return;
+            let id = name.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '-').replace(/^-+|-+$/g, '');
+            if (!id || (currentWidget.obsProfiles || []).some(p => p.id === id)) id = 'profile-' + Date.now();
+            if (!currentWidget.obsProfiles) currentWidget.obsProfiles = [];
+            currentWidget.obsProfiles.push({ id, name });
+            renderObsProfilesList();
+        }
+
+        function deleteObsProfile(id) {
+            if (!confirm('Удалить профиль оформления? Все настроенные для него стили пропадут.')) return;
+            currentWidget.obsProfiles = (currentWidget.obsProfiles || []).filter(p => p.id !== id);
+            currentWidget.elements.forEach(el => { if (el.profileOverrides) delete el.profileOverrides[id]; });
+            if (activeProfileId === id) activeProfileId = null;
+            renderObsProfilesList();
+            if (selectedElement) showElementProperties(selectedElement);
+        }
+
+        // --- Undo/redo: снимки currentWidget.elements ---
+        let historyStack = [];
+        let historyIndex = -1;
+        let suppressHistory = false;
+
+        function pushHistory() {
+            if (suppressHistory) return;
+            historyStack = historyStack.slice(0, historyIndex + 1);
+            historyStack.push(JSON.stringify(currentWidget.elements));
+            if (historyStack.length > 50) historyStack.shift();
+            historyIndex = historyStack.length - 1;
+        }
+
+        function applyHistory(index) {
+            if (index < 0 || index >= historyStack.length) return;
+            suppressHistory = true;
+            currentWidget.elements = JSON.parse(historyStack[index]);
+            historyIndex = index;
+            selectedElement = null;
+            renderCanvas();
+            document.getElementById('element-properties').innerHTML = '<p style="color: #999;">Выберите элемент</p>';
+            suppressHistory = false;
+        }
+
+        function undoAction() { applyHistory(historyIndex - 1); }
+        function redoAction() { applyHistory(historyIndex + 1); }
+
+        document.addEventListener('keydown', (e) => {
+            if (!(e.ctrlKey || e.metaKey)) return;
+            if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); e.shiftKey ? redoAction() : undoAction(); }
+            else if (e.key === 'y' || e.key === 'Y') { e.preventDefault(); redoAction(); }
+        });
+
+        function findSource(moduleId) {
+            return dataSources.find(s => s.moduleId === moduleId);
+        }
 
         // Drag and drop для элементов
         document.querySelectorAll('.element-item').forEach(item => {
@@ -337,55 +471,113 @@
 
         canvas.addEventListener('drop', (e) => {
             e.preventDefault();
-            const elementType = e.dataTransfer.getData('elementType');
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            
-            addElement(elementType, x, y);
+
+            const elementId = e.dataTransfer.getData('elementId');
+            if (elementId) {
+                // Перетаскивание уже существующего элемента — сдвигаем его, а не создаём новый
+                const el = currentWidget.elements.find(el => String(el.id) === elementId);
+                if (el) {
+                    el.position.x = Math.max(0, Math.round(x - dragOffset.x));
+                    el.position.y = Math.max(0, Math.round(y - dragOffset.y));
+                    renderCanvas();
+                    pushHistory();
+                    if (selectedElement && String(selectedElement.id) === elementId) showElementProperties(selectedElement);
+                }
+                return;
+            }
+
+            const elementType = e.dataTransfer.getData('elementType');
+            if (elementType) addElement(elementType, x, y);
         });
 
+        let elementIdCounter = 0;
         function addElement(type, x, y) {
+            const defaultSizes = {
+                list: { width: 260, height: 160 },
+                video: { width: 320, height: 180 },
+                chart: { width: 260, height: 100 }
+            };
             const element = {
-                id: Date.now(),
+                id: Date.now() + '-' + (elementIdCounter++),
                 type,
-                position_x: x,
-                position_y: y,
-                width: 200,
-                height: 50,
-                styles: {},
-                data: {}
+                position: { x: Math.round(x), y: Math.round(y) },
+                size: defaultSizes[type] || { width: 200, height: 50 },
+                binding: null,
+                staticValue: type === 'text' ? 'Текст' : '',
+                listConfig: type === 'list' ? { maxItems: 5, itemFields: [] } : null,
+                chartConfig: type === 'chart' ? { maxPoints: 30 } : null,
+                visibility: null,
+                style: { preset: 'classic', custom: {} }
             };
 
             currentWidget.elements.push(element);
             renderCanvas();
+            pushHistory();
         }
 
         function renderCanvas() {
             const inner = document.getElementById('canvas-inner');
-            
-            // Очищаем
+            const placeholder = document.getElementById('canvas-placeholder');
+            if (placeholder) placeholder.style.display = currentWidget.elements.length ? 'none' : '';
+
             inner.querySelectorAll('.widget-preview').forEach(el => el.remove());
-            
-            // Рендерим элементы
+
             currentWidget.elements.forEach(element => {
                 const div = document.createElement('div');
                 div.className = 'widget-preview';
-                div.style.left = element.position_x + 'px';
-                div.style.top = element.position_y + 'px';
-                div.style.width = element.width + 'px';
-                div.style.height = element.height + 'px';
-                div.textContent = `${getElementIcon(element.type)} ${element.type}`;
-                div.onclick = () => selectElement(element);
-                
-                // Drag для перемещения
+                div.style.left = element.position.x + 'px';
+                div.style.top = element.position.y + 'px';
+                div.style.width = element.size.width + 'px';
+                div.style.height = element.size.height + 'px';
+                const bindingLabel = element.binding
+                    ? `${element.binding.moduleId} → ${element.binding.field}`
+                    : (element.staticValue || '');
+                div.textContent = `${getElementIcon(element.type)} ${bindingLabel}`;
+                div.onclick = (evt) => selectElement(element, evt);
+
                 div.draggable = true;
                 div.ondragstart = (e) => {
                     e.dataTransfer.setData('elementId', element.id);
+                    const rect = div.getBoundingClientRect();
+                    dragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
                 };
-                
+
+                // Изменение размера — маленький уголок в правом нижнем углу
+                const handle = document.createElement('div');
+                handle.className = 'resize-handle';
+                handle.onmousedown = (e) => startResize(e, element);
+                div.appendChild(handle);
+
                 inner.appendChild(div);
             });
+        }
+
+        let dragOffset = { x: 0, y: 0 };
+
+        function startResize(e, element) {
+            e.preventDefault();
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startWidth = element.size.width;
+            const startHeight = element.size.height;
+
+            function onMove(e) {
+                element.size.width = Math.max(20, Math.round(startWidth + (e.clientX - startX)));
+                element.size.height = Math.max(20, Math.round(startHeight + (e.clientY - startY)));
+                renderCanvas();
+                if (selectedElement && selectedElement.id === element.id) showElementProperties(selectedElement);
+            }
+            function onUp() {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                pushHistory();
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
         }
 
         function getElementIcon(type) {
@@ -393,26 +585,60 @@
                 text: '📝',
                 progress_bar: '📊',
                 image: '🖼️',
-                timer: '⏱️'
+                timer: '⏱️',
+                list: '📋',
+                video: '🎬',
+                chart: '📈'
             };
             return icons[type] || '📦';
         }
 
-        function selectElement(element) {
+        function selectElement(element, evt) {
             selectedElement = element;
-            
-            // Подсветка
+
             document.querySelectorAll('.widget-preview').forEach(el => {
                 el.classList.remove('selected');
             });
-            event.target.classList.add('selected');
-            
-            // Показываем свойства
+            const target = evt && evt.target && evt.target.closest('.widget-preview');
+            if (target) target.classList.add('selected');
+
             showElementProperties(element);
+        }
+
+        function sourceOptionsHtml(selectedModuleId) {
+            let html = '<option value="">— статичное значение —</option>';
+            dataSources.forEach(s => {
+                html += `<option value="${s.moduleId}" ${s.moduleId === selectedModuleId ? 'selected' : ''}>${s.label}</option>`;
+            });
+            return html;
+        }
+
+        function fieldOptionsHtml(moduleId, selectedField, wantArray) {
+            const source = findSource(moduleId);
+            if (!source) return '<option value="">—</option>';
+            const fields = source.fields.filter(f => wantArray ? f.type === 'array' : f.type !== 'array');
+            if (!fields.length) return '<option value="">— нет подходящих полей —</option>';
+            return fields.map(f =>
+                `<option value="${f.key}" ${f.key === selectedField ? 'selected' : ''}>${f.label}</option>`
+            ).join('');
+        }
+
+        // Для элемента "список": фильтруем источники, у которых вообще есть array-поля
+        function sourceOptionsHtmlForList(selectedModuleId) {
+            let html = '<option value="">— выберите источник —</option>';
+            dataSources.filter(s => s.fields.some(f => f.type === 'array')).forEach(s => {
+                html += `<option value="${s.moduleId}" ${s.moduleId === selectedModuleId ? 'selected' : ''}>${s.label}</option>`;
+            });
+            return html;
         }
 
         function showElementProperties(element) {
             const panel = document.getElementById('element-properties');
+            const boundModule = element.binding ? element.binding.moduleId : '';
+            const boundField = element.binding ? element.binding.field : '';
+            const style = getElementStyle(element);
+            const custom = style.custom || {};
+
             panel.innerHTML = `
                 <h4 style="margin-bottom: 10px;">Свойства элемента</h4>
                 <div class="form-group">
@@ -421,28 +647,246 @@
                 </div>
                 <div class="form-group">
                     <label>X позиция</label>
-                    <input type="number" value="${element.position_x}" onchange="updateElement('position_x', this.value)">
+                    <input type="number" value="${element.position.x}" onchange="updateElement('position.x', this.value)">
                 </div>
                 <div class="form-group">
                     <label>Y позиция</label>
-                    <input type="number" value="${element.position_y}" onchange="updateElement('position_y', this.value)">
+                    <input type="number" value="${element.position.y}" onchange="updateElement('position.y', this.value)">
                 </div>
                 <div class="form-group">
                     <label>Ширина</label>
-                    <input type="number" value="${element.width}" onchange="updateElement('width', this.value)">
+                    <input type="number" value="${element.size.width}" onchange="updateElement('size.width', this.value)">
                 </div>
                 <div class="form-group">
                     <label>Высота</label>
-                    <input type="number" value="${element.height}" onchange="updateElement('height', this.value)">
+                    <input type="number" value="${element.size.height}" onchange="updateElement('size.height', this.value)">
                 </div>
+
+                <hr style="margin: 15px 0;">
+                ${element.type === 'list' ? `
+                <h4 style="margin-bottom: 10px;">Источник списка</h4>
+                <div class="form-group">
+                    <label>Функционал</label>
+                    <select onchange="updateBindingModule(this.value, true)">${sourceOptionsHtmlForList(boundModule)}</select>
+                </div>
+                ${boundModule ? `
+                <div class="form-group">
+                    <label>Массив</label>
+                    <select onchange="updateBindingField(this.value)">${fieldOptionsHtml(boundModule, boundField, true)}</select>
+                </div>
+                <div class="form-group">
+                    <label>Максимум строк</label>
+                    <input type="number" value="${(element.listConfig && element.listConfig.maxItems) || 5}" onchange="updateListConfig('maxItems', parseInt(this.value,10))">
+                </div>
+                ${(() => {
+                    const src = findSource(boundModule);
+                    const arrField = src && src.fields.find(f => f.key === boundField);
+                    const itemFields = (arrField && arrField.itemFields) || [];
+                    const current = (element.listConfig && element.listConfig.itemFields) || [];
+                    if (!itemFields.length) return '';
+                    return `
+                <div class="form-group">
+                    <label>Колонка 1 (название)</label>
+                    <select onchange="updateListItemField(0, this.value)">
+                        ${itemFields.map(f => `<option value="${f.key}" ${current[0] === f.key ? 'selected' : ''}>${f.label}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Колонка 2 (значение)</label>
+                    <select onchange="updateListItemField(1, this.value)">
+                        <option value="">— нет —</option>
+                        ${itemFields.map(f => `<option value="${f.key}" ${current[1] === f.key ? 'selected' : ''}>${f.label}</option>`).join('')}
+                    </select>
+                </div>`;
+                })()}
+                ` : ''}
+                ` : element.type === 'video' ? `
+                <h4 style="margin-bottom: 10px;">Видео</h4>
+                <div class="form-group">
+                    <label>URL видео (mp4, зациклено и без звука)</label>
+                    <input type="text" value="${element.staticValue || ''}" onchange="updateElement('staticValue', this.value)">
+                </div>
+                ` : element.type === 'chart' ? `
+                <h4 style="margin-bottom: 10px;">График значения</h4>
+                <p class="help-text" style="margin: 0 0 10px;">Виджет сам копит историю значений во время показа — выберите числовое поле.</p>
+                <div class="form-group">
+                    <label>Функционал</label>
+                    <select onchange="updateBindingModule(this.value)">${sourceOptionsHtml(boundModule)}</select>
+                </div>
+                ${boundModule ? `
+                <div class="form-group">
+                    <label>Числовое поле</label>
+                    <select onchange="updateBindingField(this.value)">${fieldOptionsHtml(boundModule, boundField, false)}</select>
+                </div>
+                <div class="form-group">
+                    <label>Точек истории</label>
+                    <input type="number" value="${(element.chartConfig && element.chartConfig.maxPoints) || 30}" onchange="updateChartConfig('maxPoints', parseInt(this.value,10))">
+                </div>` : ''}
+                ` : `
+                <h4 style="margin-bottom: 10px;">Источник данных</h4>
+                <div class="form-group">
+                    <label>Функционал</label>
+                    <select onchange="updateBindingModule(this.value)">${sourceOptionsHtml(boundModule)}</select>
+                </div>
+                ${boundModule ? `
+                <div class="form-group">
+                    <label>Поле</label>
+                    <select onchange="updateBindingField(this.value)">${fieldOptionsHtml(boundModule, boundField, false)}</select>
+                </div>` : `
+                <div class="form-group">
+                    <label>Значение / URL картинки</label>
+                    <input type="text" value="${element.staticValue || ''}" onchange="updateElement('staticValue', this.value)">
+                </div>`}
+                `}
+
+                <hr style="margin: 15px 0;">
+                <h4 style="margin-bottom: 10px;">Внешний вид${activeProfileId ? ' — профиль «' + ((currentWidget.obsProfiles || []).find(p => p.id === activeProfileId) || {}).name + '»' : ' (базовое)'}</h4>
+                <div class="form-group">
+                    <label>Пресет</label>
+                    <select onchange="updateStylePreset(this.value)">
+                        ${['classic','minimal','neon','gradient','dark','colorful','custom'].map(p =>
+                            `<option value="${p}" ${style.preset === p ? 'selected' : ''}>${p}</option>`).join('')}
+                    </select>
+                </div>
+                ${style.preset === 'custom' ? `
+                <div class="form-group">
+                    <label>Цвет текста</label>
+                    <input type="color" value="${custom.color || '#ffffff'}" onchange="updateStyleCustom('color', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Фон (цвет/градиент CSS)</label>
+                    <input type="text" value="${custom.background || ''}" onchange="updateStyleCustom('background', this.value)">
+                </div>
+                <div class="form-group">
+                    <label>Размер шрифта (px)</label>
+                    <input type="number" value="${custom.fontSize || 16}" onchange="updateStyleCustom('fontSize', parseFloat(this.value))">
+                </div>
+                <div class="form-group">
+                    <label>Скругление углов (px)</label>
+                    <input type="number" value="${custom.borderRadius != null ? custom.borderRadius : 8}" onchange="updateStyleCustom('borderRadius', parseFloat(this.value))">
+                </div>
+                <div class="form-group">
+                    <label>Свечение</label>
+                    <select onchange="updateStyleCustom('glow', this.value)">
+                        ${['none','soft','medium','strong'].map(g =>
+                            `<option value="${g}" ${custom.glow === g ? 'selected' : ''}>${g}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Анимация</label>
+                    <select onchange="updateStyleCustom('animation', this.value)">
+                        <option value="" ${!custom.animation ? 'selected' : ''}>нет</option>
+                        <option value="pulse" ${custom.animation === 'pulse' ? 'selected' : ''}>пульсация</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Свой CSS (доп. правила)</label>
+                    <input type="text" placeholder="напр. letter-spacing:2px" value="${custom.customCss || ''}" onchange="updateStyleCustom('customCss', this.value)">
+                </div>` : ''}
+
+                <hr style="margin: 15px 0;">
+                <h4 style="margin-bottom: 10px;">Условная видимость</h4>
+                <div class="form-group">
+                    <label>Показывать, только если поле (текущий источник) равно</label>
+                    <input type="text" placeholder="напр. active / true" value="${element.visibility ? element.visibility.equals : ''}"
+                        onchange="updateVisibility(this.value)" ${!element.binding ? 'disabled' : ''}>
+                </div>
+
                 <button class="btn btn-danger" onclick="deleteElement()">🗑️ Удалить</button>
             `;
+            panel.onchange = () => pushHistory();
         }
 
-        function updateElement(property, value) {
-            if (selectedElement) {
-                selectedElement[property] = parseFloat(value) || value;
-                renderCanvas();
+        function updateElement(path, value) {
+            if (!selectedElement) return;
+            const parts = path.split('.');
+            let target = selectedElement;
+            for (let i = 0; i < parts.length - 1; i++) target = target[parts[i]];
+            const num = parseFloat(value);
+            target[parts[parts.length - 1]] = (path.startsWith('position') || path.startsWith('size')) && !isNaN(num) ? num : value;
+            renderCanvas();
+        }
+
+        function updateBindingModule(moduleId, isList) {
+            if (!selectedElement) return;
+            if (!moduleId) {
+                selectedElement.binding = null;
+            } else if (isList) {
+                const source = findSource(moduleId);
+                const arrField = source && source.fields.find(f => f.type === 'array');
+                selectedElement.binding = { moduleId, field: arrField ? arrField.key : '' };
+                if (!selectedElement.listConfig) selectedElement.listConfig = { maxItems: 5, itemFields: [] };
+            } else {
+                const source = findSource(moduleId);
+                const scalarField = source && source.fields.find(f => f.type !== 'array');
+                selectedElement.binding = { moduleId, field: scalarField ? scalarField.key : '' };
+            }
+            showElementProperties(selectedElement);
+            renderCanvas();
+        }
+
+        function updateBindingField(field) {
+            if (!selectedElement || !selectedElement.binding) return;
+            selectedElement.binding.field = field;
+            showElementProperties(selectedElement);
+            renderCanvas();
+        }
+
+        function updateListConfig(key, value) {
+            if (!selectedElement) return;
+            if (!selectedElement.listConfig) selectedElement.listConfig = { maxItems: 5, itemFields: [] };
+            selectedElement.listConfig[key] = value;
+        }
+
+        function updateListItemField(index, value) {
+            if (!selectedElement) return;
+            if (!selectedElement.listConfig) selectedElement.listConfig = { maxItems: 5, itemFields: [] };
+            if (!selectedElement.listConfig.itemFields) selectedElement.listConfig.itemFields = [];
+            selectedElement.listConfig.itemFields[index] = value || undefined;
+        }
+
+        function updateChartConfig(key, value) {
+            if (!selectedElement) return;
+            if (!selectedElement.chartConfig) selectedElement.chartConfig = { maxPoints: 30 };
+            selectedElement.chartConfig[key] = value;
+        }
+
+        // Возвращает объект стиля, который сейчас редактируется: базовый или,
+        // если выбран OBS-профиль, персональный оверрайд для этого профиля
+        // (лениво клонируется из базового при первом обращении).
+        function getElementStyle(element) {
+            if (!activeProfileId) return element.style;
+            if (!element.profileOverrides) element.profileOverrides = {};
+            if (!element.profileOverrides[activeProfileId]) {
+                element.profileOverrides[activeProfileId] = JSON.parse(JSON.stringify(element.style));
+            }
+            return element.profileOverrides[activeProfileId];
+        }
+
+        function updateStylePreset(preset) {
+            if (!selectedElement) return;
+            const style = getElementStyle(selectedElement);
+            style.preset = preset;
+            if (preset === 'custom' && !style.custom) style.custom = {};
+            showElementProperties(selectedElement);
+        }
+
+        function updateStyleCustom(key, value) {
+            if (!selectedElement) return;
+            const style = getElementStyle(selectedElement);
+            if (!style.custom) style.custom = {};
+            style.custom[key] = value;
+        }
+
+        function updateVisibility(equalsValue) {
+            if (!selectedElement || !selectedElement.binding) return;
+            if (equalsValue === '') {
+                selectedElement.visibility = null;
+            } else {
+                let parsed = equalsValue;
+                if (equalsValue === 'true') parsed = true;
+                else if (equalsValue === 'false') parsed = false;
+                selectedElement.visibility = { field: selectedElement.binding.field, equals: parsed };
             }
         }
 
@@ -452,55 +896,54 @@
                 selectedElement = null;
                 renderCanvas();
                 document.getElementById('element-properties').innerHTML = '<p style="color: #999;">Выберите элемент</p>';
+                pushHistory();
             }
         }
 
         function createFromTemplate(type) {
             currentWidget.type = type;
             document.getElementById('widget-type').value = type;
-            
-            // Очищаем элементы
             currentWidget.elements = [];
-            
-            // Добавляем базовые элементы в зависимости от типа
-            if (type === 'mode1') {
+
+            if (type === 'mode1' || type === 'mode3' || type === 'donation_goal') {
+                // Кастомная цель и Цель сбора используют ту же базовую раскладку
+                // текст+прогресс-бар, что и трекер фрагов — источник данных
+                // выбирается вручную в панели свойств справа.
                 addElement('text', 50, 50);
                 addElement('progress_bar', 50, 120);
             } else if (type === 'mode2') {
                 addElement('timer', 300, 80);
             }
-            
+            // type === 'custom' — пустой холст, элементы добавляются вручную
+
             renderCanvas();
+            pushHistory();
         }
 
         async function saveWidget() {
             const name = document.getElementById('widget-name').value;
-            const type = document.getElementById('widget-type').value;
             const width = document.getElementById('widget-width').value;
             const height = document.getElementById('widget-height').value;
-            
-            const config = {
-                width: parseInt(width),
-                height: parseInt(height),
-                backgroundColor: document.getElementById('widget-bg').value,
-                opacity: parseFloat(document.getElementById('widget-opacity').value)
-            };
+
+            const config = { width: parseInt(width), height: parseInt(height) };
 
             try {
-                const response = await fetch('/api/widgets', {
-                    method: 'POST',
+                const method = currentWidget.id ? 'PUT' : 'POST';
+                const url = currentWidget.id ? `/api/widgets/${currentWidget.id}` : '/api/widgets';
+                const response = await fetch(url, {
+                    method,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name,
-                        type,
-                        config
-                    })
+                    body: JSON.stringify({ name, config, elements: currentWidget.elements, obsProfiles: currentWidget.obsProfiles || [] })
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
-                    alert('Виджет сохранен! ID: ' + result.data.id);
+                    currentWidget.id = result.data.id;
+                    alert('Виджет сохранён! ID: ' + result.data.id + '\nСсылка для OBS: ' + location.origin + '/widget/custom/' + result.data.id);
+                    loadSavedWidgetsList();
+                } else {
+                    alert('Ошибка сохранения: ' + (result.error || ''));
                 }
             } catch (error) {
                 console.error('Error saving widget:', error);
@@ -508,12 +951,95 @@
             }
         }
 
+        async function loadSavedWidgetsList() {
+            const container = document.getElementById('saved-widgets-list');
+            try {
+                const res = await fetch('/api/widgets');
+                const result = await res.json();
+                const items = (result.data || []);
+                if (!items.length) {
+                    container.innerHTML = '<p style="color:#999;">Пока нет сохранённых виджетов</p>';
+                    return;
+                }
+                container.innerHTML = items.map(w => `
+                    <div class="saved-widget-item">
+                        <span onclick="loadWidget(${w.id})" title="${w.name}">${w.name}</span>
+                        <button title="Открыть" onclick="window.open('/widget/custom/${w.id}','_blank')">👁️</button>
+                        <button title="Удалить" onclick="deleteWidget(${w.id})">🗑️</button>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<p style="color:#999;">Ошибка загрузки списка</p>';
+            }
+        }
+
+        async function loadWidget(id) {
+            try {
+                const res = await fetch('/api/widgets/' + id);
+                const result = await res.json();
+                if (!result.success) { alert('Виджет не найден'); return; }
+                const data = result.data;
+                currentWidget = {
+                    id: data.id,
+                    name: data.name,
+                    type: 'custom',
+                    config: { width: data.canvasWidth, height: data.canvasHeight },
+                    elements: data.elements,
+                    obsProfiles: data.obsProfiles || []
+                };
+                document.getElementById('widget-name').value = data.name;
+                document.getElementById('widget-width').value = data.canvasWidth;
+                document.getElementById('widget-height').value = data.canvasHeight;
+                selectedElement = null;
+                activeProfileId = null;
+                document.getElementById('element-properties').innerHTML = '<p style="color: #999;">Выберите элемент</p>';
+                renderCanvas();
+                renderObsProfilesList();
+                historyStack = [JSON.stringify(currentWidget.elements)];
+                historyIndex = 0;
+            } catch (e) {
+                alert('Ошибка загрузки виджета');
+            }
+        }
+
+        async function deleteWidget(id) {
+            if (!confirm('Удалить виджет? Ссылка в OBS перестанет работать.')) return;
+            try {
+                await fetch('/api/widgets/' + id, { method: 'DELETE' });
+                if (currentWidget.id === id) {
+                    currentWidget = { id: null, name: 'Новый виджет', type: 'custom', config: { width: 800, height: 200 }, elements: [], obsProfiles: [] };
+                    document.getElementById('widget-name').value = currentWidget.name;
+                    activeProfileId = null;
+                    renderCanvas();
+                    renderObsProfilesList();
+                    historyStack = [JSON.stringify(currentWidget.elements)];
+                    historyIndex = 0;
+                }
+                loadSavedWidgetsList();
+            } catch (e) {
+                alert('Ошибка удаления виджета');
+            }
+        }
+
+        loadSavedWidgetsList();
+        renderObsProfilesList();
+        pushHistory();
+
         function generateCode() {
-            alert('Функция генерации кода в разработке. Используйте API /api/widgets/{id}/code');
+            if (!currentWidget.id) {
+                alert('Сначала сохраните виджет — тогда появится постоянная ссылка.');
+                return;
+            }
+            const url = location.origin + '/widget/custom/' + currentWidget.id;
+            prompt('Ссылка виджета для OBS Browser Source:', url);
         }
 
         function previewWidget() {
-            const url = `/widget/custom?width=${currentWidget.config.width}&height=${currentWidget.config.height}`;
+            if (!currentWidget.id) {
+                alert('Сначала сохраните виджет, чтобы открыть предпросмотр.');
+                return;
+            }
+            const url = `/widget/custom/${currentWidget.id}`;
             window.open(url, 'Widget Preview', `width=${currentWidget.config.width},height=${currentWidget.config.height}`);
         }
     </script>

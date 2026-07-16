@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STREAM HUB | ПОДПИСЧИКИ</title>
+    <link rel="stylesheet" href="/styles/design-system.css">
+    <link rel="stylesheet" href="/styles/layout.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        :root {
+            --neon-red: #ff003c;
+            --neon-blue: #00f0ff;
+            --neon-purple: #b300ff;
+            --neon-green: #00ff47;
+            --dark: #0a0a14;
+            --darker: #050508;
+            --light: #f5f5f5;
+            --tw: #b300ff;   /* Twitch */
+            --yt: #ff003c;   /* YouTube */
+            --vk: #00f0ff;   /* VK Play */
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-top: 70px;
+            padding-left: 280px;
+            transition: padding-left 0.3s;
+        }
+        body.sidebar-collapsed { padding-left: 80px; }
+        @media (max-width: 768px) { body { padding-left: 0; } }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        .header { text-align: center; margin-bottom: 24px; }
+        .title {
+            font-family: 'Orbitron', monospace; font-size: 2.6rem; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 2px;
+            background: linear-gradient(45deg, var(--neon-purple), var(--neon-blue));
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+        }
+        .subtitle { font-size: 0.95rem; color: var(--neon-blue); text-transform: uppercase; letter-spacing: 1px; }
+
+        .toolbar { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+        .btn {
+            background: rgba(0, 240, 255, 0.15); color: var(--neon-blue);
+            border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 10px;
+            padding: 10px 20px; font-weight: 700; cursor: pointer; transition: all 0.25s;
+            text-transform: uppercase; letter-spacing: 1px; font-size: 0.85rem;
+        }
+        .btn:hover { background: rgba(0, 240, 255, 0.3); box-shadow: 0 0 15px rgba(0, 240, 255, 0.3); }
+        .btn.danger { background: rgba(255, 0, 60, 0.12); color: var(--neon-red); border-color: rgba(255, 0, 60, 0.4); }
+        .btn.danger:hover { background: rgba(255, 0, 60, 0.25); box-shadow: 0 0 15px rgba(255, 0, 60, 0.3); }
+
+        /* Карточки «сегодня» */
+        .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 30px; }
+        @media (max-width: 900px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+        .card {
+            background: rgba(10, 10, 25, 0.85); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 20px; text-align: center; position: relative; overflow: hidden;
+        }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent, var(--neon-blue)); }
+        .card.tw { --accent: var(--tw); }
+        .card.yt { --accent: var(--yt); }
+        .card.vk { --accent: var(--vk); }
+        .card.vkp { --accent: var(--neon-green); }
+        .card.total { --accent: linear-gradient(90deg, var(--tw), var(--yt), var(--vk)); }
+        .card-value { font-family: 'Orbitron', monospace; font-size: 2.4rem; font-weight: 800; color: var(--accent, #fff); }
+        .card.total .card-value { color: #fff; }
+        .card-label { font-size: 0.8rem; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 1px; margin-top: 6px; }
+
+        .section-title { font-family: 'Orbitron', monospace; font-size: 1.2rem; margin: 10px 0 16px; color: var(--neon-blue); text-transform: uppercase; letter-spacing: 1px; }
+
+        .panel { background: rgba(10, 10, 25, 0.7); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 20px; margin-bottom: 30px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 12px; text-align: center; font-size: 0.9rem; }
+        th { color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        td { border-bottom: 1px solid rgba(255,255,255,0.05); }
+        tr:hover td { background: rgba(255,255,255,0.03); }
+        td.date, th.date { text-align: left; font-weight: 600; }
+        .c-tw { color: var(--tw); } .c-yt { color: var(--yt); } .c-vk { color: var(--vk); } .c-vkp { color: var(--neon-green); }
+        .c-total { font-weight: 700; }
+
+        /* Лог */
+        .log-list { max-height: 460px; overflow-y: auto; }
+        .log-row { display: flex; align-items: center; gap: 12px; padding: 9px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.9rem; }
+        .log-badge { min-width: 92px; text-align: center; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .log-badge.tw { background: rgba(179,0,255,0.18); color: var(--tw); }
+        .log-badge.yt { background: rgba(255,0,60,0.15); color: var(--yt); }
+        .log-badge.vk { background: rgba(0,240,255,0.15); color: var(--vk); }
+        .log-badge.vkp { background: rgba(0,255,71,0.15); color: var(--neon-green); }
+        .log-name { flex: 1; font-weight: 600; }
+        .log-plan { color: var(--neon-green); font-size: 0.8rem; }
+        .log-time { color: rgba(255,255,255,0.45); font-size: 0.8rem; white-space: nowrap; }
+        .empty { text-align: center; color: rgba(255,255,255,0.4); padding: 30px; }
+        .hint { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin-top: -18px; margin-bottom: 20px; text-align: center; }
+    </style>
+    <link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
+</head>
+<body class="theme-2026">
+    <script>if(localStorage.getItem('sidebarCollapsed')==='true'){document.body.classList.add('sidebar-collapsed');}</script>
+    <div id="sidebar-placeholder"></div>
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Подписчики</h1>
+            <p class="subtitle">Новые фолловеры и подписки по платформам</p>
+        </div>
+
+        <div class="toolbar">
+            <button class="btn" onclick="loadAll()">🔄 Обновить</button>
+            <button class="btn danger" onclick="resetLog()">🧹 Очистить лог</button>
+        </div>
+
+        <div class="section-title">📅 Сегодня</div>
+        <div class="cards">
+            <div class="card tw"><div class="card-value" id="t-tw">—</div><div class="card-label">Twitch</div></div>
+            <div class="card yt"><div class="card-value" id="t-yt">—</div><div class="card-label">YouTube</div></div>
+            <div class="card vk"><div class="card-value" id="t-vk">—</div><div class="card-label">VK Play</div></div>
+            <div class="card vkp"><div class="card-value" id="t-vkp">—</div><div class="card-label">VK Play платные</div></div>
+            <div class="card total"><div class="card-value" id="t-total">—</div><div class="card-label">Всего</div></div>
+        </div>
+
+        <div class="section-title">📊 По дням</div>
+        <div class="panel">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="date">Дата</th>
+                        <th>Twitch</th>
+                        <th>YouTube</th>
+                        <th>VK Play</th>
+                        <th>VK Play платные</th>
+                        <th>Всего</th>
+                    </tr>
+                </thead>
+                <tbody id="daysBody">
+                    <tr><td colspan="6" class="empty">Загрузка…</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section-title">📝 Лог событий</div>
+        <p class="hint">Последние новые фолловеры/подписки в реальном времени — проверить после стрима, что всё прилетает с именами.</p>
+        <div class="panel">
+            <div class="log-list" id="logList">
+                <div class="empty">Загрузка…</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PLATFORM_BADGE = {
+            twitch:  { cls: 'tw',  label: 'Twitch' },
+            youtube: { cls: 'yt',  label: 'YouTube' },
+            vkplay:  { cls: 'vk',  label: 'VK Play' }
+        };
+
+        function num(n) { return (n == null ? 0 : n).toLocaleString('ru-RU'); }
+
+        function loadStats() {
+            fetch('/api/subscribers/stats?days=14')
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+                    const t = data.today || {};
+                    document.getElementById('t-tw').textContent = num(t.twitch);
+                    document.getElementById('t-yt').textContent = num(t.youtube);
+                    document.getElementById('t-vk').textContent = num(t.vkplay);
+                    document.getElementById('t-vkp').textContent = num(t.vkplay_paid);
+                    document.getElementById('t-total').textContent = num(t.total);
+
+                    const body = document.getElementById('daysBody');
+                    if (!data.days || !data.days.length) {
+                        body.innerHTML = '<tr><td colspan="6" class="empty">Пока нет данных</td></tr>';
+                        return;
+                    }
+                    body.innerHTML = data.days.map(d => `
+                        <tr>
+                            <td class="date">${d.date}</td>
+                            <td class="c-tw">${num(d.twitch)}</td>
+                            <td class="c-yt">${num(d.youtube)}</td>
+                            <td class="c-vk">${num(d.vkplay)}</td>
+                            <td class="c-vkp">${num(d.vkplay_paid)}</td>
+                            <td class="c-total">${num(d.total)}</td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(e => console.error('Ошибка загрузки статистики:', e));
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+                { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+            ));
+        }
+
+        function loadLog() {
+            fetch('/api/subscribers/log?limit=200')
+                .then(r => r.json())
+                .then(data => {
+                    const list = document.getElementById('logList');
+                    const events = data.events || [];
+                    if (!events.length) {
+                        list.innerHTML = '<div class="empty">Событий пока нет</div>';
+                        return;
+                    }
+                    list.innerHTML = events.map(e => {
+                        const b = PLATFORM_BADGE[e.platform] || { cls: '', label: e.platform };
+                        const isPaid = e.event_type === 'paid_subscriber';
+                        const badgeCls = isPaid ? 'vkp' : b.cls;
+                        const badgeLabel = isPaid ? 'VK платн.' : b.label;
+                        const plan = e.plan ? `<span class="log-plan">💎 ${esc(e.plan)}</span>` : '';
+                        return `
+                            <div class="log-row">
+                                <span class="log-badge ${badgeCls}">${badgeLabel}</span>
+                                <span class="log-name">${esc(e.username || 'Аноним')}</span>
+                                ${plan}
+                                <span class="log-time">${esc(e.time_local || '')}</span>
+                            </div>
+                        `;
+                    }).join('');
+                })
+                .catch(e => console.error('Ошибка загрузки лога:', e));
+        }
+
+        function loadAll() { loadStats(); loadLog(); }
+
+        function resetLog() {
+            if (!confirm('Очистить лог событий подписчиков? (создастся бэкап-файл на сервере)')) return;
+            fetch('/api/subscribers/reset', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Лог очищен. Удалено записей: ' + data.deleted);
+                        loadAll();
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'неизвестно'));
+                    }
+                })
+                .catch(e => alert('Ошибка запроса: ' + e));
+        }
+
+        setInterval(loadAll, 20000); // автообновление раз в 20с
+        document.addEventListener('DOMContentLoaded', loadAll);
+    </script>
+    <script>
+        Promise.all([
+            fetch('/components/sidebar.html').then(r => r.text()),
+            fetch('/components/header.html').then(r => r.text())
+        ]).then(([sidebar, header]) => {
+            document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+            document.getElementById('header-placeholder').innerHTML = header;
+        });
+    </script>
+</body>
+</html>

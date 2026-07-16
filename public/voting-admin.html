@@ -3,14 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Голосования зрителей — управление</title>
+<title>STREAM HUB | ГОЛОСОВАНИЯ</title>
+<link rel="stylesheet" href="/styles/design-system.css">
+<link rel="stylesheet" href="/styles/layout.css">
+<link rel="stylesheet" href="/styles/theme-2026.css?v=20260630a">
 <style>
 :root{--bg:#0b0d16;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.1);
     --blue:#4be0ff;--red:#ff2a45;--gold:#ffce46;--green:#36f5a0;--text:#fff;--muted:rgba(255,255,255,.6);}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:radial-gradient(1200px 800px at 10% -10%,#161b2e,#0b0d16 60%);color:var(--text);
-    font-family:'Segoe UI',Roboto,sans-serif;min-height:100vh;padding:28px;}
-.wrap{max-width:960px;margin:0 auto;}
+    font-family:'Segoe UI',Roboto,sans-serif;min-height:100vh;
+    padding-top:70px;padding-left:280px;transition:padding-left .3s;}
+body.sidebar-collapsed{padding-left:80px;}
+@media (max-width:768px){body{padding-left:0;}}
+.wrap{max-width:960px;margin:0 auto;padding:24px 16px 48px;}
 a.back{color:var(--muted);text-decoration:none;font-size:.85rem;}
 a.back:hover{color:#fff;}
 h1{font-size:1.5rem;margin:10px 0 4px;}
@@ -94,9 +100,11 @@ button.small{padding:6px 10px;font-size:.75rem;}
 .confirm-actions{display:flex;gap:10px;justify-content:flex-end;}
 </style>
 </head>
-<body>
+<body class="theme-2026">
+<script>if(localStorage.getItem('sidebarCollapsed')==='true'){document.body.classList.add('sidebar-collapsed');}</script>
+<div id="sidebar-placeholder"></div>
+<div id="header-placeholder"></div>
 <div class="wrap">
-    <a class="back" href="/">← На главную</a>
     <h1>🗳️ Голосования зрителей</h1>
     <div class="sub">Ключевые слова в чате считаются за голос. Один зритель — один голос за опрос (по ID аккаунта на платформе).</div>
 
@@ -371,6 +379,15 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPolls();
     connectWS();
 });
+</script>
+<script>
+    Promise.all([
+        fetch('/components/sidebar.html').then(r => r.text()),
+        fetch('/components/header.html').then(r => r.text())
+    ]).then(([sidebar, header]) => {
+        document.getElementById('sidebar-placeholder').innerHTML = sidebar;
+        document.getElementById('header-placeholder').innerHTML = header;
+    });
 </script>
 </body>
 </html>

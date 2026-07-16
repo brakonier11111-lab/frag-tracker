@@ -91,7 +91,7 @@ function createLestaSyncModule(deps) {
                         account_id: LESTA_CONFIG.accountId,
                         access_token: LESTA_CONFIG.accessToken, // Опциональный параметр для приватных данных
                         extra: 'statistics.rating', // Запрашиваем рейтинговую статистику (клановые/турнирные доступны по умолчанию)
-                        fields: 'statistics.all.battles,statistics.all.frags,statistics.all.wins,statistics.all.losses,statistics.all.damage_dealt,statistics.all.damage_received,statistics.all.xp,statistics.all.max_frags,statistics.all.frags8p,statistics.all.hits,statistics.all.shots,statistics.all.spotted,statistics.all.capture_points,statistics.all.dropped_capture_points,statistics.all.survived_battles,statistics.all.win_and_survived,statistics.all.max_xp,statistics.rating.battles,statistics.rating.wins,statistics.rating.losses,statistics.rating.frags,statistics.rating.damage_dealt,statistics.rating.xp,statistics.clan.battles,statistics.clan.wins,statistics.clan.losses,statistics.clan.frags,statistics.clan.damage_dealt,statistics.clan.damage_received,statistics.clan.xp,nickname'
+                        fields: 'statistics.all.battles,statistics.all.frags,statistics.all.wins,statistics.all.losses,statistics.all.damage_dealt,statistics.all.damage_received,statistics.all.xp,statistics.all.max_frags,statistics.all.frags8p,statistics.all.hits,statistics.all.shots,statistics.all.spotted,statistics.all.capture_points,statistics.all.dropped_capture_points,statistics.all.survived_battles,statistics.all.win_and_survived,statistics.all.max_xp,statistics.rating.battles,statistics.rating.wins,statistics.rating.losses,statistics.rating.frags,statistics.rating.damage_dealt,statistics.rating.xp,statistics.clan.battles,statistics.clan.wins,statistics.clan.losses,statistics.clan.frags,statistics.clan.damage_dealt,statistics.clan.damage_received,statistics.clan.xp,nickname,private.gold,private.credits,private.free_xp'
                     },
                     timeout: 8000
                 });
@@ -103,6 +103,7 @@ function createLestaSyncModule(deps) {
                         const stats = playerData.statistics.all;
                         const ratingStats = playerData.statistics.rating || {};
                         const clanStats = playerData.statistics.clan || {};
+                        const privateData = playerData.private || null; // доступно только с access_token владельца аккаунта
 
                         if (process.env.DEBUG_LESTA === '1') {
                             console.log('📊 Детальная статистика по типам боёв:', {
@@ -144,6 +145,9 @@ function createLestaSyncModule(deps) {
                             survived_battles: stats.survived_battles || 0,
                             win_and_survived: stats.win_and_survived || 0,
                             max_xp: stats.max_xp || 0,
+                            gold: privateData ? (privateData.gold || 0) : null,
+                            credits: privateData ? (privateData.credits || 0) : null,
+                            free_xp: privateData ? (privateData.free_xp || 0) : null,
                             winRate: totalBattles > 0 ? (totalWins / totalBattles * 100).toFixed(1) : 0,
                             fragsPerBattle: totalBattles > 0 ? (totalFrags / totalBattles).toFixed(2) : 0,
                             avgDamage: totalBattles > 0 ? (totalDamageDealt / totalBattles).toFixed(0) : 0,
@@ -256,13 +260,24 @@ function createLestaSyncModule(deps) {
             const needsHeartbeat = (nowSec - lastHistoryAt) >= deps.historyHeartbeatSec;
             const hasActivity = statsChanged || effectiveFragsDifference > 0 || battlesDifference > 0;
 
+            const resourcesChanged =
+                stats.gold !== (state.lesta_last_gold ?? null) ||
+                stats.credits !== (state.lesta_last_credits ?? null) ||
+                stats.free_xp !== (state.lesta_last_free_xp ?? null);
+
             if (!hasActivity) {
+                const heartbeatUpdates = { lesta_last_sync_time: nowSec };
+                if (resourcesChanged) {
+                    heartbeatUpdates.lesta_last_gold = stats.gold;
+                    heartbeatUpdates.lesta_last_credits = stats.credits;
+                    heartbeatUpdates.lesta_last_free_xp = stats.free_xp;
+                }
                 if (needsHeartbeat) {
-                    deps.updateAppState({ lesta_last_sync_time: nowSec }, (err) => {
+                    deps.updateAppState(heartbeatUpdates, (err) => {
                         if (!err) deps.insertLestaStatsSnapshot(stats, 0, previousCounters, state.lesta_account_id);
                     });
                 } else {
-                    deps.updateAppState({ lesta_last_sync_time: nowSec }, () => {});
+                    deps.updateAppState(heartbeatUpdates, () => {});
                 }
                 return;
             }
@@ -287,6 +302,9 @@ function createLestaSyncModule(deps) {
                 lesta_last_survived_battles: stats.survived_battles,
                 lesta_last_win_and_survived: stats.win_and_survived,
                 lesta_last_max_xp: stats.max_xp,
+                lesta_last_gold: stats.gold,
+                lesta_last_credits: stats.credits,
+                lesta_last_free_xp: stats.free_xp,
                 lesta_previous_frags: currentFrags,
                 lesta_last_sync_time: nowSec
             };
@@ -386,15 +404,25 @@ function createLestaSyncModule(deps) {
         console.log('🔄 Запуск автосинхронизации Lesta Games...');
         deps.ensureLestaReliableSince();
 
+        const DEFAULT_INTERVAL_MS = 20 * 1000;
+        // Пока активен gold-tracker (отслеживание трат/дохода золота за сессию
+        // открытия контейнеров), опрашиваем чаще — точнее ловим отдельные события
+        // между опросами. Всё ещё далеко от реальных лимитов Lesta API (единичный
+        // аккаунт, не пачка запросов), поэтому безопасно.
+        const GOLD_TRACKER_INTERVAL_MS = 1000;
+
         const syncLesta = async () => {
+            let nextDelayMs = DEFAULT_INTERVAL_MS;
             try {
                 const stats = await getLestaPlayerStats();
                 if (stats) applyLestaStats(stats);
             } catch (error) {
                 console.error('❌ Ошибка автосинхронизации Lesta Games:', error.message);
             } finally {
-                // Повторяем каждые 20 секунд (реже — меньше нагрузка на Lesta и SQLite)
-                lestaSyncTimer = setTimeout(syncLesta, 20 * 1000);
+                deps.getAppState((state) => {
+                    nextDelayMs = (state && state.gold_tracker_active) ? GOLD_TRACKER_INTERVAL_MS : DEFAULT_INTERVAL_MS;
+                    lestaSyncTimer = setTimeout(syncLesta, nextDelayMs);
+                });
             }
         };
 

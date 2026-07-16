@@ -38,10 +38,6 @@ body {
   align-items: center;
   gap: calc(var(--h) * 0.32);
   height: var(--h);
-  padding: 0 calc(var(--h) * 0.28);
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: calc(var(--h) * 0.18);
 }
 .platform {
   display: flex;
@@ -51,38 +47,34 @@ body {
   transition: opacity 0.3s ease;
 }
 .platform.connected { opacity: 1; }
-.dot {
-  width: calc(var(--h) * 0.16);
-  height: calc(var(--h) * 0.16);
-  border-radius: 50%;
+.icon {
+  width: calc(var(--h) * 0.32);
+  height: calc(var(--h) * 0.32);
   flex: 0 0 auto;
+  border-radius: calc(var(--h) * 0.06);
 }
-.platform.yt .dot { background: var(--yt); }
-.platform.vk .dot { background: var(--vk); }
-.platform.tw .dot { background: var(--tw); }
+.platform.yt .icon { background: var(--yt); }
+.platform.vk .icon { background: var(--vk); }
+.platform.tw .icon { background: var(--tw); }
+.icon svg { width: 100%; height: 100%; display: block; }
 .count {
   font-size: calc(var(--h) * 0.34);
   font-weight: 700;
   text-shadow: var(--text-hard-shadow);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-}
-.sep {
-  width: 1px;
-  height: calc(var(--h) * 0.5);
-  background: var(--line);
   flex: 0 0 auto;
 }
 .total {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: calc(var(--h) * 0.12);
 }
-.total .label {
-  font-size: calc(var(--h) * 0.2);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.6);
+.total .eye {
+  width: calc(var(--h) * 0.34);
+  height: calc(var(--h) * 0.34);
+  flex: 0 0 auto;
+  filter: drop-shadow(1px 1px 0 rgba(0, 0, 0, 0.85));
 }
 .total .count {
   font-size: calc(var(--h) * 0.42);
@@ -93,22 +85,27 @@ body {
 <body>
   <div class="scale" id="scale">
     <div class="widget">
+      <div class="total">
+        <svg class="eye" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z" stroke="#ffb066" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="#ffb066"/></svg>
+        <span class="count" id="totalCount">0</span>
+      </div>
       <div class="platform yt" id="ytRow">
-        <span class="dot"></span>
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8 18V6l10 6-10 6Z" fill="#fff"/></svg>
+        </span>
         <span class="count" id="ytCount">0</span>
       </div>
       <div class="platform vk" id="vkRow">
-        <span class="dot"></span>
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 6.5c.15 6.9 3.55 11.1 9.6 11.1h.35v-3.85c2.2.22 3.86 1.83 4.53 3.85h3.02c-.85-3.1-3.08-4.81-4.47-5.46 1.39-.8 3.35-2.75 3.81-5.13h-2.75c-.6 2.06-2.41 3.94-4.14 4.13V6h-2.75v7.15c-1.75-.44-3.97-2.47-4.06-7.15H4Z" fill="#fff"/></svg>
+        </span>
         <span class="count" id="vkCount">0</span>
       </div>
       <div class="platform tw" id="twRow">
-        <span class="dot"></span>
+        <span class="icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 3 3.5 6.5v13H8V22l3-2.5h3.5L20.5 14V3H5Zm13.5 10-3 3h-3.5L9 18.5V16H5.5V4.5h13V13Z" fill="#fff"/><path d="M15.5 7h1.5v4h-1.5V7ZM11.5 7H13v4h-1.5V7Z" fill="#fff"/></svg>
+        </span>
         <span class="count" id="twCount">0</span>
-      </div>
-      <div class="sep"></div>
-      <div class="total">
-        <span class="label">Всего</span>
-        <span class="count" id="totalCount">0</span>
       </div>
     </div>
   </div>

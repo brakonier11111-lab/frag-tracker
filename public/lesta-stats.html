@@ -656,7 +656,7 @@
 
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         @media (max-width: 768px) {
@@ -873,6 +873,39 @@
                                 <span id="fragsPerBattle">—</span>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-block" style="margin-top:16px;">
+                <div class="stat-block-title">Ресурсы аккаунта</div>
+                <div class="metric-grid">
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Золото</div>
+                        <div class="metric-cell-value" id="lestaGold">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Кредиты</div>
+                        <div class="metric-cell-value" id="lestaCredits">—</div>
+                    </div>
+                    <div class="metric-cell">
+                        <div class="metric-cell-label">Свободный опыт</div>
+                        <div class="metric-cell-value" id="lestaFreeXp">—</div>
+                    </div>
+                </div>
+                <p class="section-hint" id="lestaResourcesHint" style="display:none;">Доступно только при авторизации через Lesta OAuth.</p>
+
+                <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
+                        <span style="font-weight:600;">Отслеживание трат золота (открытие контейнеров):</span>
+                        <span id="goldTrackerStatus" style="color:rgba(255,255,255,0.6);">Не запущено</span>
+                        <button class="btn btn-success" id="goldTrackerStartBtn" onclick="startGoldTracker()">▶ Старт отслеживания</button>
+                        <button class="btn btn-danger hidden" id="goldTrackerStopBtn" onclick="stopGoldTracker()">■ Стоп</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span style="color:rgba(255,255,255,0.6);font-size:0.9rem;">🔗 Виджет для OBS:</span>
+                        <input type="text" class="form-input" id="goldTrackerWidgetLink" readonly onclick="this.select()" style="flex:1;min-width:220px;">
+                        <button class="btn btn-info" onclick="copyGoldTrackerLink()">📋 Копировать</button>
                     </div>
                 </div>
             </div>
@@ -1176,6 +1209,13 @@
             if (Date.now() - lastPeriodLoadAt > 60000) {
                 loadPeriodStats(currentPeriod);
             }
+
+            // Ресурсы аккаунта (доступны только с OAuth access_token)
+            const hasResources = state.lesta_last_gold !== null && state.lesta_last_gold !== undefined;
+            document.getElementById('lestaGold').textContent = hasResources ? formatNumber(state.lesta_last_gold) : '—';
+            document.getElementById('lestaCredits').textContent = hasResources ? formatNumber(state.lesta_last_credits) : '—';
+            document.getElementById('lestaFreeXp').textContent = hasResources ? formatNumber(state.lesta_last_free_xp) : '—';
+            document.getElementById('lestaResourcesHint').style.display = hasResources ? 'none' : 'block';
 
             // Обновляем полную статистику
             updateFullStatsDisplay(state);
@@ -1566,6 +1606,87 @@
                 }
             }, 1000);
         }
+
+        function initGoldTrackerLink() {
+            const input = document.getElementById('goldTrackerWidgetLink');
+            if (input) input.value = `${location.origin}/widget-gold-tracker.html`;
+        }
+
+        function copyGoldTrackerLink() {
+            const input = document.getElementById('goldTrackerWidgetLink');
+            if (!input) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(input.value).catch(() => {
+                    input.select();
+                    document.execCommand('copy');
+                });
+            } else {
+                input.select();
+                document.execCommand('copy');
+            }
+        }
+
+        function updateGoldTrackerUI(data) {
+            const statusEl = document.getElementById('goldTrackerStatus');
+            const startBtn = document.getElementById('goldTrackerStartBtn');
+            const stopBtn = document.getElementById('goldTrackerStopBtn');
+            if (!statusEl || !startBtn || !stopBtn) return;
+
+            if (data.active) {
+                const net = data.net || 0;
+                const netFormatted = (net >= 0 ? '+' : '') + formatNumber(net);
+                statusEl.textContent = `Идёт: изменение за сессию ${netFormatted}`;
+                statusEl.style.color = 'var(--neon-green)';
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+            } else {
+                statusEl.textContent = 'Не запущено';
+                statusEl.style.color = 'rgba(255,255,255,0.6)';
+                startBtn.classList.remove('hidden');
+                stopBtn.classList.add('hidden');
+            }
+        }
+
+        function loadGoldTrackerStatus() {
+            fetch('/api/gold-tracker/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) updateGoldTrackerUI(data);
+                })
+                .catch(error => console.error('Ошибка загрузки статуса gold-tracker:', error));
+        }
+
+        function startGoldTracker() {
+            fetch('/api/gold-tracker/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadGoldTrackerStatus();
+                    } else {
+                        alert('❌ Ошибка: ' + (data.error || 'не удалось запустить'));
+                    }
+                })
+                .catch(error => alert('❌ Ошибка подключения: ' + error.message));
+        }
+
+        function stopGoldTracker() {
+            fetch('/api/gold-tracker/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadGoldTrackerStatus();
+                    } else {
+                        alert('❌ Ошибка: ' + (data.error || 'не удалось остановить'));
+                    }
+                })
+                .catch(error => alert('❌ Ошибка подключения: ' + error.message));
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initGoldTrackerLink();
+            loadGoldTrackerStatus();
+            setInterval(loadGoldTrackerStatus, 5000);
+        });
 
         function testStats() {
             fetch('/api/lesta-test-stats')

@@ -436,25 +436,10 @@
             margin-bottom: 20px;
         }
 
-        .price-display {
-            text-align: center;
-            margin-bottom: 15px;
-        }
-
-        .price-label {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-
-        .price-value {
-            font-family: 'Orbitron', monospace;
-            font-size: 2rem;
-            font-weight: 900;
-            color: var(--neon-yellow);
-            text-shadow: 0 0 15px var(--neon-yellow);
+        .price-settings .form-input,
+        .price-settings input[type="checkbox"] {
+            position: relative;
+            z-index: 2;
         }
 
         .widget-link {
@@ -734,17 +719,13 @@
                     <div class="price-settings">
                         <!-- Обычный заказ -->
                         <div style="margin-bottom: 20px;">
-                            <div class="price-display">
-                                <div class="price-label" id="orderPriceLabelDisplay">Заказ танка</div>
-                                <div class="price-value" id="orderPriceDisplay">0₽</div>
-                            </div>
                             <div class="form-group">
-                                <label class="form-label">Установить цену</label>
-                                <input type="number" class="form-input" id="orderPriceInput" placeholder="Цена за заказ танка" min="0">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Надпись в виджете</label>
+                                <label class="form-label" for="orderPriceLabelInput">Надпись в виджете</label>
                                 <input type="text" class="form-input" id="orderPriceLabelInput" placeholder="Заказ танка" value="Заказ танка">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="orderPriceInput">Установить цену</label>
+                                <input type="number" class="form-input" id="orderPriceInput" placeholder="Цена за заказ танка" min="0">
                             </div>
                             <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                                 <input type="checkbox" id="orderPriceEnabled" checked style="width: 20px; height: 20px; cursor: pointer;">
@@ -755,17 +736,13 @@
 
                         <!-- Приоритетный заказ -->
                         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
-                            <div class="price-display">
-                                <div class="price-label" id="orderPricePriorityLabelDisplay">Приоритетный заказ</div>
-                                <div class="price-value" id="orderPricePriorityDisplay">0₽</div>
-                            </div>
                             <div class="form-group">
-                                <label class="form-label">Установить цену приоритетного заказа</label>
-                                <input type="number" class="form-input" id="orderPricePriorityInput" placeholder="Цена за приоритетный заказ танка" min="0">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Надпись в виджете</label>
+                                <label class="form-label" for="orderPricePriorityLabelInput">Надпись в виджете</label>
                                 <input type="text" class="form-input" id="orderPricePriorityLabelInput" placeholder="Приоритетный заказ" value="Приоритетный заказ">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="orderPricePriorityInput">Установить цену приоритетного заказа</label>
+                                <input type="number" class="form-input" id="orderPricePriorityInput" placeholder="Цена за приоритетный заказ танка" min="0">
                             </div>
                             <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                                 <input type="checkbox" id="orderPricePriorityEnabled" checked style="width: 20px; height: 20px; cursor: pointer;">
@@ -776,17 +753,13 @@
 
                         <!-- Мегаприоритет -->
                         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
-                            <div class="price-display">
-                                <div class="price-label" id="orderPriceMegaLabelDisplay">Мегаприоритет</div>
-                                <div class="price-value" id="orderPriceMegaDisplay">0₽</div>
-                            </div>
                             <div class="form-group">
-                                <label class="form-label">Установить цену мегаприоритета</label>
-                                <input type="number" class="form-input" id="orderPriceMegaInput" placeholder="Цена за мегаприоритет танка" min="0">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Надпись в виджете</label>
+                                <label class="form-label" for="orderPriceMegaLabelInput">Надпись в виджете</label>
                                 <input type="text" class="form-input" id="orderPriceMegaLabelInput" placeholder="Мегаприоритет" value="Мегаприоритет">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="orderPriceMegaInput">Установить цену мегаприоритета</label>
+                                <input type="number" class="form-input" id="orderPriceMegaInput" placeholder="Цена за мегаприоритет танка" min="0">
                             </div>
                             <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                                 <input type="checkbox" id="orderPriceMegaEnabled" checked style="width: 20px; height: 20px; cursor: pointer;">
@@ -804,17 +777,13 @@
                             </div>
 
                             <div id="top1Section" style="display: none;">
-                                <div class="price-display">
-                                    <div class="price-label" id="orderPriceTop1LabelDisplay">Заказ танка до топ 1</div>
-                                    <div class="price-value" id="orderPriceTop1Display">0₽</div>
-                                </div>
                                 <div class="form-group">
-                                    <label class="form-label">Установить цену до топ 1</label>
-                                    <input type="number" class="form-input" id="orderPriceTop1Input" placeholder="Цена за заказ танка до топ 1" min="0">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Надпись в виджете</label>
+                                    <label class="form-label" for="orderPriceTop1LabelInput">Надпись в виджете</label>
                                     <input type="text" class="form-input" id="orderPriceTop1LabelInput" placeholder="Заказ танка до топ 1" value="Заказ танка до топ 1">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="orderPriceTop1Input">Установить цену до топ 1</label>
+                                    <input type="number" class="form-input" id="orderPriceTop1Input" placeholder="Цена за заказ танка до топ 1" min="0">
                                 </div>
                                 <button class="btn btn-warning" onclick="setOrderPriceTop1()" style="width: 100%;">Установить цену до топ 1</button>
                             </div>
@@ -1074,14 +1043,10 @@
         const currentTankName = document.getElementById('currentTankName');
         const currentTankPrice = document.getElementById('currentTankPrice');
         const currentTankConditions = document.getElementById('currentTankConditions');
-        const orderPriceDisplay = document.getElementById('orderPriceDisplay');
         const orderPriceInput = document.getElementById('orderPriceInput');
-        const orderPriceLabelDisplay = document.getElementById('orderPriceLabelDisplay');
         const orderPriceLabelInput = document.getElementById('orderPriceLabelInput');
         const orderPriceEnabledCheckbox = document.getElementById('orderPriceEnabled');
-        const orderPriceTop1Display = document.getElementById('orderPriceTop1Display');
         const orderPriceTop1Input = document.getElementById('orderPriceTop1Input');
-        const orderPriceTop1LabelDisplay = document.getElementById('orderPriceTop1LabelDisplay');
         const orderPriceTop1LabelInput = document.getElementById('orderPriceTop1LabelInput');
         // priceInfoInput удален - теперь используется карусель
         const quickPrice150 = document.getElementById('quickPrice150');
@@ -1480,142 +1445,64 @@
             }
         }
 
+        function isFieldFocused(el) {
+            return el && document.activeElement === el;
+        }
+
+        function setInputIfNotFocused(el, value) {
+            if (el && !isFieldFocused(el)) el.value = value;
+        }
+
+        function setCheckboxIfNotFocused(el, checked) {
+            if (el && !isFieldFocused(el) && el.checked !== checked) el.checked = checked;
+        }
+
         function updateOrderPriceDisplay() {
             // #region agent log
             fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:updateOrderPriceDisplay:entry',message:'updateOrderPriceDisplay called',data:{orderPrice,orderPricePriority,orderPriceMega,priceCarouselLength:priceCarousel?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
             // #endregion
-            isUpdatingDisplay = true; // Устанавливаем флаг
-            
-            // Получаем элементы DOM для приоритетных и мегаприоритетных цен
-            const orderPricePriorityDisplay = document.getElementById('orderPricePriorityDisplay');
+            isUpdatingDisplay = true;
+
             const orderPricePriorityInput = document.getElementById('orderPricePriorityInput');
-            const orderPricePriorityLabelDisplay = document.getElementById('orderPricePriorityLabelDisplay');
             const orderPricePriorityLabelInput = document.getElementById('orderPricePriorityLabelInput');
             const orderPricePriorityEnabledCheckbox = document.getElementById('orderPricePriorityEnabled');
-            const orderPriceMegaDisplay = document.getElementById('orderPriceMegaDisplay');
             const orderPriceMegaInput = document.getElementById('orderPriceMegaInput');
-            const orderPriceMegaLabelDisplay = document.getElementById('orderPriceMegaLabelDisplay');
             const orderPriceMegaLabelInput = document.getElementById('orderPriceMegaLabelInput');
             const orderPriceMegaEnabledCheckbox = document.getElementById('orderPriceMegaEnabled');
-            
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/d63c9a7e-cdfe-4c2e-b5f1-63aeebe2d8f2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tank-queue.html:updateOrderPriceDisplay:dom_check',message:'DOM elements check',data:{orderPriceDisplay:!!orderPriceDisplay,orderPriceInput:!!orderPriceInput,queueList:!!queueList},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
-            
-            // Обновляем отображение основной цены
-            if (orderPriceDisplay) {
-                orderPriceDisplay.textContent = `${orderPrice}₽`;
-            }
-            if (orderPriceInput) {
-                orderPriceInput.value = orderPrice;
-            }
-            if (orderPriceLabelDisplay) {
-                orderPriceLabelDisplay.textContent = orderPriceLabel;
-            }
-            if (orderPriceLabelInput) {
-                orderPriceLabelInput.value = orderPriceLabel;
-            }
-            if (orderPriceEnabledCheckbox && orderPriceEnabledCheckbox.checked !== orderPriceEnabled) {
-                orderPriceEnabledCheckbox.checked = orderPriceEnabled;
-            }
-            
-            if (orderPriceTop1Display) {
-                orderPriceTop1Display.textContent = `${orderPriceTop1}₽`;
-            }
-            if (orderPriceTop1Input) {
-                orderPriceTop1Input.value = orderPriceTop1;
-            }
-            if (orderPriceTop1LabelDisplay) {
-                orderPriceTop1LabelDisplay.textContent = orderPriceTop1Label;
-            }
-            if (orderPriceTop1LabelInput) {
-                orderPriceTop1LabelInput.value = orderPriceTop1Label;
-            }
 
-            // priceInfoInput удален - теперь используется карусель
-            // priceInfo сохраняется для обратной совместимости, но не отображается в UI
-            
-            // Обновляем приоритетные цены
-            if (orderPricePriorityDisplay) orderPricePriorityDisplay.textContent = `${orderPricePriority}₽`;
-            if (orderPricePriorityInput) orderPricePriorityInput.value = orderPricePriority;
-            if (orderPricePriorityLabelDisplay) orderPricePriorityLabelDisplay.textContent = orderPricePriorityLabel;
-            if (orderPricePriorityLabelInput) orderPricePriorityLabelInput.value = orderPricePriorityLabel;
-            if (orderPricePriorityEnabledCheckbox && orderPricePriorityEnabledCheckbox.checked !== orderPricePriorityEnabled) {
-                orderPricePriorityEnabledCheckbox.checked = orderPricePriorityEnabled;
-            }
-            
-            if (orderPriceMegaDisplay) orderPriceMegaDisplay.textContent = `${orderPriceMega}₽`;
-            if (orderPriceMegaInput) orderPriceMegaInput.value = orderPriceMega;
-            if (orderPriceMegaLabelDisplay) orderPriceMegaLabelDisplay.textContent = orderPriceMegaLabel;
-            if (orderPriceMegaLabelInput) orderPriceMegaLabelInput.value = orderPriceMegaLabel;
-            if (orderPriceMegaEnabledCheckbox && orderPriceMegaEnabledCheckbox.checked !== orderPriceMegaEnabled) {
-                orderPriceMegaEnabledCheckbox.checked = orderPriceMegaEnabled;
-            }
-            
-            // Обновляем поля карусели
-            console.log('🔄 Обновление полей карусели, данные:', priceCarousel);
+            setInputIfNotFocused(orderPriceInput, orderPrice);
+            setInputIfNotFocused(orderPriceLabelInput, orderPriceLabel);
+            setCheckboxIfNotFocused(orderPriceEnabledCheckbox, orderPriceEnabled);
+
+            setInputIfNotFocused(orderPriceTop1Input, orderPriceTop1);
+            setInputIfNotFocused(orderPriceTop1LabelInput, orderPriceTop1Label);
+
+            setInputIfNotFocused(orderPricePriorityInput, orderPricePriority);
+            setInputIfNotFocused(orderPricePriorityLabelInput, orderPricePriorityLabel);
+            setCheckboxIfNotFocused(orderPricePriorityEnabledCheckbox, orderPricePriorityEnabled);
+
+            setInputIfNotFocused(orderPriceMegaInput, orderPriceMega);
+            setInputIfNotFocused(orderPriceMegaLabelInput, orderPriceMegaLabel);
+            setCheckboxIfNotFocused(orderPriceMegaEnabledCheckbox, orderPriceMegaEnabled);
+
             if (priceCarousel && Array.isArray(priceCarousel)) {
-                // Убеждаемся, что массив имеет 5 элементов
                 while (priceCarousel.length < 5) {
                     priceCarousel.push({ text: '', enabled: false });
                 }
                 for (let i = 0; i < 5; i++) {
                     const textInput = document.getElementById(`priceCarouselText${i + 1}`);
                     const enabledCheckbox = document.getElementById(`priceCarouselEnabled${i + 1}`);
-                    if (textInput) {
-                        // Всегда устанавливаем значение, даже если оно пустое или null
-                        const item = priceCarousel[i];
-                        const textValue = (item && item.text !== undefined && item.text !== null) ? String(item.text) : '';
-                        textInput.value = textValue;
-                        console.log(`  Поле ${i + 1}: "${textValue}" (тип: ${typeof item?.text}, длина: ${textValue.length}, элемент: ${item ? JSON.stringify(item) : 'null'})`);
-                    } else {
-                        console.error(`❌ Поле ${i + 1}: элемент textInput не найден в DOM (priceCarouselText${i + 1})`);
-                    }
-                    if (enabledCheckbox) {
-                        const item = priceCarousel[i];
-                        const enabledValue = (item && item.enabled !== undefined) ? item.enabled : (i < 2);
-                        enabledCheckbox.checked = enabledValue;
-                        console.log(`  Чекбокс ${i + 1}: ${enabledValue}`);
-                    } else {
-                        console.error(`❌ Поле ${i + 1}: элемент enabledCheckbox не найден в DOM (priceCarouselEnabled${i + 1})`);
-                    }
-                }
-            } else {
-                // Если карусель не загружена, очищаем все поля
-                console.log('⚠️ Карусель пуста или не загружена, очищаем поля');
-                for (let i = 1; i <= 5; i++) {
-                    const textInput = document.getElementById(`priceCarouselText${i}`);
-                    const enabledCheckbox = document.getElementById(`priceCarouselEnabled${i}`);
-                    if (textInput) textInput.value = '';
-                    if (enabledCheckbox) enabledCheckbox.checked = i <= 2; // Первые два включены по умолчанию
+                    const item = priceCarousel[i];
+                    const textValue = (item && item.text !== undefined && item.text !== null) ? String(item.text) : '';
+                    const enabledValue = (item && item.enabled !== undefined) ? item.enabled : (i < 2);
+                    setInputIfNotFocused(textInput, textValue);
+                    setCheckboxIfNotFocused(enabledCheckbox, enabledValue);
                 }
             }
-            
-            // Обновляем поле интервала
+
             const intervalInput = document.getElementById('priceCarouselInterval');
-            if (intervalInput) {
-                intervalInput.value = priceCarouselInterval || 15;
-            }
-            
-            // Обновляем приоритетные цены (дублируем для надежности)
-            if (orderPricePriorityDisplay) orderPricePriorityDisplay.textContent = `${orderPricePriority}₽`;
-            if (orderPricePriorityInput) orderPricePriorityInput.value = orderPricePriority;
-            if (orderPricePriorityLabelDisplay) orderPricePriorityLabelDisplay.textContent = orderPricePriorityLabel;
-            if (orderPricePriorityLabelInput) orderPricePriorityLabelInput.value = orderPricePriorityLabel;
-            if (orderPricePriorityEnabledCheckbox && orderPricePriorityEnabledCheckbox.checked !== orderPricePriorityEnabled) {
-                orderPricePriorityEnabledCheckbox.checked = orderPricePriorityEnabled;
-            }
-            
-            if (orderPriceMegaDisplay) orderPriceMegaDisplay.textContent = `${orderPriceMega}₽`;
-            if (orderPriceMegaInput) orderPriceMegaInput.value = orderPriceMega;
-            if (orderPriceMegaLabelDisplay) orderPriceMegaLabelDisplay.textContent = orderPriceMegaLabel;
-            if (orderPriceMegaLabelInput) orderPriceMegaLabelInput.value = orderPriceMegaLabel;
-            if (orderPriceMegaEnabledCheckbox && orderPriceMegaEnabledCheckbox.checked !== orderPriceMegaEnabled) {
-                orderPriceMegaEnabledCheckbox.checked = orderPriceMegaEnabled;
-            }
-            
-            // Обновляем быстрые кнопки
-            // Обновляем быстрые кнопки
+            setInputIfNotFocused(intervalInput, priceCarouselInterval || 15);
+
             if (quickPrice150) quickPrice150.textContent = orderPrice;
             if (quickPrice500) quickPrice500.textContent = orderPriceTop1;
             const quickPricePriority = document.getElementById('quickPricePriority');
@@ -1629,7 +1516,6 @@
             if (quickLabelPriority) quickLabelPriority.innerHTML = `${orderPricePriorityLabel} (<span id="quickPricePriority">${orderPricePriority}</span>₽)`;
             if (quickLabelMega) quickLabelMega.innerHTML = `${orderPriceMegaLabel} (<span id="quickPriceMega">${orderPriceMega}</span>₽)`;
 
-            // Обновляем плейсхолдеры компактных полей быстрого изменения цены
             const quickPriceEdit150 = document.getElementById('quickPriceEdit150');
             const quickPriceEditPriority = document.getElementById('quickPriceEditPriority');
             const quickPriceEditMega = document.getElementById('quickPriceEditMega');
@@ -1639,7 +1525,6 @@
             if (quickPriceEditMega) quickPriceEditMega.placeholder = orderPriceMega;
             if (quickPriceEdit500) quickPriceEdit500.placeholder = orderPriceTop1;
 
-            // Сбрасываем флаг после небольшой задержки
             setTimeout(() => {
                 isUpdatingDisplay = false;
             }, 50);
@@ -2296,6 +2181,30 @@
             saveData();
         }
 
+        function handleOrderPricePriorityLabelBlur() {
+            orderPricePriorityLabel = document.getElementById('orderPricePriorityLabelInput').value.trim() || 'Приоритетный заказ';
+            saveData();
+        }
+
+        function handleOrderPriceMegaLabelBlur() {
+            orderPriceMegaLabel = document.getElementById('orderPriceMegaLabelInput').value.trim() || 'Мегаприоритет';
+            saveData();
+        }
+
+        function handleOrderPricePriorityEnabledChange(e) {
+            if (e) e.stopPropagation();
+            if (isUpdatingDisplay) return;
+            orderPricePriorityEnabled = document.getElementById('orderPricePriorityEnabled').checked;
+            saveData();
+        }
+
+        function handleOrderPriceMegaEnabledChange(e) {
+            if (e) e.stopPropagation();
+            if (isUpdatingDisplay) return;
+            orderPriceMegaEnabled = document.getElementById('orderPriceMegaEnabled').checked;
+            saveData();
+        }
+
         // Функция для инициализации обработчиков событий
         function initEventHandlers() {
             // Обработчики для автоматического сохранения при изменении чекбоксов
@@ -2317,6 +2226,35 @@
             if (orderPriceTop1LabelInput) {
                 orderPriceTop1LabelInput.removeEventListener('blur', handleOrderPriceTop1LabelBlur);
                 orderPriceTop1LabelInput.addEventListener('blur', handleOrderPriceTop1LabelBlur);
+            }
+
+            const orderPricePriorityLabelInput = document.getElementById('orderPricePriorityLabelInput');
+            const orderPriceMegaLabelInput = document.getElementById('orderPriceMegaLabelInput');
+            const orderPricePriorityEnabledCheckbox = document.getElementById('orderPricePriorityEnabled');
+            const orderPriceMegaEnabledCheckbox = document.getElementById('orderPriceMegaEnabled');
+
+            if (orderPricePriorityLabelInput) {
+                orderPricePriorityLabelInput.removeEventListener('blur', handleOrderPricePriorityLabelBlur);
+                orderPricePriorityLabelInput.addEventListener('blur', handleOrderPricePriorityLabelBlur);
+            }
+
+            if (orderPriceMegaLabelInput) {
+                orderPriceMegaLabelInput.removeEventListener('blur', handleOrderPriceMegaLabelBlur);
+                orderPriceMegaLabelInput.addEventListener('blur', handleOrderPriceMegaLabelBlur);
+            }
+
+            if (orderPricePriorityEnabledCheckbox) {
+                orderPricePriorityEnabledCheckbox.removeEventListener('change', handleOrderPricePriorityEnabledChange);
+                orderPricePriorityEnabledCheckbox.removeEventListener('click', handleOrderPricePriorityEnabledChange);
+                orderPricePriorityEnabledCheckbox.addEventListener('click', handleOrderPricePriorityEnabledChange);
+                orderPricePriorityEnabledCheckbox.addEventListener('change', handleOrderPricePriorityEnabledChange);
+            }
+
+            if (orderPriceMegaEnabledCheckbox) {
+                orderPriceMegaEnabledCheckbox.removeEventListener('change', handleOrderPriceMegaEnabledChange);
+                orderPriceMegaEnabledCheckbox.removeEventListener('click', handleOrderPriceMegaEnabledChange);
+                orderPriceMegaEnabledCheckbox.addEventListener('click', handleOrderPriceMegaEnabledChange);
+                orderPriceMegaEnabledCheckbox.addEventListener('change', handleOrderPriceMegaEnabledChange);
             }
         }
 

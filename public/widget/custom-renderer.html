@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Виджет</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { background: transparent; overflow: hidden; }
+        #stage { position: relative; transform-origin: top left; }
+        .wc-element { position: absolute; display: flex; align-items: center; justify-content: center; padding: 8px 14px; white-space: nowrap; }
+        .wc-element img { max-width: 100%; max-height: 100%; display: block; }
+        .wc-progress-track { position: relative; width: 100%; height: 100%; background: rgba(255,255,255,0.12); overflow: hidden; border-radius: inherit; }
+        .wc-progress-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0%; transition: width 0.4s ease; background: inherit; }
+        .wc-type-list, .wc-type-video { display: block; padding: 0; overflow: hidden; }
+        .wc-list { list-style: none; width: 100%; height: 100%; overflow: hidden; padding: 8px 14px; }
+        .wc-list li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: inherit; }
+        .wc-list li .wc-list-rank { opacity: 0.6; margin-right: 6px; }
+        .wc-type-video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .wc-type-chart { display: block; padding: 4px; }
+        .wc-chart svg { width: 100%; height: 100%; display: block; }
+    </style>
+</head>
+<body>
+    <div id="stage"></div>
+
+    <script src="/widget/constructor-runtime.js"></script>
+    <script>
+        (function () {
+            const widgetId = location.pathname.split('/').filter(Boolean).pop();
+            const params = new URLSearchParams(location.search);
+            const scale = Math.max(1, Math.min(3, parseFloat(params.get('scale')) || 1));
+            const profileId = params.get('profile') || null;
+
+            const stage = document.getElementById('stage');
+            let widget = null;
+            let sources = [];
+            const elementNodes = new Map(); // elementId -> {node, def}
+            const chartHistory = new Map(); // elementId -> number[]
+            const pollTimers = [];
+
+            // Стиль элемента с учётом OBS-профиля из ?profile= (см. widget-builder.html:
+            // getElementStyle) — если для профиля нет оверрайда, используется базовый стиль.
+            function resolveStyleForProfile(def) {
+                if (!profileId || !def.profileOverrides || !def.profileOverrides[profileId]) return def.style;
+                return def.profileOverrides[profileId];
+            }
+
+            function sourceFor(moduleId) {
+                return sources.find(s => s.moduleId === moduleId);
+            }
+
+            function renderStage() {
+                stage.style.width = widget.canvasWidth + 'px';
+                stage.style.height = widget.canvasHeight + 'px';
+                stage.style.transform = 'scale(' + scale + ')';
+                document.body.style.width = (widget.canvasWidth * scale) + 'px';
+                document.body.style.height = (widget.canvasHeight * scale) + 'px';
+
+                stage.innerHTML = '';
+                elementNodes.clear();
+                widget.elements.forEach(def => {
+                    const node = document.createElement('div');
+                    node.className = 'wc-element wc-type-' + def.type;
+                    node.style.left = def.position.x + 'px';
+                    node.style.top = def.position.y + 'px';
+                    node.style.width = def.size.width + 'px';
+                    node.style.height = def.size.height + 'px';
+                    applyElementStyle(node, resolveStyleForProfile(def));
+
+                    if (def.type === 'progress_bar') {
+                        node.innerHTML = '<div class="wc-progress-track"><div class="wc-progress-fill"></div></div>';
+                    } else if (def.type === 'image') {
+                        const img = document.createElement('img');
+                        img.src = def.staticValue || '';
+                        node.appendChild(img);
+                    } else if (def.type === 'video') {
+                        const video = document.createElement('video');
+                        video.src = def.staticValue || '';
+                        video.autoplay = true;
+                        video.loop = true;
+                        video.muted = true;
+                        video.playsInline = true;
+                        node.appendChild(video);
+                    } else if (def.type === 'list') {
+                        const ul = document.createElement('ul');
+                        ul.className = 'wc-list';
+                        node.appendChild(ul);
+                    } else if (def.type === 'chart') {
+                        const wrap = document.createElement('div');
+                        wrap.className = 'wc-chart';
+                        wrap.style.width = '100%';
+                        wrap.style.height = '100%';
+                        node.appendChild(wrap);
+                        chartHistory.set(def.id, []);
+                    } else {
+                        node.textContent = def.staticValue || '';
+                    }
+
+                    stage.appendChild(node);
+                    elementNodes.set(def.id, { node, def });
+                });
+
+                applyVisibility();
+                updateAllFromSnapshots();
+            }
+
+            function applyVisibility(def, value) {
+                if (def) {
+                    const { node } = elementNodes.get(def.id) || {};
+                    if (!node) return;
+                    if (!def.visibility) { node.style.display = ''; return; }
+                    const match = value === def.visibility.equals;
+                    node.style.display = match ? '' : 'none';
+                    return;
+                }
+                // первичный проход по всем элементам без свежего значения — просто показать
+                elementNodes.forEach(({ node, def }) => { if (!def.visibility) node.style.display = ''; });
+            }
+
+            function setElementValue(def, value) {
+                const { node } = elementNodes.get(def.id) || {};
+                if (!node) return;
+                if (def.type === 'progress_bar') {
+                    const fill = node.querySelector('.wc-progress-fill');
+                    const pct = Math.max(0, Math.min(100, Number(value) || 0));
+                    if (fill) fill.style.width = pct + '%';
+                } else if (def.type === 'image') {
+                    const img = node.querySelector('img');
+                    if (img && value) img.src = value;
+                } else if (def.type === 'video') {
+                    // video обычно статичный фон, но допускаем биндинг URL (напр. динамический фон)
+                    const video = node.querySelector('video');
+                    if (video && value && video.src !== value) video.src = value;
+                } else if (def.type === 'list') {
+                    renderList(node.querySelector('.wc-list'), Array.isArray(value) ? value : [], def.listConfig);
+                } else if (def.type === 'chart') {
+                    renderChart(node.querySelector('.wc-chart'), def, Number(value));
+                } else {
+                    node.textContent = formatValue(value);
+                }
+                if (def.visibility && def.binding && def.visibility.field === def.binding.field) {
+                    applyVisibility(def, value);
+                }
+            }
+
+            // Виджет сам копит историю значений, пока открыт (нет источника временных
+            // рядов на сервере) — рисуем простой SVG-спарклайн по последним N точкам.
+            function renderChart(container, def, value) {
+                if (!container || isNaN(value)) return;
+                const maxPoints = (def.chartConfig && def.chartConfig.maxPoints) || 30;
+                const history = chartHistory.get(def.id) || [];
+                history.push(value);
+                while (history.length > maxPoints) history.shift();
+                chartHistory.set(def.id, history);
+                if (history.length < 2) return;
+
+                const w = 300, h = 100;
+                const min = Math.min(...history);
+                const max = Math.max(...history);
+                const range = (max - min) || 1;
+                const step = w / (history.length - 1);
+                const points = history.map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / range) * h).toFixed(1)}`).join(' ');
+
+                const color = (resolveStyleForProfile(def).custom && resolveStyleForProfile(def).custom.color) || '#00ff9d';
+                container.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+                    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+                </svg>`;
+            }
+
+            function renderList(ul, items, listConfig) {
+                if (!ul) return;
+                const cfg = listConfig || {};
+                const maxItems = cfg.maxItems || 5;
+                const itemFields = cfg.itemFields && cfg.itemFields.length ? cfg.itemFields : Object.keys(items[0] || {}).slice(0, 2);
+                ul.innerHTML = '';
+                items.slice(0, maxItems).forEach((item, i) => {
+                    const li = document.createElement('li');
+                    const label = getByPath(item, itemFields[0]);
+                    const val = itemFields[1] ? getByPath(item, itemFields[1]) : null;
+                    li.innerHTML = '<span><span class="wc-list-rank">' + (i + 1) + '.</span>' + formatValue(label) + '</span>' +
+                        (itemFields[1] ? '<span>' + formatValue(val) + '</span>' : '');
+                    ul.appendChild(li);
+                });
+            }
+
+            function applyBindingUpdate(moduleId, payload) {
+                widget.elements.forEach(def => {
+                    if (!def.binding || def.binding.moduleId !== moduleId) return;
+                    const value = getByPath(payload, def.binding.field);
+                    setElementValue(def, value);
+                    if (def.visibility) {
+                        const visValue = getByPath(payload, def.visibility.field);
+                        applyVisibility(def, visValue);
+                    }
+                });
+            }
+
+            function fetchSnapshot(source) {
+                if (!source.restEndpoint) return;
+                fetch(source.restEndpoint).then(r => r.json()).then(data => {
+                    // Разные модули по-разному оборачивают снапшот в REST-ответе; пробуем
+                    // ключ из реестра (совпадает с payloadPath у WS-модулей), затем частые
+                    // обёртки, и в последнюю очередь берём ответ как есть.
+                    const payload = (source.payloadPath && data[source.payloadPath] !== undefined) ? data[source.payloadPath]
+                        : (data.data !== undefined ? data.data
+                        : (data.widget !== undefined ? data.widget
+                        : (data.state !== undefined ? data.state
+                        : (data.poll !== undefined ? data.poll
+                        : data))));
+                    applyBindingUpdate(source.moduleId, payload);
+                }).catch(() => {});
+            }
+
+            function updateAllFromSnapshots() {
+                const usedModules = new Set(widget.elements.filter(e => e.binding).map(e => e.binding.moduleId));
+                usedModules.forEach(moduleId => {
+                    const source = sourceFor(moduleId);
+                    if (source) fetchSnapshot(source);
+                });
+            }
+
+            function startPolling() {
+                pollTimers.forEach(t => clearInterval(t));
+                pollTimers.length = 0;
+                const usedModules = new Set(widget.elements.filter(e => e.binding).map(e => e.binding.moduleId));
+                usedModules.forEach(moduleId => {
+                    const source = sourceFor(moduleId);
+                    if (source && !source.messageType && source.restEndpoint) {
+                        pollTimers.push(setInterval(() => fetchSnapshot(source), 5000));
+                    }
+                });
+            }
+
+            function connectWS() {
+                const ws = new WebSocket((location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws');
+                ws.onmessage = (evt) => {
+                    let m;
+                    try { m = JSON.parse(evt.data); } catch (e) { return; }
+                    const source = sources.find(s => s.messageType === m.type);
+                    if (!source) return;
+                    if (source.refetchOnMessage) { fetchSnapshot(source); return; }
+                    const payload = source.payloadPath ? m[source.payloadPath] : m;
+                    applyBindingUpdate(source.moduleId, payload);
+                };
+                ws.onclose = () => setTimeout(connectWS, 3000);
+                ws.onerror = () => ws.close();
+            }
+
+            Promise.all([
+                fetch('/api/widgets/' + widgetId).then(r => r.json()),
+                fetch('/api/widgets/data-sources').then(r => r.json())
+            ]).then(([widgetRes, sourcesRes]) => {
+                if (!widgetRes.success) {
+                    document.body.textContent = 'Виджет не найден';
+                    return;
+                }
+                widget = widgetRes.data;
+                sources = (sourcesRes.sources || []);
+                renderStage();
+                startPolling();
+                connectWS();
+            }).catch(() => {
+                document.body.textContent = 'Ошибка загрузки виджета';
+            });
+        })();
+    </script>
+</body>
+</html>
