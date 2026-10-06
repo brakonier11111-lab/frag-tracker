@@ -249,17 +249,22 @@ function initFx() {
     cv.width = window.innerWidth; cv.height = window.innerHeight;
     ctx = cv.getContext('2d');
     window.addEventListener('resize', () => { cv.width = window.innerWidth; cv.height = window.innerHeight; });
-    (function loop() {
-        ctx.clearRect(0, 0, cv.width, cv.height);
-        parts.forEach(p => {
-            p.x += p.vx; p.y += p.vy; p.vy += p.g || 0.15; p.life -= p.decay;
-            ctx.globalAlpha = Math.max(0, p.life);
-            ctx.fillStyle = p.color;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-        });
-        parts = parts.filter(p => p.life > 0 && p.y < cv.height + 40);
-        requestAnimationFrame(loop);
-    })();
+}
+
+// Цикл крутится только пока летят частицы: пустой canvas, который очищали каждый
+// кадр, заставлял OBS перерисовывать источник постоянно и грузил видеокарту.
+let fxRaf = 0;
+function fxLoop() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    parts.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += p.g || 0.15; p.life -= p.decay;
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    });
+    parts = parts.filter(p => p.life > 0 && p.y < cv.height + 40);
+    fxRaf = parts.length ? requestAnimationFrame(fxLoop) : 0;
+    if (!fxRaf) ctx.clearRect(0, 0, cv.width, cv.height);
 }
 
 function burst(color, count) {
@@ -272,6 +277,7 @@ function burst(color, count) {
             g: 0.18, color, r: 2 + Math.random() * 3, life: 1, decay: 0.012 + Math.random() * 0.012
         });
     }
+    if (!fxRaf && parts.length) fxRaf = requestAnimationFrame(fxLoop);
 }
 
 function flash() {

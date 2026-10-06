@@ -334,6 +334,32 @@ function createWindow() {
     // перехвата редирект всё равно подменял бы главное окно.
     mainWindow.webContents.on('will-redirect', interceptExternalNav);
 
+    // Пока фокус в игре, окно панели остаётся видимым (второй монитор, свёрнутая
+    // игра в окне) и продолжает рисовать CSS-анимации на той же видеокарте.
+    // Ставим все анимации на паузу, пока окно не в фокусе.
+    let pausedCssKey = null;
+    const pauseAnimations = async () => {
+        if (!mainWindow || pausedCssKey) return;
+        try {
+            pausedCssKey = await mainWindow.webContents.insertCSS(
+                '*, *::before, *::after { animation-play-state: paused !important; transition: none !important; }'
+            );
+        } catch (_) { pausedCssKey = null; }
+    };
+    const resumeAnimations = async () => {
+        if (!mainWindow || !pausedCssKey) return;
+        const key = pausedCssKey;
+        pausedCssKey = null;
+        try { await mainWindow.webContents.removeInsertedCSS(key); } catch (_) { /* noop */ }
+    };
+    mainWindow.on('blur', pauseAnimations);
+    mainWindow.on('focus', resumeAnimations);
+    mainWindow.webContents.on('did-navigate', () => {
+        // insertCSS живёт до перехода на другую страницу
+        pausedCssKey = null;
+        if (!mainWindow.isFocused()) pauseAnimations();
+    });
+
     mainWindow.on('close', (event) => {
         if (!isQuitting) {
             event.preventDefault();

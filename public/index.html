@@ -64,13 +64,10 @@
                 radial-gradient(40% 35% at 85% 12%, rgba(255, 90, 120, 0.16), transparent 60%),
                 radial-gradient(38% 32% at 10% 90%, rgba(110, 90, 255, 0.14), transparent 60%),
                 radial-gradient(30% 30% at 55% 45%, rgba(40, 210, 180, 0.07), transparent 60%);
-            animation: meshDrift 22s ease-in-out infinite alternate;
+            /* Фон статичный: бесконечная анимация под backdrop-filter стеклянных
+               панелей заставляла видеокарту перерисовывать размытие каждый кадр
+               и отнимала FPS у игры. */
             filter: saturate(1.1);
-        }
-        @keyframes meshDrift {
-            0%   { transform: translate3d(0, 0, 0) scale(1); }
-            50%  { transform: translate3d(2.5%, -2%, 0) scale(1.08); }
-            100% { transform: translate3d(-2%, 2.5%, 0) scale(1.04); }
         }
         .bg-fx .grain {
             position: absolute;

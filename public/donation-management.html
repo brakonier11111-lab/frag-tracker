@@ -561,16 +561,15 @@
     body.theme-neon.theme-2026 {
         background: #0e0e12 !important;
     }
-    /* живой фон */
+    /* фон */
     body.theme-neon.theme-2026::before {
         content: '';
         position: fixed; inset: 0; z-index: 0; pointer-events: none;
         background:
             radial-gradient(45% 35% at 88% 6%, rgba(255,90,120,.14), transparent 60%),
             radial-gradient(40% 35% at 6% 96%, rgba(110,90,255,.12), transparent 60%);
-        animation: ddmDrift 24s ease-in-out infinite alternate;
+        /* статичный: анимация фона на весь экран грузила видеокарту во время игры */
     }
-    @keyframes ddmDrift { 0%{transform:translate3d(0,0,0)} 100%{transform:translate3d(2%,2%,0) scale(1.06)} }
     body.theme-neon.theme-2026 > *:not(script) { position: relative; z-index: 1; }
 
     /* HERO-шапка */

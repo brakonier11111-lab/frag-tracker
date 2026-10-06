@@ -2064,6 +2064,9 @@
 
         let timerInterval = null; // legacy
         let rafId = null;
+        // Таймер показывает только секунды: перерисовка каждый кадр (rAF) лишь
+        // грузила OBS и видеокарту во время игры. 4 тика в секунду достаточно.
+        const TIMER_TICK_MS = 250;
         let baselineStartMs = null;
         let baselineStartSeconds = 0;
         let streamStartTime = null;
@@ -2330,12 +2333,12 @@
 
         function startAnimationLoop() {
             if (rafId) return;
-            rafId = requestAnimationFrame(animationTick);
+            rafId = setTimeout(animationTick, 0);
         }
 
         function stopAnimationLoop() {
             if (rafId) {
-                cancelAnimationFrame(rafId);
+                clearTimeout(rafId);
                 rafId = null;
             }
             if (timerInterval) {
@@ -2356,7 +2359,7 @@
             const nowMs = Date.now();
             if (currentState.timer_paused || baselineStartMs == null) {
                 renderMainTimerOnly();
-                rafId = requestAnimationFrame(animationTick);
+                rafId = setTimeout(animationTick, TIMER_TICK_MS);
                 return;
             }
             const factor = getEffectiveFactor(nowMs);
@@ -2375,7 +2378,7 @@
                 renderMainTimerOnly();
                 return;
             }
-            rafId = requestAnimationFrame(animationTick);
+            rafId = setTimeout(animationTick, TIMER_TICK_MS);
         }
 
         function updateServerTimer() {

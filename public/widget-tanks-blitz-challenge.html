@@ -590,10 +590,14 @@ function flash(big){ const f=document.getElementById('flash'); f.classList.remov
     if(big){ const c=document.getElementById('card'); c.classList.add('shake'); setTimeout(()=>c.classList.remove('shake'),520);} }
 
 let ctx,parts=[],cv;
-function initFx(){ cv=document.getElementById('fx'); const rz=()=>{cv.width=innerWidth;cv.height=innerHeight;}; rz(); addEventListener('resize',rz); ctx=cv.getContext('2d');
-    (function loop(){ ctx.clearRect(0,0,cv.width,cv.height); parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.g||0;p.life-=p.decay;
+// Частицы сюда никто не добавляет, а пустой canvas очищался каждый кадр —
+// OBS перерисовывал источник постоянно. Цикл запускается только при наличии частиц.
+let fxRaf=0;
+function fxLoop(){ ctx.clearRect(0,0,cv.width,cv.height); parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.g||0;p.life-=p.decay;
         ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();});
-        parts=parts.filter(p=>p.life>0&&p.y<cv.height+40); requestAnimationFrame(loop); })(); }
+        parts=parts.filter(p=>p.life>0&&p.y<cv.height+40); fxRaf=parts.length?requestAnimationFrame(fxLoop):0; }
+function startFx(){ if(!fxRaf&&ctx&&parts.length) fxRaf=requestAnimationFrame(fxLoop); }
+function initFx(){ cv=document.getElementById('fx'); const rz=()=>{cv.width=innerWidth;cv.height=innerHeight;}; rz(); addEventListener('resize',rz); ctx=cv.getContext('2d'); startFx(); }
 </script>
 </body>
 </html>
