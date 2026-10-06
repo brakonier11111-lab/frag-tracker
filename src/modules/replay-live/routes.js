@@ -11,6 +11,11 @@ const path = require('path');
 
 function createReplayLiveRoutes(api) {
     function registerRoutes(app) {
+        app.use('/api/replay-live', (req, res, next) => {
+            api.touchDemand();
+            next();
+        });
+
         app.get('/api/replay-live', (req, res) => {
             res.json({ success: true, data: api.getState() });
         });

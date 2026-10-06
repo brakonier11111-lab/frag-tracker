@@ -5,10 +5,15 @@ const path = require('path');
 const { readYandexMusicNowPlaying, readYandexMusicArt, DEFAULT_APP_IDS } = require('./windowsMedia');
 
 const MODULE_VERSION = 'yandex-music-v2-art';
-const DEFAULT_POLL_MS = 1500;
+const DEFAULT_POLL_MS = 3000;
+// Каждый опрос запускает powershell.exe — тяжёлый процесс. Поэтому опрашиваем
+// только пока виджет/страница реально запрашивают /api/yandex-music.
+const IDLE_STOP_MS = 60000;
 
 function createYandexMusicModule(deps) {
     let timer = null;
+    let idleTimer = null;
+    let lastDemandAt = 0;
     let polling = false;
     let artPolling = false;
     let config = {
@@ -169,11 +174,25 @@ function createYandexMusicModule(deps) {
         if (!config.enabled) return;
         pollOnce();
         timer = setInterval(pollOnce, Math.max(800, Number(config.pollIntervalMs) || DEFAULT_POLL_MS));
+        lastDemandAt = Math.max(lastDemandAt, Date.now());
+        idleTimer = setInterval(() => {
+            if (Date.now() - lastDemandAt > IDLE_STOP_MS) {
+                stopPolling();
+                console.log('[yandex-music] опрос остановлен: виджет не открыт');
+            }
+        }, 15000);
     }
 
     function stopPolling() {
         if (timer) clearInterval(timer);
         timer = null;
+        if (idleTimer) clearInterval(idleTimer);
+        idleTimer = null;
+    }
+
+    function touchDemand() {
+        lastDemandAt = Date.now();
+        if (!timer && config.enabled && process.platform === 'win32') startPolling();
     }
 
     function getState() {
@@ -189,6 +208,11 @@ function createYandexMusicModule(deps) {
     }
 
     function registerRoutes(app) {
+        app.use('/api/yandex-music', (req, res, next) => {
+            touchDemand();
+            next();
+        });
+
         app.get('/api/yandex-music/now-playing', (req, res) => {
             res.json({ success: true, data: getState() });
         });
@@ -250,7 +274,7 @@ function createYandexMusicModule(deps) {
             state.error = 'Только Windows (System Media API)';
             return;
         }
-        startPolling();
+        // Опрос стартует при первом запросе виджета (ленивый запуск)
         console.log('[yandex-music] page: /yandex-music · widget: /widget-yandex-music');
     }
 

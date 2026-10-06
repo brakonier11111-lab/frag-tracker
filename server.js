@@ -17,6 +17,12 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+// Сервер работает рядом с игрой: пониженный приоритет, чтобы планировщик Windows
+// всегда отдавал процессор игре первой (дочерние процессы его наследуют).
+try {
+    os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
+} catch (_) { /* noop */ }
+
 const express = require('express');
 const axios = require('axios');
 // Системный HTTP_PROXY/HTTPS_PROXY (используется для доступа к заблокированным

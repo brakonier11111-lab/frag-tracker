@@ -11,6 +11,12 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 const { spawn, execSync } = require('child_process');
+const os = require('os');
+
+// Приложение работает рядом с игрой — не конкурируем с ней за процессор.
+try {
+    os.setPriority(process.pid, os.constants.priority.PRIORITY_BELOW_NORMAL);
+} catch (_) { /* noop */ }
 
 const PORT = Number(process.env.PORT) || 3000;
 const SERVER_URL = `http://127.0.0.1:${PORT}/`;

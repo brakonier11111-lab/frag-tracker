@@ -126,6 +126,12 @@ function createReplayLiveModule(deps) {
     sanitizeGameCacheReplaysDir();
     let timer = null;
     let watcher = null;
+    // Ленивый запуск: модуль следит за файлами игры только пока виджет/страница
+    // реально опрашивают /api/replay-live. Без зрителей — ноль нагрузки на ПК.
+    const IDLE_STOP_MS = 60000;
+    let lastDemandAt = 0;
+    let idleTimer = null;
+    let watchPollTimer = null;
     let lastFinishedPath = '';
     let playbackSession = {
         path: '',
@@ -2005,13 +2011,13 @@ function createReplayLiveModule(deps) {
                 try {
                     dirWatchers.push(fs.watch(dir, { persistent: false }, () => {
                         if (isExtraDir) scheduleExtraDirReplayPoll();
-                        else poll();
+                        else schedulePollFromWatch();
                     }));
                 } catch (_) { /* noop */ }
             }
             const gameCacheDir = replayCacheDir(resolveGameCacheReplaysDir());
             if (fs.existsSync(gameCacheDir)) {
-                dirWatchers.push(fs.watch(gameCacheDir, { persistent: false }, () => poll()));
+                dirWatchers.push(fs.watch(gameCacheDir, { persistent: false }, () => schedulePollFromWatch()));
             }
             if (dirWatchers.length) {
                 watcher = {
@@ -2025,6 +2031,13 @@ function createReplayLiveModule(deps) {
         } catch (err) {
             console.warn('[replay-live] fs.watch failed:', err.message);
         }
+        lastDemandAt = Math.max(lastDemandAt, Date.now());
+        idleTimer = setInterval(() => {
+            if (Date.now() - lastDemandAt > IDLE_STOP_MS) {
+                stopWatcher();
+                console.log('[replay-live] watcher stopped: виджет не открыт');
+            }
+        }, 15000);
         console.log('[replay-live] watcher started:', {
             game: config.gameInstallDir || detectGameInstallDir() || '(unknown)',
             gameCache: replayCacheDir(resolveGameCacheReplaysDir()),
@@ -2032,9 +2045,28 @@ function createReplayLiveModule(deps) {
         });
     }
 
+    // Игра пишет в кеш реплеев много раз в секунду — без склейки событий каждое
+    // срабатывание fs.watch перечитывало и разбирало файл боя целиком.
+    function schedulePollFromWatch() {
+        if (watchPollTimer || !timer) return;
+        watchPollTimer = setTimeout(() => {
+            watchPollTimer = null;
+            if (timer) poll();
+        }, 500);
+    }
+
+    function touchDemand() {
+        lastDemandAt = Date.now();
+        if (!timer) startWatcher();
+    }
+
     function stopWatcher() {
         if (timer) clearInterval(timer);
         timer = null;
+        if (idleTimer) clearInterval(idleTimer);
+        idleTimer = null;
+        if (watchPollTimer) clearTimeout(watchPollTimer);
+        watchPollTimer = null;
         if (watcher) {
             try { watcher.close(); } catch (_) { /* noop */ }
             watcher = null;
@@ -2062,6 +2094,7 @@ function createReplayLiveModule(deps) {
 
     const { registerRoutes, registerPages } = createReplayLiveRoutes({
         appRoot: deps.appRoot,
+        touchDemand,
         getState,
         getConfig: () => config,
         saveConfig,
@@ -2083,7 +2116,8 @@ function createReplayLiveModule(deps) {
     });
 
     function init() {
-        startWatcher();
+        // Не стартуем сразу: слежение включится при первом запросе виджета.
+        console.log('[replay-live] ждёт открытия виджета (ленивый запуск)');
     }
 
     return {
